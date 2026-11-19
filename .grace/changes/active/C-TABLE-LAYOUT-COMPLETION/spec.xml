@@ -1,0 +1,69 @@
+<GraceChangeSpec graceVersion="4.0" status="approved">
+  <C-TABLE-LAYOUT-COMPLETION>
+  <Relationship>Necessary C-TABLE-LAYOUT-COMPLETION work from the paused program decision registry (delegated technical); composed on current main after the 2026-11-19 handover-chain merge. Baselines cited in the private reviews are historical; the plan re-verifies anchors on the fresh head.</Relationship>
+    <Summary>Give TableResize one explicit completion stage for layout-affecting operations and read-only refreshes, with operation cause and profile-write permission separate from geometry readiness.</Summary>
+    <Problem>Original COMPLEX:F-003 remains: mode changes, pointer completion and three reset branches independently sequence walls/cue/persistence; six persist call sites remain across three handlers. Pure fit maths and one serializer already exist. Ten historically selected methods, four supporting modules and two test files totalling 104 tests are semantically unchanged since prior proof. Current safeguards are positive mechanisms; no new user-visible geometry failure is claimed.</Problem>
+    <Goals>
+      <Goal>Introduce one internal TableResize completion method owning the documented final sequence of wrapping, clipping/repaint, external/internal walls, toolbar/cue synchronization and authorized profile commit after appropriate mode/wrapper/width preparation. Callers provide operation cause and model result instead of repeating completion policy.</Goal>
+      <Goal>Route mode choices, drag preview/completion, wall/whole/partial resets, adoption, render reconciliation, refit, refresh, window resize and scroll through that common completion policy. Preserve distinct geometry prerequisites and read-only paths; a helper used only by Auto/reset does not close the finding.</Goal>
+      <Goal>Keep existing pure maths, entry identity, schema, serializer, persistence gate and asynchronous lifecycle fences. Make the distinction between user intent, preview/non-writing refresh and deferred geometry explicit, then verify real browser layout in both existing engines.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Preserve Auto content sizing and explicit reset, fixed Auto wrapping after reconciliation, Fit/Full frame fitting and adjacent-pair resizing, ratios, 48 px drag floor or existing pressure adaptation, explicit side-wall widths, no real horizontal clipping/scroll degradation and current toolbar/handle behavior. Do not change sizing formulas or introduce a new layout algorithm.</Constraint>
+      <Constraint>Mode classes and Full wrapper geometry needed for measurement remain before the width plan. Final wall measurements must follow all layout-affecting writes that move their anchors. Cue synchronization reads geometry and writes native scrollbar-height CSS as well as captions; the approved plan documents its exact ordering and verifies resulting geometry rather than blindly moving it to an assumed final position.</Constraint>
+      <Constraint>The common stage has an explicit operation cause and write permit. Read-only render/reconcile/refit/adoption/window/scroll and pointer previews never dispatch profile writes. Qualifying mode/reset actions retain current writes, including a mode choice when hidden/zero geometry prevents fitting. Do not derive authorization solely from successful measurement or serialized inequality.</Constraint>
+      <Constraint>Preserve current moved predicates for column and wall terminal gestures, including return-to-start/no-move baseline rollback. Pointercancel retains its current shared pointerup semantics; no new cancel/rollback policy. Preserve paired manual flags, ratios, entry objects and pointer-down geometry through refits. Keep listener/class cleanup and chip/fade behavior before/around completion as currently observable.</Constraint>
+      <Constraint>One qualifying terminal user action calls the existing persist boundary once, retaining current same-mode/reset/no-op decisions. The serializer synchronizes identities with adoptPersisted:false, replaces this.persisted before dispatch and honors rememberTableColumnSizes. Keep persist and serializeTableLayouts behavior unchanged; do not adopt an old host snapshot during a write.</Constraint>
+      <Constraint>Preserve hidden/zero geometry fallback, retry on a later measurable pass, no caching of a null measurement, generation/container/membership guarded delayed adoption, existing refit debounce/rAF, observer behavior and transform-preserving repaint cleanup. Do not make a new global missing-figure/measurement guard suppress a currently valid semantic user commit; retain existing bare/detached-target guard outcomes.</Constraint>
+      <Constraint>Keep natural Auto reset free of fixed widths, recreate its side walls, keep Full breakout/internal zones aligned and Fit/Full outer edges pinned. Partial reset in Fit/Full must still fit before persistence. Preserve the accepted one-way ghost-tail clipping and previous transforms; no CSS hiding of real data to satisfy geometry assertions.</Constraint>
+      <Constraint>Keep tableFit.js, tableCue.js, renderer store/profile schema, preferences, CSS/template literals, render/index.js and eventHandler/resize.js byte-identical. Shared cue helpers remain usable by independent read-only expandNeed refreshes; this scope consolidates TableResize completion, not every app-wide caption call.</Constraint>
+      <Constraint>ObservedWriteScope: the single product file in scope is src/muya/lib/tableResize/index.js. Test changes are limited to the new focused completion suite tests/renderer/muya/table-layout-completion.test.js, the existing tests/renderer/muya/table-layout-persistence.test.js and tests/renderer/muya/table-column-resize.test.js suites, and scoped assertions added to the existing tests/e2e/table-modes.spec.ts, tests/e2e/table-column-resize.spec.ts, tests/e2e/table-width-persistence.spec.ts and tests/e2e/table-ui-regressions.spec.ts scenarios. Bookkeeping is limited to current M-012/M-061 and V-M-012/V-M-061 records and the matching runtime/performance graph and verification files. No other product, CSS, template, renderer or infrastructure file is in scope.</Constraint>
+      <Constraint>No Markdown/history/dirty changes, new DOM event routes, UI design/copy, persistence schema/IO/queue fix or generic transaction framework. UNIFY:F-001 lifecycle and UNIFY:F-003 schema remain independent; their pending decisions grant no authority here. There is no cross-window/storage rollback or atomic DOM transaction promise.</Constraint>
+      <Constraint>Implement sequentially through integ/techdebt with a fresh collecting or next unused td-N, bound exactly by the approved plan. Do not reuse merged td-1 or move the product current pointer/Project mirror. Full lane checks and admission are required; main departure remains a separate explicit owner decision.</Constraint>
+      <Constraint>No dependencies, package/lock, CI/Playwright configuration, retries/skips/floor reductions, owner documents/profiles, new signing/C-50 work, release version/tag, dispatch or publication. Browser engines do not substitute for mandatory native/owner/platform verdicts; no exception is implied.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>No new table mode, geometry/math rewrite, visual redesign, rollback framework, gesture cancel policy, schema/lifecycle unification or performance gain claim.</NonGoal>
+      <NonGoal>No closure from a smaller Auto-only/reset-only extraction, moved handler, source-equivalent diagram or local green tests without complete migration/delivery/acceptance.</NonGoal>
+      <NonGoal>No blanket one-call rule for geometry previews/observers or elimination of independent read-only cue consumers. Profile write authorization is the controlled effect; real measurement may require distinct preparation and completion passes.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>All listed TableResize operation/refresh paths use one documented completion policy with explicit cause/write permission. Geometry preparation and planning remain distinct from completion; action handlers no longer independently assemble the final walls/toolbar/cue/persist sequence. The existing persist serializer has one authorized completion call site rather than six independent handler sites.</Criterion>
+      <Criterion>Actual TableResize tests characterize mode Auto/Fit/Full including repeated choice and hidden geometry, column/wall preview and terminal gesture, no-move/return-to-start/cancel, wall reset, whole reset and partial fitted reset. Assert final widths/manual/ratios/mode, profile event counts/content and absence of preview/refresh/adoption writes, not only invocation of a new helper.</Criterion>
+      <Criterion>Preserve current entry identity across observer refit and sequential adjacent gestures, fixed/natural Auto reconciliation and reset, framed outer-edge guards, generation-fenced adoption, stale/detached/bare targets, remember-off and teardown. Mutation controls must detect a refresh write permit and old-snapshot re-adoption during user persistence.</Criterion>
+      <Criterion>Run existing table-layout-persistence and table-column-resize suites plus a focused completion suite. Retain independent expected behavior and current pending/DOM/model boundaries; historical 104 tests are baseline evidence now, not new implementation verification.</Criterion>
+      <Criterion>Run actual-renderer table-modes, table-column-resize, table-width-persistence and table-ui-regressions in Chromium and webkit-tables. Cover mode/drag/reset/reopen sequences, narrow frames, hidden-to-visible measurement, font/window geometry refresh, wrap/no real overflow, final full-height/internal/external wall alignment, toolbar/caption facts and stable Markdown/history. Add missing scoped assertions without altering config or weakening current cases.</Criterion>
+      <Criterion>Before a qualifying profile dispatch, model and final measurable surfaces agree; zero geometry retains the current deferred-layout semantics and valid user mode/reset persistence. A no-move pointer does not freeze natural width. Read-only completion and adoption do not persist; lifecycle teardown cancels owned work and preserves prior transforms.</Criterion>
+      <Criterion>Update M-012/M-061 and V-M-012/V-M-061 current completion ownership, contracts/maps, source links and executed evidence. Preserve frozen legacy artifacts and distinguish browser proof from separate native/owner/platform acceptance.</Criterion>
+      <Criterion>Current/target/final lifecycle commands, suitable local/browser and full exact-head lane checks, deterministic review/commit/push gates pass without weakened assertions. Apply/archive follows fresh end-state proof and explicit decision. Lane admission and later separately authorized main departure remain traceable.</Criterion>
+      <Criterion>Close/remove task-owned test apps/processes/binaries and retain source/recipe/hash/log/screenshot/output evidence. Original 77 records/59 groups accounting stays unchanged; mandatory incomplete delivery or acceptance keeps COMPLEX:F-003 open.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-012 />
+      <M-061 />
+      <M-046 />
+      <File>src/muya/lib/tableResize/index.js</File>
+      <File>tests/renderer/muya/table-layout-completion.test.js</File>
+      <File>tests/renderer/muya/table-layout-persistence.test.js</File>
+      <File>tests/renderer/muya/table-column-resize.test.js</File>
+      <File>tests/e2e/table-modes.spec.ts</File>
+      <File>tests/e2e/table-column-resize.spec.ts</File>
+      <File>tests/e2e/table-width-persistence.spec.ts</File>
+      <File>tests/e2e/table-ui-regressions.spec.ts</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/graph/performance.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+      <File>.grace/verification/performance.xml</File>
+      <LaneBookkeeping>The approved plan resolves exact fresh td-N.json/md bootstrap/admission paths on integ/techdebt if needed. Merged lanes, product current pointer and carrier departure remain unchanged.</LaneBookkeeping>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>node node_modules/vitest/vitest.mjs run tests/renderer/muya/table-layout-completion.test.js tests/renderer/muya/table-layout-persistence.test.js tests/renderer/muya/table-column-resize.test.js</ExpectedCommand>
+      <ExpectedCommand>node node_modules/@playwright/test/cli.js test tests/e2e/table-modes.spec.ts tests/e2e/table-column-resize.spec.ts tests/e2e/table-width-persistence.spec.ts tests/e2e/table-ui-regressions.spec.ts --project=chromium --project=webkit-tables</ExpectedCommand>
+      <ExpectedEvidence>A later approved sequential plan binds exact cause/readiness/write matrix, preparation/completion ordering, actual effect and geometry checks, source immutability controls, lifecycle assertions and lane bookkeeping. Source-only call inventories are not runtime chronology or final acceptance.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>The owner approves this full internal completion-boundary scope with current product behavior intact. A generic transaction service or merely fewer repeated lines would not satisfy the original finding.</Assumption>
+      <Assumption>This draft approves no execution plan, implementation, apply/archive, native/manual exception, lane departure or release. Adjacent approved schema work is reconciled on fresh source without expanding either contract.</Assumption>
+    </Assumptions>
+  </C-TABLE-LAYOUT-COMPLETION>
+</GraceChangeSpec>
