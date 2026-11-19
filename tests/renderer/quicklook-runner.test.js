@@ -1,5 +1,5 @@
 // FILE: tests/renderer/quicklook-runner.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove QuickLook orchestration refuses missing, failed or unbounded evidence.
 //   SCOPE: Temporary source trees and injected host/process results; these doubles are not native boundary proof.
@@ -12,18 +12,29 @@
 //   owned - Temporary roots removed after every orchestration test.
 //   fixture - Minimal isolated runner inputs and deterministic child adapter.
 //   nativeResult - Complete positive result protocol for orchestration tests only.
+//   packagedResource - read the packaged QuickLook css as text for the palette controls.
+//   LIGHT_MEDIA_MARKER - locator of the single prefers-color-scheme light branch.
+//   LIGHT_RULES - parsed rule bodies of the light branch.
+//   DARK_RULES - parsed rule bodies of the dark declarations for coverage comparison.
+//   declarations - split a rule body into its exact declarations.
+//   srgbLinear - linearized sRGB channel for the WCAG luminance formula.
+//   relativeLuminance - WCAG relative luminance of a css hex color.
+//   contrastRatio - unrounded WCAG contrast ratio of two hex colors.
+//   SPEC_LIGHT_CONTRAST - the approved spec's expected unrounded light contrast table.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
 //   - 2026-11-12: bound fixture deletion retries for transient Windows ENOTEMPTY while deadline-failure receipt writes finish.
-//   LAST_CHANGE: 2026-11-12 C-QUICKLOOK-CONTENT-BOUNDARY: fail-closed runner regression matrix.
+//   - 2026-11-20: C-QUICKLOOK-SYNTAX-THEME 26-case protocol pins, theme failure controls and static light-palette coverage.
+//   LAST_CHANGE: 2026-11-20 C-QUICKLOOK-SYNTAX-THEME: 26-case protocol pins and deterministic light-palette coverage.
 // END_CHANGE_SUMMARY
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { promises as fs } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, dirname } from 'node:path'
 import { createServer } from 'node:http'
 import { EventEmitter } from 'node:events'
+import { fileURLToPath } from 'node:url'
 import { REQUIRED_QUICKLOOK_CASES, executeChild, runQuickLookChecks, validateNativeResult } from '../../tools/check-quicklook.mjs'
 
 const owned = []
@@ -57,9 +68,79 @@ async function fixture(native = async () => ({ code: 0, stdout: JSON.stringify(n
   return { root, platform: 'darwin', architecture: 'arm64', execute }
 }
 
+// C-QUICKLOOK-SYNTAX-THEME static palette controls: the 13 light group rules of the
+// appended @media (prefers-color-scheme: light) branch, pinned as exact strings.
+const LIGHT_RULES = Object.freeze([
+  '.hljs,.hljs-subst{color:#1f2328}',
+  '.hljs-doctag,.hljs-keyword,.hljs-meta .hljs-keyword,.hljs-template-tag,.hljs-template-variable,.hljs-type,.hljs-variable.language_{color:#cf222e}',
+  '.hljs-title,.hljs-title.class_,.hljs-title.class_.inherited__,.hljs-title.function_{color:#6f42c1}',
+  '.hljs-attr,.hljs-attribute,.hljs-literal,.hljs-meta,.hljs-number,.hljs-operator,.hljs-selector-attr,.hljs-selector-class,.hljs-selector-id,.hljs-variable{color:#005cc5}',
+  '.hljs-meta .hljs-string,.hljs-regexp,.hljs-string{color:#032f62}',
+  '.hljs-built_in,.hljs-symbol{color:#953800}',
+  '.hljs-code,.hljs-comment,.hljs-formula{color:#656d76}',
+  '.hljs-name,.hljs-quote,.hljs-selector-pseudo,.hljs-selector-tag{color:#116329}',
+  '.hljs-emphasis,.hljs-strong{color:#1f2328}',
+  '.hljs-section{color:#005cc5}',
+  '.hljs-bullet{color:#735c0f}',
+  '.hljs-addition{color:#116329;background-color:#f0fff4}',
+  '.hljs-deletion{color:#b31d28;background-color:#ffeef0}'
+])
+// Original dark rules that must survive the append verbatim.
+const DARK_RULES = Object.freeze([
+  '.hljs{color:#c9d1d9;background:#0d1117}',
+  '.hljs-doctag,.hljs-keyword,.hljs-meta .hljs-keyword,.hljs-template-tag,.hljs-template-variable,.hljs-type,.hljs-variable.language_{color:#ff7b72}',
+  '.hljs-title,.hljs-title.class_,.hljs-title.class_.inherited__,.hljs-title.function_{color:#d2a8ff}',
+  '.hljs-attr,.hljs-attribute,.hljs-literal,.hljs-meta,.hljs-number,.hljs-operator,.hljs-selector-attr,.hljs-selector-class,.hljs-selector-id,.hljs-variable{color:#79c0ff}',
+  '.hljs-meta .hljs-string,.hljs-regexp,.hljs-string{color:#a5d6ff}',
+  '.hljs-built_in,.hljs-symbol{color:#ffa657}',
+  '.hljs-code,.hljs-comment,.hljs-formula{color:#8b949e}',
+  '.hljs-name,.hljs-quote,.hljs-selector-pseudo,.hljs-selector-tag{color:#7ee787}',
+  '.hljs-subst{color:#c9d1d9}',
+  '.hljs-section{color:#1f6feb;font-weight:700}',
+  '.hljs-bullet{color:#f2cc60}',
+  '.hljs-emphasis{color:#c9d1d9;font-style:italic}',
+  '.hljs-strong{color:#c9d1d9;font-weight:700}',
+  '.hljs-addition{color:#aff5b4;background-color:#033a16}',
+  '.hljs-deletion{color:#ffdcd7;background-color:#67060c}'
+])
+// Unrounded WCAG ratios per approved spec palette table (backgrounds per applicable element).
+const SPEC_LIGHT_CONTRAST = Object.freeze([
+  { rule: LIGHT_RULES[0], background: '#f6f8fa', ratio: 14.8392 },
+  { rule: LIGHT_RULES[1], background: '#f6f8fa', ratio: 5.0304 },
+  { rule: LIGHT_RULES[2], background: '#f6f8fa', ratio: 6.1161 },
+  { rule: LIGHT_RULES[3], background: '#f6f8fa', ratio: 5.9111 },
+  { rule: LIGHT_RULES[4], background: '#f6f8fa', ratio: 12.4309 },
+  { rule: LIGHT_RULES[5], background: '#f6f8fa', ratio: 6.937 },
+  { rule: LIGHT_RULES[6], background: '#f6f8fa', ratio: 4.9285 },
+  { rule: LIGHT_RULES[7], background: '#f6f8fa', ratio: 6.9443 },
+  { rule: LIGHT_RULES[8], background: '#f6f8fa', ratio: 14.8392 },
+  { rule: LIGHT_RULES[9], background: '#f6f8fa', ratio: 5.9111 },
+  { rule: LIGHT_RULES[10], background: '#f6f8fa', ratio: 6.0385 },
+  { rule: LIGHT_RULES[11], background: '#f0fff4', ratio: 7.1518 },
+  { rule: LIGHT_RULES[12], background: '#ffeef0', ratio: 6.0004 }
+])
+const LIGHT_MEDIA_MARKER = '@media (prefers-color-scheme: light){'
+const packagedResource = async name => fs.readFile(
+  join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'mark-quicklook/Sources/PreviewExtension/Resources', name),
+  'utf8')
+const declarations = rule => rule.slice(rule.indexOf('{') + 1, -1).split(';')
+const srgbLinear = channel => {
+  const c = channel / 255
+  return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+}
+const relativeLuminance = hex => {
+  const value = Number.parseInt(hex.slice(1), 16)
+  return 0.2126 * srgbLinear((value >> 16) & 255) + 0.7152 * srgbLinear((value >> 8) & 255) + 0.0722 * srgbLinear(value & 255)
+}
+const contrastRatio = (front, back) => {
+  const hi = Math.max(relativeLuminance(front), relativeLuminance(back))
+  const lo = Math.min(relativeLuminance(front), relativeLuminance(back))
+  return (hi + 0.05) / (lo + 0.05)
+}
+
 describe('QuickLook native evidence protocol', () => {
   it('requires every expected case exactly once and an independent zero request count', () => {
-    expect(validateNativeResult(nativeResult())).toBe(24)
+    expect(validateNativeResult(nativeResult())).toBe(26)
     expect(() => validateNativeResult(nativeResult(), 1)).toThrow('QL_NETWORK_REQUESTS')
   })
   it.each([null, {}, { cases: [] }, { cases: nativeResult().cases.slice(1) },
@@ -72,6 +153,69 @@ describe('QuickLook native evidence protocol', () => {
     const result = nativeResult()
     result.cases[0].passed = passed
     expect(() => validateNativeResult(result)).toThrow('QL_NATIVE_CASE_FAILED')
+  })
+  it('freezes exactly the 24 boundary cases plus the required theme cases in order', () => {
+    expect(REQUIRED_QUICKLOOK_CASES).toEqual([
+      'markdown', 'highlight', 'unicode-title', 'embedded-raster',
+      'raw-event-handler', 'raw-script', 'script-terminator', 'mixed-case-terminator',
+      'svg-handler', 'iframe-srcdoc', 'object-embed', 'form', 'javascript-link',
+      'data-svg', 'remote-image', 'fetch-beacon', 'external-navigation', 'new-window',
+      'subframe', 'initial-load', 'missing-file', 'resource-integrity',
+      'file-resource-policy', 'repeat-preview', 'theme-light', 'theme-dark'
+    ])
+  })
+  it('rejects a result missing a required theme case', () => {
+    const result = nativeResult()
+    result.cases = result.cases.filter(row => row.id !== 'theme-dark')
+    expect(() => validateNativeResult(result)).toThrow('QL_CASE_SET_INCOMPLETE')
+  })
+  it('rejects a duplicated theme case', () => {
+    const result = nativeResult()
+    result.cases[0] = { id: 'theme-light', passed: true }
+    expect(() => validateNativeResult(result)).toThrow('QL_CASE_SET_INCOMPLETE')
+  })
+  it.each([false, undefined, 'true', 1])('requires a literal pass from the theme cases (%s)', passed => {
+    const result = nativeResult()
+    result.cases.find(row => row.id === 'theme-light').passed = passed
+    expect(() => validateNativeResult(result)).toThrow('QL_NATIVE_CASE_FAILED')
+  })
+})
+
+describe('QuickLook light syntax palette (C-QUICKLOOK-SYNTAX-THEME)', () => {
+  it('appends exactly one light media branch with the pinned 13 color-only group rules', async () => {
+    const githubDark = await packagedResource('github-dark.css')
+    expect(githubDark.split(LIGHT_MEDIA_MARKER)).toHaveLength(2)
+    const branch = githubDark.slice(
+      githubDark.indexOf(LIGHT_MEDIA_MARKER) + LIGHT_MEDIA_MARKER.length, githubDark.lastIndexOf('}'))
+    expect(branch.split('\n').filter(line => line.length > 0)).toEqual([...LIGHT_RULES])
+    expect(LIGHT_RULES.flatMap(declarations)
+      .every(declaration => /^(background-)?color:#[0-9a-f]{6}$/.test(declaration))).toBe(true)
+  })
+  it('covers every dark color-bearing selector exactly once while every dark rule survives verbatim', async () => {
+    const githubDark = await packagedResource('github-dark.css')
+    const head = githubDark.slice(0, githubDark.indexOf(LIGHT_MEDIA_MARKER)).replace(/\/\*[\s\S]*?\*\//g, '')
+    const darkSelectors = []
+    for (const statement of head.split('}').filter(chunk => chunk.includes('{'))) {
+      const [selectors, body] = statement.split('{')
+      if (/(^|;)color:/.test(body)) darkSelectors.push(...selectors.split(',').map(selector => selector.trim()))
+    }
+    const lightSelectors = LIGHT_RULES.flatMap(rule => rule.slice(0, rule.indexOf('{')).split(','))
+    expect(darkSelectors).toHaveLength(41)
+    expect(lightSelectors).toHaveLength(41)
+    expect(new Set(lightSelectors).size).toBe(41)
+    expect([...darkSelectors].sort()).toEqual([...lightSelectors].sort())
+    for (const rule of DARK_RULES) expect(githubDark).toContain(rule)
+  })
+  it('keeps the applicable light code-block background real', async () => {
+    expect(await packagedResource('style.css')).toContain('--code-bg: #f6f8fa')
+  })
+  it('reaches the 4.5:1 floor and the approved spec ratio for every light group', () => {
+    for (const { rule, background, ratio } of SPEC_LIGHT_CONTRAST) {
+      const foreground = declarations(rule).find(declaration => declaration.startsWith('color:')).slice('color:'.length)
+      const computed = contrastRatio(foreground, background)
+      expect(computed).toBeGreaterThanOrEqual(4.5)
+      expect(Math.abs(computed - ratio)).toBeLessThanOrEqual(0.01)
+    }
   })
 })
 
@@ -104,7 +248,7 @@ describe('QuickLook fail-closed orchestration', () => {
     const options = await fixture()
     const result = await runQuickLookChecks(options)
     expect(result.status).toBe('passed')
-    expect(result.cases).toHaveLength(24)
+    expect(result.cases).toHaveLength(26)
     expect(result.binarySha256).toMatch(/^[a-f0-9]{64}$/)
     expect(result.sources).toHaveLength(9)
     expect(result.sources.every(row => /^[a-f0-9]{64}$/.test(row.sha256))).toBe(true)
