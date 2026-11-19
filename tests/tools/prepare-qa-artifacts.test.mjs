@@ -254,14 +254,13 @@ describe('QA exact archive and signature lifecycle', () => {
     expect(existsSync(archive)).toBe(false); expect(existsSync(signature)).toBe(false)
   })
 
-  it.each(['link', 'directory', 'empty', 'permission'])('fails truthfully on a %s archive without claiming ownership or success', kind => {
+  it.each(['link', 'directory', 'empty'])('fails truthfully on a %s archive without claiming ownership or success', kind => {
     const f = fixture('macos-arm64', 'dryrun')
     const { archive } = qaArchive(f)
     const outside = put(join(f.root, 'outside-archive'), 'outside archive bytes')
     if (kind === 'link') { mkdirSync(dirname(archive), { recursive: true }); symlinkSync(outside, archive, 'file') }
     if (kind === 'directory') put(join(archive, 'inert-entry'), 'directory payload')
     if (kind === 'empty') put(archive, '')
-    if (kind === 'permission') { put(archive, 'permission archive bytes'); chmodSync(archive, 0o000) }
     expect(() => recordGenerated(f.state)).toThrow()
     expect(f.state.owned.some(entry => entry.path === archive)).toBe(false)
     expect(() => cleanupGenerated(f.state)).toThrow()
@@ -269,7 +268,24 @@ describe('QA exact archive and signature lifecycle', () => {
     if (kind === 'link') expect(readFileSync(outside, 'utf8')).toBe('outside archive bytes')
     if (kind === 'directory') expect(existsSync(archive)).toBe(true)
     if (kind === 'empty') expect(readFileSync(archive, 'utf8')).toBe('')
-    if (kind === 'permission') { expect(existsSync(archive)).toBe(true); chmodSync(archive, 0o644) }
+  })
+
+  // POSIX-only companion: chmod 0o000 cannot deny the owner a read on Windows
+  // (Node's chmod there only toggles the readonly flag), so the EACCES shape is
+  // not representable on win32 runners; link/directory/empty cover the same
+  // truthful-failure production path on every platform.
+  it.skipIf(process.platform === 'win32')('fails truthfully on a permission archive without claiming ownership or success', () => {
+    const f = fixture('macos-arm64', 'dryrun')
+    const { archive } = qaArchive(f)
+    put(archive, 'permission archive bytes')
+    chmodSync(archive, 0o000)
+    try {
+      expect(() => recordGenerated(f.state)).toThrow()
+      expect(f.state.owned.some(entry => entry.path === archive)).toBe(false)
+      expect(() => cleanupGenerated(f.state)).toThrow()
+      expect(f.state.generatedCleanupComplete).toBe(false)
+    } finally { chmodSync(archive, 0o644) }
+    expect(existsSync(archive)).toBe(true)
   })
 
   it('retains a changed owned archive without rebinding its digest and still cleans an independent owned executable', () => {
