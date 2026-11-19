@@ -41,6 +41,8 @@
       width="454px"
       center
       dir="ltr"
+      @opened="handleDialogTableOpened"
+      @open-auto-focus="handleDialogTableTrapFocused"
     >
       <template #title>
         <div class="dialog-title">{{ t('editor.insertTable.title') }}</div>
@@ -81,9 +83,9 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.34.1
+// VERSION: 1.35.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration; with the C-LARGE-DOC-WAVE-A T-004 experimental toggle ON, plain document opens mount progressively (visible region first, tail in bounded slices).
+//   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration; the insert-table dialog's initial row-input focus is owned by handleDialogTableOpened — claimed immediately after the Element Plus focus trap's own container focus (the dialog's open-auto-focus → double-nextTick chain, with @opened as the guarded fallback) (C-TABLE-DIALOG-CREATION-VERIFICATION); with the C-LARGE-DOC-WAVE-A T-004 experimental toggle ON, plain document opens mount progressively (visible region first, tail in bounded slices).
 //   SCOPE: C-SPLIT-SAVE-AUTHORITY: committed rich Split snapshots remain eligible with a retained Source preference, subject to pane focus, mirror, owner and IME guards. Unified split document history, focused-pane commands, per-surface caret/IME coordination and render-only synchronization; renderer-side Muya lifecycle and UI orchestration, including active/rendered document ownership, missed-activation recovery and invalidating tab block caches after a footnote grammar change; the C-LARGE-DOC-WAVE-A T-004 orchestration (progressive open-path branch for plain content loads only, scroll-driven prefetch ~3 viewports ahead, the reserved-space ag-tail-pending indication, marker-fed session counters, explicit-scroll gating while a tail is pending); does not own Markdown parsing rules or backend file persistence.
 //   DEPENDS: Muya, muya/lib BLOCK_MOUNT_SERVED/BLOCK_SYNC_REGION_DONE/BLOCK_TAIL_MOUNT_DONE markers (C-LARGE-DOC-WAVE-A T-003), Pinia preferences/editor/project/layout stores, bus, renderer services/utilities, window.electron compatibility facade, @tauri-apps/plugin-clipboard-manager (writeHtml + writeImage), @tauri-apps/plugin-dialog (save), muya/lib/utils/diagramExport (C-56 picture export + image-copy helpers), muya/lib/utils/getImageInfo (C-56 T-006 DOM image info), window.__markImageLoader (the existing read-binary bridge, C-56 T-006), util/tableLayoutStore (C-65 per-file table layout persistence), util/pageWidth + util/pageWidthStore (C-PAGE-WIDTH-TABLES — the width resolution pipeline and the per-document store this host applies), util/autoTheme (the Auto-aware global theme restore behind a pinned surface theme).
 //   LINKS: .grace/changes/archive/C-STABILIZE-PRODUCT-REPAIRS; .grace/graph/runtime.xml M-011.fn-reconcileActiveDocument and M-012/M-063; .grace/verification/runtime.xml V-M-011 scenario-68 and V-M-012; .grace/changes/archive/C-56 (diagram export, embedded-image copy); .grace/changes/archive/C-65 T-001 (the table layout prefs host wiring); .grace/changes/archive/C-LARGE-DOC-WAVE-A (T-004); .grace/changes/archive/C-PAGE-WIDTH-TABLES (the page-width host wiring).
@@ -132,6 +134,8 @@
 //   handleEditorContextMenu - Native right-click menu: undo/redo, cut/copy/paste/select-all roles, Copy as HTML / Plain Text / Structured Text, the C-56 Copy as Image / Save as PNG… / Save as SVG… items (diagram/chart blocks only), Share (C-10/C-11/C-12/C-32/C-56).
 //   Muya options wiring - disableTableColumnResize is set from the mirror prop: the read-only Split View mirror pane gets no column-resize handles (C-39 T-002); reading/locked tabs keep them. C-PAGE-WIDTH-TABLES T-007: the options also carry the Tables-tab preferences under the names muya's table model consumes — tableFullWidthDefault (tri-state 'auto'|'fit'|'full') and rememberTableColumnSizes — with watchers forwarding changes (the mode default re-renders, the gate does not).
 //   handleTableLayoutsChange - C-65 T-001: muya-table-layouts dispatches (fired by muya only after a real resize / reset / Full width toggle) are saved under the active tab's pathname through util/tableLayoutStore; the mirror never persists and untitled tabs never persist.
+//   handleDialogTableOpened - C-TABLE-DIALOG-CREATION-VERIFICATION T-001: the insert-table dialog's initial row-input focus — claimed one tick after the Element Plus FocusTrap's own container focus (handleDialogTableTrapFocused chains the dialog's openAutoFocus → nextTick ×2), guarded so a still-open dialog and a trap-default focus (container/overlay/body) are required and a deliberate user move is never stolen back; @opened runs the same guarded claim as fallback.
+//   handleDialogTableTrapFocused - C-TABLE-DIALOG-CREATION-VERIFICATION T-001: the @open-auto-focus entry (the FocusTrap's focus-after-trapped commit) chaining two nextTicks so the row-input claim lands immediately after the trap's container focus in the same microtask FIFO; no timers, no retries, no trap interference.
 //   applyStoredTableLayouts - C-65 T-001: load the active file's persisted table layouts (prune + cap inside the store util) and hand them to muya.tableResize.applyPersistedLayouts; sequenced per tab so a slow load cannot land on a switched document.
 //   applyHostPageState - C-PAGE-WIDTH-TABLES: the open/tab-switch funnel — re-read the active document's pageWidths entry (prune + cap inside the store util, seq-guarded per tab like applyStoredTableLayouts) and apply the effective width (document > global; the canvas clamp never writes the store) plus the pinned per-document theme; untitled tabs and entry-less documents clear to the global tier without stealing the variable from the legacy writer.
 //   reapplyHostWidthFromCache - C-PAGE-WIDTH-TABLES corner C-3: one --editorAreaWidth property write from the cached entry on canvas changes (window resize, sidebar show/hide/drag commit) — never a content re-render, no store IO on the tick.
@@ -141,6 +145,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   2026-11-19 C-TABLE-DIALOG-CREATION-VERIFICATION T-001: the insert-table dialog's initial row-input focus moves from a pre-trap nextTick claim (overwritten by the Element Plus FocusTrap's opening container focus) to a claim that runs immediately AFTER that container focus — the @open-auto-focus handler chains two nextTicks (the trap registers its container focus on the first), guarded by dialog visibility and trap-default focus, with @opened re-running the same guarded claim as fallback; no timers, no retries, no trap interference, no focus theft after a deliberate user focus move.
 //   EXPORT: 2026-11-12 C-EXPORT-SETTINGS-SECTION: pass the captured Word operation through pageOptions to conversion.
 //   2026-11-11 C-SPLIT-SAVE-AUTHORITY: preserve rich-pane save authority in active Split with a retained Source preference.
 //   - 2026-11-10 C-MD-LINK-TABS: instance-owned link activation validates rendered lifetime/path; link gestures retain read-only Preview and scoped split ownership.
@@ -2440,12 +2445,47 @@ const handleEditParagraph = (type) => {
     tableChecker.rows = 4
     tableChecker.columns = 3
     dialogTableVisible.value = true
-    nextTick(() => {
-      rowInput.value.focus()
-    })
   } else if (editor.value) {
     editor.value.updateParagraph(type)
   }
+}
+
+// Initial row-input focus rides the Element Plus focus trap's own opening
+// sequence. startTrap() commits to the opening focus by dispatching
+// focus-trap.focus-after-trapped — re-emitted by the dialog as
+// `openAutoFocus` — and registers its container focus
+// (focus-start-el="container") on the immediately following tick.
+// Chaining two nextTicks from that event places the claim one position
+// after the trap's container focus in the same microtask FIFO: the first
+// lifecycle point provably later than the trap's opening focus, with no
+// timers and no retries. The same guarded claim body also runs from
+// @opened as a fallback; once the row input or a deliberate user move
+// holds focus, the trap-default guard declines, so nothing is stolen back.
+const handleDialogTableOpened = () => {
+  if (!dialogTableVisible.value) return
+  const active = document.activeElement
+  // The FocusTrap's opening focus lands on the dialog container. In
+  // element-plus 2.x the `custom-class` binding reaches the DOM as a
+  // plain `custom-class` attribute on the .el-dialog root (not as a
+  // class), so the container's real class is `el-dialog`; ag-dialog-table
+  // stays accepted for environments where it ships as a class, and
+  // el-overlay defensively covers a mask-focused trap default. A
+  // deliberate user move to the columns input or a footer button never
+  // matches these defaults, so no focus is stolen.
+  const trapDefault = active === null || active === document.body ||
+    (active instanceof Element && (
+      active.classList.contains('el-dialog') ||
+      active.classList.contains('ag-dialog-table') ||
+      active.classList.contains('el-overlay')
+    ))
+  if (!trapDefault) return
+  rowInput.value?.focus()
+}
+
+const handleDialogTableTrapFocused = () => {
+  nextTick(() => {
+    nextTick(handleDialogTableOpened)
+  })
 }
 
 // handle `duplicate`, `delete`, `create paragraph below`
