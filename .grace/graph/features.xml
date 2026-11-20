@@ -1732,7 +1732,8 @@
         </Attribute>
       </LegacyAttributes>
       <LegacySource>docs/knowledge-graph.xml: M-044; docs/development-plan.xml: M-044</LegacySource>
-    </M-044>
+          <SummaryDelta>C-CLIPBOARD-CAPTURE-SINGLE-SOURCE: tools/generate-clipboard-capture.mjs deterministically regenerates capture-core.browser.js from the ESM capture-core via vite transformWithEsbuild (IIFE, fixed options, LF-normalized, comment-projected); --check gates freshness; the five window keys keep their exact order and bytes.</SummaryDelta>
+</M-044>
     <M-045>
       <SummaryDelta>C-STABILIZE-NATIVE-PROFILE-CLOSEOUT: configured immutable application identity routes native credential services, default-handler targeting and extension endpoint/discovery. Canonical release identity and macOS profile paths remain unchanged; only the canonical identifier retains the legacy extension scan. Focused pure/injected namespace tests exercise release and QA separation without host credentials or LaunchServices mutation.</SummaryDelta>
       <Name>ExtensionHost</Name>
