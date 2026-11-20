@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-governance.test.js
-// VERSION: 2.1.0
+// VERSION: 2.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the ordinary release/governance check, Conventional SemVer admission, the payload-open merge window, immutable action references, and staged control configuration.
 //   SCOPE: Pure negative fixtures plus checked-in repository integration; no GitHub API or setting mutation.
@@ -10,6 +10,10 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   governanceWorkflow - the release-governance workflow source read as text.
+//   docsSecurityJob - the slice before the governance job (env block + docs-security job).
+//   installStep - the install pinned Gitleaks step slice.
+//   assertGitleaksChecksumContract - comment-blind red-control validator for the checksum contract.
 //   releaseWorkflow - Checked-in tag-only release workflow source.
 //   governanceWorkflow - Stable governance workflow whose history-sensitive regression requires a complete checkout.
 //   testWorkflow - Cross-platform unit workflow whose renderer matrix runs the same history-sensitive regression.
@@ -17,6 +21,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-21 C-SEC-GITLEAKS-CHECKSUM: pin the docs-security Gitleaks install as download, strict sha256 digest verification, then extraction, with red controls rejecting a missing digest constant, a non-strict check and extraction before verification.
 //   - 2026-10-27 v2.1.0: delivery IDs are permanent — a PR title naming an ID the base revision already records is rejected.
 //   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — Release Please removed; release-bearing merges stay closed only while Preparing/Frozen and open again once the seal is Ready.
 //   - 2026-10-21 v1.5.0: keep the partial-Project-identity negative fixture valid after the real Project identity is recorded.
@@ -50,6 +55,32 @@ const governanceConfig = JSON.parse(
 )
 
 // START_BLOCK_RELEASE_GOVERNANCE_TESTS
+// docs-security job slice in the file's existing split style; the slice
+// includes the workflow-level env block that carries the digest constant.
+const docsSecurityJob = governanceWorkflow.split(/^  governance:/m)[0]
+const installStep = docsSecurityJob
+  .split(/- name: install pinned Gitleaks/)[1]
+  .split(/- name:/)[0]
+
+// Red-control validator for the Gitleaks checksum contract. Shape pins alone
+// cannot distinguish a well-formed but different 64-hex digest from the true
+// one — digest truth is anchored by the reviewed diff of the change plus the
+// recorded out-of-band derivation, never by a test-time fetch. These controls
+// mutate only the in-memory source string: no network, no tracked-file edits.
+function assertGitleaksChecksumContract(source) {
+  if (!/^  GITLEAKS_SHA256: '?[0-9a-f]{64}'?$/m.test(source))
+    throw new Error('docs-security: committed GITLEAKS_SHA256 digest constant missing')
+  const runtimeLines = source.split('\n').filter((line) => !/^\s*#/.test(line))
+  if (!runtimeLines.some((line) => line.includes('sha256sum --check --strict')))
+    throw new Error('docs-security: digest check is not strict')
+  const checkLine = runtimeLines.find((line) => line.includes('sha256sum --check --strict'))
+  const extractLine = runtimeLines.find((line) => line.includes('tar -xzf'))
+  const check = checkLine ? source.indexOf(checkLine) : -1
+  const extract = extractLine ? source.indexOf(extractLine) : -1
+  if (check === -1 || extract === -1 || extract < check)
+    throw new Error('docs-security: extraction precedes digest verification')
+}
+
 describe('release governance', () => {
   it('runs on the current train without requiring freeze evidence', () => {
     expect(runReleaseGovernance(process.cwd())).toMatchObject({
@@ -177,6 +208,80 @@ describe('release governance', () => {
     partiallyBoundProject.project.nodeId = null
     expect(() => validateGovernanceConfig(partiallyBoundProject)).toThrow(
       expect.objectContaining({ code: 'MT_RELEASE_GOVERNANCE_CONFIG_INVALID' })
+    )
+  })
+
+  it('installs Gitleaks only after a strict digest verification of the pinned archive', () => {
+    // The committed digest constant and the v8.30.1 URL pin are one reviewed
+    // unit: both must be present in the docs-security job source. The digest
+    // pin is shape-only (lowercase 64-hex, quotes optional) — a well-formed
+    // but different 64-hex value passes by design; digest truth is the
+    // reviewed diff plus the recorded out-of-band derivation, never a
+    // hardcoded expected hex or a runtime fetch of trust material.
+    expect(docsSecurityJob).toMatch(/^  GITLEAKS_SHA256: '?[0-9a-f]{64}'?$/m)
+    expect(docsSecurityJob).toContain(
+      'The URL pin and this digest are one reviewed unit: bump together with the'
+    )
+    expect(docsSecurityJob).toContain(
+      'https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz'
+    )
+    expect(installStep).toContain('-o "$archive"')
+    expect(installStep).toContain('sha256sum --check --strict -')
+    // Ordering by index: download, strict check, extraction, smoke probe.
+    expect(installStep.indexOf('-o "$archive"')).toBeLessThan(
+      installStep.indexOf('sha256sum --check --strict')
+    )
+    expect(installStep.indexOf('sha256sum --check --strict')).toBeLessThan(
+      installStep.indexOf('tar -xzf')
+    )
+    expect(installStep.indexOf('tar -xzf')).toBeLessThan(
+      installStep.indexOf('gitleaks version')
+    )
+    // The curl-piped-into-tar form must be gone from the whole job: a pipe
+    // into tar would swallow the check's exit status and bypass verification.
+    expect(docsSecurityJob).not.toMatch(/\|\s*tar/)
+  })
+
+  it('fails closed when the Gitleaks checksum contract is mutated in memory', () => {
+    // Missing digest constant: deleting the env line must be rejected.
+    const withoutDigest = docsSecurityJob.replace(/^  GITLEAKS_SHA256:.*\n/m, '')
+    expect(() => assertGitleaksChecksumContract(withoutDigest)).toThrow(
+      /digest constant missing/
+    )
+    // Non-strict check: dropping --strict (any lenient or status-swallowing
+    // form) must be rejected.
+    // Replace the RUNTIME check line only — the header CHANGE_SUMMARY
+    // comment also mentions --strict and must not satisfy the mutation.
+    const withoutStrict = docsSecurityJob
+      .split('\n')
+      .map((line) => /^\s*#/.test(line) ? line : line.replace('sha256sum --check --strict', 'sha256sum --check'))
+      .join('\n')
+    expect(() => assertGitleaksChecksumContract(withoutStrict)).toThrow(
+      /not strict/
+    )
+    // Extraction before verification: moving the tar -xzf line above the
+    // sha256sum line must be rejected.
+    // Target the RUNTIME lines only — the header CHANGE_SUMMARY comment
+    // also names the strict check and would poison the index search.
+    const lines = docsSecurityJob.split('\n')
+    const extractIndex = lines.findIndex(
+      (line) => line.includes('tar -xzf') && !line.trimStart().startsWith('#')
+    )
+    const checkIndex = lines.findIndex(
+      (line) => line.includes('sha256sum --check --strict') && !line.trimStart().startsWith('#')
+    )
+    expect(extractIndex).toBeGreaterThan(-1)
+    expect(checkIndex).toBeGreaterThan(-1)
+    // The pristine workflow must have check BEFORE extract; the reorder
+    // below moves extract above check and must then be rejected.
+    expect(checkIndex).toBeLessThan(extractIndex)
+    lines.splice(extractIndex, 1)
+    const movedCheck = lines.findIndex(
+      (line) => line.includes('sha256sum --check --strict') && !line.trimStart().startsWith('#')
+    )
+    lines.splice(movedCheck, 0, '          tar -xzf "$archive" -C /usr/local/bin gitleaks')
+    expect(() => assertGitleaksChecksumContract(lines.join('\n'))).toThrow(
+      /extraction precedes digest verification/
     )
   })
 })
