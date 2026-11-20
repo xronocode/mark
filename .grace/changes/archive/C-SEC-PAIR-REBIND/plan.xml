@@ -1,0 +1,171 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-SEC-PAIR-REBIND>
+    <ChangeRef>C-SEC-PAIR-REBIND</ChangeRef>
+    <Created>2026-11-20</Created>
+    <IntentSummary>Make re-pairing an extension id that already holds a live credential a proof-gated, distinct operation: POST /ext/pair gains an optional prior_secret wire field, and a request naming an id with a stored credential is refused without storing or returning any secret unless the presented prior secret matches the stored one constant-time (or a verified trust reset — disable — has provably removed it, after which pairing takes today's fresh path); the release dialog distinguishes replacement from first pairing by naming the already-paired extension and stating that approval replaces its live key, while the debug auto-approve becomes cfg(test)-only so no ordinary build re-keys anything without a user decision; after an approved rebind the previous token is fenced on every incoming route, proven by new rebind regressions that fail before the fix and pass after it, the extended pairing-description unit pin, and the unchanged green capability-gating, disable and stream suites.</IntentSummary>
+    <ReferenceState>SpecSha256 = e5330e59234e03cd8710c0651d345f3fff8a9b3a21e3469debc92b9bafc307be (pinned over the approved spec.xml at admission; the orchestrator computes and replaces this placeholder from the approved spec bytes). Authored 2026-11-20 against the current read-only state of the canary-beta-wave worktree: src-tauri/src/m045_ext/live_server.rs handle_pair (lines 541-637, routed at line 1362 .route("/ext/pair", post(handle_pair::&lt;R&gt;))) takes Json(PairRequest) (struct at lines 92-97: #[derive(Debug, Deserialize)] with extension_id, extension_name, protocol_version: u32 — no prior field), logs BLOCK_PAIR_REQUEST, then decides approval: the debug arm lines 557-567 is #[cfg(debug_assertions)] let approved = { ... BLOCK_PAIR_AUTO_APPROVE ... true } — every debug build, test harness or not, auto-approves; the release arm lines 568-598 is #[cfg(not(debug_assertions))], looks up the declared manifest capabilities, renders pairing_grant_description (pure pub(super) helper lines 518-539, first-pairing wording "wants to pair with Mark" with the honest "declares no incoming data routes" fallback from C-SEC-STREAM-SCOPE) and shows the rfd MessageDialog (Info level, OkCancelCustom Allow/Deny, spawn_blocking, unwrap_or(false)); denial returns 403 {"error": "user denied pairing request"} (lines 600-609); on approval handle_pair generates a fresh secret and unconditionally overwrites the stored credential via super::auth::store_secret (lines 611-621) and returns PairResponse { paired, shared_secret, protocol_version: 1, mark_version } (lines 628-636) — there is no check today whether req.extension_id already holds a credential, so a debug process can re-key any named id (verified finding F-006, security run be2f52f880bc) and the release dialog describes a first pairing even when it replaces a live key. src-tauri/src/m045_ext/auth.rs already provides everything the gate needs with no changes there: pub fn get_secret(ext_id) -&gt; Result&lt;Option&lt;String&gt;, String&gt; (lines 128-136, keychain-first with MEM_STORE fallback), pub(crate) fn constant_time_eq(&amp;[u8], &amp;[u8]) (lines 182-191, length-mismatch returns false), store_secret (111-124), revoke_secret (140-146) and verify_secret_absent (149-158, "an inaccessible persistent store can never mean absent"); there is no #[cfg(test)] anywhere in live_server.rs today; rfd is a regular dependency (src-tauri/Cargo.toml line 34, rfd = { version = "0.17", default-features = false }), so dialog code compiles in debug non-test builds. src-tauri/src/m045_ext/tests.rs: incoming_fixture (line 933) registers a one-capability manifest and injects the fixture token as the stored secret; route drivers context_fixture (1122), apply_fixture (1128), insert_fixture (~986) and stream_open_fixture (1462); assert_old_token_fenced (1136-1141) pins context/apply/insert 401 with empty events; the disable family (1143-1190), enabled_extension_passes_only_declared_capability_routes (1192-1206), pairing_grant_description_names_only_declared_capabilities (1208-1232), fresh_pair_secret (1234-1244, builds PairRequest as an exhaustive struct literal) and fresh_pairing_restores_access (1246-1282, pairs only after mt_ext_disable, i.e. after verified secret removal) are all green and none of them pairs an id that still holds a secret, so no existing expectation conflicts with the gate. Graph anchor: .grace/graph/features.xml M-045 (line 1737; the C-SEC-STREAM-SCOPE SummaryDelta at line 2371 is currently the last child before &lt;/M-045&gt; at 2372); verification anchor: .grace/verification/features.xml V-M-045 (line 1976, Commands block 1978-1984, scenario-security-stream-authorization at 1986). Design decisions locked by this plan: the has-active-credential signal is derived solely from the existing auth lookup super::auth::get_secret (registry presence is deliberately NOT the gate — after a failed revocation (F-007) a manifest may be absent while a live key survives, and only the credential store answers "already holds a stored credential"); a rebind is proven only by constant_time_eq(stored, prior_secret); a credential-store read error refuses with 500 and no overwrite (an unreadable store can never authorize replacing a possibly-live key, mirroring auth.rs's own absence philosophy); the gate runs before and independently of the approval decision, so approval can never confer the power to displace an unproven key; the debug auto-approve moves from #[cfg(debug_assertions)] to #[cfg(test)], making the cfg(not(test)) dialog arm compile in ordinary debug runs too — honest but potentially awkward on macOS (the old comment calls rfd dialogs from axum background threads unreliable there); no silent-approval middle ground exists within the spec. Deviation note: none — every path and line anchor above was verified against this tree. Per the drafting instruction this plan carries no self-referential grace-lint MustPassCommand; the orchestrator runs current/target/final lifecycle assertions itself. Writing this draft approves neither the execution plan nor code implementation, apply/archive, commits, departure into main, manual-acceptance exceptions or release.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-045</Value>
+        <Value>src-tauri/src/m045_ext/live_server.rs</Value>
+        <Value>src-tauri/src/m045_ext/tests.rs</Value>
+        <Value>.grace/graph/features.xml</Value>
+        <Value>.grace/verification/features.xml</Value>
+      </MustExist>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>#[cfg(debug_assertions)]</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_PAIR_AUTO_APPROVE</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>struct PairRequest</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>pub protocol_version: u32,</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>user denied pairing request</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>fresh_pair_secret</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>fresh_pairing_restores_access</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-045</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>pub prior_secret: Option&lt;String&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>super::auth::get_secret(&amp;req.extension_id)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>super::auth::constant_time_eq</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_PAIR_REBIND_REFUSED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>extension already paired</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>is already paired with Mark</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>replaces its live key</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>wants to pair with Mark</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>#[cfg(test)]</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_PAIR_AUTO_APPROVE</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>unproven_rebind_refused_and_previous_token_stays_valid</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>approved_rebind_fences_previous_token_on_all_routes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>debug_auto_approve_cannot_replace_live_key</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>pair_after_trust_reset_takes_fresh_path</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>pairs only with the prior secret</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-045 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-045 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src-tauri/src/m045_ext/live_server.rs</File>
+      <File>src-tauri/src/m045_ext/tests.rs</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/features.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Gate re-pairing on prior-secret proof, distinguish the replacement dialog, and make auto-approval test-only</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>PairRequest gains one additive field in src-tauri/src/m045_ext/live_server.rs: pub prior_secret: Option&lt;String&gt; after protocol_version (Option fields deserialize missing as None, so existing pairers keep today's wire shape and no existing field changes name or meaning). Update the stale handle_pair doc comment (lines 541-545, still saying "for now auto-approves") to describe the rebind gate: pairing an id that holds a stored credential requires the prior secret, an unproven rebind is refused leaving the old key valid, and auto-approval exists only in the test harness.</Criterion>
+          <Criterion>Insert the rebind gate at the top of handle_pair, before the approval decision: read the stored credential with super::auth::get_secret(&amp;req.extension_id) — on Err log BLOCK_PAIR_CREDENTIAL_LOOKUP_FAILED (ext_id and reason only, never secret material) and return 500 INTERNAL_SERVER_ERROR {"error": "pairing state unavailable"} without storing anything, because an unreadable store can never authorize replacing a possibly-live key; compute is_rebind = stored.is_some() and proof = match (&amp;stored, req.prior_secret.as_deref()) { (Some(stored), Some(prior)) =&gt; super::auth::constant_time_eq(stored.as_bytes(), prior.as_bytes()), _ =&gt; false } (constant-time per auth.rs constant_time_eq; length mismatch returns false without timing or logging the mismatch shape); when is_rebind &amp;&amp; !proof log BLOCK_PAIR_REBIND_REFUSED (ext_id only) and return 403 FORBIDDEN {"error": "extension already paired; present the prior secret or disable the extension to reset trust"} — no secret is generated, nothing is stored, no dialog is shown, no event is emitted, and the previous token remains valid; the gate runs identically in debug, release and test builds, before any approval arm, so no user decision or harness flag can override it.</Criterion>
+          <Criterion>Restructure the approval decision: the auto-approve arm becomes #[cfg(test)] (was #[cfg(debug_assertions)]), keeping the BLOCK_PAIR_AUTO_APPROVE log with its text updated to say the approval is test-harness-only, so outside the Rust test harness no build approves pairing without a decision; the dialog arm becomes #[cfg(not(test))] (compiled in ordinary debug runs and release alike), keeping the rfd MessageDialog shape byte-identical (Info level, OkCancelCustom Allow/Deny, spawn_blocking, unwrap_or(false), denial arm 403 {"error": "user denied pairing request"} unchanged) and choosing the description by rebind state: a fresh pairing keeps pairing_grant_description and its exact C-SEC-STREAM-SCOPE wording ("wants to pair with Mark", the per-capability grant lines, the "declares no incoming data routes" fallback) with the declared-capability lookup unchanged, while a proven rebind (is_rebind, proof == true) renders a new pure pub(super) fn pairing_rebind_description(extension_name, extension_id) -> String — carrying the same #[cfg_attr(debug_assertions, allow(dead_code))] as its sibling — whose text names the extension and states the replacement, containing the exact phrases "is already paired with Mark" and "replaces its live key", stating that the previous secret stops working and only the new secret will be accepted, and claiming no capability grant beyond what first pairing would grant. The dialog title, buttons and result handling stay unchanged.</Criterion>
+          <Criterion>Module hygiene and lineage: live_server.rs CHANGE_SUMMARY gains a dated 2026-11-20 C-SEC-PAIR-REBIND entry and the SCOPE line names the prior-secret rebind gate; RouteCapability gating of the data routes, the first-pairing grant description, authenticate_incoming, the C-SEC-STREAM-AUTH stream identity/epoch fencing, secret generation, store_secret overwrite-on-approval semantics for the fresh path, and the PairResponse shape are untouched; no auth.rs, registry.rs, mod.rs, renderer, manifest, Cargo.toml or dependency change; every START_BLOCK_/END_BLOCK_ marker stays paired and unique; no log line, error body or response ever contains secret material (gate refusals log ext_id only).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">cargo check --locked --offline --manifest-path src-tauri/Cargo.toml</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Add the rebind regression family, extend the dialog pin, and prove the rebind regressions fail-before and pass-after</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Red-first proof, recorded in the task evidence: the new tests build PairRequest values through serde_json::from_value (JSON with a "prior_secret" key) rather than struct literals, so they compile against the pre-fix source where serde ignores the unknown field; with the T-001 gate temporarily reverted to the #[cfg(debug_assertions)] auto-approve arm (no commit), the unproven-rebind and auto-approve tests are observed red exactly on the silent re-key (200 + old token dead), then with the gate restored the same tests are green — the spec's rebind-regressions-fail-before-pass-after criterion exercised inside one worktree.</Criterion>
+          <Criterion>Compile reconciliation without weakening anything: fresh_pair_secret (tests.rs 1234-1244) gains prior_secret: None in its struct literal, and fresh_pairing_restores_access (1246-1282) keeps every assertion unchanged in meaning — its pairs happen after mt_ext_disable (verified secret removal), so they now legitimately traverse the gate as the fresh path; the disable family (1143-1190), enabled_extension_passes_only_declared_capability_routes, the capability matrix, and the stream security family stay untouched and green; assert_old_token_fenced is unchanged.</Criterion>
+          <Criterion>Add the rebind regression family in src-tauri/src/m045_ext/tests.rs (grouped with the pairing family after pairing_grant_description_names_only_declared_capabilities, each test asserting empty events at every refusal): unproven_rebind_refused_and_previous_token_stays_valid — a fixture holding its injected token, a pair request with prior_secret absent returns 403 with a body containing "already paired" and no shared_secret field, super::auth::get_secret still returns the old token, and the old token still passes its declared-capability route; wrong_prior_secret_rebind_refused — the same refusals with a mismatched prior secret, pinning both constant_time_eq arms (missing and mismatched); approved_rebind_fences_previous_token_on_all_routes — a pair request with the correct prior secret returns 200 with a fresh secret different from the old token, and the old token then receives 401 on /ext/context, /ext/apply, /ext/text-insert and /stream/open (stream_open_fixture) with zero events throughout, while the fresh token passes exactly the declared capability's routes; debug_auto_approve_cannot_replace_live_key — under the test harness the #[cfg(test)] arm approves, yet the unproven rebind is still refused with the old key valid, proving the gate dominates auto-approval and an ordinary debug run can never replace a live key without a decision (the cfg(test)-only gating itself is pinned by the T-001 source shapes, since no unit test can execute cfg(not(test)) code); pair_after_trust_reset_takes_fresh_path — mt_ext_disable with verify_secret_absent proof, re-enable, then pair the same id without any prior secret: 200 fresh-path response with today's PairResponse shape, the fresh secret works on the declared route and the old token is 401, followed by a control re-pair without prior secret that is refused because a credential now exists.</Criterion>
+          <Criterion>Extend the dialog unit pin to cover the replacement wording: pairing_grant_description_names_only_declared_capabilities keeps every existing first-pairing assertion byte-identical and gains a section pinning pairing_rebind_description — for ("TokMo", "tokmo") the description contains "is already paired with Mark" and "replaces its live key", states the previous secret stops working, and contains none of the four capability grant phrases; the test module gains a doc comment line saying the pairing route pairs only with the prior secret when a credential already exists, so the family's intent reads independently of the implementation.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Record the M-045 graph and V-M-045 verification deltas</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>In .grace/graph/features.xml append a dated C-SEC-PAIR-REBIND SummaryDelta to M-045 after the C-SEC-STREAM-SCOPE delta (currently the last child before &lt;/M-045&gt;): pairing an extension id that already holds a stored credential requires the prior secret matched constant-time, an unproven rebind is refused leaving the previous token valid with no new secret issued, a verified trust reset (disable) restores the fresh-pairing path, the release dialog distinguishes replacement from first pairing by naming the extension and stating the key replacement, auto-approval is confined to the Rust test harness, and an approved rebind fences the previous token on every incoming route; preserve every existing SummaryDelta, Summary sentence, LegacySource, LegacyAttributes and annotation byte-identical.</Criterion>
+          <Criterion>In .grace/verification/features.xml record only executed evidence in V-M-045: update the native-suite Command entry to the executed form cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext and add one scenario-security-extension-pair-rebind scenario naming the new tests by name (unproven_rebind_refused_and_previous_token_stays_valid, wrong_prior_secret_rebind_refused, approved_rebind_fences_previous_token_on_all_routes, debug_auto_approve_cannot_replace_live_key, pair_after_trust_reset_takes_fresh_path) with their expected per-route statuses; keep every existing scenario, Marker and TraceAssertion and the LegacyMatrixEvidence block verbatim; do not claim pass evidence for the real release dialog rendering (rfd) in either debug or release builds — that surface stays explicitly open and is exercised only through the pure-description unit pin and source shapes.</Criterion>
+          <Criterion>No durable artifact outside the ObservedWriteScope changes; no release publication, version change or lane action is authorized by this task.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+      <Environment>Baseline is the current canary-beta-wave worktree: the Rust toolchain runs with --locked --offline against the committed Cargo.lock. Tasks run strictly sequentially T-001 then T-002 then T-003; T-001's cargo check passes alone while the test suite is knowingly compile-red until T-002 adds prior_secret: None to the fresh_pair_secret struct literal (an exhaustive struct literal cannot ignore the new field), and the full native suite becomes green at T-002, staying green through T-003. The rebind regressions are proven in both directions inside T-002 by locally reverting the gate to the #[cfg(debug_assertions)] auto-approve arm (red on the silent re-key) and re-applying it (green) with no commit; the new tests construct PairRequest through serde_json::from_value precisely so this pre-fix state compiles. The cfg(test)-only auto-approval is proven by source shapes plus the runtime proof that the harness auto-approve cannot re-key; the rfd dialog rendering is not exercised by any test and stays open evidence. Fencing coverage follows the existing disable regressions' style: old token 401 on context/apply/insert plus /stream/open with empty event lists. First-time pairing keeps today's request/response shape, fresh-path behavior and C-SEC-STREAM-SCOPE grant description; the RouteCapability gates, stream identity/epoch fencing and disable/revocation semantics stay behaviorally unchanged; F-007 (re-enable reusing a surviving token after failed revocation) is out of scope and its behavior is not touched. The 403 rebind refusal discloses only the already-paired state; no log, error or response ever contains secret material or comparison lengths. src-tauri/src/m045_ext/live_server.rs, src-tauri/src/m045_ext/tests.rs, .grace/graph/features.xml and .grace/verification/features.xml are the only writes; every START_BLOCK_/END_BLOCK_ marker stays paired and unique after each task. This plan deliberately carries no self-referential grace-lint MustPassCommand; the orchestrator runs grace lint --assertions current/target/final and the archived current-state integrity itself. Owned cargo processes are cleaned up after runs; no apply/archive, commit/push, lane admission, departure into main, version/tag or release is authorized by this plan.</Environment>
+    </AcceptanceVerification>
+  </C-SEC-PAIR-REBIND>
+</GraceChangePlan>
