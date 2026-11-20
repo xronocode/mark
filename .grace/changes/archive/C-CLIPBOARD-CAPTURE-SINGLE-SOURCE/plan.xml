@@ -1,0 +1,183 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-CLIPBOARD-CAPTURE-SINGLE-SOURCE>
+    <ChangeRef>C-CLIPBOARD-CAPTURE-SINGLE-SOURCE</ChangeRef>
+    <Created>2026-11-20</Created>
+    <IntentSummary>Make tools/clipboard-capture/capture-core.js the single authored implementation of the clipboard capture rules and deterministically generate its file-URL-safe classic artifact tools/clipboard-capture/capture-core.browser.js through the already installed Vite transformWithEsbuild API plus a small static classic-script wrapper, preserving the exact nine ESM exports and the exact five-member globalThis.ClipboardCaptureCore browser API in its former order, committing the generated artifact so a downloaded repository ZIP still opens tools/clipboard-capture/index.html directly over file:// without Node/npm/build, and enforcing generated-artifact freshness through a read-only --check mode exercised by ordinary renderer tests and the populated V-M-044, delivered on integ/techdebt through the fresh td-2 lane with separate admission and no change to capture algorithms, schemas, MIME ordering, page UI or the product current pointer.</IntentSummary>
+    <ReferenceState>SpecSha256 = 80ea3a40ceefc036e6aec54540d94c18b790e6d6c407f70e555e47035151a946 (pinned over the approved spec.xml at admission; the orchestrator computes and replaces this placeholder from the approved spec bytes). Authored 2026-11-20 against the current read-only state of the canary-beta-wave worktree: tools/clipboard-capture/capture-core.js is the authored ESM owner with exactly nine exports (TOOL_SCHEMA_VERSION line 24, HISTORY_SCHEMA_VERSION line 25, KNOWN_TEXT_TYPES line 27, normalizeLineEndings line 43, buildCaptureRecord line 54, buildHistoryEnvelope line 98, createExportFilename line 114, buildIssuePacket line 133, buildIssueUrl line 166) and 23 maintained functions; tools/clipboard-capture/capture-core.browser.js is a hand-maintained classic IIFE duplicate of the same logic, loaded by index.html line 105 as a plain script before app.js line 106, assigning globalThis.ClipboardCaptureCore with the five keys buildCaptureRecord, buildHistoryEnvelope, createExportFilename, buildIssuePacket, buildIssueUrl in that order (lines 358-364); index.html, app.js and styles.css are the zero-build file:// page; tests/renderer/util/clipboard-fixture-capture.test.js holds the existing six ESM tests; no generator exists; tests/e2e/clipboard-capture.spec.ts does not exist; the prior td-1 lane (docs/release-trains/td-1.json, state Merged) is closed and td-2 is unused; the installed Vite exports transformWithEsbuild (node_modules/vite/dist/node/index.js re-exports it from chunks/config.js) and node_modules/vitest/vitest.mjs plus node_modules/@playwright/test/cli.js exist with a chromium project in playwright.config.ts (vitest runs jsdom with globals). Deviation note: none — every path above was verified against this tree. Per the drafting instruction this plan carries no self-referential grace-lint MustPassCommand; the orchestrator runs current/target/final lifecycle gates itself. Writing this draft approves neither an execution plan nor code implementation, apply/archive, lane admission commits, lane departure into main, manual-acceptance exceptions or release.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-044</Value>
+        <Value>M-046</Value>
+        <Value>tools/clipboard-capture/index.html</Value>
+        <Value>tools/clipboard-capture/app.js</Value>
+        <Value>tools/clipboard-capture/styles.css</Value>
+      </MustExist>
+      <MustContain>
+        <File>tools/clipboard-capture/capture-core.js</File>
+        <Text>export const TOOL_SCHEMA_VERSION = 'clipboard-fixture-capture/v1'</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/clipboard-capture/capture-core.js</File>
+        <Text>export const HISTORY_SCHEMA_VERSION = 'clipboard-fixture-history/v1'</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/clipboard-capture/capture-core.js</File>
+        <Text>export const KNOWN_TEXT_TYPES = [</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/clipboard-capture/capture-core.js</File>
+        <Text>export function normalizeLineEndings(value) {</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/clipboard-capture/capture-core.js</File>
+        <Text>export function buildCaptureRecord({</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/clipboard-capture/capture-core.js</File>
+        <Text>export function buildHistoryEnvelope(captures) {</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/clipboard-capture/capture-core.js</File>
+        <Text>export function createExportFilename(record, kind = 'single') {</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/clipboard-capture/capture-core.js</File>
+        <Text>export function buildIssuePacket(record) {</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/clipboard-capture/capture-core.js</File>
+        <Text>export function buildIssueUrl({ repo, record, copiedFullPacket = false } = {}) {</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/clipboard-capture/capture-core.browser.js</File>
+        <Text>  globalThis.ClipboardCaptureCore = {
+    buildCaptureRecord,
+    buildHistoryEnvelope,
+    createExportFilename,
+    buildIssuePacket,
+    buildIssueUrl
+  }</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-044</Module>
+      </MustVerify>
+      <MustContain>
+        <File>tools/generate-clipboard-capture.mjs</File>
+        <Text>import { transformWithEsbuild } from 'vite'</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/generate-clipboard-capture.mjs</File>
+        <Text>const writeMode = args.includes('--write')</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/generate-clipboard-capture.mjs</File>
+        <Text>const checkMode = args.includes('--check')</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/generate-clipboard-capture.mjs</File>
+        <Text>.replace(/\r\n/g, '\n').replace(/\r/g, '\n')</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/generate-clipboard-capture.mjs</File>
+        <Text>format: 'iife'</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/generate-clipboard-capture.mjs</File>
+        <Text>sourcemap: false</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/clipboard-capture/capture-core.browser.js</File>
+        <Text>generated by tools/generate-clipboard-capture.mjs from tools/clipboard-capture/capture-core.js; DO NOT EDIT BY HAND</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/clipboard-capture/capture-core.browser.js</File>
+        <Text>  globalThis.ClipboardCaptureCore = {
+    buildCaptureRecord,
+    buildHistoryEnvelope,
+    createExportFilename,
+    buildIssuePacket,
+    buildIssueUrl
+  }</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="120">node tools/generate-clipboard-capture.mjs --check</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="900">node node_modules/vitest/vitest.mjs run tests/renderer/util/clipboard-fixture-capture.test.js tests/renderer/util/clipboard-capture-generation.test.js</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="1200">node node_modules/@playwright/test/cli.js test tests/e2e/clipboard-capture.spec.ts --project=chromium</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-044 />
+        <M-046 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-044 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>tools/clipboard-capture/capture-core.js</File>
+      <File>tools/clipboard-capture/capture-core.browser.js</File>
+      <File>tools/generate-clipboard-capture.mjs</File>
+      <File>tools/clipboard-capture/README.md</File>
+      <File>tests/renderer/util/clipboard-fixture-capture.test.js</File>
+      <File>tests/renderer/util/clipboard-capture-generation.test.js</File>
+      <File>tests/e2e/clipboard-capture.spec.ts</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/features.xml</File>
+      <File>docs/release-trains/td-2.json</File>
+      <File>docs/release-trains/td-2.md</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Add the deterministic generator, regenerate the committed classic artifact and prove --check freshness</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Add tools/generate-clipboard-capture.mjs as a Node ESM script with zero new dependencies: it reads tools/clipboard-capture/capture-core.js, normalizes the source line endings to LF in memory only (the canonical file is never rewritten by the generator), transforms the normalized source with the transformWithEsbuild export of the installed Vite under the fixed option set loader js, format iife, globalName __ClipboardCaptureCoreModule, target es2020, sourcemap false, minify false, and wraps the transformed code with the static classic wrapper exactly as specified in the implementation notes: an authored prologue carrying the FILE/VERSION header, the GENERATED provenance notice (repository-relative literals, no timestamps, no machine or absolute paths, no source maps) and the file-local START_MODULE_CONTRACT/END_MODULE_CONTRACT plus START_MODULE_MAP/END_MODULE_MAP blocks, and an authored epilogue IIFE that projects exactly the five public functions onto globalThis.ClipboardCaptureCore in the former order through explicit key literals — no spread or whole-module assignment that could expose the other ESM exports as new public keys, no Node globals, and no normalization/payload/metadata/filename/issue logic duplicated in the wrapper. Output is written LF-only; generation is a pure function of source bytes plus the pinned toolchain, with no eval, no runtime module import/export in the artifact and no external resources.</Criterion>
+          <Criterion>Modes fail closed: no arguments and --check are the read-only freshness check that recomputes the expected bytes, compares them byte-for-byte against tools/clipboard-capture/capture-core.browser.js and exits non-zero naming the artifact and the reason (missing, stale against current source, or manually edited) without writing anything; --write generates first and only then writes the one known generated artifact; unknown flags exit non-zero with usage. The main routine runs only under the invoked-as-script guard so vitest can import the pure helpers (renderBrowserCore over an inert source string, and the byte-compare) without triggering reads that fail or writes; helpers never edit tracked canonical/generated files to simulate drift.</Criterion>
+          <Criterion>Run node tools/generate-clipboard-capture.mjs --write once and commit the regenerated tools/clipboard-capture/capture-core.browser.js: its file-local GRACE contract/map markup stays present, its five-key globalThis.ClipboardCaptureCore stays in the former order, and no capture algorithm, schema/version value, MIME ordering, record/history key, filename, issue packet/URL content, truncation, UUID/random/time/platform fallback or exception behavior changes anywhere. tools/clipboard-capture/index.html, app.js and styles.css stay byte-identical. Update tools/clipboard-capture/README.md only with the generated-artifact provenance and the two maintenance commands (node tools/generate-clipboard-capture.mjs --check / --write), preserving the existing capture-scope statements including the OS-native/binary non-capture boundary.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="120">node tools/generate-clipboard-capture.mjs --check</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Pin the twelve-family characterization in both realms with determinism and drift controls, and add the file:// chromium acceptance spec</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Extend tests/renderer/util/clipboard-fixture-capture.test.js keeping all six existing ESM tests unweakened: add the twelve existing input families (MIME types, custom types, duplicates, CR/LF/Unicode bodies, advertised empty HTML, file/item metadata, getData failure, array-like types, missing fields, platform override, fallback identity, large payload) executed against both the ESM exports and the committed generated classic artifact actually executed in the test realm via new Function over the committed file bytes — compiler output comparison alone is not proof — with per-realm clock/identity/platform control (spied Date, crypto.randomUUID and Intl time zone) and complete record/history/filename/packet/URL comparison, plus generated-versus-ESM result equality per family. Add direct API-shape/ordering controls: Object.keys(globalThis.ClipboardCaptureCore) equals the five browser keys in the former order with no extra keys, the ESM module namespace exposes exactly the nine export names, and the canonical capture-rule statements (both schema version strings and the KNOWN_TEXT_TYPES order) are unchanged. No production API changes.</Criterion>
+          <Criterion>Add tests/renderer/util/clipboard-capture-generation.test.js pinning the generator contract: it spawns node tools/generate-clipboard-capture.mjs --check as an ordinary child process against the real tree and asserts exit 0 with no write; on inert strings and temporary copies only it pins two-generations-identical output, LF versus CRLF source controls producing byte-identical output (Windows checkout conversion cannot stale the artifact), the provenance notice presence, and the absence of timestamps, absolute paths or home-directory strings, sourcemap fields, eval and runtime import/export in the generated text; its drift/mutation controls prove that a mutated canonical input, a truncated artifact and a manually edited artifact string each fail the freshness comparison — an unregenerated browser artifact cannot pass — without any tracked file being edited; it re-executes the committed artifact and re-pins the five-key shape in order.</Criterion>
+          <Criterion>Add tests/e2e/clipboard-capture.spec.ts with no Playwright or CI configuration change, running only under the existing chromium project: it resolves the repository-relative file:// URL of the committed tools/clipboard-capture/index.html, loads the real page over file:// with no dependence on the configured preview baseURL, aborts every http:// and https:// request through recorded page routes, installs inert addInitScript adapters that stub navigator.clipboard.writeText into a page-local buffer and window.open into a recorded no-op (no system clipboard, no owner files, no live GitHub request, no real navigation, no application state change), and drives a synthetic paste by constructing a DataTransfer with text/markdown, text/html and text/plain bodies and dispatching a ClipboardEvent paste. Assertions: the page boots with globalThis.ClipboardCaptureCore holding exactly the five keys in order; the capture status and summary render; the preferred text payload textarea shows the LF-normalized markdown body; the rendered preview meta reports the text/html payload length; Download JSON is intercepted via the Playwright download event, saved only into the OS temporary directory, its suggested filename matches the createExportFilename pattern and its content parses as the capture record; Copy fixture packet surfaces the packet from the inert clipboard buffer containing the full fixture JSON; Open GitHub issue records a github.com/owner/repo/issues/new URL with the decoded human-first triage template while the page URL stays unchanged. The existing non-macOS Chrome/Edge manual open-from-disk/export expectation remains distinct mandatory acceptance or an explicit owner-approved exception and is not claimed by this headless macOS run.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">node node_modules/vitest/vitest.mjs run tests/renderer/util/clipboard-fixture-capture.test.js tests/renderer/util/clipboard-capture-generation.test.js</Command>
+          <Command budgetSeconds="1200">node node_modules/@playwright/test/cli.js test tests/e2e/clipboard-capture.spec.ts --project=chromium</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Populate the M-044 contract and V-M-044 verification, record the M-046 lane delta and bootstrap the td-2 ledger</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>In .grace/graph/features.xml replace the M-044 placeholder Contract with the real contract identifying the canonical authored source tools/clipboard-capture/capture-core.js (nine ESM exports), the deterministically generated file-URL-safe classic artifact tools/clipboard-capture/capture-core.browser.js (five-key globalThis.ClipboardCaptureCore in fixed order), the generator tools/generate-clipboard-capture.mjs (--check read-only freshness, --write maintenance) and the freshness boundary; update PlannedPath and KnowledgeGraphPath sources to include the generator, README and the three test files; add a dated SummaryDelta for C-CLIPBOARD-CAPTURE-SINGLE-SOURCE; preserve the legacy annotations, LegacyKnowledgeDetail and legacy attributes. In M-046 add only a dated SummaryDelta recording the td-2 lane bootstrap/admission bookkeeping; no other graph content changes and the product current pointer stays untouched.</Criterion>
+          <Criterion>In .grace/verification/features.xml populate the V-M-044 placeholder Commands with the three executed commands (the generator --check, the two-file vitest run, the chromium file:// e2e run) and Scenarios with the executed scenarios: generator freshness and determinism including LF/CRLF identity, generated-versus-ESM twelve-family characterization, API-shape/order controls, drift/mutation controls and the file:// chromium acceptance with inert interception. Preserve the legacy base verbatim: the three high-level scenarios, negative assertions N1 (no raw OS-native formats claim) and N2 (no mutation beyond CRLF-to-LF), the module-local command history, the wave and phase follow-ups, and the non-macOS Chrome/Edge manual open-from-disk/export acceptance as a distinct mandatory item or an explicit owner-approved exception. Record no pass claims for anything not executed.</Criterion>
+          <Criterion>Bootstrap the fresh technical-debt lane on integ/techdebt: create docs/release-trains/td-2.json and docs/release-trains/td-2.md exactly per the lane schema in docs/release-trains/README.md (state Collecting, lane.branch integ/techdebt, baseSha of the main commit the lane branched from, headSha/mergeSha/carrierTrain null, commit accounting from baseSha) with one item entry for this change carrying its testing protocol; merged td-1 is not reused and historical lane bundles stay unchanged. Admission is the separate chore(train) commit on the lane with the same protocol; lane departure into main remains a separate explicit owner instruction via the reviewed merge-commit protocol plus carrier bookkeeping. No apply/archive, commit/push, release, signing, version/tag or workflow dispatch is authorized by this plan, and no grace-lint gate is part of this plan — the orchestrator runs the lifecycle assertions itself.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="120">node tools/generate-clipboard-capture.mjs --check</Command>
+          <Command budgetSeconds="900">node node_modules/vitest/vitest.mjs run tests/renderer/util/clipboard-fixture-capture.test.js tests/renderer/util/clipboard-capture-generation.test.js</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Command budgetSeconds="120">node tools/generate-clipboard-capture.mjs --check</Command>
+      <Command budgetSeconds="900">node node_modules/vitest/vitest.mjs run tests/renderer/util/clipboard-fixture-capture.test.js tests/renderer/util/clipboard-capture-generation.test.js</Command>
+      <Command budgetSeconds="1200">node node_modules/@playwright/test/cli.js test tests/e2e/clipboard-capture.spec.ts --project=chromium</Command>
+      <Environment>Baseline is the current canary-beta-wave worktree on integ/techdebt with node_modules installed (verified: node_modules/vitest/vitest.mjs and node_modules/@playwright/test/cli.js exist, the chromium project exists in playwright.config.ts, and the installed Vite exports transformWithEsbuild from its public entry). Tasks run strictly sequentially T-001 then T-002 then T-003; the two-file vitest command and the e2e command only become valid after T-002 lands their files. The e2e run inherits the committed playwright.config.ts webServer (npm run preview on port 4173, reuseExistingServer off CI), so a built renderer or an already-running preview server must exist even though the page under test itself needs no server; this is the existing config behavior for every e2e run and is not a new requirement. All three commands must pass with no skips, retries, floor reductions or budget increases; the committed artifact must be fresh at --check time; index.html, app.js and styles.css stay byte-identical throughout; no new npm/Cargo dependency, package/lock change, workflow or Playwright configuration change, production deployment, signing, version/tag, GitHub issue creation or external messaging occurs. The generated artifact is committed so ZIP/file:// users need no Node or generator at runtime. Owned browser/test processes are cleaned up and temporary download outputs removed after runs; the OS clipboard, owner files and shared caches are untouched by automated checks. No apply/archive, lane admission commit, lane departure into main or release is authorized by this plan; admission is the separate chore(train) commit under the lane protocol and departure waits for explicit owner instruction.</Environment>
+    </AcceptanceVerification>
+  </C-CLIPBOARD-CAPTURE-SINGLE-SOURCE>
+</GraceChangePlan>

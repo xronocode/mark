@@ -1971,7 +1971,8 @@
         </phase-follow-up>
       </LegacyBase>
       <LegacySource>docs/verification-plan.xml: V-M-044</LegacySource>
-    </V-M-044>
+            <scenario-clipboard-capture-generation>C-CLIPBOARD-CAPTURE-SINGLE-SOURCE: the generator contract — real --check exit-0 without writes, two-render determinism, LF/CRLF byte-identical output, provenance and hygiene (no timestamps/paths/sourcemaps/eval), fail-closed drift reasons on inert mutations, real-script re-execution booting the five keys, and generated-versus-ESM parity — verified by the unit pair plus the chromium file:// acceptance page.</scenario-clipboard-capture-generation>
+</V-M-044>
     <V-M-045>
       <Priority>critical</Priority>
       <Commands>
