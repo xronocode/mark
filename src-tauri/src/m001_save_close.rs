@@ -9,7 +9,8 @@
 //   DEPENDS: m001_lifecycle, m013b::fs, m013b::state::SecurityCtx,
 //            m010_security, m047_bookmarks and the native dialog plugin.
 //   LINKS: .grace/graph/runtime.xml M-001; V-M-001;
-//          C-SAVE-CLOSE-DATA-SAFETY T-002/T-003.
+//          C-SAVE-CLOSE-DATA-SAFETY T-002/T-003;
+//          .grace/changes/active/C-SEC-SAVE-HANDLE.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -35,6 +36,10 @@
 //   wire_close_handler - Intercept native close requests for renderer approval.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   - 2026-11-21 C-SEC-SAVE-HANDLE: save and snapshot routes proven to refuse
+//     planted race-window mutations through the hardened M-002 writer
+//     (save_race_leaf_planted_refused, snapshot_race_leaf_planted_refused);
+//     the write funnels and the early ownership fence stay pinned unchanged.
 //   - 2026-11-11 C-METADATA-SAVE-SAFETY: required format echo and complete
 //     pre-write encoding validation before the shared sandboxed byte writer.
 //   - 2026-11-10 C-SAVE-CLOSE-DATA-SAFETY: correlated snapshot writes,
@@ -216,6 +221,10 @@ pub(crate) fn save_to_path_inner(
     markdown: &str,
     was_picked: bool,
 ) -> Result<Option<SavedTabState>, String> {
+    // C-SEC-SAVE-HANDLE: this is the only disk write of the save route; it
+    // funnels through the hardened M-002 writer (fence-before-open), so a
+    // planted race-window mutation surfaces here as the renderer-expected
+    // MT_FS_PATH_DENIED-family error string.
     match crate::m013b::fs::fs_write_inner(target_path, markdown, sandbox) {
         Ok(()) => {
             safe_eprintln!("[m001][save_close][BLOCK_FILE_SAVED id={id} path={target_path} was_picked={was_picked}]");
@@ -353,6 +362,10 @@ pub(crate) fn write_document_snapshot_inner(
         }
     }
     let bytes = crate::m014_encoding::encode_document(&request.markdown, &request.format)?;
+    // C-SEC-SAVE-HANDLE: the snapshot route reaches disk only through the
+    // hardened M-002 writer (fence-before-open re-fence); the early ownership
+    // fence above (check_path for the owned-destination comparison) stays
+    // exactly as it is and never opens a file.
     crate::m013b::fs::fs_write_bytes_inner(&request.target_path, &bytes, sandbox)
         .map_err(|_| "MT_DOCUMENT_WRITE_FAILED")?;
     safe_eprintln!(
@@ -949,5 +962,89 @@ mod tests {
                 assert!(!new.parent().unwrap().exists());
             }
         }
+    }
+
+    // ── C-SEC-SAVE-HANDLE route-level race refusals ──
+    //
+    // Both routes reach disk only through the hardened M-002 writer, so a
+    // leaf symlink planted inside the writer's race window (via the same
+    // pub(crate) set_race_window_hook the writer tests use) must surface as
+    // a refusal at THIS layer: save errors carry MT_FS_PATH_DENIED in their
+    // Debug-formatted message, snapshot errors collapse to the
+    // MT_DOCUMENT_WRITE_FAILED sentinel. The outside target's bytes stay
+    // untouched and the early ownership fence of write_document_snapshot_inner
+    // is untouched (it runs before the writer and never opens a file).
+
+    #[cfg(unix)]
+    #[test]
+    fn save_race_leaf_planted_refused() {
+        use std::sync::Arc;
+        let dir = TempDir::new().unwrap();
+        let outside = TempDir::new().unwrap();
+        let outside_target = outside.path().join("captive.md");
+        std::fs::write(&outside_target, b"original").unwrap();
+        let target = dir.path().join("note.md");
+        // Key = the exact validated path the writer's first fence computes.
+        let key = crate::m010_security::check_path(dir.path(), std::path::Path::new(&target))
+            .unwrap();
+        let planted_leaf = target.clone();
+        let planted_target = outside_target.clone();
+        let previous = crate::m013b::fs::set_race_window_hook(
+            key.clone(),
+            Some(Arc::new(move || {
+                std::os::unix::fs::symlink(&planted_target, &planted_leaf).unwrap();
+            })),
+        );
+        assert!(previous.is_none(), "no other registration may hold this key");
+        let result = save_to_path_inner(
+            dir.path(),
+            "tab-race",
+            target.to_str().unwrap(),
+            "stolen",
+            false,
+        );
+        let previous = crate::m013b::fs::set_race_window_hook(key, None);
+        assert!(previous.is_some(), "registration must be restorable");
+        let err = result.unwrap_err();
+        assert!(err.contains("MT_FS_PATH_DENIED"), "got {err}");
+        // The outside target's bytes are byte-for-byte unchanged.
+        assert_eq!(std::fs::read(&outside_target).unwrap(), b"original");
+        // Nothing was written through the planted link.
+        assert!(std::fs::symlink_metadata(&target).unwrap().file_type().is_symlink());
+        assert_eq!(std::fs::read(&target).unwrap(), b"original");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn snapshot_race_leaf_planted_refused() {
+        use std::sync::Arc;
+        let dir = TempDir::new().unwrap();
+        let outside = TempDir::new().unwrap();
+        let outside_target = outside.path().join("captive.md");
+        std::fs::write(&outside_target, b"original").unwrap();
+        let target = dir.path().join("note.md");
+        let request = snapshot_request(&target);
+        // Key = the exact validated path the writer's first fence computes
+        // for the same target_path string the request carries.
+        let key = crate::m010_security::check_path(dir.path(), std::path::Path::new(&target))
+            .unwrap();
+        let planted_leaf = target.clone();
+        let planted_target = outside_target.clone();
+        let previous = crate::m013b::fs::set_race_window_hook(
+            key.clone(),
+            Some(Arc::new(move || {
+                std::os::unix::fs::symlink(&planted_target, &planted_leaf).unwrap();
+            })),
+        );
+        assert!(previous.is_none(), "no other registration may hold this key");
+        let result = write_document_snapshot_inner(dir.path(), request);
+        let previous = crate::m013b::fs::set_race_window_hook(key, None);
+        assert!(previous.is_some(), "registration must be restorable");
+        assert_eq!(result.unwrap_err(), "MT_DOCUMENT_WRITE_FAILED");
+        // The outside target's bytes are byte-for-byte unchanged; the early
+        // ownership-fence path above the writer stayed on its original code.
+        assert_eq!(std::fs::read(&outside_target).unwrap(), b"original");
+        assert!(std::fs::symlink_metadata(&target).unwrap().file_type().is_symlink());
+        assert_eq!(std::fs::read(&target).unwrap(), b"original");
     }
 }
