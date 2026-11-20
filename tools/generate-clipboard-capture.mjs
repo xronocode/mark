@@ -186,7 +186,9 @@ async function main() {
 
   let actualText
   try {
-    actualText = readFileSync(artifactPath, 'utf8')
+    // Windows checkouts carry CRLF; the freshness compare is line-ending
+    // insensitive (the write always emits LF bytes).
+    actualText = normalizeSourceLineEndings(readFileSync(artifactPath, 'utf8'))
   } catch {
     actualText = null
   }
