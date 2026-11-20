@@ -51,18 +51,6 @@ fail; matched ones pass through.
 - planned: resolves as upstream crates migrate to `cfg(clippy)`.
 - status: **active**
 
-### W-005 — block crate future-incompatibility notice
-
-- pattern: `the following packages contain code that will be rejected by a future version of Rust: block v0.1.6`
-- code: `future-incompatible` (cargo future-incompat report)
-- emitter: upstream `block v0.1.6` (transitive dep of the objc/cocoa windowing stack)
-- rationale: rustc's future-incompat report started flagging the ancient
-  `block` crate pinned by the upstream Tauri/wry/tao dependency chain; the
-  notice is emitted by cargo itself at the end of a build, not by our code.
-- planned: resolves when the upstream objc2 migration reaches the crates
-  that still depend on `block` 0.1.x (tracked with W-003's cocoa migration).
-- status: **active**
-
 ## Historical entries (resolved)
 
 ### W-001 — m001_lifecycle stub surface dead at release

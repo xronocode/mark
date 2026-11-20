@@ -185,7 +185,7 @@ impl SearchRegistry {
 
 /// Which single terminal ends a search session.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum SearchTerminal {
+pub enum SearchTerminal {
     Complete,
     Cancelled,
     Error,
@@ -195,7 +195,7 @@ enum SearchTerminal {
 /// validated roots and both engine adapters (C-SEARCH-SESSION-COMPLETION).
 /// Owns the strictly increasing session-wide seq counter; guarantees at
 /// most one terminal event and silence afterwards.
-struct SearchSessionCoordinator {
+pub struct SearchSessionCoordinator {
     search_id: String,
     sink: Arc<dyn SearchSink>,
     next_seq: u32,
