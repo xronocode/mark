@@ -1,0 +1,64 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-PELE-HTML-POSTPROCESS>
+    <Summary>Reuse the existing live Pele SVG post-processor in HTML export so pie/kanban diagrams keep the accepted editor geometry and surface policy in exported HTML, as a bounded user-visible export repair without a rendering-core refactor.</Summary>
+    <Problem>Backlog record UNIFY:F-002. The live pipeline passes rendered.svg/rendered.type through postProcessPeleSvg, while ExportHtml.renderPele in src/muya/lib/utils/exportHtml.js inserts rendered.svg directly. Actual-engine diagnostics in auto/dark modes show the Keynote donut hole and outer marker only in live pie, kanban column/card remapping with border opacity 0.35 only in live kanban, and flowchart as a post-processing no-op control; exported SVG lacks the pie/kanban processing. The archived C-55 export contract already requires editor-equivalent standalone diagrams. The current snapshot still contains the defect: exportHtml.js renderPele assigns peleContainer.innerHTML = rendered.svg with no postProcess call.</Problem>
+    <Relationship>Derived from backlog record UNIFY:F-002 and closes the diagram-equivalence expectation left open by archived C-55. This specification explicitly proposes a normal main/product train route for the confirmed visible export defect, including normal collecting-train admission; that route is approved only with this spec and is not inferred from the UNIFY label. If the techdebt lane is chosen instead, the draft route is revised before any plan approval, with no automatic lane departure. The change is independent of C-CLIPBOARD-CAPTURE-SINGLE-SOURCE and C-EXTERNAL-RELOAD-OPERATION; no shared product files or verification anchors overlap. It does not rewrite the lane protocol or grant exceptions to other techdebt scopes, and it does not touch release, signing, version/tag or C-50.</Relationship>
+    <Goals>
+      <Goal>Call the existing exported postProcessPeleSvg(rendered.svg, rendered.type) from pelePipeline inside ExportHtml.renderPele before SVG insertion and before per-diagram appearance application, keeping one implementation of the pie/kanban SVG policy.</Goal>
+      <Goal>Make pie donut and kanban surface/border remapping agree between live and exported diagrams for auto/custom/light/dark appearance and indexed read-only overrides, without changing the accepted live rendering policy.</Goal>
+      <Goal>Cover both Muya HTML export APIs and the shared styled-HTML source consumed by the styledHtml, docx, pdf and print branches in editor.vue, keeping downstream-format/native acceptance distinct from internal HTML structure proof.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Limit product-code changes to exportHtml.js import, processed-SVG insertion and local contract/map/change-summary synchronization. Keep pelePipeline.js, postProcessPeleSvg, its constants and regexes, peleOptions.js, diagramAppearance.js, Muya public export methods, the editor.vue dispatch and all other renderers byte-identical.</Constraint>
+      <Constraint>Reuse the actual existing function rather than duplicating its body or adding a parallel policy. No helper extraction/moving, no type-detection redesign, no general render factory, no module ownership change. The existing post-processor remains the single owner of pie/kanban changes; flowchart stays a passthrough.</Constraint>
+      <Constraint>Preserve render options, measurement font, idPrefix/index allocation, rendered.type selection, appearance application and indexed read-only override arguments. Do not substitute a separately guessed/detected type for post-processing.</Constraint>
+      <Constraint>Preserve the mermaid wrapper class, exported theme-variable inlining, authored custom paint policy, sanitized source path, current invalid-code placeholder and catch boundary. A post-processing failure follows the existing export error path without an unhandled rejection.</Constraint>
+      <Constraint>Do not change live LRU/cache keys, debounce, keep-last-good, zoom/natural-size insertion, unique IDs, pending-request guards, fullscreen clones or teardown. The new import must not create an initialization cycle and must not add editor mutations or observers to export execution.</Constraint>
+      <Constraint>Export keeps reading the current complete model through the already fixed public APIs. No new events, dirty/save/history mutations, preferences, IPC commands, image transport, clipboard behavior, page options or native dialogs.</Constraint>
+      <Constraint>Security boundary: browser or internal-HTML evidence never substitutes for native final-format proof, and no test prints, exports or mutates owner documents. No external service writes, no CI/Playwright configuration changes, no weakened retries, skips or thresholds, and no unauthorized release, signing, version/tag or workflow dispatch.</Constraint>
+      <Constraint>Execute sequentially; preserve M-012/V-M-012 and all existing tests, coverage floors, deadlines and safety gates; no dependency/lockfile changes and no unrelated source/test files. If implementation needs additional scope, it must be declared and approved, never added silently.</Constraint>
+      <ObservedWriteScope>
+        <File>src/muya/lib/utils/exportHtml.js</File>
+        <File>tests/renderer/muya/export-diagram-appearance.test.js</File>
+        <File>tests/e2e/diagram-appearance.spec.ts</File>
+        <File>.grace/graph/runtime.xml</File>
+        <File>.grace/verification/runtime.xml</File>
+        <Exclusivity>Five declared files, exactly as in the review; the single product file is the exporter. Pipeline, options, appearance, Muya APIs and dispatch stay byte-identical. Any additional file required by implementation must be declared and approved before the plan.</Exclusivity>
+      </ObservedWriteScope>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>No shared render-core extraction, no cleanup of independently owned cache/error/lifecycle code, no new diagram engine or type support, no design restyle, no general technical-debt integration.</NonGoal>
+      <NonGoal>No claim of byte-identical or fully geometry-equal editor/export SVG strings: IDs, wrappers, zoom and layout context remain consumer-specific. The contract covers shared SVG shape/surface policy and unchanged other behavior.</NonGoal>
+      <NonGoal>No authorization for release, signing, workflow dispatch, version/tag assignment, printing against owner documents, external service writes or App Store delivery.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Failing-first regression uses actual createPelePipeline and ExportHtml.renderPele with the real engine: pie/kanban/flowchart controls in all four appearance modes. Before the fix export lacks the shared policy; after the fix pie has exactly one correctly sized, panel-colored donut hole and outer marker, kanban has the same processed column/card fills and border opacity, and flowchart remains a post-processing no-op. Whole-SVG byte comparison is not used; IDs, zoom and wrappers differ legitimately.</Criterion>
+      <Criterion>Repeated/mixed diagrams with unique export prefixes, actual rendered.type, indexed read-only overrides and custom authored paint pass; source text, editor model/history/dirty state and the invalid-code placeholder are preserved; post-processing is idempotent with no duplicate holes and no callback/index drift after invalid input.</Criterion>
+      <Criterion>Both real public export APIs and the generate-styled output carry processed SVGs, and the styled output retains the theme variables needed by the donut hole and kanban surfaces. Downstream checks observe the same processed HTML entering the styledHtml, pdf/print and docx source branches without changing dispatch or page-option contracts.</Criterion>
+      <Criterion>Browser evidence in Chromium and the existing WebKit diagram-appearance project shows live and standalone HTML pie/kanban policy under Paper/Ink and relevant forced/custom modes, inspecting actual rendered shape/colors and real controls, not marker counts alone; unknown/unaffected diagrams and invalid-code controls stay stable, and no full pixel-equality assertion hides legitimate consumer layout differences.</Criterion>
+      <Criterion>Native HTML/PDF/Word/print boundary evidence and remaining owner/platform acceptance are recorded accurately; browser or internal-HTML tests do not prove final PDF/Word files or native print behavior. Required native outcomes stay open until actual evidence or an explicit owner-approved exception and are never silently dropped.</Criterion>
+      <Criterion>Existing pipeline, theme, appearance, current-model export and relevant HTML/PDF/Word orchestration suites, renderer build, current/target/final lifecycle assertions, ordinary deterministic review/commit/push gates and exact-head hosted required checks pass. The new import path is checked for initialization cycles, unintended top-level effects and bundle/chunk regressions without weakening existing guards.</Criterion>
+      <Criterion>Only the declared exporter product file, the two declared existing test files and M-012/V-M-012 governance artifacts change; the live processor and all other sources stay exact. Apply/archive follows fresh results and its explicit decision; collecting-train bookkeeping follows main integration and does not authorize release.</Criterion>
+      <Criterion>Owned browser/native test processes are closed and reaped, test app/binary/package outputs are removed after shutdown, and source/recipe/digest/log/HTML/SVG/screenshot evidence is retained; owner applications, profiles, documents and shared caches remain intact.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-012 />
+      <File>src/muya/lib/utils/exportHtml.js</File>
+      <File>tests/renderer/muya/export-diagram-appearance.test.js</File>
+      <File>tests/e2e/diagram-appearance.spec.ts</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>node node_modules/vitest/vitest.mjs run tests/renderer/muya/export-diagram-appearance.test.js tests/renderer/muya/export-pele-theme.test.js tests/renderer/muya/pele-pipeline.test.js tests/renderer/muya/export-current-model.test.js</ExpectedCommand>
+      <ExpectedCommand>npm run build</ExpectedCommand>
+      <ExpectedCommand>node node_modules/@playwright/test/cli.js test tests/e2e/diagram-appearance.spec.ts --project=chromium --project=webkit-diagram-appearance</ExpectedCommand>
+      <ExpectedCommand>grace lint --path . --change C-PELE-HTML-POSTPROCESS --assertions target</ExpectedCommand>
+      <ExpectedEvidence>A later approved sequential plan binds exact real-engine red/green assertions, export API/downstream source controls, browser/native boundaries, unchanged-source and import/bundle checks, and lifecycle commands. The existing six-case jsdom diagnostics and the 35-test unit baseline are historical evidence, not execution of this change. Runner paths verified against the current repo layout: node_modules/vitest/vitest.mjs and node_modules/@playwright/test/cli.js exist, both chromium and webkit-diagram-appearance projects exist in playwright.config.ts, and all four referenced vitest files exist under tests/renderer/muya/.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>The owner explicitly approves the normal main/product route for this bounded user-visible repair together with the spec; choosing the techdebt route instead requires a revised draft before plan approval, and no lane departure is implied.</Assumption>
+      <Assumption>Writing this draft approves neither an execution plan nor code implementation, apply/archive, native final-format exceptions or release. Any additional required test-file scope is declared in the approved plan before implementation rather than added silently.</Assumption>
+    </Assumptions>
+  </C-PELE-HTML-POSTPROCESS>
+</GraceChangeSpec>
