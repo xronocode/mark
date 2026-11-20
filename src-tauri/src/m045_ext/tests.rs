@@ -18,6 +18,7 @@
 // END_MODULE_MAP
 
 // START_CHANGE_SUMMARY
+//   - 2026-11-20 C-SEC-STREAM-SCOPE: capability-scoped incoming routes — flipped the over-grant pin to per-route denial, added the context/apply permission matrix, the pairing-grant-description unit pin and capability-scoped fresh-pairing restoral.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES: named handler, revocation and recipient/redirect regressions.
 // END_CHANGE_SUMMARY
 
@@ -1040,6 +1041,38 @@ async fn text_insert_authorized_old_shape_body_emits() {
     assert_eq!(status, StatusCode::OK);
     assert_eq!(f.events.lock().unwrap()[0]["payload"]["text"], "old body");
 }
+
+#[tokio::test]
+async fn context_requires_context_read_capability() {
+    let f = incoming_fixture(true, "context.read");
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    assert_eq!(apply_fixture(&f, &f.token).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::UNAUTHORIZED);
+    assert!(f.events.lock().unwrap().is_empty());
+    // A sibling class does not grant context either.
+    let edit_only = incoming_fixture(true, "text.edit");
+    assert_eq!(context_fixture(&edit_only, &edit_only.token).await, StatusCode::UNAUTHORIZED);
+    assert!(edit_only.events.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn apply_requires_text_edit_capability() {
+    let f = incoming_fixture(true, "text.edit");
+    assert_eq!(apply_fixture(&f, &f.token).await, StatusCode::OK);
+    {
+        let events = f.events.lock().unwrap();
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0]["op_type"], "insert");
+        assert_eq!(events[0]["extension_id"], f.id);
+        assert_eq!(events[0]["payload"]["text"], "fixture edit");
+    }
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::UNAUTHORIZED);
+    // A sibling class does not grant apply either, and emits nothing.
+    let read_only = incoming_fixture(true, "context.read");
+    assert_eq!(apply_fixture(&read_only, &read_only.token).await, StatusCode::UNAUTHORIZED);
+    assert!(read_only.events.lock().unwrap().is_empty());
+}
 // END_BLOCK_INCOMING_DATA_TESTS
 
 impl Drop for IncomingFixture {
@@ -1157,26 +1190,48 @@ async fn disable_refuses_unverified_revocation() {
 }
 
 #[tokio::test]
-async fn enabled_extension_passes_all_three_routes() {
+async fn enabled_extension_passes_only_declared_capability_routes() {
     let f = incoming_fixture(true, "text.insert");
-    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
-    assert_eq!(apply_fixture(&f, &f.token).await, StatusCode::OK);
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(apply_fixture(&f, &f.token).await, StatusCode::UNAUTHORIZED);
     assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::OK);
-    assert_eq!(f.events.lock().unwrap().len(), 2);
+    assert_eq!(f.events.lock().unwrap().len(), 1);
     let other = incoming_fixture(true, "stream.document");
-    assert_eq!(context_fixture(&other, &other.token).await, StatusCode::OK);
-    assert_eq!(apply_fixture(&other, &other.token).await, StatusCode::OK);
+    assert_eq!(context_fixture(&other, &other.token).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(apply_fixture(&other, &other.token).await, StatusCode::UNAUTHORIZED);
+    assert!(other.events.lock().unwrap().is_empty());
     assert_eq!(insert_fixture(&other, Some(&other.token)).await, StatusCode::UNAUTHORIZED);
+    // The owned stream route keeps working under C-SEC-STREAM-AUTH fencing.
+    assert_eq!(stream_open_fixture(&other, &other.id, &other.token, "session-a").await.status(), StatusCode::OK);
 }
 
-#[tokio::test]
-async fn fresh_pairing_restores_access() {
-    let f = incoming_fixture(true, "text.insert");
-    super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap();
-    assert_old_token_fenced(&f).await;
-    // Enabling never makes the old token usable; a real fresh pair supplies it.
-    super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap();
-    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::UNAUTHORIZED);
+#[test]
+fn pairing_grant_description_names_only_declared_capabilities() {
+    let stream_only = super::live_server::pairing_grant_description(
+        "TokMo", "tokmo", &["stream.document".to_string()]);
+    assert!(stream_only.contains("send streamed documents to Mark"), "{stream_only}");
+    assert!(!stream_only.contains("read the current text of the active tab"), "{stream_only}");
+    assert!(!stream_only.contains("edit the current text of the active tab"), "{stream_only}");
+
+    // Declared in reverse all() order to pin the fixed dialog listing order.
+    let read_edit = super::live_server::pairing_grant_description(
+        "Editor", "editor", &["text.edit".to_string(), "context.read".to_string()]);
+    let read_pos = read_edit.find("read the current text of the active tab");
+    let edit_pos = read_edit.find("edit the current text of the active tab");
+    assert!(read_pos.is_some() && edit_pos.is_some(), "{read_edit}");
+    assert!(read_pos.unwrap() < edit_pos.unwrap(), "{read_edit}");
+    assert!(!read_edit.contains("send streamed documents to Mark"), "{read_edit}");
+    assert!(!read_edit.contains("insert text at the active tab cursor"), "{read_edit}");
+
+    for declared in [Vec::new(), vec!["text.transform".to_string()]] {
+        let fallback = super::live_server::pairing_grant_description("Bare", "bare", &declared);
+        assert!(fallback.contains("declares no incoming data routes"), "{fallback}");
+        assert!(!fallback.contains("read the current text of the active tab"), "{fallback}");
+        assert!(!fallback.contains("edit the current text of the active tab"), "{fallback}");
+    }
+}
+
+async fn fresh_pair_secret(f: &IncomingFixture) -> String {
     let response = super::live_server::handle_pair(State(f.state.clone()), Json(super::live_server::PairRequest {
         extension_id: f.id.clone(), extension_name: "Dummy paired fixture".to_string(), protocol_version: 1,
     })).await.into_response();
@@ -1185,10 +1240,45 @@ async fn fresh_pairing_restores_access() {
     let paired: serde_json::Value = serde_json::from_slice(&body).unwrap();
     let fresh = paired["shared_secret"].as_str().unwrap();
     assert_ne!(fresh, f.token);
-    assert_eq!(context_fixture(&f, fresh).await, StatusCode::OK);
-    assert_eq!(apply_fixture(&f, fresh).await, StatusCode::OK);
-    assert_eq!(insert_fixture(&f, Some(fresh)).await, StatusCode::OK);
-    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::UNAUTHORIZED);
+    fresh.to_string()
+}
+
+#[tokio::test]
+async fn fresh_pairing_restores_access() {
+    // A text.edit pairing restores exactly the apply route.
+    let f = incoming_fixture(true, "text.edit");
+    super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap();
+    assert_old_token_fenced(&f).await;
+    // Enabling never makes the old token usable; a real fresh pair supplies it.
+    super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap();
+    assert_eq!(apply_fixture(&f, &f.token).await, StatusCode::UNAUTHORIZED);
+    let fresh = fresh_pair_secret(&f).await;
+    assert_eq!(apply_fixture(&f, &fresh).await, StatusCode::OK);
+    assert_eq!(context_fixture(&f, &fresh).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(insert_fixture(&f, Some(&fresh)).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(apply_fixture(&f, &f.token).await, StatusCode::UNAUTHORIZED);
+
+    // A context.read pairing restores exactly the context route.
+    let reader = incoming_fixture(true, "context.read");
+    super::mt_ext_disable(reader.id.clone(), reader.app.state(), reader.app.handle().clone()).await.unwrap();
+    assert_old_token_fenced(&reader).await;
+    super::mt_ext_enable(reader.id.clone(), reader.app.state()).await.unwrap();
+    let fresh_read = fresh_pair_secret(&reader).await;
+    assert_eq!(context_fixture(&reader, &fresh_read).await, StatusCode::OK);
+    assert_eq!(apply_fixture(&reader, &fresh_read).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(insert_fixture(&reader, Some(&fresh_read)).await, StatusCode::UNAUTHORIZED);
+
+    // A text.insert pairing restores exactly the insert route.
+    let inserter = incoming_fixture(true, "text.insert");
+    super::mt_ext_disable(inserter.id.clone(), inserter.app.state(), inserter.app.handle().clone()).await.unwrap();
+    assert_old_token_fenced(&inserter).await;
+    super::mt_ext_enable(inserter.id.clone(), inserter.app.state()).await.unwrap();
+    let fresh_insert = fresh_pair_secret(&inserter).await;
+    assert_eq!(insert_fixture(&inserter, Some(&fresh_insert)).await, StatusCode::OK);
+    assert_eq!(inserter.events.lock().unwrap().len(), 1);
+    assert_eq!(context_fixture(&inserter, &fresh_insert).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(apply_fixture(&inserter, &fresh_insert).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(insert_fixture(&inserter, Some(&inserter.token)).await, StatusCode::UNAUTHORIZED);
 }
 // END_BLOCK_DISABLE_AUTH_TESTS
 
