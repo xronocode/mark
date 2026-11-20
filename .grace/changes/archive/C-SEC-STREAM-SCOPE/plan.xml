@@ -1,0 +1,166 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-SEC-STREAM-SCOPE>
+    <ChangeRef>C-SEC-STREAM-SCOPE</ChangeRef>
+    <Created>2026-11-20</Created>
+    <IntentSummary>Make /ext/context and /ext/apply enforce the exact incoming capability declared by the paired extension manifest — context read (context.read) and text edit (text.edit) become separate permission classes alongside the existing text.insert grant — so a stream-display-only extension is refused on both routes while its owned /stream/* routes keep working, and make the release pairing dialog name exactly the granted incoming capabilities instead of the generic "send documents and data to Mark" wording, proven by flipping the tests.rs over-grant pin to per-route denial, new read/edit permission-matrix regressions, a pure pairing-grant-description unit pin, and the unchanged green renderer extension suites.</IntentSummary>
+    <ReferenceState>SpecSha256 = 814024c40fe9cdc4198508e7f3633d766320e116186d13e2416b2aed24ab06a8 (pinned over the approved spec.xml at admission; the orchestrator computes and replaces this placeholder from the approved spec bytes). Authored 2026-11-20 against the current read-only state of the canary-beta-wave worktree: src-tauri/src/m045_ext/live_server.rs authenticates every incoming data request through authenticate_incoming (START_BLOCK_AUTH_EXTRACT, lines 429-460) whose manifest check at line 451 is capability.is_none_or(|cap| manifest.capabilities.iter().any(|c| c.name == cap)) and therefore never fires for the two routes that pass capability None — handle_ext_context line 1039 and handle_ext_apply line 1117, both authenticate_incoming(&amp;state, &amp;headers, Some(&amp;req.extension_id), None).await — while /ext/text-insert line 988 already passes Some("text.insert"); the stream routes (/stream/open handle_doc_open line 560, patch, close, heartbeat) authenticate through authenticate_stream/validate_bearer with enabled-identity, authorization-generation and session owner/epoch fencing from C-SEC-STREAM-AUTH and no manifest capability check; the release pairing dialog in handle_pair (lines 491-518, cfg(not(debug_assertions))) asks via rfd MessageDialog "Allow this extension to send documents and data to Mark?" with Allow/Deny buttons, and debug builds auto-approve; the capability vocabulary is plain manifest strings (manifest.rs Capability.name, doc examples "text.insert", "text.transform", "stream.document"), with no enum today; src-tauri/src/m045_ext/tests.rs pins the over-grant in enabled_extension_passes_all_three_routes (lines 1159-1170: a stream.document fixture receives 200 OK on context and apply, 401 on insert) and fresh_pairing_restores_access (lines 1172-1192) asserts context/apply/insert all 200 for a text.insert fixture, while incoming_fixture (line 932) already parameterizes the declared capability, stream_open_fixture (line 1372) exercises /stream/open, and the disable family (lines 1110-1157) uses assert_old_token_fenced all-401; the M-045 graph anchor is .grace/graph/features.xml (NOT runtime.xml) with VerificationRef V-M-045 in .grace/verification/features.xml; the four renderer regression suites named in the spec exist (tests/renderer/components/extensionGallery/index.test.js, tests/renderer/components/extensionGallery/textOps.test.js, tests/renderer/components/textOps.test.js, tests/renderer/bootstrap-ipc.test.ts). Design decisions locked by this plan: the two new capability names are context.read (/ext/context) and text.edit (/ext/apply), following the existing domain.verb convention; no manifest declares them today, so no existing manifest gains or loses lawful access and no manifest-format change occurs; stream routes keep exactly their C-SEC-STREAM-AUTH fencing (no added manifest capability check) per the spec constraint that stream owner/epoch fencing stays unchanged. Deviation note: none — every path and line anchor above was verified against this tree. Per the drafting instruction this plan carries no self-referential grace-lint MustPassCommand; the orchestrator runs current/target/final lifecycle assertions itself. Writing this draft approves neither the execution plan nor code implementation, apply/archive, commits, departure into main, manual-acceptance exceptions or release.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-045</Value>
+        <Value>src-tauri/src/m045_ext/live_server.rs</Value>
+        <Value>src-tauri/src/m045_ext/tests.rs</Value>
+        <Value>.grace/graph/features.xml</Value>
+        <Value>.grace/verification/features.xml</Value>
+        <Value>tests/renderer/components/extensionGallery/index.test.js</Value>
+        <Value>tests/renderer/components/extensionGallery/textOps.test.js</Value>
+        <Value>tests/renderer/components/textOps.test.js</Value>
+        <Value>tests/renderer/bootstrap-ipc.test.ts</Value>
+      </MustExist>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>handle_ext_context</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>handle_ext_apply</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>authenticate_incoming</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>send documents and data to Mark</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>enabled_extension_passes_all_three_routes</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-045</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>enum RouteCapability</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>capability: Option&lt;RouteCapability&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>RouteCapability::ContextRead =&gt; "context.read"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>RouteCapability::TextEdit =&gt; "text.edit"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>Some(&amp;req.extension_id), Some(RouteCapability::ContextRead)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>Some(&amp;req.extension_id), Some(RouteCapability::TextEdit)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>read the current text of the active tab</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>edit the current text of the active tab</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>send streamed documents to Mark</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>insert text at the active tab cursor</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>declares no incoming data routes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>enabled_extension_passes_only_declared_capability_routes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>context_requires_context_read_capability</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>apply_requires_text_edit_capability</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">npx vitest run tests/renderer/components/extensionGallery/index.test.js tests/renderer/components/extensionGallery/textOps.test.js tests/renderer/components/textOps.test.js tests/renderer/bootstrap-ipc.test.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-045 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-045 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src-tauri/src/m045_ext/live_server.rs</File>
+      <File>src-tauri/src/m045_ext/tests.rs</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/features.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Enforce context.read and text.edit on /ext/context and /ext/apply and name the granted capabilities in the pairing dialog</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Introduce the RouteCapability permission-class enum in src-tauri/src/m045_ext/live_server.rs inside START_BLOCK_AUTH_EXTRACT (after validate_bearer, before authenticate_incoming): a private Copy enum with exactly four variants StreamDocument, ContextRead, TextEdit, TextInsert, a name() mapping to "stream.document", "context.read", "text.edit", "text.insert" respectively, a grant_phrase() mapping to "send streamed documents to Mark for display", "read the current text of the active tab", "edit the current text of the active tab", "insert text at the active tab cursor" respectively, and an all() fixed order [StreamDocument, ContextRead, TextEdit, TextInsert] for deterministic dialog listing. Change authenticate_incoming's capability parameter from Option&lt;&amp;str&gt; to Option&lt;RouteCapability&gt;, with the candidate selection using capability.map(|cap| registry.get_enabled(cap.name())) and the manifest check at line 451 using capability.is_none_or(|cap| manifest.capabilities.iter().any(|c| c.name == cap.name())); update its doc comment to describe every incoming data route instead of text insertion only. Rewire the three call sites: handle_text_insert line 988 passes Some(RouteCapability::TextInsert) (behavior identical), handle_ext_context line 1039 passes Some(&amp;req.extension_id), Some(RouteCapability::ContextRead) and handle_ext_apply line 1117 passes Some(&amp;req.extension_id), Some(RouteCapability::TextEdit), so an enabled token-valid extension whose registered manifest lacks the route's capability is refused with 401 UNAUTHORIZED through the existing BLOCK_AUTH_FAILED_INCOMING path before any content is returned or any mt::text::op or context event is emitted. The stream routes keep exactly their C-SEC-STREAM-AUTH fencing — no manifest capability check is added to or removed from /stream/open, /stream/patch, /stream/close or /stream/heartbeat, and token issuance, keychain storage, pairing approval flow and disable/revocation semantics are untouched.</Criterion>
+          <Criterion>Rework the release pairing dialog in handle_pair to state the exact grant: change State(_state) to State(state), look up the registered manifest for req.extension_id through state.app_handle.state::&lt;ExtRegistry&gt;().get_manifest before the spawn_blocking dialog closure, and build the description through a new pure pub(super) helper pairing_grant_description(extension_name, extension_id, declared_capability_names) that lists, in RouteCapability::all() fixed order and only for capabilities the manifest actually declares, one "- {grant_phrase}" line each, falls back to the single honest line "- pair with Mark (its manifest declares no incoming data routes yet)" when nothing incoming-route-relevant is declared or no manifest is registered, and composes "The extension \"{name}\" ({id}) wants to pair with Mark.\n\nIf you allow pairing, it will be able to:\n{lines}Anything not listed here is not granted to this extension." — the old sentence "Allow this extension to send documents and data to Mark?" is removed. Keep the cfg(not(debug_assertions)) gating, rfd MessageDialog shape, Info level, Allow/Deny OkCancelCustom buttons, spawn_blocking wrapper and unwrap_or(false) fallback, and the debug-build auto-approval arm byte-identical; keep the helper compiled in debug builds with a cfg_attr(debug_assertions, allow(dead_code)) so the pure description is unit-testable. The helper never claims tab read or edit access for a stream-only manifest.</Criterion>
+          <Criterion>Module hygiene: live_server.rs CHANGE_SUMMARY gains a dated 2026-11-20 C-SEC-STREAM-SCOPE entry and the SCOPE line names the capability-scoped context/apply routes; every existing START_BLOCK_/END_BLOCK_ marker stays paired and unique across the codebase; the log anchors BLOCK_EXT_CONTEXT_*, BLOCK_EXT_APPLY_*, BLOCK_TEXT_INSERT_* and BLOCK_AUTH_FAILED_INCOMING are unchanged; no Cargo.toml, dependency, registry, discovery, manifest-schema or renderer change.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">cargo check --locked --offline --manifest-path src-tauri/Cargo.toml</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Flip the over-grant pin to per-route denial, pin the read/edit permission matrix, and prove the refusal red-before green-after</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Red-first proof, recorded in the task evidence: with the new tests authored, temporarily restore the two T-001 call sites to capability None, run the renamed pin and the two matrix tests and observe them fail exactly on the over-grant refusals (context/apply answering 200 for a stream-only fixture), then restore Some(RouteCapability::ContextRead)/Some(RouteCapability::TextEdit) and observe the same tests pass; this is the spec's over-grant-regression fails-before-passes-after criterion exercised inside one worktree without any commit.</Criterion>
+          <Criterion>Rewrite the pinned over-grant regression in src-tauri/src/m045_ext/tests.rs START_BLOCK_DISABLE_AUTH_TESTS: enabled_extension_passes_all_three_routes becomes enabled_extension_passes_only_declared_capability_routes asserting for the text.insert fixture (context 401, apply 401, insert 200 with exactly one mt::text::op event) and for the stream.document fixture (context 401, apply 401 with zero mt::text::op events, insert 401, and stream_open_fixture stays 200 OK for the same token — the owned stream route keeps working). Add the permission-matrix cases in START_BLOCK_INCOMING_DATA_TESTS: context_requires_context_read_capability (a context.read fixture gets context 200 while apply and insert are 401; a text.edit fixture gets context 401) and apply_requires_text_edit_capability (a text.edit fixture gets apply 200 emitting exactly one insert mt::text::op for the insert_at_cursor operation while context and insert are 401; a context.read fixture gets apply 401 with zero events). Every refusal asserts the empty event list so no mt::text::op is emitted without the matching grant.</Criterion>
+          <Criterion>Add the dialog-grant unit pin (compiled debug too, since pairing_grant_description is pub(super) and pure): pairing_grant_description_names_only_declared_capabilities asserts that a stream.document-only declaration yields a description containing the stream phrase and neither "read the current text of the active tab" nor "edit the current text of the active tab", that a context.read-plus-text.edit declaration names exactly those two phrases in fixed order, and that an empty or unknown declaration list falls back to the "declares no incoming data routes" line — expectations stated independently from the implementation strings.</Criterion>
+          <Criterion>Reconcile the disable/pairing family with the new matrix without weakening any fencing expectation: fresh_pairing_restores_access switches to a text.edit fixture (fresh pairing restores apply 200 and insert 200 while context stays 401) plus a context.read fixture (fresh pairing restores context 200 while apply and insert stay 401); assert_old_token_fenced keeps all three routes 401 for old tokens; disable_revokes_and_verifies_absence, disable_surfaces_revoke_failure and disable_refuses_unverified_revocation keep their text.insert fixtures and assertions unchanged; the text_insert_* family and the stream security family stay untouched and green; no existing expectation is weakened or deleted, only capability declarations and the refusals they now imply change.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Record the M-045 graph and V-M-045 verification deltas</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>In .grace/graph/features.xml append a dated C-SEC-STREAM-SCOPE paragraph to M-045's Summary after the C-SEC-STREAM-AUTH paragraph, recording that /ext/context requires context.read and /ext/apply requires text.edit as separate permission classes enforced against the paired manifest on every request before content or mt::text::op emission, that stream routes keep the C-SEC-STREAM-AUTH identity/generation/epoch fencing unchanged, and that the release pairing dialog names the exact granted incoming capabilities with an honest no-declared-routes fallback; preserve every existing Summary sentence, LegacySource, LegacyAttributes and annotation byte-identical.</Criterion>
+          <Criterion>In .grace/verification/features.xml record only executed evidence in V-M-045: update the Commands entry for the native suite to the executed form cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext and add one scenario-security-extension-capability-scope scenario naming the flipped pin and the matrix, dialog-pin and pairing-restoral tests by name with their expected per-route statuses; keep every existing scenario, Marker and TraceAssertion and the LegacyMatrixEvidence block verbatim; do not claim pass evidence for the real release dialog rendering (rfd) or any Mac App Store surface — those stay explicitly open and are not exercised by unit tests.</Criterion>
+          <Criterion>No durable artifact outside the ObservedWriteScope changes; no release publication, version change or lane action is authorized by this task.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+      <Command budgetSeconds="600">npx vitest run tests/renderer/components/extensionGallery/index.test.js tests/renderer/components/extensionGallery/textOps.test.js tests/renderer/components/textOps.test.js tests/renderer/bootstrap-ipc.test.ts</Command>
+      <Environment>Baseline is the current canary-beta-wave worktree: the Rust toolchain runs with --locked --offline against the committed Cargo.lock and the four renderer suite files exist (verified). Tasks run strictly sequentially T-001 then T-002 then T-003; T-001's cargo check passes alone while the pre-T-002 suite is knowingly red on the two flipped expectations, and the full native suite becomes green at T-002, staying green through T-003. The over-grant regression is proven in both directions inside T-002 by locally restoring capability None at the two call sites (red) and re-applying the enum arguments (green) with no commit. The four renderer suites are regression-only evidence — no renderer source file changes — and must stay green with no skips, retries, budget increases or weakened assertions. Token issuance, keychain storage, the pairing approval flow, disable/revocation semantics and the C-SEC-STREAM-AUTH stream owner/epoch fencing stay behaviorally unchanged; manifests declaring today's capability names keep working with no manifest-format, discovery, registry or gallery change; no user-facing UI beyond the pairing dialog wording; src-tauri/src/m045_ext/live_server.rs and src-tauri/src/m045_ext/tests.rs plus the two graph/verification xml files are the only writes. Every START_BLOCK_/END_BLOCK_ marker stays paired and unique after each task. This plan deliberately carries no self-referential grace-lint MustPassCommand; the orchestrator runs grace lint --assertions current/target/final and the archived current-state integrity itself. Owned cargo/vitest processes are cleaned up after runs; no apply/archive, commit/push, lane admission, departure into main, version/tag or release is authorized by this plan.</Environment>
+    </AcceptanceVerification>
+  </C-SEC-STREAM-SCOPE>
+</GraceChangePlan>

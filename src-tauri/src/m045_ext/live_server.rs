@@ -4,8 +4,9 @@
 //            stream.document messages from external apps (e.g. TokMo
 //            meeting mode) over HTTP POST on 127.0.0.1. Validates
 //            Bearer auth, session lifecycle, and sequence idempotency.
-//   SCOPE:   axum HTTP server with /ext/pair, /stream/*, and authenticated
-//            text-insert/context/apply data routes; runtime-generic events.
+//   SCOPE:   axum HTTP server with /ext/pair, /stream/*, and capability-
+//            scoped text-insert/context/apply data routes; runtime-generic
+//            events.
 //            Session state: open/patch/close/heartbeat lifecycle.
 //            Heartbeat timeout (15s) auto-closes stale sessions.
 //   DEPENDS: axum 0.8, tokio (net, rt, time, sync), serde/serde_json,
@@ -17,6 +18,7 @@
 //   STATUS:  Phase-B5b — handlers emit to frontend via live_bridge.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-20 C-SEC-STREAM-SCOPE: /ext/context requires context.read and /ext/apply requires text.edit, checked against the paired manifest before any response or event; the release pairing dialog names exactly the granted incoming capabilities.
 //   - 2026-11-11 C-SEC-STREAM-AUTH: validate enabled generation and session owner at serialized mutations; stamp ordered live events.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES T-003: authenticate text insertion by enabled capability and bearer identity; runtime-generic fixtures.
 //   - 2026-08-14 live-doc v2: DocPatchRequest gained `op` (append|replace,
@@ -426,21 +428,67 @@ async fn validate_bearer<R: tauri::Runtime>(
     authenticate_stream(headers, state, id, Some(epoch)).await
 }
 
+/// The incoming data-route permission classes. Every incoming route requires
+/// exactly one capability name declared by the paired extension's manifest;
+/// the check runs inside authenticate_incoming before any content is returned
+/// or any event is emitted. Stream routes keep their C-SEC-STREAM-AUTH
+/// identity/generation/epoch fencing and do not consult this enum's name()
+/// against manifests in this change; StreamDocument exists for the pairing
+/// grant description.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RouteCapability {
+    /// stream.document — extension sends streamed documents into Mark's live view.
+    StreamDocument,
+    /// context.read — read the active tab's markdown/cursor/selection (/ext/context).
+    ContextRead,
+    /// text.edit — insert/transform/undo the active tab's text (/ext/apply).
+    TextEdit,
+    /// text.insert — insert text at the active tab's cursor (/ext/text-insert).
+    TextInsert,
+}
+
+#[cfg_attr(debug_assertions, allow(dead_code))] // grant_phrase/all are read by pairing_grant_description, which is allow(dead_code) in debug non-test builds
+impl RouteCapability {
+    fn name(self) -> &'static str {
+        match self {
+            RouteCapability::StreamDocument => "stream.document",
+            RouteCapability::ContextRead => "context.read",
+            RouteCapability::TextEdit => "text.edit",
+            RouteCapability::TextInsert => "text.insert",
+        }
+    }
+    fn grant_phrase(self) -> &'static str {
+        match self {
+            RouteCapability::StreamDocument => "send streamed documents to Mark for display",
+            RouteCapability::ContextRead => "read the current text of the active tab",
+            RouteCapability::TextEdit => "edit the current text of the active tab",
+            RouteCapability::TextInsert => "insert text at the active tab cursor",
+        }
+    }
+    /// Fixed stable order for the pairing dialog grant list.
+    fn all() -> [RouteCapability; 4] {
+        [RouteCapability::StreamDocument, RouteCapability::ContextRead,
+         RouteCapability::TextEdit, RouteCapability::TextInsert]
+    }
+}
+
 /// Authenticate an incoming data request without holding the registry lock during
-/// native credential access. An identity-less request can select only enabled
-/// extensions advertising its required capability; no client-declared identity
-/// is accepted for text insertion.
+/// native credential access. Every incoming data route names the exact
+/// RouteCapability class it grants; an identity-less request can select only
+/// enabled extensions advertising that capability, and a client-declared
+/// identity is accepted only when its registered manifest declares the same
+/// capability.
 async fn authenticate_incoming<R: tauri::Runtime>(
     state: &LiveServerState<R>,
     headers: &HeaderMap,
     requested_id: Option<&str>,
-    capability: Option<&str>,
+    capability: Option<RouteCapability>,
 ) -> Result<String, (StatusCode, String)> {
     let token = extract_bearer(headers)?;
     let registry = state.app_handle.state::<super::registry::ExtRegistry>();
     let candidates = match requested_id {
         Some(id) => registry.get_manifest(id).map(|m| vec![m]).unwrap_or_default(),
-        None => capability.map(|cap| registry.get_enabled(cap)).unwrap_or_default(),
+        None => capability.map(|cap| registry.get_enabled(cap.name())).unwrap_or_default(),
     };
     let identity = tokio::task::spawn_blocking(move || {
         candidates.into_iter().find(|manifest| super::auth::validate_token(&manifest.id, &token))
@@ -448,7 +496,7 @@ async fn authenticate_incoming<R: tauri::Runtime>(
     }).await.ok().flatten();
     if let Some(id) = identity {
         if let Ok(manifest) = registry.get_manifest(&id) {
-            if capability.is_none_or(|cap| manifest.capabilities.iter().any(|c| c.name == cap)) {
+            if capability.is_none_or(|cap| manifest.capabilities.iter().any(|c| c.name == cap.name())) {
                 return Ok(id);
             }
         }
@@ -461,13 +509,42 @@ async fn authenticate_incoming<R: tauri::Runtime>(
 
 // START_BLOCK_HANDLERS
 
+/// Pure description of what a pairing approval grants, rendered for the
+/// release pairing dialog. Lists one grant line per RouteCapability the
+/// manifest actually declares, in RouteCapability::all() fixed order, and
+/// falls back to a single honest line when nothing incoming-route-relevant
+/// is declared (or no manifest is registered). It never claims tab read or
+/// edit access that the manifest does not state.
+#[cfg_attr(debug_assertions, allow(dead_code))]
+pub(super) fn pairing_grant_description(
+    extension_name: &str,
+    extension_id: &str,
+    declared: &[String],
+) -> String {
+    let lines: Vec<String> = RouteCapability::all()
+        .into_iter()
+        .filter(|cap| declared.iter().any(|name| name == cap.name()))
+        .map(|cap| format!("- {}", cap.grant_phrase()))
+        .collect();
+    let list = if lines.is_empty() {
+        "- pair with Mark (its manifest declares no incoming data routes yet)\n".to_string()
+    } else {
+        lines.into_iter().map(|l| format!("{l}\n")).collect()
+    };
+    format!(
+        "The extension \"{extension_name}\" ({extension_id}) wants to pair with Mark.\n\n\
+         If you allow pairing, it will be able to:\n{list}\
+         Anything not listed here is not granted to this extension."
+    )
+}
+
 /// POST /ext/pair — pairing initiation.
 /// Generates a shared secret, stores it in keychain, returns it to the
 /// caller. In production this would show a native dialog for user
 /// approval; for now auto-approves (TODO: wire native dialog via
 /// app_handle).
 pub(super) async fn handle_pair<R: tauri::Runtime>(
-    State(_state): State<Arc<LiveServerState<R>>>,
+    State(state): State<Arc<LiveServerState<R>>>,
     Json(req): Json<PairRequest>,
 ) -> impl IntoResponse {
     safe_eprintln!(
@@ -490,17 +567,20 @@ pub(super) async fn handle_pair<R: tauri::Runtime>(
     };
     #[cfg(not(debug_assertions))]
     let approved = {
-        let ext_name_for_dialog = req.extension_name.clone();
-        let ext_id_for_dialog = req.extension_id.clone();
+        let declared: Vec<String> = state
+            .app_handle
+            .state::<super::registry::ExtRegistry>()
+            .get_manifest(&req.extension_id)
+            .map(|m| m.capabilities.iter().map(|c| c.name.clone()).collect())
+            .unwrap_or_default();
+        let description =
+            pairing_grant_description(&req.extension_name, &req.extension_id, &declared);
         tokio::task::spawn_blocking(move || {
             use rfd::{MessageButtons, MessageDialog, MessageDialogResult, MessageLevel};
             let result = MessageDialog::new()
                 .set_level(MessageLevel::Info)
                 .set_title("Mark — Extension Pairing Request")
-                .set_description(&format!(
-                    "The extension \"{}\" ({}) wants to pair with Mark.\n\nAllow this extension to send documents and data to Mark?",
-                    ext_name_for_dialog, ext_id_for_dialog,
-                ))
+                .set_description(&description)
                 .set_buttons(MessageButtons::OkCancelCustom(
                     "Allow".to_string(),
                     "Deny".to_string(),
@@ -985,7 +1065,7 @@ pub(super) async fn handle_text_insert<R: tauri::Runtime>(
     headers: HeaderMap,
     Json(req): Json<TextInsertRequest>,
 ) -> impl IntoResponse {
-    let extension_id = match authenticate_incoming(&state, &headers, None, Some("text.insert")).await {
+    let extension_id = match authenticate_incoming(&state, &headers, None, Some(RouteCapability::TextInsert)).await {
         Ok(id) => id,
         Err((status, message)) => return (status, Json(serde_json::json!({"error": message}))),
     };
@@ -1036,7 +1116,7 @@ pub(super) async fn handle_ext_context<R: tauri::Runtime>(
     headers: HeaderMap,
     Json(req): Json<ExtContextRequest>,
 ) -> impl IntoResponse {
-    if let Err(e) = authenticate_incoming(&state, &headers, Some(&req.extension_id), None).await {
+    if let Err(e) = authenticate_incoming(&state, &headers, Some(&req.extension_id), Some(RouteCapability::ContextRead)).await {
         return (e.0, Json(serde_json::json!({"error": e.1})));
     }
 
@@ -1114,7 +1194,7 @@ pub(super) async fn handle_ext_apply<R: tauri::Runtime>(
     headers: HeaderMap,
     Json(req): Json<ExtApplyRequest>,
 ) -> impl IntoResponse {
-    if let Err(e) = authenticate_incoming(&state, &headers, Some(&req.extension_id), None).await {
+    if let Err(e) = authenticate_incoming(&state, &headers, Some(&req.extension_id), Some(RouteCapability::TextEdit)).await {
         return (e.0, Json(serde_json::json!({"error": e.1})));
     }
 
