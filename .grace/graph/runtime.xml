@@ -630,7 +630,8 @@
         </Attribute>
       </LegacyAttributes>
       <LegacySource>docs/knowledge-graph.xml: M-001; docs/development-plan.xml: M-001</LegacySource>
-    </M-001>
+          <SummaryDelta>C-SEC-SAVE-HANDLE: the save and snapshot writers funnel through the shared re-fencing writer — a save whose path is swapped to escape the sandbox between the boundary check and the open is refused with the existing denial family; allowed inward symlinks keep working (only NEW links at the last fence are denied).</SummaryDelta>
+</M-001>
     <M-002>
       <SummaryDelta>C-METADATA-SAVE-SAFETY T-001: fs_write_bytes_inner shares validated write_all/sync_all mechanics with the text/binary facades. Codec validation belongs before this mutating boundary; in-place I/O remains non-atomic.</SummaryDelta>
       <Name>mt-fs-commands</Name>
@@ -843,7 +844,8 @@
         </Attribute>
       </LegacyAttributes>
       <LegacySource>docs/knowledge-graph.xml: M-002; docs/development-plan.xml: M-002</LegacySource>
-    </M-002>
+          <SummaryDelta>C-SEC-SAVE-HANDLE: the shared fs writer holds a fence-before-open invariant — the last boundary validation runs immediately before the only opening syscall, after all directory mutation; the residual single kernel pathwalk between fence and open is a stated contract with a per-platform no-follow follow-up named.</SummaryDelta>
+</M-002>
     <M-003>
       <Name>mt-fs-watcher</Name>
       <DisplayName>mt-fs-watcher</DisplayName>
@@ -1489,7 +1491,8 @@
         </Attribute>
       </LegacyAttributes>
       <LegacySource>docs/knowledge-graph.xml: M-005; docs/development-plan.xml: M-005</LegacySource>
-    </M-005>
+          <SummaryDelta>C-SEC-SAVE-HANDLE: reference-only — the sandbox root canonicalization the re-fence reuses is unchanged.</SummaryDelta>
+</M-005>
     <M-006>
       <Name>mt-shortcuts</Name>
       <DisplayName>mt-shortcuts</DisplayName>
@@ -2621,7 +2624,8 @@
         </Attribute>
       </LegacyAttributes>
       <LegacySource>docs/knowledge-graph.xml: M-010; docs/development-plan.xml: M-010</LegacySource>
-    </M-010>
+          <SummaryDelta>C-SEC-SAVE-HANDLE: check_path semantics unchanged (stdlib-only); the shared writer now calls it a second time immediately before the open and denies when the canonical answer changed in the race window.</SummaryDelta>
+</M-010>
     <M-011>
       <SummaryDelta>C-BOOKMARK-PERSISTENCE-DURABILITY: bootstrap registers the main-only bookmark failure wakeup before triggering invokes; the serialized drain recovers pre-listener failures and shows sticky, localized access-persistence guidance through the existing notification facade. Secondary windows cannot consume the global pending bit.</SummaryDelta>
       <SummaryDelta>C-SETTINGS-KEYBOARD-FOCUS: shared switch, native select and segment controls use the existing preference-accent outline only for keyboard-visible focus. Settings and Quick Settings inherit the same presentation without changed values, selection, dimensions, callbacks or native keyboard policy.</SummaryDelta>

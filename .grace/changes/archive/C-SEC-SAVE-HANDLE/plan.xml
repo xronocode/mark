@@ -1,0 +1,232 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-SEC-SAVE-HANDLE>
+    <ChangeRef>C-SEC-SAVE-HANDLE</ChangeRef>
+    <Created>2026-11-21</Created>
+    <IntentSummary>Execute the approved C-SEC-SAVE-HANDLE spec: pin a fence-before-open invariant in the single shared sandboxed writer — the last M-010 validation runs immediately before the only opening syscall, after all directory mutation, with no filesystem work in between — so parallel path mutation inside the workspace can no longer make a save land outside the sandbox. The writer re-fences after create_dir_all and denies, with the existing MT_FS_PATH_DENIED family, when the re-fence's canonical resolution differs from the first fence's validated path (this denies only links planted during the window; every pre-existing inward or outward resolution is unchanged between the fences and keeps its current allowance or denial). Deterministic race-shape regression tests inject leaf and ancestor mutation through a cfg(test)-only path-keyed hook, the save-and-close and document-snapshot routes prove the same refusal at their own layer, all allowed-symlink and denial regressions stay green unchanged, and the fs.rs contract, M-002/M-010 graph summaries and V-M-002/V-M-010 verification surfaces state the invariant, the residual single-pathwalk window and the per-platform follow-up direction honestly. m010_security stays stdlib-only with its fence unchanged; no new crate dependencies; write semantics (in-place write_all + sync_all, non-atomic, parent auto-creation) and all renderer-visible error codes are preserved.</IntentSummary>
+    <ReferenceState>SpecSha256 = ac45547d33d60888676e7a48624c36191d0b03ab39877dd810b947c82fde7a91 (pinned over the approved spec.xml at admission; the orchestrator computes and replaces this placeholder from the approved spec bytes). Authored 2026-11-21 against the current read-only state of the canary-beta-wave worktree: all mutating writers converge on write_validated_bytes (src-tauri/src/m013b/fs.rs:134-145) which fences once with m010_security::check_path (fs.rs:136), then fs::create_dir_all on the canonical parent (fs.rs:138-140), then fs::File::create on the validated path (fs.rs:141); the facades fs_write_inner (fs.rs:123), fs_write_bytes_inner (fs.rs:128) and fs_write_binary_inner (fs.rs:353) all delegate to it, with mt_fs_write/mt_fs_write_binary on top; m010_security::check_path (m010_security.rs:168-248) does the NUL/overlong/lexical/prefix checks and canonicalize_nearest_ancestor (m010_security.rs:271-288) resolves the nearest existing directory entry (symlink_metadata walk, NotFound-only advance, fail-closed on dangling links and other I/O errors), returning the canonical path; IpcError::from_security_path (m013b/error.rs:80-87) maps every SecurityError variant to MT_FS_PATH_DENIED; the save-and-close path save_to_path_inner (m001_save_close.rs:212-242) funnels through fs_write_inner (line 219) and formats errors as Debug strings; write_document_snapshot_inner (m001_save_close.rs:328-376) fences early for its ownership comparison (line 337) and then funnels through fs_write_bytes_inner (line 356) mapping failures to the MT_DOCUMENT_WRITE_FAILED string; m005_prefs::workspace_set_inner (m005_prefs.rs:345-369) defines the sandbox root by fs::canonicalize at set time (line 357) and restore_workspace re-sets it non-canonicalizingly (both untouched here); existing fs.rs tests carry ancestor_inward_ok (fs.rs:491), ancestor_existing_outside_regression (fs.rs:509), ancestor_dangling_leaf_refused (fs.rs:525), read_write_utf8_roundtrip (fs.rs:545), write_creates_parent_dirs_when_missing (fs.rs:728), write_overwrites_existing_file (fs.rs:747), all unix-symlink tests cfg(unix); m010 tests carry ancestor_escape_text_new/ancestor_escape_binary_new/ancestor_escape_mkdir (m010_security.rs:416/427/438) and symlink_inside_sandbox_allowed (m010_security.rs:597); graph anchors M-001 (.grace/graph/runtime.xml:8), M-002 (:634, with the C-SEC-AUDIT-FIXES and C-METADATA-SAVE-SAFETY SummaryDelta pattern), M-005 (:1266), M-010 (:2231) and verification anchors V-M-001 (.grace/verification/runtime.xml:3), V-M-002 (:470, Commands list plus named scenario-security-* entries), V-M-005 (:1542), V-M-010 (:2911) all exist. Design decisions locked by this plan: (1) the re-fence is a second full check_path call on the same request string, placed after create_dir_all; the writer additionally denies when the re-fence's canonical result differs from the first fence's validated path — this implements deny-only-NEW-links: a link planted in the window changes the canonicalization (whether inward or outward) and is denied, while any resolution present before the window is identical at both fences and keeps its current behavior; check_path itself continues to deny now-outside resolutions directly; (2) the only opening syscall is fs::File::create on the re-fence's validated path; write_all + sync_all stay in place and non-atomic; (3) the deterministic seam is a cfg(test)-only race_window_hook, invoked exactly once between directory mutation and the re-fence, compiled to a no-op inline function outside test builds, settable via a cfg(test) pub(crate) set_race_window_hook keyed by the exact validated path so parallel tests on distinct TempDirs cannot cross-fire; (4) the differs-denial constructs SecurityError::SymlinkEscapesSandbox with the re-fence result as resolved and the first fence's result as sandbox, mapped through the existing from_security_path so the renderer-visible code stays MT_FS_PATH_DENIED, with a new BLOCK_REVALIDATION_CHANGED log marker in the BLOCK_ convention; (5) m010_security.rs takes no behavioral change — contract/LINKS notes and its test module only, stdlib-only preserved, no libc/rustix/windows-sys promotion; (6) fs_copy_inner, fs_move_inner, fs_mkdir_inner and the m047 bookmark rescue are outside the spec's writer scope and are not touched; (7) m005_prefs.rs is reference-only, no change planned; (8) the residual race is the single kernel pathwalk between the re-fence and File::create — stated in contract, graph and verification, not hidden. Deviation note: none — every path and line anchor above was verified against this tree. Per the drafting instruction this plan carries no self-referential grace-lint MustPassCommand; the orchestrator runs grace lint --assertions current/target/final and the current-state integrity itself. Writing this draft approves neither the execution plan nor code implementation, apply/archive, commits, departure into main, manual-acceptance exceptions or release.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-001</Value>
+        <Value>M-002</Value>
+        <Value>M-005</Value>
+        <Value>M-010</Value>
+        <Value>.grace/changes/active/C-SEC-SAVE-HANDLE/spec.xml</Value>
+        <Value>src-tauri/src/m013b/fs.rs</Value>
+        <Value>src-tauri/src/m001_save_close.rs</Value>
+        <Value>src-tauri/src/m010_security.rs</Value>
+        <Value>src-tauri/src/m005_prefs.rs</Value>
+        <Value>.grace/graph/runtime.xml</Value>
+        <Value>.grace/verification/runtime.xml</Value>
+      </MustExist>
+      <MustContain>
+        <File>src-tauri/src/m013b/fs.rs</File>
+        <Text>let validated = m010_security::check_path(sandbox, Path::new(path))</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m013b/fs.rs</File>
+        <Text>fs::create_dir_all(parent).map_err(|e| IpcError::from_io(cmd, e))?;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m013b/fs.rs</File>
+        <Text>let mut file = fs::File::create(&amp;validated).map_err(|e| IpcError::from_io(cmd, e))?;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m010_security.rs</File>
+        <Text>pub fn check_path(sandbox: &amp;Path, requested: &amp;Path) -&gt; Result&lt;PathBuf, SecurityError&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m010_security.rs</File>
+        <Text>canonicalize_nearest_ancestor</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m001_save_close.rs</File>
+        <Text>crate::m013b::fs::fs_write_inner(target_path, markdown, sandbox)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m001_save_close.rs</File>
+        <Text>crate::m013b::fs::fs_write_bytes_inner(&amp;request.target_path, &amp;bytes, sandbox)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m001_save_close.rs</File>
+        <Text>crate::m010_security::check_path(sandbox, std::path::Path::new(&amp;resolved_target))</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>let canonical = fs::canonicalize(&amp;p).map_err(|e| e.to_string())?;</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-001</Module>
+        <Module>M-002</Module>
+        <Module>M-005</Module>
+        <Module>M-010</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src-tauri/src/m013b/fs.rs</File>
+        <Text>let revalidated = m010_security::check_path(sandbox, Path::new(path))</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m013b/fs.rs</File>
+        <Text>if revalidated != validated {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m013b/fs.rs</File>
+        <Text>fs::File::create(&amp;revalidated)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m013b/fs.rs</File>
+        <Text>SecurityError::SymlinkEscapesSandbox</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m013b/fs.rs</File>
+        <Text>BLOCK_REVALIDATION_CHANGED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m013b/fs.rs</File>
+        <Text>race_window_hook(&amp;validated);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m013b/fs.rs</File>
+        <Text>fn set_race_window_hook</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m013b/fs.rs</File>
+        <Text>fs::create_dir_all(parent).map_err(|e| IpcError::from_io(cmd, e))?;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m013b/fs.rs</File>
+        <Text>C-SEC-SAVE-HANDLE</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m013b/fs.rs</File>
+        <Text>fn race_leaf_outward_planted_denied</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m013b/fs.rs</File>
+        <Text>fn race_ancestor_swapped_outward_denied</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m013b/fs.rs</File>
+        <Text>fn race_leaf_inward_planted_denied</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m001_save_close.rs</File>
+        <Text>fn save_race_leaf_planted_refused</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m001_save_close.rs</File>
+        <Text>fn snapshot_race_leaf_planted_refused</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m001_save_close.rs</File>
+        <Text>C-SEC-SAVE-HANDLE</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m001_save_close.rs</File>
+        <Text>crate::m013b::fs::fs_write_bytes_inner(&amp;request.target_path, &amp;bytes, sandbox)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m001_save_close.rs</File>
+        <Text>crate::m010_security::check_path(sandbox, std::path::Path::new(&amp;resolved_target))</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m010_security.rs</File>
+        <Text>C-SEC-SAVE-HANDLE</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m010_security.rs</File>
+        <Text>pub fn check_path(sandbox: &amp;Path, requested: &amp;Path) -&gt; Result&lt;PathBuf, SecurityError&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>let canonical = fs::canonicalize(&amp;p).map_err(|e| e.to_string())?;</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/runtime.xml</File>
+        <Text>C-SEC-SAVE-HANDLE</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/runtime.xml</File>
+        <Text>C-SEC-SAVE-HANDLE</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m013b::fs</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m010_security</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m001_save_close</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m005_prefs</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-001 />
+        <M-002 />
+        <M-005 />
+        <M-010 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-001 />
+        <V-M-002 />
+        <V-M-005 />
+        <V-M-010 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src-tauri/src/m013b/fs.rs</File>
+      <File>src-tauri/src/m001_save_close.rs</File>
+      <File>src-tauri/src/m010_security.rs</File>
+      <File>src-tauri/src/m005_prefs.rs</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Fence-before-open invariant in the shared writer (re-fence after directory mutation, deny resolution changes, open only the re-validated path)</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Restructure write_validated_bytes in src-tauri/src/m013b/fs.rs to the exact order: (1) the unchanged first fence let validated = m010_security::check_path(sandbox, Path::new(path)) with from_security_path mapping; (2) the unchanged parent auto-creation fs::create_dir_all on validated.parent(); (3) the cfg(test)-only seam call race_window_hook(&amp;validated); — a function that outside test builds is a #[cfg(not(test))] #[inline] no-op taking the validated path and inside test builds dispatches to a path-keyed action registered through a #[cfg(test)] pub(crate) fn set_race_window_hook (the hook fires only when the validated path exactly equals the registered key, so parallel tests on distinct TempDirs cannot cross-fire, and the setter returns the previous registration so tests restore the empty state); (4) the re-fence let revalidated = m010_security::check_path(sandbox, Path::new(path)) with the same from_security_path mapping — the last M-010 validation, running after all directory mutation; (5) the resolution-change denial if revalidated != validated — log safe_eprintln!("[FsCmd][write][BLOCK_REVALIDATION_CHANGED path={}]", redact(path)) and return Err(IpcError::from_security_path(cmd, SecurityError::SymlinkEscapesSandbox { resolved: revalidated.display().to_string(), sandbox: validated.display().to_string() })) so the renderer-visible code stays MT_FS_PATH_DENIED (from_security_path maps every SecurityError to MT_FS_PATH_DENIED, m013b/error.rs:80-87); (6) the only opening syscall fs::File::create(&amp;revalidated) — opened on the path the last fence validated, with no filesystem work between the re-fence and the open (the comparison is pure); (7) the unchanged in-place file.write_all + file.sync_all. The three facades fs_write_inner, fs_write_bytes_inner, fs_write_binary_inner and the commands mt_fs_write, mt_fs_write_binary keep their signatures, logging and error contracts; write semantics stay non-atomic with parent auto-creation; no new crate dependency, no libc/rustix/windows-sys promotion, no IPC surface change; fs_copy_inner, fs_move_inner and fs_mkdir_inner are untouched.</Criterion>
+          <Criterion>Contract hygiene: the fs.rs START_MODULE_CONTRACT SCOPE records the fence-before-open invariant (last M-010 validation immediately before the only opening syscall, after all directory mutation, denying any canonical-resolution change introduced in the window) and states the residual single-pathwalk window between the re-fence and File::create honestly, plus the cfg(test) hook as declared test-only contract surface per spec Assumption 3; the LINKS line gains .grace/changes/active/C-SEC-SAVE-HANDLE; CHANGE_SUMMARY gains a dated 2026-11-21 C-SEC-SAVE-HANDLE entry; MODULE_MAP is updated if the lint requires the cfg(test) setter to be listed, with no lint regressions on the file. m010_security.rs takes NO behavioral change: its LINKS gains .grace/changes/active/C-SEC-SAVE-HANDLE and its contract notes (SCOPE/STATUS area) record that writers re-fence immediately before open, that check_path and canonicalize_nearest_ancestor are byte-unchanged, that the module stays stdlib-only, and that std cannot hold a validated descriptor across the open (the honest per-platform statement from the spec's platform-honesty constraint); its CHANGE_SUMMARY gains the same dated entry. m001_save_close.rs CHANGE_SUMMARY gains the dated entry and the save/snapshot write-path comments state that both routes reach disk only through the hardened writer (the early ownership fence at line 337 stays exactly as it is). Every START_BLOCK_/END_BLOCK_ marker stays paired and unique across the codebase.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m013b::fs</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Race-shape regressions (deterministic hook), route-level save refusals, red-first proof, allowance regressions green</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>fs.rs test module gains three #[cfg(unix)] race tests, each registering its action via set_race_window_hook keyed to its own TempDir-backed validated path and restoring the empty registration afterwards: race_leaf_outward_planted_denied (write to a missing nested leaf; the hook plants an outward symlink at the leaf, pointing at a preset outside target; assert the write returns MT_FS_PATH_DENIED, the outside target's content is byte-for-byte unchanged, and no regular file exists at the requested path — the planted link remains but nothing was written through it); race_ancestor_swapped_outward_denied (an existing inside directory component of the validated path is swapped by the hook to a symlink pointing at an outside directory; assert MT_FS_PATH_DENIED, the outside directory's content unchanged, and no file created at the joined outside path); race_leaf_inward_planted_denied (the hook plants an INWARD symlink at the leaf; assert MT_FS_PATH_DENIED — documenting the deny-only-NEW-links semantics: any canonical-resolution change in the window denies, while the pre-existing inward links of ancestor_inward_ok keep passing unchanged because both fences resolve them identically). Each test also asserts the failure leaves no partial file at the requested path.</Criterion>
+          <Criterion>m001_save_close.rs test module gains two #[cfg(unix)] route-level race tests using the same pub(crate) hook to prove the refusal propagates through the save routes, not only the writer: save_race_leaf_planted_refused (save_to_path_inner with the hook planting an outward leaf symlink returns Err whose Debug-formatted message contains MT_FS_PATH_DENIED, and the outside target's bytes are unchanged) and snapshot_race_leaf_planted_refused (write_document_snapshot_inner with a full DocumentWriteRequest fixture and the same planted mutation returns Err("MT_DOCUMENT_WRITE_FAILED"), the outside target's bytes are unchanged, and the early ownership-fence behavior at line 337 is untouched). No m001 error string or SavedTabState/DocumentWriteReply shape changes.</Criterion>
+          <Criterion>Red-first proof, recorded in the task evidence: with the five new tests authored, temporarily restore write_validated_bytes to the pre-fix body (single fence, create_dir_all, File::create on the once-validated path) and observe all five race tests fail exactly because the planted mutations succeed and bytes land on the outside target; restore the T-001 body and observe the same five pass — the spec's fails-before/passes-after criterion exercised inside one worktree without any commit. Allowance regressions stay green with NO modification to their code or expectations: fs.rs ancestor_inward_ok, ancestor_existing_outside_regression, ancestor_dangling_leaf_refused, write_creates_parent_dirs_when_missing, write_overwrites_existing_file, read_write_utf8_roundtrip, write_outside_sandbox_rejected, write_binary_creates_parent_dirs; m010_security's full suite including the ancestor_escape_text_new / ancestor_escape_binary_new / ancestor_escape_mkdir matrix and symlink_inside_sandbox_allowed; the m001_save_close and m005_prefs suites. The anti-vacuity naming is pinned: every new test carries the exact name above so the verification filters cannot pass vacuously (cargo exits 0 on a filter matching zero tests).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">sh -c "cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m013b::fs &amp;&amp; cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m010_security &amp;&amp; cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m001_save_close &amp;&amp; cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m005_prefs &amp;&amp; grep -q 'fn race_leaf_outward_planted_denied' src-tauri/src/m013b/fs.rs &amp;&amp; grep -q 'fn race_ancestor_swapped_outward_denied' src-tauri/src/m013b/fs.rs &amp;&amp; grep -q 'fn race_leaf_inward_planted_denied' src-tauri/src/m013b/fs.rs &amp;&amp; grep -q 'fn save_race_leaf_planted_refused' src-tauri/src/m001_save_close.rs &amp;&amp; grep -q 'fn snapshot_race_leaf_planted_refused' src-tauri/src/m001_save_close.rs"</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Graph and verification deltas stating the invariant, the residual window and the follow-up direction</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>In .grace/graph/runtime.xml append dated C-SEC-SAVE-HANDLE SummaryDelta paragraphs to the current entries, preserving every predecessor sentence byte-identical: M-002 — the shared writer's fence-before-open invariant (last M-010 validation immediately before the only opening syscall on the re-validated path, after all directory mutation), the deny-when-canonicalization-changed rule at the last fence (only links planted in the window are denied; pre-existing inward/outward resolutions keep their behavior), the cfg(test) race-window hook as declared test-only seam, and the residual single-pathwalk window between the re-fence and the open with the OS-true follow-up direction (openat2 RESOLVE flags via libc/rustix on Linux, per-component openat with O_NOFOLLOW on macOS, per-component CreateFileW with a junction/mount-point policy on Windows — each requiring its own approval and a per-hop symlink policy so kept-working inward links survive); M-010 — the fence itself is unchanged and stdlib-only, and its consumers must re-fence after their last filesystem mutation and immediately before their only opening syscall; M-001 — the save-and-close and document-snapshot write routes reach disk only through the hardened M-002 writer, with race refusals surfacing through the unchanged MT_FS_PATH_DENIED / MT_DOCUMENT_WRITE_FAILED error contracts; M-005 — reference note only: the sandbox root remains the set-time canonicalization of workspace_set_inner, with no behavioral change from this change.</Criterion>
+          <Criterion>In .grace/verification/runtime.xml record only executed evidence, preserving every existing scenario, Marker, TraceAssertion and LegacyMatrixEvidence block: V-M-002 — update the native-suite Commands entry to the executed --locked --offline form used by this plan and add one scenario-security-save-handle-fence-before-open entry naming race_leaf_outward_planted_denied, race_ancestor_swapped_outward_denied, race_leaf_inward_planted_denied and the allowance set by name, plus the BLOCK_REVALIDATION_CHANGED marker; V-M-010 — one scenario noting the unchanged fence and the consumer re-fence contract with the honest std platform statement; V-M-001 — one scenario naming save_race_leaf_planted_refused and snapshot_race_leaf_planted_refused with their route-level error contracts; V-M-005 — one reference-only note recording that no behavioral m005 change was made or needed. Every delta references C-SEC-SAVE-HANDLE; no archived bundle is rewritten; no durable artifact outside the ObservedWriteScope changes; no release action is authorized.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="120">sh -c "grep -q 'C-SEC-SAVE-HANDLE' .grace/graph/runtime.xml &amp;&amp; grep -q 'C-SEC-SAVE-HANDLE' .grace/verification/runtime.xml &amp;&amp; grep -q 'scenario-security-save-handle-fence-before-open' .grace/verification/runtime.xml &amp;&amp; grep -q 'C-SEC-SAVE-HANDLE' src-tauri/src/m013b/fs.rs &amp;&amp; grep -q 'C-SEC-SAVE-HANDLE' src-tauri/src/m010_security.rs &amp;&amp; grep -q 'C-SEC-SAVE-HANDLE' src-tauri/src/m001_save_close.rs"</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m013b::fs</Command>
+      <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m010_security</Command>
+      <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m001_save_close</Command>
+      <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m005_prefs</Command>
+      <Environment>Baseline is the current canary-beta-wave worktree: the Rust toolchain runs with --locked --offline against the committed Cargo.lock; the four module filters are non-vacuous today (m013b::fs, m010_security, m001_save_close and m005_prefs each match existing tests) and the spec's ExpectedCommand forms are adopted verbatim. Tasks run strictly sequentially T-001 then T-002 then T-003; after T-001 the existing suites are green (the hook is a no-op by default); the five race tests are authored at T-002 and proven red against a temporarily restored pre-fix writer body, then green after restoring the T-001 body, with no commit; T-003 records the graph/verification deltas against the implemented state. No renderer suite is touched so no npx command is expected; no new crate dependency, no Cargo.toml or Cargo.lock change; m005_prefs.rs is expected to end unchanged (it stays in scope reference-only per the spec). Token cost per write grows by one extra check_path call and one PathBuf comparison; existing denial/allowance behavior is unchanged by construction (the comparison only fires when the two fences disagree). The residual single-syscall race is stated in contract, graph and verification, not hidden. This plan deliberately carries no self-referential grace-lint MustPassCommand; the orchestrator runs grace lint --path . --change C-SEC-SAVE-HANDLE --assertions target and --assertions final --run-commands and the current-state integrity itself. Owned cargo processes are cleaned up after runs; no apply/archive, commit/push, lane admission, departure into main, version/tag or release is authorized by this plan.</Environment>
+    </AcceptanceVerification>
+  </C-SEC-SAVE-HANDLE>
+</GraceChangePlan>

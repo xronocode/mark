@@ -4,8 +4,30 @@
 //   SCOPE: Guard paths, regular-file/size reads, text/byte writes and file operations.
 //          Byte callers validate encoding before mutation. Writes remain in-place
 //          with write_all and sync_all; no atomic replacement or crash guarantee.
+//          C-SEC-SAVE-HANDLE fence-before-open invariant: write_validated_bytes
+//          runs its LAST m010_security::check_path re-fence AFTER all directory
+//          mutation (create_dir_all) and immediately before the only opening
+//          syscall (fs::File::create on the re-validated path), denying any
+//          canonical-resolution change introduced inside the window with the
+//          MT_FS_PATH_DENIED family (BLOCK_REVALIDATION_CHANGED). Deny-only-NEW-
+//          links: a link planted in the window changes the re-fence canonical
+//          result and is denied whether it points inward or outward, while every
+//          resolution already present before the window is identical at both
+//          fences and keeps its current allowance or denial. Residual race,
+//          stated not hidden: one kernel pathwalk remains between the re-fence
+//          and the open — std offers no held-descriptor final-component open on
+//          any desktop platform (Unix custom_flags exposes no O_NOFOLLOW
+//          constant; Windows FILE_FLAG_OPEN_REPARSE_POINT covers the final
+//          component only and intermediates still resolve), so closing it needs
+//          the per-platform follow-up (Linux openat2 RESOLVE flags via
+//          libc/rustix, macOS per-component openat with O_NOFOLLOW, Windows
+//          per-component CreateFileW with a junction/mount-point policy) under
+//          its own approval. race_window_hook is declared test-only contract
+//          surface (cfg(test) path-keyed injection seam); outside test builds
+//          it is an inline no-op.
 //   DEPENDS: m010_security, m013b error/state, m014_encoding, bookmarks, std::fs.
-//   LINKS: M-002, M-013-B; V-M-002; C-METADATA-SAVE-SAFETY T-001.
+//   LINKS: M-002, M-013-B; V-M-002; C-METADATA-SAVE-SAFETY T-001;
+//          .grace/changes/active/C-SEC-SAVE-HANDLE.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -16,6 +38,9 @@
 //   fs_write_inner - UTF-8 compatibility facade.
 //   fs_write_bytes_inner - sandboxed byte writer after caller prevalidation.
 //   mt_fs_write - native UTF-8 write command.
+//   set_race_window_hook - Test-only (cfg(test)) race-injection seam setter;
+//     registers a path-keyed action fired between directory mutation and the
+//     writer re-fence; returns the previous registration for restore.
 //   FsStat - filesystem metadata value.
 //   fs_stat_inner - validated metadata lookup.
 //   mt_fs_stat - native metadata command.
@@ -35,18 +60,30 @@
 //   mt_fs_move - native move command.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   - 2026-11-21 C-SEC-SAVE-HANDLE: fence-before-open invariant in the shared
+//     validated writer — a second full check_path re-fence after
+//     create_dir_all, denial of any canonical-resolution change introduced
+//     inside the window (BLOCK_REVALIDATION_CHANGED, MT_FS_PATH_DENIED via
+//     SymlinkEscapesSandbox), fs::File::create(&revalidated) as the only
+//     opening syscall; cfg(test) race_window_hook seam plus leaf-outward /
+//     ancestor-outward / leaf-inward race-shape regressions. Residual
+//     single-pathwalk window between the re-fence and the open stated in the
+//     contract, not hidden.
 //   - 2026-11-11 C-METADATA-SAVE-SAFETY: common validated byte writer,
 //     retaining UTF-8/binary facade commands, sandbox guards and fsync semantics.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES: guarded outward/dangling/inward write paths.
 // END_CHANGE_SUMMARY
 
 use crate::m010_security;
+use crate::m010_security::SecurityError;
 use crate::m013b::error::IpcError;
 use crate::m013b::state::SecurityCtx;
 use crate::m014_encoding;
 use std::fs;
 use std::io::Write;
 use std::path::Path;
+#[cfg(test)]
+use std::path::PathBuf;
 use tauri::State;
 
 /// 10 MB read ceiling. V-M-002 scenario-2 says 10 MB reads should
@@ -133,15 +170,95 @@ pub(crate) fn fs_write_bytes_inner(path: &str, bytes: &[u8], sandbox: &Path) -> 
 
 fn write_validated_bytes(path: &str, bytes: &[u8], sandbox: &Path, cmd: &str) -> Result<(), IpcError> {
     safe_eprintln!("[FsCmd][write][BLOCK_VALIDATE_PATH path={}]", redact(path));
+    // (1) C-SEC-SAVE-HANDLE first fence — unchanged M-010 boundary check.
     let validated = m010_security::check_path(sandbox, Path::new(path))
         .map_err(|e| IpcError::from_security_path(cmd, e))?;
+    // (2) directory mutation — unchanged, still BEFORE the last fence.
     if let Some(parent) = validated.parent() {
         fs::create_dir_all(parent).map_err(|e| IpcError::from_io(cmd, e))?;
     }
-    let mut file = fs::File::create(&validated).map_err(|e| IpcError::from_io(cmd, e))?;
+    // (3) C-SEC-SAVE-HANDLE test-only seam: deterministic injection point
+    //     between directory mutation and the re-fence; inline no-op outside
+    //     test builds (spec C-SEC-SAVE-HANDLE Assumption 3).
+    race_window_hook(&validated);
+    // (4) C-SEC-SAVE-HANDLE re-fence — the LAST M-010 validation, after all
+    //     directory mutation, on the same request string (full check_path:
+    //     lexical, NUL/overlong and canonical steps all run again).
+    let revalidated = m010_security::check_path(sandbox, Path::new(path))
+        .map_err(|e| IpcError::from_security_path(cmd, e))?;
+    // (5) deny any canonical-resolution change introduced inside the window.
+    //     Deny-only-NEW-links: pre-existing inward/outward resolutions are
+    //     identical at both fences and keep their behavior; a link planted
+    //     in the window changes the re-fence result and is denied whether
+    //     it resolves inside or outside.
+    if revalidated != validated {
+        safe_eprintln!("[FsCmd][write][BLOCK_REVALIDATION_CHANGED path={}]", redact(path));
+        return Err(IpcError::from_security_path(cmd, SecurityError::SymlinkEscapesSandbox {
+            resolved: revalidated.display().to_string(),
+            sandbox: validated.display().to_string(),
+        }));
+    }
+    // (6) the ONLY opening syscall — on the path the last fence validated,
+    //     with no filesystem work between (4) and here (the comparison is pure).
+    //     Residual single-pathwalk race between (4) and this open is stated in
+    //     the module contract, not hidden.
+    let mut file = fs::File::create(&revalidated).map_err(|e| IpcError::from_io(cmd, e))?;
+    // (7) unchanged in-place, non-atomic write semantics.
     file.write_all(bytes).map_err(|e| IpcError::from_io(cmd, e))?;
     file.sync_all().map_err(|e| IpcError::from_io(cmd, e))?;
     Ok(())
+}
+
+// ── C-SEC-SAVE-HANDLE: fence-before-open race-window seam ──
+//
+// Declared test-only contract surface. Outside test builds the hook is an
+// inline no-op; inside `cargo test` it dispatches to at most one action
+// registered for the EXACT validated path, so a test can inject
+// deterministic filesystem mutation into the window between directory
+// mutation (2) and the re-fence (4). Registrations are keyed by the exact
+// validated path (parallel tests on distinct TempDirs cannot cross-fire)
+// and `set_race_window_hook` returns the previous registration so tests
+// restore the empty state afterwards.
+
+#[cfg(not(test))]
+#[inline]
+fn race_window_hook(_validated: &Path) {}
+
+#[cfg(test)]
+type RaceWindowAction = std::sync::Arc<dyn Fn() + Send + Sync>;
+
+#[cfg(test)]
+static RACE_WINDOW_ACTIONS: std::sync::OnceLock<
+    std::sync::Mutex<std::collections::HashMap<PathBuf, RaceWindowAction>>,
+> = std::sync::OnceLock::new();
+
+#[cfg(test)]
+fn race_window_registry(
+) -> &'static std::sync::Mutex<std::collections::HashMap<PathBuf, RaceWindowAction>> {
+    RACE_WINDOW_ACTIONS.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+#[cfg(test)]
+fn race_window_hook(validated: &Path) {
+    // Clone the action out before calling it: the registry lock must not be
+    // held across injected filesystem mutation.
+    let action = race_window_registry().lock().unwrap().get(validated).cloned();
+    if let Some(action) = action {
+        action();
+    }
+}
+
+/// Test-only seam setter (cfg(test)). Registers (`Some`) or clears (`None`)
+/// the action fired by `race_window_hook` for the exact validated path
+/// `key`. Returns the previous registration so tests restore the empty
+/// state afterwards.
+#[cfg(test)]
+pub(crate) fn set_race_window_hook(key: PathBuf, action: Option<RaceWindowAction>) -> Option<RaceWindowAction> {
+    let mut registry = race_window_registry().lock().unwrap();
+    match action {
+        Some(action) => registry.insert(key, action),
+        None => registry.remove(&key),
+    }
 }
 
 /// Write a UTF-8 string to a file. Creates parent dirs if missing
@@ -867,5 +984,123 @@ mod tests {
         let err = fs_move_inner(src.to_str().unwrap(), dest.to_str().unwrap(), dir.path()).unwrap_err();
         assert_eq!(err.code, MT_FS_PATH_DENIED);
         assert!(src.exists(), "source must remain after rejected move");
+    }
+
+    // ── C-SEC-SAVE-HANDLE race-shape regressions (cfg(test) race_window_hook) ──
+    //
+    // Each test registers a path-keyed action that fires inside the writer's
+    // race window (after create_dir_all, before the re-fence) and restores
+    // the empty registration afterwards. The key is the exact validated path
+    // the writer's first fence computes for the same request string, so
+    // parallel tests on distinct TempDirs cannot cross-fire. Pre-fix writer
+    // bodies (single fence, no re-fence, no hook call) make all three fail:
+    // the mutation is never injected or lands outside unchallenged.
+
+    #[cfg(unix)]
+    #[test]
+    fn race_leaf_outward_planted_denied() {
+        let dir = TempDir::new().unwrap();
+        let outside = TempDir::new().unwrap();
+        let outside_target = outside.path().join("captive.md");
+        fs::write(&outside_target, b"original").unwrap();
+        let leaf = dir.path().join("sub").join("note.md");
+        let key = m010_security::check_path(dir.path(), &leaf).unwrap();
+        let planted_leaf = leaf.clone();
+        let planted_target = outside_target.clone();
+        let previous = set_race_window_hook(
+            key.clone(),
+            Some(std::sync::Arc::new(move || {
+                std::os::unix::fs::symlink(&planted_target, &planted_leaf).unwrap();
+            })),
+        );
+        assert!(previous.is_none(), "no other registration may hold this key");
+        let result = fs_write_inner(leaf.to_str().unwrap(), "stolen", dir.path());
+        let previous = set_race_window_hook(key, None);
+        assert!(previous.is_some(), "registration must be restorable");
+        let err = result.unwrap_err();
+        assert_eq!(err.code, MT_FS_PATH_DENIED, "got {err:?}");
+        // The outside target's bytes are byte-for-byte unchanged.
+        assert_eq!(fs::read(&outside_target).unwrap(), b"original");
+        // No regular file exists at the requested path; the planted link
+        // remains but nothing was written through it.
+        let meta = fs::symlink_metadata(&leaf).unwrap();
+        assert!(meta.file_type().is_symlink(), "planted link must remain");
+        assert!(!meta.is_file(), "no regular file at the requested path");
+        assert_eq!(fs::read(&leaf).unwrap(), b"original", "nothing written through the link");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn race_ancestor_swapped_outward_denied() {
+        let dir = TempDir::new().unwrap();
+        let outside = TempDir::new().unwrap();
+        let outside_dir = outside.path().join("vault");
+        fs::create_dir(&outside_dir).unwrap();
+        fs::write(&outside_dir.join("keep.txt"), b"keep").unwrap();
+        let inside_dir = dir.path().join("inside");
+        fs::create_dir(&inside_dir).unwrap();
+        let target = inside_dir.join("note.md");
+        let key = m010_security::check_path(dir.path(), &target).unwrap();
+        let planted_dir = inside_dir.clone();
+        let planted_target = outside_dir.clone();
+        let previous = set_race_window_hook(
+            key.clone(),
+            Some(std::sync::Arc::new(move || {
+                // Swap the existing inside directory component for an
+                // outward symlink while the writer sits in its window.
+                fs::remove_dir(&planted_dir).unwrap();
+                std::os::unix::fs::symlink(&planted_target, &planted_dir).unwrap();
+            })),
+        );
+        assert!(previous.is_none(), "no other registration may hold this key");
+        let result = fs_write_inner(target.to_str().unwrap(), "stolen", dir.path());
+        let previous = set_race_window_hook(key, None);
+        assert!(previous.is_some(), "registration must be restorable");
+        let err = result.unwrap_err();
+        assert_eq!(err.code, MT_FS_PATH_DENIED, "got {err:?}");
+        // The outside directory's content is unchanged and nothing was
+        // created at the joined outside path.
+        assert_eq!(fs::read(outside_dir.join("keep.txt")).unwrap(), b"keep");
+        assert!(
+            !outside_dir.join("note.md").exists(),
+            "no file at the joined outside path"
+        );
+        // No partial file at the requested path (only the swapped link).
+        assert!(fs::symlink_metadata(&inside_dir).unwrap().file_type().is_symlink());
+        assert!(!target.exists(), "no partial file at the requested path");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn race_leaf_inward_planted_denied() {
+        // Deny-only-NEW-links semantics: an INWARD link planted inside the
+        // window is denied too (the re-fence canonical result differs from
+        // the first fence's validated path), while the pre-existing inward
+        // links of ancestor_inward_ok keep passing unchanged because both
+        // fences resolve them identically.
+        let dir = TempDir::new().unwrap();
+        let inside_existing = dir.path().join("existing.md");
+        fs::write(&inside_existing, b"keep-me").unwrap();
+        let leaf = dir.path().join("note.md");
+        let key = m010_security::check_path(dir.path(), &leaf).unwrap();
+        let planted_leaf = leaf.clone();
+        let planted_target = inside_existing.clone();
+        let previous = set_race_window_hook(
+            key.clone(),
+            Some(std::sync::Arc::new(move || {
+                std::os::unix::fs::symlink(&planted_target, &planted_leaf).unwrap();
+            })),
+        );
+        assert!(previous.is_none(), "no other registration may hold this key");
+        let result = fs_write_inner(leaf.to_str().unwrap(), "stolen", dir.path());
+        let previous = set_race_window_hook(key, None);
+        assert!(previous.is_some(), "registration must be restorable");
+        let err = result.unwrap_err();
+        assert_eq!(err.code, MT_FS_PATH_DENIED, "got {err:?}");
+        // The inward target is untouched: no bytes were written through the
+        // planted link and no partial file appeared at the requested path.
+        assert_eq!(fs::read(&inside_existing).unwrap(), b"keep-me");
+        assert!(fs::symlink_metadata(&leaf).unwrap().file_type().is_symlink());
+        assert_eq!(fs::read(&leaf).unwrap(), b"keep-me", "nothing written through the link");
     }
 }
