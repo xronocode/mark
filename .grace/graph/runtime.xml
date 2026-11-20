@@ -1261,7 +1261,8 @@
         </Attribute>
       </LegacyAttributes>
       <LegacySource>docs/knowledge-graph.xml: M-004; docs/development-plan.xml: M-004</LegacySource>
-    </M-004>
+          <SummaryDelta>C-SEARCH-SESSION-COMPLETION: one SearchSessionCoordinator owns multi-root search completion in the backend — strictly increasing session-wide seq, exactly one terminal (complete/cancelled/error) and no post-terminal events — so the renderer settle-on-first-terminal consumer receives every root result; wire envelope, kinds and searchId are unchanged.</SummaryDelta>
+</M-004>
     <M-005>
       <SummaryDelta>C-METADATA-SAVE-SAFETY T-003: internal lastSessionFormats stores validated named-path selected policy and format-dirty intent only, excluded from resettable settings. No text, tokens, history or saved proof are persisted.</SummaryDelta>
       <Name>mt-prefs</Name>
@@ -5177,7 +5178,8 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
         </Attribute>
       </LegacyAttributes>
       <LegacySource>docs/knowledge-graph.xml: M-013; docs/development-plan.xml: M-013</LegacySource>
-    </M-013>
+          <SummaryDelta>C-SEARCH-SESSION-COMPLETION: the m013b search module routes both adapters (embedded walker and ripgrep) through the session coordinator; per-root terminal emission and seq resets are gone.</SummaryDelta>
+</M-013>
     <M-013-A>
       <SummaryDelta>C-METADATA-SAVE-SAFETY T-002: readonly DocumentFormat is required by DocumentWriteRequest/Reply and re-exported by the barrel. Type-level checks reject missing format, policy 2 and direct policy mutation. No correlated-command fallback is permitted.</SummaryDelta>
       <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: types.ts includes SaveTargetRequest/Reply and DocumentWriteRequest/Reply plus the two document command mappings; generated fixture and M-001 registration stay synchronized.</SummaryDelta>
