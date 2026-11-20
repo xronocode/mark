@@ -1,0 +1,81 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-PELE-HTML-POSTPROCESS>
+    <ChangeRef>C-PELE-HTML-POSTPROCESS</ChangeRef>
+    <Created>2026-11-20</Created>
+    <IntentSummary>Reuse the existing live Pele SVG post-processor inside HTML export: ExportHtml.renderPele inserts postProcessPeleSvg(rendered.svg, rendered.type) before per-diagram appearance application, so exported pie diagrams keep the Keynote donut hole (panel-coloured via var(--pele-bg), inert pieOuterCircle marker) and exported kanban diagrams keep the surface-card remap (cards on --pele-surface with a 35 % frame, columns on --pele-surface-alt) with one implementation of the pie/kanban SVG policy. Flowchart stays a passthrough; the pipeline, its constants and regexes, peleOptions, diagramAppearance, the Muya public export methods and the editor.vue dispatch stay byte-identical; a bounded user-visible export repair with no rendering-core refactor.</IntentSummary>
+    <ReferenceState>SpecSha256 = 8b6bd5538224876b50943ed7358d5fb2ad5ea6a3c0ba679dcd6664bc6429043a (pinned over the approved spec.xml at admission). Authored 2026-11-20 against the current read-only state of the canary-beta-wave worktree: src/muya/lib/utils/exportHtml.js renderPele (START_BLOCK_EXPORT_PELE_RENDER, lines 95–118) still assigns peleContainer.innerHTML = rendered.svg (line 111) with no post-processing, while the live pipeline wraps every insertion in postProcessPeleSvg(rendered.svg, rendered.type) (src/muya/lib/parser/render/pelePipeline.js renderOne, line 301; named export declared at line 137). Both Muya public export APIs — Muya#exportHtml (src/muya/lib/index.js:305 → ExportHtml#renderHtml) and Muya#exportStyledHTML (src/muya/lib/index.js:300 → ExportHtml#generate) — funnel through renderHtml → renderPele (exportHtml.js line 267), and the editor.vue styledHtml/docx/pdf/print branches (src/renderer/src/components/editorWithTabs/editor.vue lines 2269/2306/2369/2402) all consume exportStyledHTML, so the single insertion point covers every export branch without touching dispatch. The new import creates no initialization cycle: pelePipeline imports renderers/config/diagramTheme/peleOptions/expandNeed/diagramAppearance, none of which import exportHtml, and exportHtml already shares renderers, diagramTheme, peleOptions and diagramAppearance with it. Deviation note: the drafting brief named src/muya/lib/utils/pelePipeline.js; that path does not exist in this tree — the module lives at src/muya/lib/parser/render/pelePipeline.js, and all anchors below use the real path. Writing this draft approves neither an execution plan nor code implementation, apply/archive, native final-format exceptions or release.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist><Value>M-012</Value></MustExist>
+      <MustContain><File>src/muya/lib/utils/exportHtml.js</File><Text>peleContainer.innerHTML = rendered.svg</Text></MustContain>
+      <MustContain><File>src/muya/lib/parser/render/pelePipeline.js</File><Text>export const postProcessPeleSvg = (svg, type) => {</Text></MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify><Module>M-012</Module></MustVerify>
+      <MustNotContain><File>src/muya/lib/utils/exportHtml.js</File><Text>peleContainer.innerHTML = rendered.svg</Text></MustNotContain>
+      <MustContain><File>src/muya/lib/utils/exportHtml.js</File><Text>import { postProcessPeleSvg } from '../parser/render/pelePipeline'</Text></MustContain>
+      <MustContain><File>src/muya/lib/utils/exportHtml.js</File><Text>peleContainer.innerHTML = postProcessPeleSvg(rendered.svg, rendered.type)
+        applyDiagramAppearance(peleContainer, rawCode, this.muya?.diagramAppearance?.getExportOverride(index - 1, rawCode))</Text></MustContain>
+      <MustPassCommand><Command budgetSeconds="900">node node_modules/vitest/vitest.mjs run tests/renderer/muya/export-diagram-appearance.test.js tests/renderer/muya/export-pele-theme.test.js tests/renderer/muya/pele-pipeline.test.js tests/renderer/muya/export-current-model.test.js</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="1200">npm run build</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="1800">node node_modules/@playwright/test/cli.js test tests/e2e/diagram-appearance.spec.ts --project=chromium --project=webkit-diagram-appearance</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors><M-012/></GraphAnchors>
+      <VerificationAnchors><V-M-012/></VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/muya/lib/utils/exportHtml.js</File>
+      <File>tests/renderer/muya/export-diagram-appearance.test.js</File>
+      <File>tests/e2e/diagram-appearance.spec.ts</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Wire the existing postProcessPeleSvg into ExportHtml.renderPele before SVG insertion and appearance application</Title>
+        <DependsOn/>
+        <AcceptanceCriteria>
+          <Criterion>Add exactly one import to src/muya/lib/utils/exportHtml.js — `import { postProcessPeleSvg } from '../parser/render/pelePipeline'` (placed with the other parser/render imports) — reusing the actual existing named export, not a duplicate body, a parallel policy, a helper extraction/move or a type-detection redesign. pelePipeline.js, peleOptions.js, diagramAppearance.js, the Muya public export methods and all other sources stay byte-identical; the import adds no initialization cycle, no top-level effects and no editor mutations or observers to export execution.</Criterion>
+          <Criterion>In renderPele (START_BLOCK_EXPORT_PELE_RENDER), replace `peleContainer.innerHTML = rendered.svg` with `peleContainer.innerHTML = postProcessPeleSvg(rendered.svg, rendered.type)` placed immediately before the unchanged `applyDiagramAppearance(peleContainer, rawCode, this.muya?.diagramAppearance?.getExportOverride(index - 1, rawCode))` call, so appearance application remains the last step per diagram. Post-processing consumes the actual pele render result's `rendered.type` — never a separately guessed or re-detected type — and preserves render options, measurement font, idPrefix/index allocation (`pele-export-${index++}` with `index - 1` for the override), the `mermaid` wrapper class, the invalid-code placeholder and the catch boundary; a post-processing failure follows the existing export error path without an unhandled rejection.</Criterion>
+          <Criterion>Coverage is structural, not per-branch: both Muya public export APIs (Muya#exportHtml → renderHtml, Muya#exportStyledHTML → generate) and the editor.vue styledHtml/docx/pdf/print consumers all reach renderPele through renderHtml, so the single insertion covers them with no editor.vue or Muya API change. Update only the file-local MODULE_CONTRACT DEPENDS line, the MODULE_MAP renderPele entry and a CHANGE_SUMMARY entry dated 2026-11-20 (C-PELE-HTML-POSTPROCESS); no governance artifacts in this task.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">node node_modules/vitest/vitest.mjs run tests/renderer/muya/export-diagram-appearance.test.js tests/renderer/muya/export-pele-theme.test.js tests/renderer/muya/pele-pipeline.test.js tests/renderer/muya/export-current-model.test.js</Command>
+          <Command budgetSeconds="1200">npm run build</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Pin the export post-processing in export-diagram-appearance.test.js with real-engine red-first evidence and keep all sibling suites green</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Extend tests/renderer/muya/export-diagram-appearance.test.js (the existing real-pele mock and exportDiagrams helper stay in place) with failing-first evidence recorded before the green run: author the new pins first, run them once against the tree with only the T-001 insertion line reverted to the raw `peleContainer.innerHTML = rendered.svg` assignment, retain the failing receipts (pie exports without .pieDonutHole/.pieOuterCircle; kanban exports without the surface/0.35 remap), restore the wired line and only then record the green run. No assertion is weakened, skipped or retried to achieve green.</Criterion>
+          <Criterion>New real-engine pins: (a) pie `pie\n"One": 1\n"Two": 2` under auto/custom/light/dark via writeDiagramAppearance — exported `.mermaid` carries exactly one `circle.pieDonutHole` with r equal to DONUT_HOLE × the outer radius parsed from the first `path.pele-slice` arc, `fill="var(--pele-bg)"`, plus the inert `circle.pieOuterCircle`, hole painted after the slice paths, and hole r/fill equal to the live editor SVG processed by the same function; (b) kanban `kanban\n  todo[To do]\n    a[Card one]\n  done[Done]\n    b[Card two]` — exported SVG shows the card remap (`fill="var(--pele-surface)"` with `stroke-opacity="0.35"`, columns `fill="var(--pele-surface-alt)"`, no `fill="var(--_s)"`, no unremapped `var(--_bg)` card frame) and equals postProcessPeleSvg(rawSvg, 'kanban'); (c) flowchart no-op control — exported SVG identical to postProcessPeleSvg(rawSvg, 'flowchart') with no donut or stroke-opacity artifacts; (d) both export APIs — `renderHtml()` output and `generate({ printOptimization: false, title, extraCss: '', toc: null })` output carry the processed SVGs and generate() retains the inlined `:root` `--pele-*` block including --pele-bg, --pele-surface and --pele-surface-alt; (e) mixed/idempotent document — repeated pies with unique `pele-export-N` prefixes carry exactly one hole each, the invalid block still renders `&lt; Invalid Mermaid Codes &gt;`, getExportOverride receives the undrifted [[0,…],[1,…],[2,…]] occurrences and post-processing is idempotent with no duplicate holes. Whole-SVG byte comparison is used only against the same function's deterministic output (b)/(c), never against live layout; IDs, zoom and wrappers are not compared.</Criterion>
+          <Criterion>Keep every existing assertion in the two C-62 tests of export-diagram-appearance.test.js unweakened, and the sibling suites tests/renderer/muya/export-pele-theme.test.js (its fake pele reports type 'flowchart', so the wired line stays a passthrough there), pele-pipeline.test.js and export-current-model.test.js pass unchanged in the same vitest invocation; source text, editor model/history/dirty state and the exported theme variables remain pinned.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">node node_modules/vitest/vitest.mjs run tests/renderer/muya/export-diagram-appearance.test.js tests/renderer/muya/export-pele-theme.test.js tests/renderer/muya/pele-pipeline.test.js tests/renderer/muya/export-current-model.test.js</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Prove live/export parity in both browser engines, synchronize M-012/V-M-012 records and collect acceptance evidence</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Extend tests/e2e/diagram-appearance.spec.ts with an export-parity scenario added to the existing describe (no Playwright/CI configuration change, both existing projects cover it): against a /tmp temp document (never an owner document) containing the authored flowchart plus pie and kanban blocks, export the styled HTML through the real app export flow, load the standalone output and inspect actual computed shape/colors — not marker counts alone: exactly one hole circle whose computed fill resolves to the panel colour and whose r matches the live preview hole, kanban card computed stroke-opacity 0.35 over --pele-surface with surface-alt columns, flowchart node fill equal live-vs-exported, under Paper and after a real Ink theme switch in auto mode; unknown/unaffected diagrams and the invalid-code control stay stable; no full pixel-equality assertion hides legitimate consumer layout differences; live and standalone evidence are separate page contexts.</Criterion>
+          <Criterion>Update .grace/graph/runtime.xml M-012 (SummaryDelta for the 2026-11-20 C-PELE-HTML-POSTPROCESS export wiring and the file-local exportHtml.js contract/map lines it carries) and .grace/verification/runtime.xml V-M-012 (the new export-parity scenario pins and the four verification commands); keep unrelated XML content untouched and all other anchors exact.</Criterion>
+          <Criterion>Run the target and final lifecycle assertions on the actual tree; record native HTML/PDF/Word/print final-format boundary evidence and remaining owner/platform acceptance as explicitly open — browser or internal-HTML evidence does not prove native PDF/Word/print files or behavior, and nothing is silently dropped; no apply/archive, commit/push, release, signing, version/tag or workflow dispatch inside this plan.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="1800">node node_modules/@playwright/test/cli.js test tests/e2e/diagram-appearance.spec.ts --project=chromium --project=webkit-diagram-appearance</Command>
+          <Command budgetSeconds="300">grace lint --path . --change C-PELE-HTML-POSTPROCESS --assertions target</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Command budgetSeconds="900">node node_modules/vitest/vitest.mjs run tests/renderer/muya/export-diagram-appearance.test.js tests/renderer/muya/export-pele-theme.test.js tests/renderer/muya/pele-pipeline.test.js tests/renderer/muya/export-current-model.test.js</Command>
+      <Command budgetSeconds="1200">npm run build</Command>
+      <Command budgetSeconds="1800">node node_modules/@playwright/test/cli.js test tests/e2e/diagram-appearance.spec.ts --project=chromium --project=webkit-diagram-appearance</Command>
+      <Command budgetSeconds="300">grace lint --path . --change C-PELE-HTML-POSTPROCESS --assertions target</Command>
+      <Environment>Baseline is the current canary-beta-wave worktree with installed node_modules (runner paths verified against the current repo layout: node_modules/vitest/vitest.mjs and node_modules/@playwright/test/cli.js exist; chromium and webkit-diagram-appearance projects exist in playwright.config.ts; all four vitest files exist under tests/renderer/muya/). All four commands must pass with no skips, retries, budget increases or weakened assertions; the vitest run proves pipeline/options/appearance/current-model sources behave unchanged, and npm run build proves the new import adds no initialization cycle, top-level effect or bundle/chunk regression. Browser and internal-HTML evidence never substitutes for native HTML/PDF/Word/print final-format proof: those native outcomes and remaining owner/platform acceptance stay explicitly open until actual evidence or an owner-approved exception. Owned browser/native test processes are closed and reaped and test outputs removed after shutdown; no apply/archive, commit/push or release is authorized by this plan.</Environment>
+    </AcceptanceVerification>
+  </C-PELE-HTML-POSTPROCESS>
+</GraceChangePlan>

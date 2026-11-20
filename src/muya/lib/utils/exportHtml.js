@@ -8,7 +8,9 @@
 //            utils/diagramAppearance (local palettes and readonly overrides),
 //            sanitize helpers, parser/render/diagramTheme (C-55 pele
 //            variables), parser/render/peleOptions (C-55 per-type options),
-//            parser/render/contentTheme (C-51 T-005 diagram theming).
+//            parser/render/contentTheme (C-51 T-005 diagram theming),
+//            parser/render/pelePipeline (C-PELE-HTML-POSTPROCESS pele SVG
+//            post-processing).
 //   LINKS: docs/knowledge-graph.xml M-012; docs/verification-plan.xml
 //          V-M-012 export scenarios; .grace/changes/archive/C-39 T-001;
 //          .grace/changes/archive/C-51 T-003 (export uses the app theme)
@@ -18,8 +20,12 @@
 //          behavior stays isolated in the dedicated `@media print` block.
 //
 // MODULE_MAP
-//   ExportHtml.renderPele - shared appearance policy on each standalone diagram, including indexed read-only overrides.
+//   ExportHtml.renderPele - postProcessPeleSvg on each standalone pele SVG (rendered.type), then the shared appearance policy incl. indexed read-only overrides.
 // CHANGE_SUMMARY:
+//   - 2026-11-20 C-PELE-HTML-POSTPROCESS: exported pele SVGs go through
+//     postProcessPeleSvg(rendered.svg, rendered.type) before appearance
+//     application — pie donut hole and kanban surface remap match the
+//     editor; pipeline module untouched.
 //   - 2026-10-18 C-62: apply the shared per-diagram appearance policy and temporary read-only overrides to standalone HTML diagrams.
 //   - 2026-10-17 C-55: ```mermaid blocks export through pele (renderPele —
 //     synchronous render, escaped labels, no securityLevel config); the
@@ -53,6 +59,7 @@ import {
   buildPeleVariables
 } from '../parser/render/diagramTheme'
 import { buildPeleRenderOptions } from '../parser/render/peleOptions'
+import { postProcessPeleSvg } from '../parser/render/pelePipeline'
 import { applyDiagramAppearance } from './diagramAppearance'
 import {
   buildVegaThemeConfig,
@@ -108,7 +115,7 @@ class ExportHtml {
           idPrefix: `pele-export-${index++}`,
           ...buildPeleRenderOptions(pele.detectType(rawCode), tokens)
         })
-        peleContainer.innerHTML = rendered.svg
+        peleContainer.innerHTML = postProcessPeleSvg(rendered.svg, rendered.type)
         applyDiagramAppearance(peleContainer, rawCode, this.muya?.diagramAppearance?.getExportOverride(index - 1, rawCode))
       } catch (err) {
         peleContainer.innerHTML = '< Invalid Mermaid Codes >'

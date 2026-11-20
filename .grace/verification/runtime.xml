@@ -8473,6 +8473,7 @@
       <LegacySource>docs/verification-plan.xml: V-M-012</LegacySource>
             <scenario-table-profile-schema>C-TABLE-PROFILE-SCHEMA: the shared schema owner behind both persisted-entry consumers — six historical mode families through each adapter, array/width edge shapes, the intentional truthy-empty-ratios vs null asymmetry, input immutability and legacy-precedence change detection — verified by the four-suite delegation pins and the table-width-persistence plus table-modes browser scenarios.</scenario-table-profile-schema>
         <scenario-table-layout-completion>C-TABLE-LAYOUT-COMPLETION: the completion matrix — every COMPLETION_CAUSE × readiness × write-permit outcome including hidden/zero-geometry deferred layout, rollback baselines, reset re-fit-before-persist, remember-off gating, measurement-independence and read-only absence-of-write — verified by the 151-test three-suite run plus the four table browser specs in both engines (86 passed).</scenario-table-layout-completion>
+        <scenario-pele-html-postprocess>C-PELE-HTML-POSTPROCESS: export post-processing parity — pie donut-hole geometry/fill across appearances, kanban byte-parity with the post-processor output, flowchart no-op, both export APIs carrying processed SVG with preserved theme variables, and mixed valid/invalid sources — verified by the 54-test four-suite run plus the diagram-appearance browser scenarios in both engines (14 passed).</scenario-pele-html-postprocess>
 </V-M-012>
     <V-M-013>
       <Priority>high</Priority>
