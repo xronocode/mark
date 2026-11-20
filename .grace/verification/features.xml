@@ -2700,7 +2700,8 @@
         </phase-follow-up>
       </LegacyBase>
       <LegacySource>docs/verification-plan.xml: V-M-046</LegacySource>
-    </V-M-046>
+            <scenario-sec-gitleaks-checksum>C-SEC-GITLEAKS-CHECKSUM: the governance suite pins the download-to-temp, strict-check-before-extract ordering with the pipe-into-tar ban and fails closed on missing digest, non-strict check and reordered extraction — with the 64-hex shape gate refusing any placeholder digest; 73/73 on the governance pair.</scenario-sec-gitleaks-checksum>
+</V-M-046>
     <V-M-054>
       <Priority>high</Priority>
       <Commands>

@@ -1,0 +1,95 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-SEC-GITLEAKS-CHECKSUM>
+    <IntentSummary>Make the docs-security job verify the pinned Gitleaks v8.30.1 linux_x64 archive against a committed lowercase 64-hex SHA-256 digest (a workflow-level GITLEAKS_SHA256 env constant) with a strict check that fails closed before any byte of the archive is extracted or executed, keep the URL pin and the digest pin as one reviewed unit bound by comment to the owner's local gate version, and pin the download-then-verify-then-extract ordering in tests/renderer/release-governance.test.js with positive shapes and distinct red controls. No change to the job set, triggers, permissions, concurrency, checkout parameters, scan rules, the local gate, or any other workflow step.</IntentSummary>
+    <ReferenceState>SpecSha256 = 085bbf413f79a855ed086586dde5710380cb788704d42f4af38f4b7117cb6e14 (placeholder pinned over the approved spec.xml at admission; the orchestrator computes and replaces it from the approved spec bytes). Authored 2026-11-21 against the read-only canary-beta-wave worktree: .github/workflows/release-governance.yml VERSION 1.4.0, docs-security job at lines 43-66 installs Gitleaks by piping curl straight into tar (lines 61-62: curl -fsSL of https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz piped into tar -xz -C /usr/local/bin gitleaks) and then runs gitleaks version, with set -euo pipefail retained and no integrity check between download and first execution; findings F-011 ci-executes-unverified-gitleaks-archive and F-005 gitleaks-download-without-digest were confirmed at commit be2f52f880bc453891ec623169d12b0162b4bd3d; tests/renderer/release-governance.test.js VERSION 2.1.0 already reads the checked-in workflow source and pins shapes by exact string (fetch-depth: 0 via split slices, validatePinnedActions over source text) with no docs-security install pins; .grace/graph/features.xml holds M-046 with VerificationRef V-M-046 and dated SummaryDelta rows; ubuntu-latest is the only runner for the docs-security job, so GNU coreutils sha256sum is available without new tooling; no digest verification exists for any downloaded tool today. Deviation note: none — every path and line above was verified against this tree. Per the drafting instruction this plan carries no self-referential grace-lint MustPassCommand; the orchestrator runs the current/target/final lifecycle gates itself. Writing this draft approves neither implementation, apply/archive, commit/push, lane admission, release, signing, tag nor publication.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-046</Value>
+      </MustExist>
+      <MustContain>
+        <File>.github/workflows/release-governance.yml</File>
+        <Text>curl -fsSL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz \
+            | tar -xz -C /usr/local/bin gitleaks</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release-governance.yml</File>
+        <Text>Pinned to the owner's local gate version so CI and the local gate</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-046</Module>
+      </MustVerify>
+      <MustContain>
+        <File>.github/workflows/release-governance.yml</File>
+        <Text>archive="$(mktemp "${RUNNER_TEMP:-/tmp}/gitleaks_8.30.1_linux_x64.tar.gz.XXXXXX")"
+          curl -fsSL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz -o "$archive"</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release-governance.yml</File>
+        <Text>echo "$GITLEAKS_SHA256  $archive" | sha256sum --check --strict -
+          tar -xzf "$archive" -C /usr/local/bin gitleaks</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release-governance.yml</File>
+        <Text>GITLEAKS_SHA256:</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release-governance.yml</File>
+        <Text>The URL pin and this digest are one reviewed unit: bump together with the</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>sha256sum --check --strict</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/release-governance.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-046 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-046 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>.github/workflows/release-governance.yml</File>
+      <File>tests/renderer/release-governance.test.js</File>
+      <File>.grace/graph/features.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Restructure the docs-security install into download, strict digest verification, then extraction, with the committed GITLEAKS_SHA256 env constant</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Add a workflow-level env block to .github/workflows/release-governance.yml between the permissions block and the jobs key, holding exactly GITLEAKS_SHA256 with the binding comment that names the exact upstream artifact gitleaks_8.30.1_linux_x64.tar.gz, the v8.30.1 checksum-listing derivation with out-of-band confirmation, and the bump-together rule with the local install (tools/security_gate.py). IMPLEMENTATION GATE: the literal lowercase 64-hex digest is filled at implementation time only from the v8.30.1 release's published checksum listing and confirmed out-of-band (a second independent source, or a sha256 of the owner's locally installed gate archive of the same version); both raw derivations are recorded in the change bundle before merge; the digest is never fetched at runtime from the release channel it authenticates, and no implementation that cannot show its derivation is approval-ready. The reviewed diff of this change is the trust anchor for the literal value.</Criterion>
+          <Criterion>Replace only the "install pinned Gitleaks" step with the exact sequence pinned in the implementation notes: set -euo pipefail retained; download to a temporary file under RUNNER_TEMP via mktemp; curl -fsSL of the unchanged v8.30.1 linux_x64 URL with -o to that file; strict verification echo "$GITLEAKS_SHA256  $archive" piped only into sha256sum --check --strict - (two spaces between digest and path in the check line); tar -xzf of only the gitleaks binary to /usr/local/bin strictly after the check passes; rm -f of the temp file; gitleaks version as the unchanged post-extract smoke probe. The check and extraction stay separate statements so a mismatch exits nonzero before any extraction or execution and the exit status cannot be swallowed; the curl-piped-into-tar form no longer exists anywhere in the file.</Criterion>
+          <Criterion>Keep every other byte of behavior: job set, triggers, permissions (contents: read), concurrency, checkout pins and parameters, fetch base main, the scan step, and the governance, readiness and project-mirror jobs are untouched. Synchronize the file-local GRACE markup: VERSION 1.4.0 to 1.5.0; a dated 2026-11-21 CHANGE_SUMMARY entry for C-SEC-GITLEAKS-CHECKSUM; MODULE_CONTRACT SCOPE and DEPENDS minimally state the digest-verified pinned Gitleaks binary; MODULE_MAP and all other markup stay as-is.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="120">node node_modules/vitest/vitest.mjs run tests/renderer/action-ref-check.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Pin the checksum contract in the governance tests with distinct red controls</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Extend tests/renderer/release-governance.test.js inside START_BLOCK_RELEASE_GOVERNANCE_TESTS, keeping all existing tests unweakened: a docs-security job slice and install-step slice are derived by the file's existing split style, and positive pins assert the GITLEAKS_SHA256 constant line matching a lowercase 64-hex shape in the workflow-level env, the bump-together binding comment naming the v8.30.1 linux_x64 artifact, the unchanged URL pin, the -o download to the temp file, the strict sha256sum --check --strict invocation, the ordering download before check before tar -xzf before gitleaks version, and the absence of any pipe-into-tar form in the docs-security job. Both the version string and the 64-hex constant are asserted present in the docs-security job source as one reviewed unit.</Criterion>
+          <Criterion>Add red controls that mutate only the checked-in workflow source string in memory (no tracked-file edits, no network, no runtime trust-material fetch) and reject each mutation with a distinct expectation: removing the GITLEAKS_SHA256 constant line is rejected as a missing digest constant; dropping --strict (or any non-strict or status-swallowing check form) is rejected as a non-strict check; moving the tar -xzf line above the sha256sum check line is rejected as extraction before verification. Note explicitly in the test comments that a well-formed but different 64-hex digest is deliberately not distinguishable by shape pins — digest truth is anchored by the reviewed diff and the recorded out-of-band derivation, never by a test-time fetch.</Criterion>
+          <Criterion>Synchronize the test file's local markup: VERSION 2.1.0 to 2.2.0 and a dated 2026-11-21 CHANGE_SUMMARY entry for C-SEC-GITLEAKS-CHECKSUM; no changes to any tools/*.mjs helper, test configuration or other test file.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/release-governance.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-002>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/release-governance.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2</Command>
+      <Environment>Baseline is the current canary-beta-wave worktree with node_modules installed (node_modules/vitest/vitest.mjs exists). Tasks run strictly sequentially T-001 then T-002; the two-file vitest command becomes fully meaningful only after T-002 lands the pins. The focused run must pass with no skips, retries or budget increases, and its diff must be limited to .github/workflows/release-governance.yml (install step plus env block plus local markup), tests/renderer/release-governance.test.js (new pins plus markup) and .grace/graph/features.xml (one dated M-046 SummaryDelta recording the verified-install boundary, appended inside M-046 without touching any other graph content). The digest derivation gate of T-001 must be satisfied and recorded in the change bundle before merge; every other workflow, job, trigger, permission, secret, cache policy and scan rule stays unchanged, and the local gate tools/security_gate.py keeps its exact bytes. The orchestrator runs the current/target/final grace-lint lifecycle gates itself; no command in this plan is self-referential to those gates. No apply/archive, commit/push, release, signing, version, tag or publication is authorized by this plan.</Environment>
+    </AcceptanceVerification>
+    <ExecutionMode>sequential</ExecutionMode>
+    <Lifecycle>Drafted 2026-11-21 from the approved spec for orchestrator admission; the orchestrator owns SpecSha256 replacement, status transitions and the durable/final/archive/publication boundaries. Writing this draft approves neither implementation nor apply/archive, commit/push, lane admission, release, signing, tag or publication.</Lifecycle>
+  </C-SEC-GITLEAKS-CHECKSUM>
+</GraceChangePlan>

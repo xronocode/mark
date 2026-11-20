@@ -2840,7 +2840,8 @@
         </Attribute>
       </LegacyAttributes>
       <LegacySource>docs/knowledge-graph.xml: M-046; docs/development-plan.xml: M-046</LegacySource>
-    </M-046>
+          <SummaryDelta>C-SEC-GITLEAKS-CHECKSUM: the docs-security job downloads the pinned Gitleaks archive to a temp file and verifies a strict sha256 check against the committed GITLEAKS_SHA256 digest before any extraction or execution; the digest bumps together with the version pin and its derivation is recorded out-of-band.</SummaryDelta>
+</M-046>
     <M-054>
       <Name>WindowsReleaseLane</Name>
       <DisplayName>Windows release lane</DisplayName>
