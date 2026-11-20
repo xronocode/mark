@@ -68,7 +68,7 @@ const installStep = docsSecurityJob
 // recorded out-of-band derivation, never by a test-time fetch. These controls
 // mutate only the in-memory source string: no network, no tracked-file edits.
 function assertGitleaksChecksumContract(source) {
-  if (!/^  GITLEAKS_SHA256: '?[0-9a-f]{64}'?$/m.test(source))
+  if (!/^  GITLEAKS_SHA256: '?[0-9a-f]{64}'?\r?$/m.test(source))
     throw new Error('docs-security: committed GITLEAKS_SHA256 digest constant missing')
   const runtimeLines = source.split('\n').filter((line) => !/^\s*#/.test(line))
   if (!runtimeLines.some((line) => line.includes('sha256sum --check --strict')))
@@ -244,7 +244,8 @@ describe('release governance', () => {
 
   it('fails closed when the Gitleaks checksum contract is mutated in memory', () => {
     // Missing digest constant: deleting the env line must be rejected.
-    const withoutDigest = docsSecurityJob.replace(/^  GITLEAKS_SHA256:.*\n/m, '')
+    // CRLF-safe: the env line's terminator is \r?\n on Windows checkouts.
+    const withoutDigest = docsSecurityJob.replace(/^  GITLEAKS_SHA256:.*\r?\n/m, '')
     expect(() => assertGitleaksChecksumContract(withoutDigest)).toThrow(
       /digest constant missing/
     )
