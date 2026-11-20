@@ -5954,6 +5954,7 @@
       <LegacySource>docs/verification-plan.xml: V-M-011</LegacySource>
             <scenario-table-dialog-verification>C-TABLE-DIALOG-CREATION-VERIFICATION: real-mount dialog lifecycle — stable row focus through the trap-ordered claim, 4×3 defaults with 1–30/1–20 limits, Cancel-no-create, exactly one createTable with typed dimensions — verified by the restored component cases with ten mutation probes plus the three browser scenarios in chromium and webkit-tables.</scenario-table-dialog-verification>
         <scenario-external-reload-operation>C-EXTERNAL-RELOAD-OPERATION: the owner matrix — policy rows, ready-data admission, settle/read races (edits during settle never start a read), one-shot generation-bound confirmation lifecycle, choice-time vs dispatch-time captures, attempt identity binding across close/reopen/rename, manifest and commit pins preserving the legacy order, stale/declined/skipped byte-identical mutation controls — verified by the 109-test trio plus the live-reload-scroll browser scenarios.</scenario-external-reload-operation>
+        <scenario-sec-edit-targeting-m011>C-SEC-EDIT-TARGETING: the editor gate — foreign instance, stale generation, missing binding and never-rendered identity all reject insert/transform/undo before any mutation (including the whole-document fallback), matched bindings proceed, diff guard still first — verified by the nine-case editor_ext_targeting family plus the relay pins (270 renderer tests green).</scenario-sec-edit-targeting-m011>
 </V-M-011>
     <V-M-012>
       <Priority>critical</Priority>

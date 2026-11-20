@@ -83,6 +83,36 @@ describe('textOps listener', () => {
     expect(busMock.emit).toHaveBeenCalledWith('ext-undo', { extensionId: 'ext3' })
   })
 
+  // ── Document binding passthrough (C-SEC-EDIT-TARGETING) ─────
+
+  it('forwards the document binding on the ext-text-insert emit', async () => {
+    await initTextOpsListener()
+    eventHandler({ payload: { op_type: 'insert', payload: { text: 'hello', position: 2, document_id: 'tab-1', document_generation: 'document-1-a' }, extension_id: 'ext1' } })
+    expect(busMock.emit).toHaveBeenCalledWith('ext-text-insert', { text: 'hello', position: 2, extensionId: 'ext1', documentId: 'tab-1', documentGeneration: 'document-1-a' })
+  })
+
+  it('forwards the document binding on the ext-text-transform emit', async () => {
+    await initTextOpsListener()
+    eventHandler({ payload: { op_type: 'transform', payload: { text: 'UPPER', document_id: 'tab-9', document_generation: 'document-9-b' }, extension_id: 'ext2' } })
+    expect(busMock.emit).toHaveBeenCalledWith('ext-text-transform', { text: 'UPPER', extensionId: 'ext2', documentId: 'tab-9', documentGeneration: 'document-9-b' })
+  })
+
+  it('forwards the document binding on the ext-undo emit', async () => {
+    await initTextOpsListener()
+    eventHandler({ payload: { op_type: 'undo', payload: { document_id: 'tab-3', document_generation: 'document-3-c' }, extension_id: 'ext3' } })
+    expect(busMock.emit).toHaveBeenCalledWith('ext-undo', { extensionId: 'ext3', documentId: 'tab-3', documentGeneration: 'document-3-c' })
+  })
+
+  it('a payload without binding fields forwards undefined documentId/documentGeneration', async () => {
+    await initTextOpsListener()
+    eventHandler({ payload: { op_type: 'insert', payload: { text: 'unbound', position: null }, extension_id: 'ext1' } })
+    eventHandler({ payload: { op_type: 'transform', payload: { text: 'unbound' }, extension_id: 'ext2' } })
+    eventHandler({ payload: { op_type: 'undo', payload: {}, extension_id: 'ext3' } })
+    expect(busMock.emit).toHaveBeenNthCalledWith(1, 'ext-text-insert', { text: 'unbound', position: null, extensionId: 'ext1', documentId: undefined, documentGeneration: undefined })
+    expect(busMock.emit).toHaveBeenNthCalledWith(2, 'ext-text-transform', { text: 'unbound', extensionId: 'ext2', documentId: undefined, documentGeneration: undefined })
+    expect(busMock.emit).toHaveBeenNthCalledWith(3, 'ext-undo', { extensionId: 'ext3', documentId: undefined, documentGeneration: undefined })
+  })
+
   it('logs warning for unknown op_type', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     await initTextOpsListener()

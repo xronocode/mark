@@ -141,10 +141,12 @@
 //   reapplyHostWidthFromCache - C-PAGE-WIDTH-TABLES corner C-3: one --editorAreaWidth property write from the cached entry on canvas changes (window resize, sidebar show/hide/drag commit) — never a content re-render, no store IO on the tick.
 //   applyDocumentSurfaceTheme - C-PAGE-WIDTH-TABLES R-4: apply a pinned themeOverride to the document surface (addThemeStyle + the muya diagram classification mirroring the shipped watch(theme) branch); restore the Auto-aware global theme when the pin leaves.
 //   syncDiagramClassification - C-PAGE-WIDTH-TABLES: the muya mermaid/vega options follow the applied surface theme (dark regex classification — the shipped watch(theme) branch); safe to re-run once the Muya instance exists.
+//   extBindingMatchesRendered - C-SEC-EDIT-TARGETING: drops ext insert/transform/undo bus events whose document binding (documentId + documentGeneration from the wire) does not match the rendered tab identity (renderedTabId + renderedDocumentOwner.documentToken) before any mutation — including the whole-document setMarkdown fallback; the ext-context-request response names the rendered instance via document_id/document_generation or explicit nulls.
 //   handleDocumentPageStateChanged - C-PAGE-WIDTH-TABLES: the panel's mt::document-page-state-changed handler — a Page/View tab write re-reads the entry so a fresh pin reaches the surface without waiting for a tab switch and the host cache never goes stale behind a panel write.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   2026-11-20 C-SEC-EDIT-TARGETING: the ext insert/transform/undo handlers run extBindingMatchesRendered (renderedTabId + renderedDocumentOwner.documentToken) as their FIRST statement and log BLOCK_EXT_TARGETING_MISMATCH, returning before any mutation — insertParagraph, replace and the whole-document setMarkdown fallback included; unbound events (documentId undefined, e.g. /ext/text-insert or the text_ops.rs commands) never match, fail-closed. handleExtContextRequest adds document_id (renderedTabId) + document_generation (renderedDocumentOwner.documentToken) — explicit nulls when there is no rendered identity — to the context response. Typing between context and apply never invalidates a matched apply: the generation is the instance token, not a content revision.
 //   2026-11-19 C-TABLE-DIALOG-CREATION-VERIFICATION T-001: the insert-table dialog's initial row-input focus moves from a pre-trap nextTick claim (overwritten by the Element Plus FocusTrap's opening container focus) to a claim that runs immediately AFTER that container focus — the @open-auto-focus handler chains two nextTicks (the trap registers its container focus on the first), guarded by dialog visibility and trap-default focus, with @opened re-running the same guarded claim as fallback; no timers, no retries, no trap interference, no focus theft after a deliberate user focus move.
 //   EXPORT: 2026-11-12 C-EXPORT-SETTINGS-SECTION: pass the captured Word operation through pageOptions to conversion.
 //   2026-11-11 C-SPLIT-SAVE-AUTHORITY: preserve rich-pane save authority in active Split with a retained Source preference.
@@ -3195,6 +3197,22 @@ const handleInsertParagraph = (location) => {
 // START_BLOCK_EXT_TEXT_OPS
 
 /**
+ * C-SEC-EDIT-TARGETING: the authoritative targeting gate for ext
+ * mutation events. The event must name the exact document instance this
+ * Muya buffer rendered — the tab id plus that instance's generation
+ * (documentToken, minted once per document lifetime: it changes on
+ * replace/reload/close/new and never on keystrokes, so ordinary typing
+ * between /ext/context and /ext/apply never invalidates a matched apply).
+ * Mismatched, stale, null or absent bindings (documentId === undefined on
+ * unbound events, e.g. /ext/text-insert or the text_ops.rs commands) never
+ * match — fail-closed.
+ */
+const extBindingMatchesRendered = ({ documentId, documentGeneration }) =>
+  !!renderedTabId && !!renderedDocumentOwner &&
+  renderedTabId === documentId &&
+  renderedDocumentOwner.documentToken === documentGeneration
+
+/**
  * Handle extension text.insert: insert text at cursor position.
  * Emitted by textOps.js via bus when the backend receives
  * mt_ext_text_insert from an extension.
@@ -3203,7 +3221,12 @@ const handleInsertParagraph = (location) => {
  * provided markdown content. Muya's insertParagraph('after', text, true)
  * inserts a block after the currently focused block.
  */
-const handleExtTextInsert = ({ text }) => {
+const handleExtTextInsert = ({ text, documentId, documentGeneration }) => {
+  if (!extBindingMatchesRendered({ documentId, documentGeneration })) {
+    // eslint-disable-next-line no-console
+    console.warn('[Editor][BLOCK_EXT_TARGETING_MISMATCH op=insert]')
+    return
+  }
   if (routeSource('insert', text)) return
   if (!editor.value || typeof text !== 'string') return
   try {
@@ -3224,7 +3247,15 @@ const handleExtTextInsert = ({ text }) => {
  * Strategy: get the current selection, use Muya's replace mechanism to
  * substitute the selected text. If nothing is selected, insert at cursor.
  */
-const handleExtTextTransform = ({ text }) => {
+const handleExtTextTransform = ({ text, documentId, documentGeneration }) => {
+  // C-SEC-EDIT-TARGETING: gate BEFORE the selection/replace branch and
+  // before the whole-document setMarkdown fallback below — that fallback
+  // is the dangerous path for a mis-targeted apply.
+  if (!extBindingMatchesRendered({ documentId, documentGeneration })) {
+    // eslint-disable-next-line no-console
+    console.warn('[Editor][BLOCK_EXT_TARGETING_MISMATCH op=transform]')
+    return
+  }
   if (typeof text === 'string' && routeSource('transform', text)) return
   if (!editor.value || typeof text !== 'string') return
   try {
@@ -3252,7 +3283,12 @@ const handleExtTextTransform = ({ text }) => {
  * Handle undo request from an extension.
  * E1a: triggered by TokMo EditAgent "Марк, отмена" command.
  */
-const handleExtUndo = ({ extensionId }) => {
+const handleExtUndo = ({ extensionId, documentId, documentGeneration }) => {
+  if (!extBindingMatchesRendered({ documentId, documentGeneration })) {
+    // eslint-disable-next-line no-console
+    console.warn('[Editor][BLOCK_EXT_TARGETING_MISMATCH op=undo]')
+    return
+  }
   if (!editor.value) return
   try {
     handleUndo()
@@ -3371,6 +3407,15 @@ const handleExtContextRequest = async ({ requestId }) => {
     const selectionData = editor.value.getSelection?.() || {}
     const filePath = currentFile.value?.pathname || null
 
+    // C-SEC-EDIT-TARGETING: name the document instance this response was
+    // read from — the rendered tab id plus that instance's generation
+    // (documentToken). Absent identity is represented explicitly as
+    // nulls and can never match an apply (fail-closed).
+    const documentId = renderedTabId && renderedDocumentOwner && renderedTabId === currentFile.value?.id
+      ? renderedTabId
+      : null
+    const documentGeneration = documentId ? renderedDocumentOwner.documentToken : null
+
     const cursor = sourceFocused() ? splitSession().source?.head : selectionData.cursorCoords
       ? { line: selectionData.cursorCoords.y || 0, ch: 0 }
       : null
@@ -3383,7 +3428,14 @@ const handleExtContextRequest = async ({ requestId }) => {
     const { emit: tauriEmit } = await import('@tauri-apps/api/event')
     await tauriEmit('mt::ext::context_response', {
       request_id: requestId,
-      context: { markdown, cursor, selection, file_path: filePath }
+      context: {
+        markdown,
+        cursor,
+        selection,
+        file_path: filePath,
+        document_id: documentId,
+        document_generation: documentGeneration
+      }
     })
 
     // eslint-disable-next-line no-console
