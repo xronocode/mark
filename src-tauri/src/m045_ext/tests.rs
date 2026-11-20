@@ -1370,6 +1370,7 @@ fn pairing_grant_description_names_only_declared_capabilities() {
 async fn fresh_pair_secret(f: &IncomingFixture) -> String {
     let response = super::live_server::handle_pair(State(f.state.clone()), Json(super::live_server::PairRequest {
         extension_id: f.id.clone(), extension_name: "Dummy paired fixture".to_string(), protocol_version: 1,
+        prior_secret: None,
     })).await.into_response();
     assert_eq!(response.status(), StatusCode::OK);
     let body = axum::body::to_bytes(response.into_body(), 8192).await.unwrap();
@@ -1388,10 +1389,12 @@ async fn fresh_pairing_restores_access() {
     let f = incoming_fixture(true, "text.edit");
     super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap();
     assert_old_token_fenced(&f).await;
-    // Enabling never makes the old token usable; a real fresh pair supplies it.
+    // Pair inside the verified-empty trust-reset window (enable would re-key
+    // an empty store and turn the pair into a refused rebind); enabling a
+    // paired id does not re-key it.
+    let fresh = fresh_pair_secret(&f).await;
     super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap();
     assert_eq!(apply_fixture(&f, &f.token).await, StatusCode::UNAUTHORIZED);
-    let fresh = fresh_pair_secret(&f).await;
     assert_eq!(apply_fixture(&f, &fresh).await, StatusCode::BAD_REQUEST);
     assert_eq!(apply_bound(&f, &fresh, Some("tab-never-handed".to_string()), Some("document-gen-never-handed".to_string())).await, StatusCode::CONFLICT);
     assert!(f.events.lock().unwrap().is_empty());
@@ -1404,9 +1407,9 @@ async fn fresh_pairing_restores_access() {
     let editor = incoming_fixture_caps(true, &["context.read", "text.edit"]);
     super::mt_ext_disable(editor.id.clone(), editor.app.state(), editor.app.handle().clone()).await.unwrap();
     assert_old_token_fenced(&editor).await;
+    let fresh_edit = fresh_pair_secret(&editor).await;
     super::mt_ext_enable(editor.id.clone(), editor.app.state()).await.unwrap();
     assert_eq!(apply_fixture(&editor, &editor.token).await, StatusCode::UNAUTHORIZED);
-    let fresh_edit = fresh_pair_secret(&editor).await;
     assert_eq!(context_fixture(&editor, &fresh_edit).await, StatusCode::OK);
     let (document_id, document_generation) = handed_binding(&editor);
     assert_eq!(apply_bound(&editor, &fresh_edit, Some(document_id), Some(document_generation)).await, StatusCode::OK);
@@ -1418,8 +1421,8 @@ async fn fresh_pairing_restores_access() {
     let reader = incoming_fixture(true, "context.read");
     super::mt_ext_disable(reader.id.clone(), reader.app.state(), reader.app.handle().clone()).await.unwrap();
     assert_old_token_fenced(&reader).await;
-    super::mt_ext_enable(reader.id.clone(), reader.app.state()).await.unwrap();
     let fresh_read = fresh_pair_secret(&reader).await;
+    super::mt_ext_enable(reader.id.clone(), reader.app.state()).await.unwrap();
     assert_eq!(context_fixture(&reader, &fresh_read).await, StatusCode::OK);
     assert_eq!(apply_fixture(&reader, &fresh_read).await, StatusCode::UNAUTHORIZED);
     assert_eq!(insert_fixture(&reader, Some(&fresh_read)).await, StatusCode::UNAUTHORIZED);
@@ -1428,8 +1431,8 @@ async fn fresh_pairing_restores_access() {
     let inserter = incoming_fixture(true, "text.insert");
     super::mt_ext_disable(inserter.id.clone(), inserter.app.state(), inserter.app.handle().clone()).await.unwrap();
     assert_old_token_fenced(&inserter).await;
-    super::mt_ext_enable(inserter.id.clone(), inserter.app.state()).await.unwrap();
     let fresh_insert = fresh_pair_secret(&inserter).await;
+    super::mt_ext_enable(inserter.id.clone(), inserter.app.state()).await.unwrap();
     assert_eq!(insert_fixture(&inserter, Some(&fresh_insert)).await, StatusCode::OK);
     assert_eq!(inserter.events.lock().unwrap().len(), 1);
     assert_eq!(context_fixture(&inserter, &fresh_insert).await, StatusCode::UNAUTHORIZED);
