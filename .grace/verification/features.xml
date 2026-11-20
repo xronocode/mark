@@ -2414,7 +2414,7 @@
       </LegacyBase>
       <LegacySource>docs/verification-plan.xml: V-M-045</LegacySource>
             <scenario-sec-stream-scope>C-SEC-STREAM-SCOPE: the capability matrix — declared-manifest gating per route with 401 on undeclared classes, the flipped over-grant pin (a stream.document-only extension is refused on context/apply), the fresh-pairing restoral matrix per class, and the dialog grant description naming only declared capabilities — verified by the 73-test cargo m045_ext suite plus 91 renderer regression tests.</scenario-sec-stream-scope>
-        <scenario-sec-pair-rebind>C-SEC-PAIR-REBIND: the rebind family — unproven and wrong-prior refusals leave the old token valid and emit nothing, an approved rebind fences the old token on every route, harness auto-approval can never replace a live key, and the trust-reset path pairs fresh — verified by the five-test cargo m045_ext block (suite 78/78).</scenario-sec-pair-rebind>
+        <scenario-sec-edit-targeting>C-SEC-EDIT-TARGETING: the server binding matrix — context-carried binding, 400 missing / 409 stale-or-never-issued with zero text events, matching pair proceeds with the binding on the payload — verified by the four-test cargo m045_ext block (suite 77/77).</scenario-sec-edit-targeting>        <scenario-sec-pair-rebind>C-SEC-PAIR-REBIND: the rebind family — unproven and wrong-prior refusals leave the old token valid and emit nothing, an approved rebind fences the old token on every route, harness auto-approval can never replace a live key, and the trust-reset path pairs fresh — verified by the five-test cargo m045_ext block (suite 78/78).</scenario-sec-pair-rebind>
 </V-M-045>
     <V-M-046>
       <Priority>critical</Priority>

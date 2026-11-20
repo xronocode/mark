@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/editor-coverage.test.js
-// VERSION: 1.17.0
+// VERSION: 1.18.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify editorWithTabs/editor.vue methods, watchers, computed state, event handlers, and lifecycle behavior beyond the base editor test.
 //   SCOPE: Deterministic Vue/jsdom tests with mocked Muya, stores, bus, services, and browser scheduling; the two restored table-dialog cases use an opt-in real Element Plus mount.
@@ -40,7 +40,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.17.0 - C-TABLE-DIALOG-CREATION-VERIFICATION: the two skipped table-dialog cases run again on an opt-in real Element Plus mount (opening 4×3 defaults, declared limits, stable row focus after the dialog's opened lifecycle, no focus theft after a deliberate columns-input move, Cancel creating nothing, reopen reset, real 7×5 input confirmation dispatching exactly one createTable and closing) and the mutation-control block rejects missing open/reset/focus/createTable/close, transposed and ignored dimensions, a dropped trapDefault guard and a revert of the T-001 focus repair, restoring exact editor.vue bytes in finally after every mutation.
+//   LAST_CHANGE: v1.18.0 - 2026-11-20 C-SEC-EDIT-TARGETING: the editor_ext_targeting describe invokes the captured ext insert/transform/undo bus handlers directly on a normally rendered document — foreign/stale/null/absent bindings refuse before any mutation (setMarkdown, replace, insertParagraph and undo untouched) with the content-free BLOCK_EXT_TARGETING_MISMATCH marker, matched bindings read the real rendered identity (currentFile.id plus documentOwner(tab).documentToken through the real util) and apply exactly once (transform through the selection replace or the whole-document setMarkdown fallback, insert at the cursor, undo), and a diff-mode case proves the diff guard still drops the event before the binding check.
+//   - v1.17.0: C-TABLE-DIALOG-CREATION-VERIFICATION: the two skipped table-dialog cases run again on an opt-in real Element Plus mount (opening 4×3 defaults, declared limits, stable row focus after the dialog's opened lifecycle, no focus theft after a deliberate columns-input move, Cancel creating nothing, reopen reset, real 7×5 input confirmation dispatching exactly one createTable and closing) and the mutation-control block rejects missing open/reset/focus/createTable/close, transposed and ignored dimensions, a dropped trapDefault guard and a revert of the T-001 focus repair, restoring exact editor.vue bytes in finally after every mutation.
 //   - v1.16.0: C-TAB-CLOSE-OWNERSHIP: delayed cross-tab render events, missed activation recovery, edit ownership and duplicate-render regressions.
 //   - 2026-10-19 v1.15.0: C-70 — picture export transport: table copy/save (built svg, 1-based table index, bare-table fallback), undrawable table warning, diagram SVG save, copy/save failure notices.
 //   - 2026-10-18 v1.14.0: C-60 — footnote toggles invalidate all cached tab blocks without changing Markdown, history or isSaved.
@@ -64,6 +65,10 @@ import { createRequire } from 'node:module'
 import { nextTick } from 'vue'
 import { setupTestPinia } from '../pinia'
 import { createI18n } from 'vue-i18n'
+// C-SEC-EDIT-TARGETING: the matched-passthrough cases read the real rendered
+// identity through the real util (documentOwner mints the tab's
+// documentToken once per document lifetime, during the mount render).
+import { documentOwner } from '@/util/documentSnapshot'
 // C-TABLE-DIALOG-CREATION-VERIFICATION T-002 mutation controls: the restored
 // cases must reject controlled byte-level mutations of the actual editor SFC,
 // so this file reads/writes those bytes and proves exact restoration. The
@@ -3058,6 +3063,184 @@ describe('editor.vue — coverage', () => {
       const warnings = noticeMock.notify.mock.calls.filter(([n]) => n.type === 'warning')
       expect(warnings).toHaveLength(2)
       warn.mockRestore()
+    })
+  })
+
+  // ══ C-SEC-EDIT-TARGETING: editor_ext_targeting ═══════════════════
+  // The ext insert/transform/undo bus handlers are invoked directly (the
+  // diffGuarded wrappers registered on the bus) on a normally rendered
+  // document: the mount's hydrateMountedDocument render sets renderedTabId
+  // and renderedDocumentOwner, so the gate's rendered identity is the real
+  // one — currentFile.id plus documentOwner(currentFile).documentToken
+  // through the real util.
+  describe('editor_ext_targeting — the ext mutation targeting gate (C-SEC-EDIT-TARGETING)', () => {
+    const renderedIdentity = () => ({
+      documentId: editorStore.currentFile.id,
+      documentGeneration: documentOwner(editorStore.currentFile).documentToken
+    })
+
+    const expectNoMutation = () => {
+      expect(mockEditorInstance.setMarkdown).not.toHaveBeenCalled()
+      expect(mockEditorInstance.replace).not.toHaveBeenCalled()
+      expect(mockEditorInstance.insertParagraph).not.toHaveBeenCalled()
+      expect(mockEditorInstance.undo).not.toHaveBeenCalled()
+    }
+
+    // The mount render itself calls setMarkdown once (hydrateMountedDocument
+    // → handleFileChange → editor.setMarkdown). Every case that drives an
+    // ext handler clears the mutation spies AFTER mount so the assertions
+    // count only ext-driven calls.
+    const clearMutationSpies = () => {
+      mockEditorInstance.setMarkdown.mockClear()
+      mockEditorInstance.replace.mockClear()
+      mockEditorInstance.insertParagraph.mockClear()
+      mockEditorInstance.undo.mockClear()
+    }
+
+    it('drops ext-text-transform with a foreign document instance before any mutation, including the setMarkdown fallback', async () => {
+      const wrapper = await mountEditor()
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      try {
+        const transform = getBusHandler('ext-text-transform')
+        expect(transform).toBeTruthy()
+        clearMutationSpies()
+        // A foreign tab id with an otherwise-valid generation.
+        transform({ text: '# Foreign', documentId: 'tab-999', documentGeneration: renderedIdentity().documentGeneration })
+        expectNoMutation()
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('BLOCK_EXT_TARGETING_MISMATCH'))
+        expect(warnSpy.mock.calls.some((call) => String(call[0]).includes('op=transform'))).toBe(true)
+        // A stale generation for the correct tab is equally refused.
+        clearMutationSpies()
+        transform({ text: '# Stale', documentId: editorStore.currentFile.id, documentGeneration: 'document-stale-gen' })
+        // Null identity never matches the rendered instance either.
+        transform({ text: '# Null', documentId: null, documentGeneration: null })
+        expectNoMutation()
+      } finally {
+        warnSpy.mockRestore()
+        wrapper.unmount()
+      }
+    })
+
+    it('drops ext-text-insert with a stale generation before insertParagraph', async () => {
+      const wrapper = await mountEditor()
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      try {
+        const insert = getBusHandler('ext-text-insert')
+        expect(insert).toBeTruthy()
+        clearMutationSpies()
+        insert({ text: 'stale', documentId: editorStore.currentFile.id, documentGeneration: 'document-stale-gen' })
+        expectNoMutation()
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('BLOCK_EXT_TARGETING_MISMATCH'))
+        expect(warnSpy.mock.calls.some((call) => String(call[0]).includes('op=insert'))).toBe(true)
+      } finally {
+        warnSpy.mockRestore()
+        wrapper.unmount()
+      }
+    })
+
+    it('drops ext-undo with no binding at all before any undo dispatch', async () => {
+      const wrapper = await mountEditor()
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      try {
+        const undo = getBusHandler('ext-undo')
+        expect(undo).toBeTruthy()
+        clearMutationSpies()
+        // Unbound relay payload: documentId/documentGeneration undefined.
+        undo({ extensionId: 'ext-unbound' })
+        expectNoMutation()
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('BLOCK_EXT_TARGETING_MISMATCH'))
+        expect(warnSpy.mock.calls.some((call) => String(call[0]).includes('op=undo'))).toBe(true)
+      } finally {
+        warnSpy.mockRestore()
+        wrapper.unmount()
+      }
+    })
+
+    it('a mount that never rendered (no rendered identity) rejects ext ops fail-closed', async () => {
+      // A non-string store markdown skips the mount render paths
+      // (hydrateMountedDocument and reconcileActiveDocument both require a
+      // string), so renderedTabId/renderedDocumentOwner stay null — the
+      // fail-closed half of the gate: a handler with no rendered document
+      // must not mutate on ext ops, whatever the event claims.
+      await seedStores({ markdown: null })
+      const wrapper = await mountEditor()
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      try {
+        const identity = { documentId: 'tab-1', documentGeneration: 'document-any-gen' }
+        getBusHandler('ext-text-transform')({ text: '# Unrendered', ...identity })
+        getBusHandler('ext-text-insert')({ text: 'unrendered', ...identity })
+        getBusHandler('ext-undo')({ extensionId: 'ext-unrendered', ...identity })
+        expectNoMutation()
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('BLOCK_EXT_TARGETING_MISMATCH'))
+        const warns = warnSpy.mock.calls.map((call) => String(call[0])).join('\n')
+        expect(warns.includes('op=transform')).toBe(true)
+        expect(warns.includes('op=insert')).toBe(true)
+        expect(warns.includes('op=undo')).toBe(true)
+      } finally {
+        warnSpy.mockRestore()
+        wrapper.unmount()
+      }
+    })
+
+    it('applies a matched ext-text-transform exactly once via the no-selection setMarkdown fallback', async () => {
+      const wrapper = await mountEditor()
+      clearMutationSpies()
+      const identity = renderedIdentity()
+      getBusHandler('ext-text-transform')({ text: '# Replaced', documentId: identity.documentId, documentGeneration: identity.documentGeneration })
+      expect(mockEditorInstance.setMarkdown).toHaveBeenCalledTimes(1)
+      expect(mockEditorInstance.setMarkdown).toHaveBeenCalledWith('# Replaced')
+      expect(mockEditorInstance.replace).not.toHaveBeenCalled()
+      wrapper.unmount()
+    })
+
+    it('applies a matched ext-text-transform exactly once via the selection replace branch', async () => {
+      const wrapper = await mountEditor()
+      mockEditorInstance.getSelection.mockReturnValue({ selectedText: 'old text' })
+      clearMutationSpies()
+      const identity = renderedIdentity()
+      getBusHandler('ext-text-transform')({ text: 'new text', documentId: identity.documentId, documentGeneration: identity.documentGeneration })
+      expect(mockEditorInstance.replace).toHaveBeenCalledTimes(1)
+      expect(mockEditorInstance.replace).toHaveBeenCalledWith({ value: 'new text', opt: { isSingle: true } })
+      expect(mockEditorInstance.setMarkdown).not.toHaveBeenCalled()
+      expect(mockEditorInstance.insertParagraph).not.toHaveBeenCalled()
+      wrapper.unmount()
+    })
+
+    it('applies a matched ext-text-insert at the cursor', async () => {
+      const wrapper = await mountEditor()
+      clearMutationSpies()
+      const identity = renderedIdentity()
+      getBusHandler('ext-text-insert')({ text: 'inserted', documentId: identity.documentId, documentGeneration: identity.documentGeneration })
+      expect(mockEditorInstance.insertParagraph).toHaveBeenCalledTimes(1)
+      expect(mockEditorInstance.insertParagraph).toHaveBeenCalledWith('after', 'inserted', true)
+      expect(mockEditorInstance.setMarkdown).not.toHaveBeenCalled()
+      wrapper.unmount()
+    })
+
+    it('applies a matched ext-undo', async () => {
+      const wrapper = await mountEditor()
+      clearMutationSpies()
+      const identity = renderedIdentity()
+      getBusHandler('ext-undo')({ extensionId: 'ext-paired', documentId: identity.documentId, documentGeneration: identity.documentGeneration })
+      expect(mockEditorInstance.undo).toHaveBeenCalledTimes(1)
+      wrapper.unmount()
+    })
+
+    it('the diff guard still drops a matched ext mutation before the binding check', async () => {
+      const wrapper = await mountEditor()
+      editorStore.currentFile.diffMode = true
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      try {
+        clearMutationSpies()
+        const identity = renderedIdentity()
+        getBusHandler('ext-text-transform')({ text: '# Diff', documentId: identity.documentId, documentGeneration: identity.documentGeneration })
+        expectNoMutation()
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('BLOCK_DIFF_EDIT_BLOCKED'))
+        expect(warnSpy.mock.calls.some((call) => String(call[0]).includes('BLOCK_EXT_TARGETING_MISMATCH'))).toBe(false)
+      } finally {
+        warnSpy.mockRestore()
+        wrapper.unmount()
+      }
     })
   })
 

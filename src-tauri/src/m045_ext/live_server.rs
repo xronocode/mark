@@ -4,7 +4,10 @@
 //            stream.document messages from external apps (e.g. TokMo
 //            meeting mode) over HTTP POST on 127.0.0.1. Validates
 //            Bearer auth, session lifecycle, and sequence idempotency.
-//   SCOPE:   axum HTTP server with /ext/pair (prior-secret rebind gate),
+//   SCOPE:   axum HTTP server with /ext/pair, /stream/*, and capability-
+//            scoped text-insert/context/apply data routes; the context/
+//            apply round trip is document-bound (C-SEC-EDIT-TARGETING);
+//            runtime-generic events.//   SCOPE:   axum HTTP server with /ext/pair (prior-secret rebind gate),
 //            /stream/*, and capability-scoped text-insert/context/apply
 //            data routes; runtime-generic events.
 //            Session state: open/patch/close/heartbeat lifecycle.
@@ -18,7 +21,15 @@
 //   STATUS:  Phase-B5b — handlers emit to frontend via live_bridge.
 //
 // CHANGE_SUMMARY:
-//   - 2026-11-20 C-SEC-PAIR-REBIND: /ext/pair gains an additive prior_secret field; an id that already holds a stored credential pairs only on the prior secret matched constant-time, an unproven rebind is refused leaving the previous key valid, the dialog distinguishes key replacement from first pairing, and auto-approval is confined to the test harness.
+//   - 2026-11-20 C-SEC-EDIT-TARGETING: the /ext/context response names the
+//     active document instance (document_id + document_generation) and the
+//     server remembers it per extension_id in the process-global
+//     EXT_DOCUMENT_BINDINGS store; /ext/apply must echo the binding — a
+//     missing binding is a distinct logged 400
+//     (BLOCK_EXT_APPLY_MISSING_BINDING), a stale, never-issued or null
+//     binding a 409 (BLOCK_EXT_APPLY_BINDING_MISMATCH) — both refused
+//     after the capability gate and before any mt::text::op is emitted;
+//     the emitted op payloads carry the binding to the editor.//   - 2026-11-20 C-SEC-PAIR-REBIND: /ext/pair gains an additive prior_secret field; an id that already holds a stored credential pairs only on the prior secret matched constant-time, an unproven rebind is refused leaving the previous key valid, the dialog distinguishes key replacement from first pairing, and auto-approval is confined to the test harness.
 //   - 2026-11-20 C-SEC-STREAM-SCOPE: /ext/context requires context.read and /ext/apply requires text.edit, checked against the paired manifest before any response or event; the release pairing dialog names exactly the granted incoming capabilities.
 //   - 2026-11-11 C-SEC-STREAM-AUTH: validate enabled generation and session owner at serialized mutations; stamp ordered live events.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES T-003: authenticate text insertion by enabled capability and bearer identity; runtime-generic fixtures.
@@ -185,6 +196,26 @@ pub struct TextInsertRequest {
 
 static CONTEXT_REQUEST_COUNTER: AtomicU64 = AtomicU64::new(0);
 
+/// C-SEC-EDIT-TARGETING: the document instance a /ext/context read
+/// observed — the rendered instance id plus that instance's generation.
+/// Remembered per extension_id when a context response resolves; an
+/// /ext/apply must echo the same pair. A None field never matches an
+/// apply (fail-closed).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DocumentBinding {
+    pub document_id: Option<String>,
+    pub document_generation: Option<String>,
+}
+
+/// C-SEC-EDIT-TARGETING: last recorded document binding per extension_id.
+/// Process-global like CONTEXT_REQUEST_COUNTER (deliberately NOT a
+/// LiveServerState field, so the struct literal in src-tauri/src/main.rs
+/// stays untouched). A (None, None) entry — recorded when the renderer
+/// reported no rendered identity — refuses every apply for that
+/// extension until a later context read carries identity.
+static EXT_DOCUMENT_BINDINGS: std::sync::LazyLock<std::sync::Mutex<HashMap<String, DocumentBinding>>> =
+    std::sync::LazyLock::new(|| std::sync::Mutex::new(HashMap::new()));
+
 #[derive(Debug, Deserialize)]
 pub struct ExtContextRequest {
     pub extension_id: String,
@@ -196,6 +227,14 @@ pub struct ExtContextResponse {
     pub cursor: Option<CursorCoords>,
     pub selection: Option<SelectionInfo>,
     pub file_path: Option<String>,
+    /// C-SEC-EDIT-TARGETING: rendered document instance id (None when the
+    /// renderer reported no rendered identity).
+    pub document_id: Option<String>,
+    /// C-SEC-EDIT-TARGETING: that instance's generation (the rendered
+    /// tab's documentToken). Absent on an older renderer callback payload
+    /// (serde deserializes the missing field as None), which can never
+    /// match an apply.
+    pub document_generation: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -224,6 +263,12 @@ pub struct ExtApplyRequest {
     pub operations: Vec<EditOperation>,
     #[allow(dead_code)]
     pub undo_label: Option<String>,
+    /// C-SEC-EDIT-TARGETING: the document binding from the /ext/context
+    /// read. Mandatory by policy — enforced in handle_ext_apply, not by
+    /// serde, so a legacy client receives a distinct logged 400 instead
+    /// of an extractor rejection.
+    pub document_id: Option<String>,
+    pub document_generation: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -1215,6 +1260,21 @@ pub(super) async fn handle_ext_context<R: tauri::Runtime>(
 
     match tokio::time::timeout(std::time::Duration::from_secs(5), rx).await {
         Ok(Ok(context)) => {
+            // C-SEC-EDIT-TARGETING: remember the binding this context read
+            // carried (a (None, None) pair too — it refuses every apply
+            // for this extension until a context read carries rendered
+            // identity). A timed-out or channel-closed request records
+            // nothing.
+            {
+                let mut bindings = EXT_DOCUMENT_BINDINGS.lock().unwrap();
+                bindings.insert(
+                    req.extension_id.clone(),
+                    DocumentBinding {
+                        document_id: context.document_id.clone(),
+                        document_generation: context.document_generation.clone(),
+                    },
+                );
+            }
             safe_eprintln!(
                 "[ExtHost][live_server][BLOCK_EXT_CONTEXT_OK ext_id={} md_len={}]",
                 req.extension_id,
@@ -1247,6 +1307,9 @@ pub(super) async fn handle_ext_context<R: tauri::Runtime>(
 
 /// POST /ext/apply — apply edit operations to the active editor.
 /// E1a: used by TokMo EditAgent to apply LLM-generated edits.
+/// C-SEC-EDIT-TARGETING: the request must echo the document binding
+/// (document_id + document_generation) recorded by the /ext/context read;
+/// the fence runs after the capability gate and before any event.
 /// Emits mt::text::op events for each operation; Muya's 1500ms debounce
 /// groups rapid operations as a single undo step.
 pub(super) async fn handle_ext_apply<R: tauri::Runtime>(
@@ -1256,6 +1319,47 @@ pub(super) async fn handle_ext_apply<R: tauri::Runtime>(
 ) -> impl IntoResponse {
     if let Err(e) = authenticate_incoming(&state, &headers, Some(&req.extension_id), Some(RouteCapability::TextEdit)).await {
         return (e.0, Json(serde_json::json!({"error": e.1})));
+    }
+
+    // C-SEC-EDIT-TARGETING: binding fence. The capability gate above still
+    // runs first. The apply must name the exact document instance and
+    // generation an earlier /ext/context read recorded for this extension.
+    // Missing binding -> distinct logged 400 (legacy clients fail
+    // closed); no remembered binding, a remembered None field, or any
+    // differing field -> 409. Both rejections happen before any
+    // mt::text::op is emitted and never answer applied: true.
+    if req.document_id.is_none() || req.document_generation.is_none() {
+        safe_eprintln!(
+            "[ExtHost][live_server][BLOCK_EXT_APPLY_MISSING_BINDING ext_id={}]",
+            req.extension_id,
+        );
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"error": "missing document binding: document_id and document_generation are required"})),
+        );
+    }
+
+    {
+        let bindings = EXT_DOCUMENT_BINDINGS.lock().unwrap();
+        let claimed = DocumentBinding {
+            document_id: req.document_id.clone(),
+            document_generation: req.document_generation.clone(),
+        };
+        match bindings.get(&req.extension_id) {
+            // Must be present, fully Some, and equal — a remembered None
+            // field never equals the fully-Some claimed pair.
+            Some(bound) if *bound == claimed => {}
+            _ => {
+                safe_eprintln!(
+                    "[ExtHost][live_server][BLOCK_EXT_APPLY_BINDING_MISMATCH ext_id={}]",
+                    req.extension_id,
+                );
+                return (
+                    StatusCode::CONFLICT,
+                    Json(serde_json::json!({"error": "document binding mismatch; re-read context"})),
+                );
+            }
+        }
     }
 
     safe_eprintln!(
@@ -1270,6 +1374,8 @@ pub(super) async fn handle_ext_apply<R: tauri::Runtime>(
                 "transform",
                 serde_json::json!({
                     "text": op.content.clone().unwrap_or_default(),
+                    "document_id": req.document_id.clone(),
+                    "document_generation": req.document_generation.clone(),
                 }),
             ),
             "insert_at_cursor" => (
@@ -1277,11 +1383,16 @@ pub(super) async fn handle_ext_apply<R: tauri::Runtime>(
                 serde_json::json!({
                     "text": op.content.clone().unwrap_or_default(),
                     "position": null,
+                    "document_id": req.document_id.clone(),
+                    "document_generation": req.document_generation.clone(),
                 }),
             ),
             "undo" => (
                 "undo",
-                serde_json::json!({}),
+                serde_json::json!({
+                    "document_id": req.document_id.clone(),
+                    "document_generation": req.document_generation.clone(),
+                }),
             ),
             other => {
                 safe_eprintln!(

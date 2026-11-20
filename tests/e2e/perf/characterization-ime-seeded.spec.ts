@@ -1160,9 +1160,17 @@ test.describe('model mutations while composition is active (R-6)', () => {
     page.on('pageerror', (err) => errors.push(String(err)))
     const rewritten = '# Rewritten by extension\n\nAgent text.\n'
 
-    await page.evaluate((text: string) => {
-      ;(window as any).__bus.emit('ext-text-transform', { text })
-    }, rewritten)
+    // The ext handler only mutates the document it was prepared against;
+    // read the real rendered identity (tab id + documentToken) and bind.
+    const binding = await page.evaluate(() => {
+      const app = document.querySelector('#app') as any
+      const store = app.__vue_app__.config.globalProperties.$pinia._s.get('editor')
+      const tab = store.currentFile
+      return { documentId: tab?.id ?? null, documentGeneration: tab?.documentToken ?? null }
+    })
+    await page.evaluate(({ text, documentId, documentGeneration }) => {
+      ;(window as any).__bus.emit('ext-text-transform', { text, documentId, documentGeneration })
+    }, { text: rewritten, ...binding })
     await expect.poll(async () => (await readStore(page)).activeMarkdown, { timeout: 8_000 })
       .toBe(rewritten)
     await dispatchRawCompositionEnd(page, '你好')
