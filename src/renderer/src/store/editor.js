@@ -47,6 +47,7 @@ import {
 import { askUnsavedClose } from '../components/editorWithTabs/unsavedCloseDialog'
 import { getRememberedExportPageOptions } from '../util/exportPageDefaults'
 import { openExportSettings } from '../util/exportSettingsNavigation'
+import { createExternalReloadController, SETTLE_DELAY_MS } from '../util/externalReload'
 
 const formatErrorKeys = Object.freeze({
   MT_ENC_UNKNOWN: 'unknown', MT_ENC_UNSUPPORTED: 'unsupported', MT_ENC_INVALID_POLICY: 'invalidPolicy',
@@ -63,6 +64,24 @@ const liveReloadGenerations = new Map()
 // disk over unsaved edits, so every add/change inside the window is the echo.
 const renameEchoUntil = new Map()
 const RENAME_ECHO_WINDOW_MS = 2000
+
+// C-EXTERNAL-RELOAD-OPERATION: one owner for reload admission, the 100ms
+// settle + disk read with liveness revalidation, and the replacement
+// commit (util/externalReload). Every external effect is injected; all
+// bindings are call-time arrows, so module evaluation never touches
+// `window` and vitest module mocks keep applying.
+const externalReload = createExternalReloadController({
+  read: (p) => ipcFs.read(p),
+  schedule: (fn) => setTimeout(fn, SETTLE_DELAY_MS),
+  log: console,
+  bus,
+  isSamePath: (a, b) => window.fileUtils.isSamePathSync(a, b),
+  buildSingleFileState: getSingleFileState,
+  recordPreReloadSnapshot: recordSnapshot,
+  recordOpenedSnapshot,
+  notify: (payload) => notice.notify(payload),
+  t: (key, params) => i18n.global.t(key, params)
+})
 
 // START_BLOCK_LAST_PRINT_OPTIONS
 // C-EXPORT-SETTINGS-SECTION: appearance keeps the existing C-61 schema.
@@ -316,124 +335,12 @@ export const useEditorStore = defineStore('editor', {
     },
 
     loadChange(change) {
-      const { tabs, currentFile } = this
-      const { data, pathname } = change
-      const {
-        isMixedLineEndings,
-        lineEnding,
-        adjustLineEndingOnSave,
-        trimTrailingNewline,
-        encoding,
-        markdown,
-        filename
-      } = data
-      const options = { encoding, lineEnding, adjustLineEndingOnSave, trimTrailingNewline }
-
-      const tab = tabs.find((t) => window.fileUtils.isSamePathSync(t.pathname, pathname))
-      if (!tab) {
-        // The tab may be closed in the meanwhile.
-        console.error('loadChange: Cannot find tab in tab list.')
-        notice.notify({
-          title: i18n.global.t('store.editor.errorLoadingTabTitle'),
-          message: i18n.global.t('store.editor.errorLoadingTabMessage'),
-          type: 'error',
-          time: 20000,
-          showConfirm: false
-        })
-        return
-      }
-
-      // Validate a fresh loaded state only for a still-live target.
-      const newFileState = getSingleFileState({ markdown, filename, pathname, options })
-
-      // Backup few entries that we need to restore later.
-      const oldId = tab.id
-      const oldNotifications = tab.notifications
-      let oldHistory = null
-      if (!tab.splitSession?.unified && tab.history.index >= 0 && tab.history.stack.length >= 1) {
-        // Allow to restore the old document.
-        oldHistory = {
-          stack: [tab.history.stack[tab.history.index]],
-          index: 0
-        }
-
-        // Free reference from array
-        tab.history.index--
-        tab.history.stack.pop()
-      }
-
-      // Preserve cursor/scroll state across reload.
-      const savedCursor = tab.cursor
-      const savedScrollTop = tab.scrollTop
-      const savedMuyaIndexCursor = tab.muyaIndexCursor
-
-      // Update file content and restore some entries.
-      Object.assign(tab, newFileState)
-      delete tab.splitSession
-      tab.id = oldId
-      tab.notifications = oldNotifications
-
-      // Restore cursor/scroll state (Object.assign overwrites with defaults).
-      tab.cursor = savedCursor
-      tab.scrollTop = savedScrollTop
-      tab.muyaIndexCursor = savedMuyaIndexCursor
-      // defaultFileState carries no `blocks` key, so Object.assign above kept
-      // the STALE muya blocks of the pre-edit document. Tab activation
-      // (UPDATE_CURRENT_FILE / CLOSE fallbacks) forwards tab.blocks, and
-      // muya's setMarkdown renders `blocks` verbatim when present — the old
-      // document would resurrect over the reloaded content. The reloaded
-      // markdown is the source of truth; the next render repopulates blocks.
-      tab.blocks = undefined
-
-      // START_BLOCK_RECORD_OPENED_SNAPSHOT_RELOAD
-      // C-68 R-1: an external reload is also a disk load — the opened slot
-      // now mirrors the content that just landed. The pre-reload snapshot
-      // ring (recorded by APPLY_FILE_CHANGE before this call) keeps its
-      // place as the preferred diff baseline.
-      recordOpenedSnapshot(tab.id, markdown)
-      // END_BLOCK_RECORD_OPENED_SNAPSHOT_RELOAD
-
-      if (oldHistory) {
-        tab.history = oldHistory
-      }
-
-      if (isMixedLineEndings) {
-        this.pushTabNotification({
-          tabId: tab.id,
-          msg: i18n.global.t('store.editor.mixedLineEndingsNormalized', {
-            name: filename,
-            lineEnding: lineEnding.toUpperCase()
-          }),
-          showConfirm: false,
-          style: 'info',
-          exclusiveType: ''
-        })
-      }
-
-      // Stamp the tab so a later activation (the user switches to a
-      // background tab after an external edit) also routes its scroll
-      // restore through the reload clamp instead of the padding trick.
-      tab.contentReloaded = true
-
-      // Reload the editor if the tab is currently opened.
-      if (pathname === currentFile.pathname) {
-        // save current state first
-        this.currentFile = tab
-        const { id, cursor, history, scrollTop, muyaIndexCursor } = tab // Should not use blocks history as this is loaded from disk
-        bus.emit('file-changed', {
-          id,
-          markdown,
-          muyaIndexCursor,
-          cursor,
-          renderCursor: true,
-          history,
-          scrollTop,
-          // The scrollTop above belongs to the pre-edit document; the editor
-          // must clamp it into the reloaded document's scrollable range
-          // instead of restoring it over different-height content.
-          contentReloaded: true
-        })
-      }
+      // C-EXTERNAL-RELOAD-OPERATION: thin adapter. The replacement
+      // boundary (same-path lookup, fresh state, metadata restoration,
+      // snapshots, announcement) lives in util/externalReload; the
+      // signature and the missing-tab error text stay intact for the
+      // non-reload callers of this action.
+      return externalReload.applyLoadedChange({ change, store: this })
     },
 
     FORMAT_LINK_CLICK({ data, dirname }) {
@@ -2373,143 +2280,36 @@ export const useEditorStore = defineStore('editor', {
           // C-STABILIZE-DIRTY-RELOAD: preferences and read-only/watch
           // flags select clean-tab reload behavior; none authorizes losing
           // unsaved edits. Dirty tabs use the existing explicit conflict choice.
+          // C-EXTERNAL-RELOAD-OPERATION: reload admission, the settle/read
+          // revalidation and the replacement commit are delegated to
+          // util/externalReload (one owner, injected effects); the store
+          // keeps the identity lookup, generation bookkeeping, echo
+          // suppression and the autoSave-timer policy boundary.
           const { autoSave, liveReload } = preferencesStore
           const readOnlyReload = tab.previewMode
-          if (autoSave || liveReload || readOnlyReload || tab.watchMode) {
+          const flagsGrantReload = autoSave || liveReload || readOnlyReload || tab.watchMode
+          if (flagsGrantReload) {
             if (autoSaveTimers.has(id)) {
               clearTimeout(autoSaveTimers.get(id))
               autoSaveTimers.delete(id)
             }
-            if (isSaved) {
-              // If change already has data (legacy path), use it directly.
-              // Otherwise read from disk (watcher path: project.js sends only {pathname}).
-              if (change.data) {
-                if (!isCurrentReload()) return
-                if (change.data.markdown === tab.markdown) return
-                console.log(`[editor][live_reload][BLOCK_LIVE_RELOAD path=${filename} source=data]`)
-                // START_BLOCK_SNAPSHOT_BEFORE_RELOAD_DATA
-                // C-43: keep what the tab had just before the external
-                // content lands — the diff view's preferred baseline.
-                // Untitled tabs have no pathname and never snapshot.
-                if (tab.pathname && tab.markdown !== change.data.markdown) {
-                  recordSnapshot(id, tab.markdown)
-                }
-                // END_BLOCK_SNAPSHOT_BEFORE_RELOAD_DATA
-                this.loadChange(change)
-              } else {
-                // Settle delay: let the disk write finish flushing
-                setTimeout(async () => {
-                  try {
-                    if (!isCurrentReload()) return
-                    if (!tab.isSaved || localContentChanged()) {
-                      this.APPLY_FILE_CHANGE(type, change)
-                      return
-                    }
-                    const markdown = await ipcFs.read(pathname)
-                    if (!isCurrentReload()) return
-                    if (!tab.isSaved || localContentChanged()) {
-                      // Resolve the current local state through the same
-                      // conflict flow, invalidating this old read generation.
-                      this.APPLY_FILE_CHANGE(type, change)
-                      return
-                    }
-                    // Hash-skip: don't reload if content matches current tab
-                    if (markdown === tab.markdown) {
-                      console.log(`[editor][live_reload][BLOCK_RELOAD_SKIPPED path=${filename} reason=hash-match]`)
-                      return
-                    }
-                    console.log(`[editor][live_reload][BLOCK_LIVE_RELOAD path=${filename} source=disk]`)
-                    const data = {
-                      markdown,
-                      filename: tab.filename,
-                      encoding: tab.encoding,
-                      lineEnding: tab.lineEnding,
-                      adjustLineEndingOnSave: tab.adjustLineEndingOnSave,
-                      trimTrailingNewline: tab.trimTrailingNewline,
-                      isMixedLineEndings: false
-                    }
-                    // START_BLOCK_SNAPSHOT_BEFORE_RELOAD_DISK
-                    // C-43: the hash-skip above already returned on equal
-                    // content; keep the guard so the invariant (snapshots
-                    // only record real change) stays local to the site.
-                    if (tab.pathname && tab.markdown !== markdown) {
-                      recordSnapshot(id, tab.markdown)
-                    }
-                    // END_BLOCK_SNAPSHOT_BEFORE_RELOAD_DISK
-                    this.loadChange({ ...change, data })
-                  } catch (e) {
-                    console.error(`[editor][live_reload][BLOCK_READ_FAILED path=${pathname}]`, e)
-                  }
-                }, 100)
-              }
-              return
-            }
           }
-          console.log(`[editor][live_reload][BLOCK_RELOAD_CONFLICT path=${filename} reason=dirty-tab]`)
-          tab.isSaved = false
-          let reloadConfirmed = false
-          this.pushTabNotification({
-            tabId: id,
-            msg: i18n.global.t('store.editor.fileChangedOnDisk', { name: filename }),
-            showConfirm: true,
-            exclusiveType: 'file_changed',
-            // C-2: the watcher path sends only {pathname} — loadChange
-            // requires data, so the confirm action reads the file from
-            // disk first (mirroring the auto-reload branch, including
-            // the generation guard against a newer change landing while
-            // the dialog was open). Previously this crashed with a
-            // TypeError destructure of `data` on every confirm click.
-            action: (status) => {
-              if (!status || reloadConfirmed || !isCurrentReload()) return
-              reloadConfirmed = true
-              if (change.data) {
-                // START_BLOCK_SNAPSHOT_BEFORE_RELOAD_CONFIRM_DATA
-                if (tab.pathname && tab.markdown !== change.data.markdown) {
-                  recordSnapshot(id, tab.markdown)
-                }
-                // END_BLOCK_SNAPSHOT_BEFORE_RELOAD_CONFIRM_DATA
-                this.loadChange(change)
-                return
-              }
-              const confirmedMarkdown = tab.markdown
-              const confirmedRevision = tab.contentRevision || 0
-              setTimeout(async () => {
-                try {
-                  if (!isCurrentReload()) return
-                  const markdown = await ipcFs.read(pathname)
-                  if (!isCurrentReload()) return
-                  if (tab.markdown !== confirmedMarkdown ||
-                    (tab.contentRevision || 0) !== confirmedRevision) {
-                    // Confirmation covers only the local content the user
-                    // chose to replace, not edits made while the read waited.
-                    this.APPLY_FILE_CHANGE(type, change)
-                    return
-                  }
-                  const data = {
-                    markdown,
-                    filename: tab.filename,
-                    encoding: tab.encoding,
-                    lineEnding: tab.lineEnding,
-                    adjustLineEndingOnSave: tab.adjustLineEndingOnSave,
-                    trimTrailingNewline: tab.trimTrailingNewline,
-                    isMixedLineEndings: false
-                  }
-                  // START_BLOCK_SNAPSHOT_BEFORE_RELOAD_CONFIRM_DISK
-                  // The dialog may have stayed open through further
-                  // local edits — tab.markdown is a live reference, so
-                  // this captures the newest pre-reload content.
-                  if (tab.pathname && tab.markdown !== markdown) {
-                    recordSnapshot(id, tab.markdown)
-                  }
-                  // END_BLOCK_SNAPSHOT_BEFORE_RELOAD_CONFIRM_DISK
-                  this.loadChange({ ...change, data })
-                } catch (e) {
-                  console.error(`[editor][live_reload][BLOCK_READ_FAILED path=${pathname}]`, e)
-                }
-              }, 100)
-            }
-          })
-          break
+          // The attempt binds one dispatch: generation, exact path, the
+          // dispatch-time filename for byte-exact log markers, the
+          // isCurrentReload closure and the localContentChanged closure.
+          // 'automatic' is granted only when the saved tab passed the flag
+          // gate; every other dispatch is the explicit-confirmation kind
+          // (the values mirror RELOAD_PERMISSIONS in util/externalReload,
+          // and the owner never re-reads preferences).
+          const attempt = {
+            generation,
+            pathname,
+            filename,
+            permission: flagsGrantReload && isSaved ? 'automatic' : 'confirmed',
+            isLive: isCurrentReload,
+            localContentChanged
+          }
+          return externalReload.handleFileChange({ type, change, tab, store: this, attempt })
         }
         default:
           console.error(`APPLY_FILE_CHANGE: Invalid type "${type}"`)
@@ -2729,25 +2529,39 @@ export const useEditorStore = defineStore('editor', {
 // START_MODULE_CONTRACT
 //   PURPOSE: Pinia state and actions for open documents, persistence, autosave, and filesystem reloads.
 //   SCOPE: Session-incarnation-owned live tabs; complete text/format checkpoints, composition-first format actions, immutable correlated saves and explicit-retry autosave guard; current export appearance/page snapshots and pre-Save Word options with independent native print geometry; transient Find visibility and selection-prefill ownership; tab lifecycle, content revisions, save outcomes, watcher coordination with dirty-buffer protection across async reloads, per-tab diff baselines (recording only — resolution lives in diffView.vue), the FIX-009 cold-start session offer, and the FORCE_CLOSE_TAB record hook into the recently-closed history.
-//   DEPENDS: ipc runtime, Pinia, editor/project/preferences/recentlyClosed stores, renderer bus, store/diffSnapshots, documentFormat/documentSnapshot/documentOperations, util/exportPageDefaults, util/exportSettingsNavigation.
-//   LINKS: .grace/graph/features.xml M-032; .grace/verification/features.xml V-M-032; .grace/graph/runtime.xml M-011 and M-052; .grace/changes/archive/C-FIX-016-AUTOSAVE-DISABLE-RACE; .grace/changes/archive/C-68 (opened baseline), .grace/changes/archive/C-43 (pre-reload ring); .grace/changes/archive/C-61 (PDF export + print); components/editorWithTabs/unsavedCloseDialog.js (FIX-011 CLOSE_UNSAVED_TAB confirm); .grace/changes/archive/C-FIX-009-SESSION-COLD-START and C-FIX-009-RECENTLY-CLOSED; util/pageWidthStore.js (C-PAGE-WIDTH-TABLES — RENAME/RENAME_IF_NEEDED also move the file's pageWidths entry); .grace/changes/archive/C-RENDER-REVIEW-FIXES (honest async notification actions).
+//   DEPENDS: ipc runtime, Pinia, editor/project/preferences/recentlyClosed stores, renderer bus, store/diffSnapshots, util/externalReload, documentFormat/documentSnapshot/documentOperations, util/exportPageDefaults, util/exportSettingsNavigation.
+//   LINKS: .grace/graph/features.xml M-032; .grace/verification/features.xml V-M-032; .grace/graph/runtime.xml M-011 and M-052; .grace/changes/active/C-EXTERNAL-RELOAD-OPERATION (one reload admission owner); .grace/changes/archive/C-FIX-016-AUTOSAVE-DISABLE-RACE; .grace/changes/archive/C-68 (opened baseline), .grace/changes/archive/C-43 (pre-reload ring); .grace/changes/archive/C-61 (PDF export + print); components/editorWithTabs/unsavedCloseDialog.js (FIX-011 CLOSE_UNSAVED_TAB confirm); .grace/changes/archive/C-FIX-009-SESSION-COLD-START and C-FIX-009-RECENTLY-CLOSED; util/pageWidthStore.js (C-PAGE-WIDTH-TABLES — RENAME/RENAME_IF_NEEDED also move the file's pageWidths entry); .grace/changes/archive/C-RENDER-REVIEW-FIXES (honest async notification actions).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   useEditorStore - Pinia store: complete text/format state and guarded actions, transient Find visibility, tabs, content revisions, save/autosave, reloads, immutable EXPORT_DOCUMENT snapshots and captured Word options, PRINT_DOCUMENT and REMEMBER_EXPORT_OPTIONS; RENAME/RENAME_IF_NEEDED move stored table layouts, file positions and page widths to the new path.
+//   useEditorStore - Pinia store: complete text/format state and guarded actions, transient Find visibility, tabs, content revisions, save/autosave, external reload admission delegated to util/externalReload (thin adapters), immutable EXPORT_DOCUMENT snapshots and captured Word options, PRINT_DOCUMENT and REMEMBER_EXPORT_OPTIONS; RENAME/RENAME_IF_NEEDED move stored table layouts, file positions and page widths to the new path.
 //   __resetBootPhase - test hook that re-arms the boot-phase guard.
 //   getRememberedExportAppearance - Fresh guarded appearance view with defensive header/footer copies; retains reported same-realm failed writes.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   EXPORT: 2026-11-12 C-EXPORT-SETTINGS-SECTION: snapshot current appearance/page defaults before export and preserve them across Word Save; print retains native-panel geometry.
-//   CURRENT: 2026-11-11 C-SEC-STREAM-TABS: route live updates through explicit session/tab store ownership and tombstone closed streams.
-//   LAST_CHANGE: 2026-11-11 C-METADATA-SAVE-SAFETY: text/format checkpoint reconciliation, composition-first format choices, boundary-only newline policy and explicit retry after stale ACK.
+//   EXPORT: 2026-11-20 C-EXTERNAL-RELOAD-OPERATION: one util/externalReload owner for reload admission, settle/read and the replacement commit; APPLY_FILE_CHANGE and loadChange stay compatible thin adapters.
+//   CURRENT: 2026-11-12 C-EXPORT-SETTINGS-SECTION: snapshot current appearance/page defaults before export and preserve them across Word Save; print retains native-panel geometry.
+//   LAST_CHANGE: 2026-11-11 C-SEC-STREAM-TABS: route live updates through explicit session/tab store ownership and tombstone closed streams.
 // END_CHANGE_SUMMARY
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-20 C-EXTERNAL-RELOAD-OPERATION: the four duplicated
+//     APPLY_FILE_CHANGE apply paths (ready data, watcher disk read and
+//     both conflict-confirm branches) converge on one owner —
+//     util/externalReload — holding the permission-aware admission
+//     (automatic equal-text skip preserved, confirmed equal-text
+//     replacement preserved), the single 100ms settle + disk read with
+//     generation/tab/path liveness revalidation, and one replacement
+//     manifest plus synchronous commit (pre-reload snapshot for admitted
+//     unequal replacements only, opened snapshot, history surgery, stale
+//     blocks drop, mixed-ending notice, contentReloaded stamp,
+//     current-tab file-changed announce). loadChange and
+//     APPLY_FILE_CHANGE remain thin adapters with identical signatures,
+//     error texts, notification exclusivity and autoSave-timer policy;
+//     observable behavior unchanged.
 //   - 2026-11-10 C-FIND-SELECTION-CLIPBOARD: a shared transient Find
 //     visibility flag keeps editing selections from replacing an active
 //     query; selected-text prefill remains available while Find is closed.
