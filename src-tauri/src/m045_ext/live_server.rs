@@ -4,9 +4,9 @@
 //            stream.document messages from external apps (e.g. TokMo
 //            meeting mode) over HTTP POST on 127.0.0.1. Validates
 //            Bearer auth, session lifecycle, and sequence idempotency.
-//   SCOPE:   axum HTTP server with /ext/pair, /stream/*, and capability-
-//            scoped text-insert/context/apply data routes; runtime-generic
-//            events.
+//   SCOPE:   axum HTTP server with /ext/pair (prior-secret rebind gate),
+//            /stream/*, and capability-scoped text-insert/context/apply
+//            data routes; runtime-generic events.
 //            Session state: open/patch/close/heartbeat lifecycle.
 //            Heartbeat timeout (15s) auto-closes stale sessions.
 //   DEPENDS: axum 0.8, tokio (net, rt, time, sync), serde/serde_json,
@@ -18,6 +18,7 @@
 //   STATUS:  Phase-B5b — handlers emit to frontend via live_bridge.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-20 C-SEC-PAIR-REBIND: /ext/pair gains an additive prior_secret field; an id that already holds a stored credential pairs only on the prior secret matched constant-time, an unproven rebind is refused leaving the previous key valid, the dialog distinguishes key replacement from first pairing, and auto-approval is confined to the test harness.
 //   - 2026-11-20 C-SEC-STREAM-SCOPE: /ext/context requires context.read and /ext/apply requires text.edit, checked against the paired manifest before any response or event; the release pairing dialog names exactly the granted incoming capabilities.
 //   - 2026-11-11 C-SEC-STREAM-AUTH: validate enabled generation and session owner at serialized mutations; stamp ordered live events.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES T-003: authenticate text insertion by enabled capability and bearer identity; runtime-generic fixtures.
@@ -94,6 +95,9 @@ pub struct PairRequest {
     pub extension_id: String,
     pub extension_name: String,
     pub protocol_version: u32,
+    /// The extension's current secret, presented to prove a rebind is
+    /// intentional. Additive wire field: missing deserializes as None.
+    pub prior_secret: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -447,7 +451,7 @@ enum RouteCapability {
     TextInsert,
 }
 
-#[cfg_attr(debug_assertions, allow(dead_code))] // grant_phrase/all are read by pairing_grant_description, which is allow(dead_code) in debug non-test builds
+#[cfg_attr(debug_assertions, allow(dead_code))] // grant_phrase/all are read by pairing_grant_description, which is allow(dead_code) in test builds where the dialog decision arm is compiled out
 impl RouteCapability {
     fn name(self) -> &'static str {
         match self {
@@ -538,11 +542,29 @@ pub(super) fn pairing_grant_description(
     )
 }
 
+/// Pure description of what a pairing approval does to an extension that
+/// already holds a live credential, rendered for the pairing dialog. It
+/// names the extension and states the key replacement; it deliberately
+/// lists no capability grants, because a rebind changes no grant set —
+/// the same manifest stays in force.
+#[cfg_attr(debug_assertions, allow(dead_code))]
+pub(super) fn pairing_rebind_description(extension_name: &str, extension_id: &str) -> String {
+    format!(
+        "The extension \"{extension_name}\" ({extension_id}) is already paired with Mark.\n\n\
+         Approving this request replaces its live key: the previous secret stops working \
+         immediately, and only the new secret will be accepted afterwards.\n\n\
+         Allow this only if you hold the extension's current secret and intend to re-key it."
+    )
+}
+
 /// POST /ext/pair — pairing initiation.
 /// Generates a shared secret, stores it in keychain, returns it to the
-/// caller. In production this would show a native dialog for user
-/// approval; for now auto-approves (TODO: wire native dialog via
-/// app_handle).
+/// caller. An id that already holds a stored credential (a rebind) is
+/// approved only when the request presents the prior secret, matched
+/// constant-time against the stored one; an unproven rebind is refused
+/// with the previous key left fully valid. Auto-approval exists only
+/// inside the Rust test harness; every ordinary build — debug or
+/// release — asks for a user decision through the native dialog.
 pub(super) async fn handle_pair<R: tauri::Runtime>(
     State(state): State<Arc<LiveServerState<R>>>,
     Json(req): Json<PairRequest>,
@@ -554,18 +576,53 @@ pub(super) async fn handle_pair<R: tauri::Runtime>(
         req.protocol_version,
     );
 
-    // In debug builds, auto-approve pairing (rfd dialogs from axum's
-    // background threads don't reliably show on macOS).
-    // Release builds show a native confirmation dialog.
-    #[cfg(debug_assertions)]
+    // Rebind gate: an id that already holds a stored credential is paired
+    // only on constant-time proof of the prior secret. The gate runs
+    // before — and independently of — any approval decision, so approval
+    // can never confer the power to displace an unproven key. A refused
+    // rebind stores nothing and leaves the previous token fully valid.
+    let stored = match super::auth::get_secret(&req.extension_id) {
+        Ok(stored) => stored,
+        Err(e) => {
+            safe_eprintln!(
+                "[ExtHost][live_server][BLOCK_PAIR_CREDENTIAL_LOOKUP_FAILED ext_id={} reason={e}]",
+                req.extension_id,
+            );
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"error": "pairing state unavailable"})),
+            );
+        }
+    };
+    let is_rebind = stored.is_some();
+    let proof_ok = match (&stored, req.prior_secret.as_deref()) {
+        (Some(stored), Some(prior)) =>
+            super::auth::constant_time_eq(stored.as_bytes(), prior.as_bytes()),
+        _ => false,
+    };
+    if is_rebind && !proof_ok {
+        safe_eprintln!(
+            "[ExtHost][live_server][BLOCK_PAIR_REBIND_REFUSED ext_id={}]",
+            req.extension_id,
+        );
+        return (
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({"error":
+                "extension already paired; present the prior secret or disable the extension to reset trust"})),
+        );
+    }
+
+    // Auto-approval exists ONLY inside the Rust test harness. No ordinary
+    // build — debug or release — approves pairing without a user decision.
+    #[cfg(test)]
     let approved = {
         safe_eprintln!(
-            "[ExtHost][live_server][BLOCK_PAIR_AUTO_APPROVE ext_id={} (debug build)]",
+            "[ExtHost][live_server][BLOCK_PAIR_AUTO_APPROVE ext_id={} (test harness only)]",
             req.extension_id,
         );
         true
     };
-    #[cfg(not(debug_assertions))]
+    #[cfg(not(test))]
     let approved = {
         let declared: Vec<String> = state
             .app_handle
@@ -573,8 +630,11 @@ pub(super) async fn handle_pair<R: tauri::Runtime>(
             .get_manifest(&req.extension_id)
             .map(|m| m.capabilities.iter().map(|c| c.name.clone()).collect())
             .unwrap_or_default();
-        let description =
-            pairing_grant_description(&req.extension_name, &req.extension_id, &declared);
+        let description = if is_rebind {
+            pairing_rebind_description(&req.extension_name, &req.extension_id)
+        } else {
+            pairing_grant_description(&req.extension_name, &req.extension_id, &declared)
+        };
         tokio::task::spawn_blocking(move || {
             use rfd::{MessageButtons, MessageDialog, MessageDialogResult, MessageLevel};
             let result = MessageDialog::new()

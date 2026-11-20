@@ -1,0 +1,41 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-SEC-PAIR-REBIND>
+    <Summary>Make re-pairing an extension that already holds a live credential a distinct, confirmed operation instead of a silent token replacement.</Summary>
+    <Problem>POST /ext/pair generates a fresh secret and overwrites the stored credential under the client-declared extension id without checking whether that id is already paired or enabled, and without requiring knowledge of the existing secret. In debug builds the request is auto-approved, so a local process can re-key an enabled extension — its own or any id it names — with no user decision; in release builds the confirmation dialog describes a first pairing and does not tell the user that approving replaces the live key of an already-paired extension. Either way the previous token holder is displaced and the requester gains the id under its existing capability grants (verified finding F-006 debug-pairing-silently-rekeys-extension, security run be2f52f880bc; evidence live_server.rs pairing handler and debug auto-approve branch, auth.rs credential store).</Problem>
+    <Relationship>Lineage: same smart-review security run (be2f52f880bc) as C-SEC-STREAM-SCOPE, which added RouteCapability gating on the incoming data routes and the honest pairing grant description. This change hardens the pairing route itself — the one incoming route that mints credentials — and must keep the C-SEC-STREAM-SCOPE gate and grant wording intact. It complements C-SEC-STREAM-AUTH: after an approved rebind the previous token must fail validation exactly like a revoked one. The re-enable-after-failed-revocation finding (F-007) is a separate change and is not covered here. Sibling draft: C-SEC-EDIT-TARGETING.</Relationship>
+    <Goals>
+      <Goal>Pairing against an extension id that already holds a stored credential succeeds only when the request presents the prior secret, or after an explicit trust reset through the UI (a verified revocation such as disable) removed the stored secret.</Goal>
+      <Goal>The approval dialog distinguishes replacement from first pairing: it names the already-paired extension and states that approving replaces its live key; nothing is overwritten before an approval decision.</Goal>
+      <Goal>Debug auto-approval stays test-only: outside the Rust test harness no build approves pairing, or replaces a live key, without a user decision; when a rebind is not confirmed, the existing secret remains valid and no new secret is issued.</Goal>
+      <Goal>After an approved rebind the previous token is fenced on every incoming route; first-time pairing keeps its current behavior, response shape and grant description.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Exact write scope: src-tauri/src/m045_ext/live_server.rs and src-tauri/src/m045_ext/tests.rs only. No changes to auth.rs, registry, mod.rs commands, renderer files, manifests or CI; the has-existing-credential check is derived from the existing auth lookup functions.</Constraint>
+      <Constraint>Security boundaries: the prior-secret comparison is constant time; no log line, error message or response ever contains secret material; the loopback-only binding and Bearer model are unchanged; a refused rebind leaks no credential material and discloses no more than the pairing state the route already implies.</Constraint>
+      <Constraint>C-SEC-STREAM-SCOPE lineage: RouteCapability gating of the data routes, pairing_grant_description wording for first pairing, and the C-SEC-STREAM-AUTH identity/epoch fencing of stream routes survive unchanged; re-pairing must not widen or bypass the manifest capability gate, and the rebind dialog must not grant wording the manifest does not declare.</Constraint>
+      <Constraint>The fix direction follows the verified finding: explicit confirmation for pairing and for replacing a live key, with automation kept inside the isolated test environment. PairRequest/PairResponse wire changes are additive; existing fields keep their names and meaning.</Constraint>
+      <Constraint>No version change, release, publication or deploy is authorized by this specification.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Redesigning the first-pairing UX, the extension gallery, or adding a new trust-reset surface beyond the existing disable command.</NonGoal>
+      <NonGoal>The re-enable path that reuses a surviving token after failed revocation (F-007) — a separate change.</NonGoal>
+      <NonGoal>Mac App Store builds, the extension registry/epoch design, manifest format changes and dependency upgrades.</NonGoal>
+      <NonGoal>Per-operation or time-limited credentials; the one-secret-per-extension-id model stays.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>A /ext/pair request for an id that already holds a stored secret is refused without storing or returning any new secret, unless the request presents the prior secret and it matches constant-time. A refused rebind leaves the previous token valid and emits no credential-bearing event.</Criterion>
+      <Criterion>After a UI trust reset that verifiably removed the stored secret, pairing the same id again takes the fresh-pairing path with today's behavior.</Criterion>
+      <Criterion>In a debug build without a user decision, a live key remains valid and no new key is issued for an already-paired id; the auto-approve branch is reachable only from the Rust test harness (cfg(test)) and never replaces an existing credential in an ordinary debug run.</Criterion>
+      <Criterion>The release dialog for a rebind states key replacement and names the extension; for first pairing it keeps the capability-grant description from C-SEC-STREAM-SCOPE, and the pairing_grant_description tests are updated to cover the replacement wording.</Criterion>
+      <Criterion>After an approved rebind, the previous token receives 401 on /ext/context, /ext/apply, /ext/text-insert and the stream routes, with no events emitted (old-token fencing coverage in the style of the existing disable regressions).</Criterion>
+      <Criterion>Rebind regressions fail before the fix and pass after it: a debug auto-approve that re-keys an already-paired id must fail, and the fresh-pairing, denial and capability-gating tests still pass unchanged in meaning.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-045/>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</ExpectedCommand>
+      <ExpectedEvidence>New rebind regressions fail before the fix and pass after it; the grant-description and capability-gating suites still pass; final GRACE assertions and current-state integrity pass before archiving.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-SEC-PAIR-REBIND>
+</GraceChangeSpec>

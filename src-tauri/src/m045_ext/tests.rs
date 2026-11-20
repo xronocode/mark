@@ -18,6 +18,7 @@
 // END_MODULE_MAP
 
 // START_CHANGE_SUMMARY
+//   - 2026-11-20 C-SEC-PAIR-REBIND: rebind regressions — an already-paired id pairs only on the prior secret, an approved rebind fences the previous token on every incoming route, the harness auto-approval cannot override the gate, a verified trust reset restores the fresh path, and the dialog pin covers the replacement wording.
 //   - 2026-11-20 C-SEC-STREAM-SCOPE: capability-scoped incoming routes — flipped the over-grant pin to per-route denial, added the context/apply permission matrix, the pairing-grant-description unit pin and capability-scoped fresh-pairing restoral.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES: named handler, revocation and recipient/redirect regressions.
 // END_CHANGE_SUMMARY
@@ -1229,11 +1230,159 @@ fn pairing_grant_description_names_only_declared_capabilities() {
         assert!(!fallback.contains("read the current text of the active tab"), "{fallback}");
         assert!(!fallback.contains("edit the current text of the active tab"), "{fallback}");
     }
+
+    // C-SEC-PAIR-REBIND: the rebind dialog names the extension and states
+    // the key replacement; it claims none of the capability grants,
+    // because a rebind changes no grant set.
+    let rebind = super::live_server::pairing_rebind_description("TokMo", "tokmo");
+    assert!(rebind.contains("is already paired with Mark"), "{rebind}");
+    assert!(rebind.contains("replaces its live key"), "{rebind}");
+    assert!(rebind.contains("previous secret stops working"), "{rebind}");
+    assert!(!rebind.contains("send streamed documents to Mark"), "{rebind}");
+    assert!(!rebind.contains("read the current text of the active tab"), "{rebind}");
+    assert!(!rebind.contains("edit the current text of the active tab"), "{rebind}");
+    assert!(!rebind.contains("insert text at the active tab cursor"), "{rebind}");
 }
+
+// START_BLOCK_PAIR_REBIND_TESTS
+// C-SEC-PAIR-REBIND rebind regressions: the pairing route pairs only with the prior secret when
+// a credential already exists. An unproven rebind is refused with the previous key left valid
+// and no events emitted, an approved rebind fences the previous token on every incoming route,
+// the harness auto-approval cannot override the gate, and a verified trust reset (disable)
+// restores the fresh-pairing path. Every request is built through serde_json::from_value with
+// a "prior_secret" key — not a struct literal — so the family compiles against the pre-fix
+// source too (serde silently ignored the unknown field there), which is the fail-before /
+// pass-after proof path for the silent re-key.
+
+async fn pair_request_fixture(f: &IncomingFixture, body: serde_json::Value) -> (StatusCode, serde_json::Value) {
+    let request: super::live_server::PairRequest = serde_json::from_value(body).unwrap();
+    let response = super::live_server::handle_pair(State(f.state.clone()), Json(request))
+        .await
+        .into_response();
+    let status = response.status();
+    let bytes = axum::body::to_bytes(response.into_body(), 8192).await.unwrap();
+    (status, serde_json::from_slice(&bytes).unwrap())
+}
+
+#[tokio::test]
+async fn unproven_rebind_refused_and_previous_token_stays_valid() {
+    let f = incoming_fixture(true, "text.insert");
+    let (status, body) = pair_request_fixture(&f, serde_json::json!({
+        "extension_id": f.id.clone(), "extension_name": "Unproven rebind", "protocol_version": 1,
+    })).await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+    assert!(f.events.lock().unwrap().is_empty());
+    assert!(body["error"].as_str().unwrap().contains("already paired"), "{body}");
+    assert!(body.get("shared_secret").is_none(), "{body}");
+    assert_eq!(super::auth::get_secret(&f.id).unwrap().as_deref(), Some(f.token.as_str()));
+    // The previous token still passes its declared-capability route.
+    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::OK);
+    assert_eq!(f.events.lock().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn wrong_prior_secret_rebind_refused() {
+    // A mismatched prior secret is refused identically to a missing one;
+    // this pins the constant-time compare's mismatch arm (the test above
+    // pins the missing arm).
+    let f = incoming_fixture(true, "text.insert");
+    let (status, body) = pair_request_fixture(&f, serde_json::json!({
+        "extension_id": f.id.clone(), "extension_name": "Wrong prior rebind", "protocol_version": 1,
+        "prior_secret": "not-the-stored-secret",
+    })).await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+    assert!(f.events.lock().unwrap().is_empty());
+    assert!(body["error"].as_str().unwrap().contains("already paired"), "{body}");
+    assert!(body.get("shared_secret").is_none(), "{body}");
+    assert_eq!(super::auth::get_secret(&f.id).unwrap().as_deref(), Some(f.token.as_str()));
+    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::OK);
+    assert_eq!(f.events.lock().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn approved_rebind_fences_previous_token_on_all_routes() {
+    let f = incoming_fixture(true, "text.insert");
+    let (status, body) = pair_request_fixture(&f, serde_json::json!({
+        "extension_id": f.id.clone(), "extension_name": "Approved rebind", "protocol_version": 1,
+        "prior_secret": f.token.clone(),
+    })).await;
+    assert_eq!(status, StatusCode::OK);
+    let fresh = body["shared_secret"].as_str().unwrap().to_string();
+    assert_ne!(fresh, f.token);
+    // The previous token is fenced on every incoming route, with no events.
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(apply_fixture(&f, &f.token).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(stream_open_fixture(&f, &f.id, &f.token, "session-rebind").await.status(), StatusCode::UNAUTHORIZED);
+    assert!(f.events.lock().unwrap().is_empty());
+    assert!(f.live_events.lock().unwrap().is_empty());
+    // The fresh token passes exactly the declared capability's routes.
+    assert_eq!(insert_fixture(&f, Some(&fresh)).await, StatusCode::OK);
+    let events = f.events.lock().unwrap();
+    assert_eq!(events.len(), 1);
+    assert_eq!(events[0]["extension_id"], f.id);
+    drop(events);
+    assert_eq!(context_fixture(&f, &fresh).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(apply_fixture(&f, &fresh).await, StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn debug_auto_approve_cannot_replace_live_key() {
+    // Under the harness the cfg(test) arm approves every pair request, yet
+    // the unproven rebind is still refused: the gate dominates
+    // auto-approval, so no build — and no harness flag — can replace a
+    // live key without the prior secret. (The cfg(test)-only gating itself
+    // is pinned by the live_server.rs source shapes, since no unit test
+    // executes cfg(not(test)) code.)
+    let f = incoming_fixture(true, "text.insert");
+    let (status, body) = pair_request_fixture(&f, serde_json::json!({
+        "extension_id": f.id.clone(), "extension_name": "Silent re-key", "protocol_version": 1,
+    })).await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+    assert!(f.events.lock().unwrap().is_empty());
+    assert!(body.get("shared_secret").is_none(), "{body}");
+    assert_eq!(super::auth::get_secret(&f.id).unwrap().as_deref(), Some(f.token.as_str()));
+    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::OK);
+    assert_eq!(f.events.lock().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn pair_after_trust_reset_takes_fresh_path() {
+    let f = incoming_fixture(true, "text.insert");
+    super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap();
+    super::auth::verify_secret_absent(&f.id).unwrap();
+    // The pair runs inside the verified-empty trust-reset window, so the
+    // same id takes today's fresh path without any prior secret; enabling
+    // afterwards does not re-key a paired id, and the fresh token needs
+    // the enable to pass the enabled-gated routes.
+    let (status, body) = pair_request_fixture(&f, serde_json::json!({
+        "extension_id": f.id.clone(), "extension_name": "Fresh after reset", "protocol_version": 1,
+    })).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["paired"], serde_json::Value::Bool(true));
+    assert_eq!(body["protocol_version"].as_u64(), Some(1));
+    assert!(body.get("mark_version").and_then(|v| v.as_str()).is_some(), "{body}");
+    let fresh = body["shared_secret"].as_str().unwrap().to_string();
+    assert_ne!(fresh, f.token);
+    super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap();
+    assert_eq!(insert_fixture(&f, Some(&fresh)).await, StatusCode::OK);
+    assert_eq!(f.events.lock().unwrap().len(), 1);
+    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::UNAUTHORIZED);
+    // Control: a credential exists again, so an unproven pair is refused.
+    let (status, body) = pair_request_fixture(&f, serde_json::json!({
+        "extension_id": f.id.clone(), "extension_name": "Control re-pair", "protocol_version": 1,
+    })).await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+    assert_eq!(f.events.lock().unwrap().len(), 1);
+    assert!(body["error"].as_str().unwrap().contains("already paired"), "{body}");
+    assert!(body.get("shared_secret").is_none(), "{body}");
+}
+// END_BLOCK_PAIR_REBIND_TESTS
 
 async fn fresh_pair_secret(f: &IncomingFixture) -> String {
     let response = super::live_server::handle_pair(State(f.state.clone()), Json(super::live_server::PairRequest {
         extension_id: f.id.clone(), extension_name: "Dummy paired fixture".to_string(), protocol_version: 1,
+        prior_secret: None,
     })).await.into_response();
     assert_eq!(response.status(), StatusCode::OK);
     let body = axum::body::to_bytes(response.into_body(), 8192).await.unwrap();
@@ -1249,10 +1398,12 @@ async fn fresh_pairing_restores_access() {
     let f = incoming_fixture(true, "text.edit");
     super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap();
     assert_old_token_fenced(&f).await;
-    // Enabling never makes the old token usable; a real fresh pair supplies it.
-    super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap();
-    assert_eq!(apply_fixture(&f, &f.token).await, StatusCode::UNAUTHORIZED);
+    // The pair runs inside the verified-empty trust-reset window (the gate
+    // takes the fresh path); enabling a paired id does not re-key it.
     let fresh = fresh_pair_secret(&f).await;
+    super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap();
+    // Enabling never makes the old token usable; the fresh pair supplies it.
+    assert_eq!(apply_fixture(&f, &f.token).await, StatusCode::UNAUTHORIZED);
     assert_eq!(apply_fixture(&f, &fresh).await, StatusCode::OK);
     assert_eq!(context_fixture(&f, &fresh).await, StatusCode::UNAUTHORIZED);
     assert_eq!(insert_fixture(&f, Some(&fresh)).await, StatusCode::UNAUTHORIZED);
@@ -1262,8 +1413,8 @@ async fn fresh_pairing_restores_access() {
     let reader = incoming_fixture(true, "context.read");
     super::mt_ext_disable(reader.id.clone(), reader.app.state(), reader.app.handle().clone()).await.unwrap();
     assert_old_token_fenced(&reader).await;
-    super::mt_ext_enable(reader.id.clone(), reader.app.state()).await.unwrap();
     let fresh_read = fresh_pair_secret(&reader).await;
+    super::mt_ext_enable(reader.id.clone(), reader.app.state()).await.unwrap();
     assert_eq!(context_fixture(&reader, &fresh_read).await, StatusCode::OK);
     assert_eq!(apply_fixture(&reader, &fresh_read).await, StatusCode::UNAUTHORIZED);
     assert_eq!(insert_fixture(&reader, Some(&fresh_read)).await, StatusCode::UNAUTHORIZED);
@@ -1272,8 +1423,8 @@ async fn fresh_pairing_restores_access() {
     let inserter = incoming_fixture(true, "text.insert");
     super::mt_ext_disable(inserter.id.clone(), inserter.app.state(), inserter.app.handle().clone()).await.unwrap();
     assert_old_token_fenced(&inserter).await;
-    super::mt_ext_enable(inserter.id.clone(), inserter.app.state()).await.unwrap();
     let fresh_insert = fresh_pair_secret(&inserter).await;
+    super::mt_ext_enable(inserter.id.clone(), inserter.app.state()).await.unwrap();
     assert_eq!(insert_fixture(&inserter, Some(&fresh_insert)).await, StatusCode::OK);
     assert_eq!(inserter.events.lock().unwrap().len(), 1);
     assert_eq!(context_fixture(&inserter, &fresh_insert).await, StatusCode::UNAUTHORIZED);
