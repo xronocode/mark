@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved">
+<GraceChangePlan graceVersion="4.0" status="applied">
   <C-NET-STACK-BUMP>
     <Name>Locked net-stack point bumps: rustls-webpki 0.103.16 + h2 0.4.16 — implementation plan</Name>
     <Created>2026-11-21</Created>

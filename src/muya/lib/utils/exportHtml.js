@@ -21,7 +21,17 @@
 //
 // MODULE_MAP
 //   ExportHtml.renderPele - postProcessPeleSvg on each standalone pele SVG (rendered.type), then the shared appearance policy incl. indexed read-only overrides.
+//   countPlantUMLFences - pure: counts fenced blocks whose trimmed info string is exactly 'plantuml' (``` and ~~~, fence state tracked, unclosed counts from its opening).
+//   plantUMLSourcePlaceholder - pure: the pinned declined shape — exactly one pre.ag-plantuml-export-source holding the escapeHTML'd literal source, no plantuml.com URL.
 // CHANGE_SUMMARY:
+//   - 2026-11-21 C-EXPORT-BOUNDARIES: render-time PlantUML consent gate —
+//     generate() reads the opaque plantumlRemoteConsent options key
+//     (absent = declined) and renderDiagram's plantuml branch inserts the
+//     remote plantuml.com img only on consent, otherwise the pinned
+//     pre.ag-plantuml-export-source placeholder carries the escaped
+//     literal source; countPlantUMLFences/plantUMLSourcePlaceholder are
+//     the pure helpers; parser/render/plantuml.js, muya/lib/index.js and
+//     the live preview are untouched.
 //   - 2026-11-20 C-PELE-HTML-POSTPROCESS: exported pele SVGs go through
 //     postProcessPeleSvg(rendered.svg, rendered.type) before appearance
 //     application — pie donut hole and kanban surface remap match the
@@ -73,7 +83,7 @@ import exportStyle from '../assets/styles/exportStyle.css?inline'
 import highlightCss from 'prismjs/themes/prism.css?inline'
 import footerHeaderCss from '../assets/styles/headerFooterStyle.css?inline'
 import { EXPORT_DOMPURIFY_CONFIG } from '../config'
-import { sanitize, unescapeHTML } from '../utils'
+import { sanitize, unescapeHTML, escapeHTML } from '../utils'
 import { validEmoji } from '../ui/emojis'
 
 export const getSanitizeHtml = (markdown, options) => {
@@ -82,6 +92,59 @@ export const getSanitizeHtml = (markdown, options) => {
 }
 
 const DIAGRAM_TYPE = ['mermaid', 'flowchart', 'sequence', 'plantuml', 'vega-lite']
+
+// ──────────────────────────────────────────────────────────────────────
+// START_BLOCK_PLANTUML_GATE
+// C-EXPORT-BOUNDARIES: export-time PlantUML consent, pinned at this
+// render-time location (not a renderer post-render strip). The two pure
+// helpers below decide whether the caller asks at all and shape the
+// declined artifact; the remote transport in parser/render/plantuml.js
+// is NOT touched and the live preview is out of scope. The consent
+// decision rides the per-call options bag (plantumlRemoteConsent) and is
+// never persisted.
+// ──────────────────────────────────────────────────────────────────────
+
+// Count fenced blocks whose trimmed info string is exactly 'plantuml'.
+// ``` and ~~~ fences both count (open/close state tracked per CommonMark:
+// same character, at least as long, no trailing text); an unclosed fence
+// counts from its opening; other diagram tags and inline backticks never
+// count; the tag is exact-case.
+export function countPlantUMLFences (markdown) {
+  if (!markdown) return 0
+  let count = 0
+  let fenceChar = null
+  let fenceLength = 0
+  for (const rawLine of String(markdown).split(/\r?\n/)) {
+    const line = rawLine.trim()
+    const match = /^(`{3,}|~{3,})\s*(.*)$/.exec(line)
+    if (fenceChar === null) {
+      if (!match) continue
+      const info = match[2].trim()
+      // CommonMark: a backtick fence's info string may not contain a
+      // backtick — such a line opens no fence at all.
+      if (match[1][0] === '`' && info.includes('`')) continue
+      fenceChar = match[1][0]
+      fenceLength = match[1].length
+      if (info === 'plantuml') count += 1
+    } else if (
+      match &&
+      match[1][0] === fenceChar &&
+      match[1].length >= fenceLength &&
+      match[2].trim() === ''
+    ) {
+      fenceChar = null
+    }
+  }
+  return count
+}
+
+// The pinned declined shape: exactly one pre.ag-plantuml-export-source
+// holding the escapeHTML'd literal diagram source — no plantuml.com URL,
+// no img element.
+export function plantUMLSourcePlaceholder (rawCode) {
+  return `<pre class="ag-plantuml-export-source">${escapeHTML(String(rawCode == null ? '' : rawCode))}</pre>`
+}
+// END_BLOCK_PLANTUML_GATE
 
 class ExportHtml {
   constructor(markdown, muya) {
@@ -184,9 +247,18 @@ class ExportHtml {
           }
         }
         if (functionType === 'plantuml') {
-          const diagram = render.parse(rawCode)
-          diagramContainer.innerHTML = ''
-          diagram.insertImgElement(diagramContainer)
+          // C-EXPORT-BOUNDARIES: the remote plantuml.com img is inserted
+          // only when generate() saw plantumlRemoteConsent:true; a
+          // declined export carries the pinned source placeholder
+          // (no remote URL) instead. parser/render/plantuml.js itself
+          // is untouched.
+          if (this.plantumlRemoteConsent === true) {
+            const diagram = render.parse(rawCode)
+            diagramContainer.innerHTML = ''
+            diagram.insertImgElement(diagramContainer)
+          } else {
+            diagramContainer.innerHTML = plantUMLSourcePlaceholder(rawCode)
+          }
         }
         if (functionType === 'vega-lite') {
           await render(diagramContainer, JSON.parse(rawCode), options)
@@ -298,6 +370,11 @@ class ExportHtml {
    */
   async generate(options) {
     const { printOptimization } = options
+
+    // C-EXPORT-BOUNDARIES: the opaque per-call consent key rides the
+    // options bag — absent means declined. Only this render reads it;
+    // nothing is persisted on the muya instance or in app state.
+    this.plantumlRemoteConsent = options.plantumlRemoteConsent === true
 
     // WORKAROUND: Hide Prism.js style when exporting or printing. Otherwise the background color is white in the dark theme.
     const highlightCssStyle = printOptimization ? `@media print { ${highlightCss} }` : highlightCss
