@@ -22,6 +22,7 @@
 //            Phase-B4 — text_ops (text.insert + text.transform) added.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-21 C-SEC-EXT-GRANT-BOUND T-002: mt_ext_enable refuses — before taking stream_gate — while the current manifest (registry.peek_manifest) requests incoming capabilities beyond the stored approved grant (BLOCK_ENABLE_GRANT_EXCEEDED / ext_enable_reapproval_required, unreadable grant BLOCK_ENABLE_GRANT_UNREADABLE / ext_enable_grant_unreadable); an enable-minted credential deliberately receives no grant and authorizes no incoming route; mt_ext_disable additionally revokes the stored grant best-effort (BLOCK_DISABLE_GRANT_REVOKED / BLOCK_DISABLE_GRANT_REVOKE_FAILED) without joining the strict-absence success condition.
 //   - 2026-11-11 C-SEC-STREAM-AUTH: fence and close the owner stream before credential revocation, including failure.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES T-004: fence disable before strict credential revocation and read-back.
 //   - 2026-06-08 B4: text_ops module added (text.insert + text.transform
@@ -87,7 +88,12 @@ pub async fn mt_ext_discover(
 }
 
 /// Enable an extension by id. Generates and stores a shared secret
-/// in the keychain if one doesn't already exist.
+/// in the keychain if one doesn't already exist. C-SEC-EXT-GRANT-BOUND:
+/// the enable is refused while the current manifest requests incoming
+/// capabilities beyond the stored approved grant — a fresh pairing is
+/// the re-approval path (the gallery surfaces
+/// ext_enable_reapproval_required). A credential minted here carries NO
+/// grant and therefore authorizes no incoming route.
 #[tauri::command]
 pub async fn mt_ext_enable(
     id: String,
@@ -98,6 +104,42 @@ pub async fn mt_ext_enable(
         let secret = auth::generate_secret();
         auth::store_secret(&id, &secret)?;
         safe_eprintln!("[ExtHost][command][BLOCK_ENABLE_SECRET_GENERATED id={id}]");
+    }
+
+    // Coverage gate: enabling must not confer incoming rights beyond the
+    // grant approved at pairing. The current manifest is read through
+    // peek_manifest — get_manifest answers only for enabled ids and would
+    // self-refuse the extension being enabled — and this credential I/O
+    // runs BEFORE stream_gate is taken (native credential I/O holds
+    // neither gate nor session lock).
+    let incoming = live_server::incoming_capability_names();
+    let requested: Vec<String> = registry
+        .peek_manifest(&id)
+        .map(|m| {
+            m.capabilities
+                .iter()
+                .map(|c| c.name.clone())
+                .filter(|name| incoming.contains(&name.as_str()))
+                .collect()
+        })
+        .unwrap_or_default();
+    if !requested.is_empty() {
+        let grant = auth::get_grant(&id).map_err(|e| {
+            safe_eprintln!("[ExtHost][command][BLOCK_ENABLE_GRANT_UNREADABLE id={id} reason={e}]");
+            "ext_enable_grant_unreadable".to_string()
+        })?;
+        let missing: Vec<&str> = requested
+            .iter()
+            .map(String::as_str)
+            .filter(|name| !grant.iter().flatten().any(|granted| granted.as_str() == *name))
+            .collect();
+        if !missing.is_empty() {
+            safe_eprintln!(
+                "[ExtHost][command][BLOCK_ENABLE_GRANT_EXCEEDED id={id} missing={}]",
+                missing.join(","),
+            );
+            return Err("ext_enable_reapproval_required".to_string());
+        }
     }
 
     let _stream_gate = registry.stream_gate.lock().await;
@@ -136,6 +178,21 @@ pub async fn mt_ext_disable<R: tauri::Runtime>(
     if let Err(detail) = revoked {
         safe_eprintln!("[ExtHost][command][BLOCK_DISABLE_REVOKE_FAILED id={id} reason={detail}]");
         return Err("ext_disable_revoke_failed".to_string());
+    }
+    // C-SEC-EXT-GRANT-BOUND: the approved grant is revoked best-effort
+    // with its own log. A stale grant is inert while no valid token
+    // exists (every route requires a valid token AND its grant), so it
+    // deliberately never joins the strict-absence success condition.
+    let grant_id = id.clone();
+    let grant_revoked = tokio::task::spawn_blocking(move || auth::revoke_grant(&grant_id)).await;
+    match grant_revoked {
+        Ok(Ok(())) => safe_eprintln!("[ExtHost][command][BLOCK_DISABLE_GRANT_REVOKED id={id}]"),
+        Ok(Err(e)) => safe_eprintln!(
+            "[ExtHost][command][BLOCK_DISABLE_GRANT_REVOKE_FAILED id={id} reason={e}]"
+        ),
+        Err(e) => safe_eprintln!(
+            "[ExtHost][command][BLOCK_DISABLE_GRANT_REVOKE_FAILED id={id} reason={e}]"
+        ),
     }
     safe_eprintln!("[ExtHost][command][BLOCK_DISABLE id={id}]");
     Ok(())

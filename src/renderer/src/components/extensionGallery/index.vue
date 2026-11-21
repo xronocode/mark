@@ -114,7 +114,7 @@
 //   toggleExtension - Apply an enable/disable action and refresh visible state.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-11-13 - Resolve gallery backgrounds through the existing renderer theme token names.
+//   LAST_CHANGE: 2026-11-21 - Map the ext_enable_reapproval_required enable refusal to a re-approval instruction on the existing gallery-error surface (C-SEC-EXT-GRANT-BOUND).
 // END_CHANGE_SUMMARY
 import { ref, onMounted } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
@@ -183,9 +183,18 @@ const toggleExtension = async (ext) => {
     // eslint-disable-next-line no-console
     console.log(`[ExtGallery][BLOCK_TOGGLE_OK id=${ext.id} action=${action}]`)
   } catch (err) {
-    toggleFailure = action === 'mt_ext_disable' && String(err) === 'ext_disable_revoke_failed'
-      ? t('extensions.disableFailed', 'The extension is disabled, but access revocation could not be verified. Try again.')
-      : String(err)
+    const message = String(err)
+    if (action === 'mt_ext_enable' && message === 'ext_enable_reapproval_required') {
+      // C-SEC-EXT-GRANT-BOUND: enabling would confer incoming access the
+      // stored pairing grant does not cover — a fresh pairing is the
+      // re-approval path. The gallery stays a toggle plus error surface;
+      // no native dialog lives here.
+      toggleFailure = t('extensions.reapprovalRequired', 'This extension now requests more access than its pairing approved. Disable it, then pair again to approve the new access.')
+    } else if (action === 'mt_ext_disable' && message === 'ext_disable_revoke_failed') {
+      toggleFailure = t('extensions.disableFailed', 'The extension is disabled, but access revocation could not be verified. Try again.')
+    } else {
+      toggleFailure = message
+    }
     // eslint-disable-next-line no-console
     console.error(`[ExtGallery][BLOCK_TOGGLE_FAILED id=${ext.id}]`, err)
   }

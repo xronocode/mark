@@ -18,6 +18,7 @@
 // END_MODULE_MAP
 
 // START_CHANGE_SUMMARY
+//   - 2026-11-21 C-SEC-EXT-GRANT-BOUND T-004: grant-matrix regressions — the fixture establishes the pairing grant beside the injected secret (plus a grant-less legacy-shape variant), the migrated pin enabled_extension_passes_only_declared_capability_routes keeps name/statuses/event counts while its stream 200 becomes grant-derived and gains a grant-less stream 401, and the new pins pairing_persists_the_captured_grant, grow_after_pairing_enable_is_refused_to_reapproval, stream_requires_stored_stream_document_grant, legacy_credential_without_grant_fails_closed, rebind_refused_when_new_key_fails_verification and pair_keychain_read_error_is_a_distinct_refusal cover F-001/F-002/F-03 fail-closed, grow-refusal and honest-replace semantics; DummyCredential gains a fail_write mode and cleanup clears grants.
 //   - 2026-11-20 C-SEC-EDIT-TARGETING: document-bound context/apply matrix — the fixture context responder hands tab-{id} plus a fresh per-request document-gen-N generation and records the last handed pair on the fixture, the apply request literals gain explicit binding arguments (apply_bound beside the unbound apply_fixture), four new pins (context_response_carries_document_binding, apply_requires_binding_fields 400, apply_requires_matching_context_binding 409/200 with the binding inside the op payload, apply_stale_instance_binding_refused), and the C-SEC-STREAM-SCOPE family reconciled without weakening: apply_requires_text_edit_capability and fresh_pairing_restores_access move every apply-200 expectation onto dual-capability (context.read + text.edit) fixtures that read context first, single-capability text.edit applies pin the fence statuses (400/409, zero events), and every auth/capability 401 keeps its status.
 //   - 2026-11-20 C-SEC-STREAM-SCOPE: capability-scoped incoming routes — flipped the over-grant pin to per-route denial, added the context/apply permission matrix, the pairing-grant-description unit pin and capability-scoped fresh-pairing restoral.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES: named handler, revocation and recipient/redirect regressions.
@@ -938,7 +939,22 @@ fn incoming_fixture(enabled: bool, capability: &str) -> IncomingFixture {
     incoming_fixture_caps(enabled, &[capability])
 }
 
+/// Paired-and-granted semantics: the fixture stores the pairing grant —
+/// the manifest's incoming subset in RouteCapability::all() order —
+/// beside the injected secret, so every route pin keeps its meaning
+/// under C-SEC-EXT-GRANT-BOUND.
 fn incoming_fixture_caps(enabled: bool, capabilities: &[&str]) -> IncomingFixture {
+    incoming_fixture_with_grant(enabled, capabilities, true)
+}
+
+/// Grant-less variant: the legacy/migration shape — an enabled credential
+/// with no stored grant, refused on every incoming route until a fresh
+/// pairing re-approves it (pinned by legacy_credential_without_grant_fails_closed).
+fn incoming_fixture_grantless(enabled: bool, capability: &str) -> IncomingFixture {
+    incoming_fixture_with_grant(enabled, &[capability], false)
+}
+
+fn incoming_fixture_with_grant(enabled: bool, capabilities: &[&str], grant: bool) -> IncomingFixture {
     static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
     let id = format!("fixture-ext-{}", NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed));
     let token = format!("dummy-token-{id}");
@@ -955,6 +971,21 @@ fn incoming_fixture_caps(enabled: bool, capabilities: &[&str]) -> IncomingFixtur
     let credential = Arc::new(DummyCredential::default());
     *credential.persistent.lock().unwrap() = Some(token.clone());
     super::auth::inject_test_backend(&id, Ok(credential.clone()));
+    // C-SEC-EXT-GRANT-BOUND: the grant lives beside the credential through
+    // an independent grant backend, so secret and grant stores fail
+    // independently.
+    if grant {
+        let incoming = super::live_server::incoming_capability_names();
+        let approved: Vec<String> = incoming.into_iter()
+            .filter(|name| capabilities.iter().any(|cap| cap == name))
+            .map(str::to_string)
+            .collect();
+        let grant_store = Arc::new(DummyCredential::default());
+        *grant_store.persistent.lock().unwrap() =
+            Some(serde_json::to_string(&approved).unwrap());
+        super::auth::inject_test_grant_backend(&id, Ok(grant_store));
+        super::auth::store_grant(&id, &approved).unwrap();
+    }
     let events = Arc::new(Mutex::new(Vec::new()));
     let seen = events.clone();
     app.listen("mt::text::op", move |event| {
@@ -1197,7 +1228,10 @@ async fn apply_stale_instance_binding_refused() {
 // END_BLOCK_INCOMING_DATA_TESTS
 
 impl Drop for IncomingFixture {
-    fn drop(&mut self) { super::auth::clear_test_secret(&self.id); }
+    fn drop(&mut self) {
+        super::auth::clear_test_secret(&self.id);
+        super::auth::clear_test_grant(&self.id);
+    }
 }
 
 // START_BLOCK_DISABLE_AUTH_TESTS
@@ -1206,6 +1240,7 @@ struct DummyCredential {
     persistent: Mutex<Option<String>>,
     fail_delete: std::sync::atomic::AtomicBool,
     fail_read: std::sync::atomic::AtomicBool,
+    fail_write: std::sync::atomic::AtomicBool,
     keep_after_delete: std::sync::atomic::AtomicBool,
     reads: std::sync::atomic::AtomicUsize,
     read_pause: Mutex<Option<(std::sync::mpsc::Sender<()>, Arc<(Mutex<bool>, std::sync::Condvar)>)>>,
@@ -1226,6 +1261,9 @@ impl super::auth::Credential for DummyCredential {
         } else { Ok(self.persistent.lock().unwrap().clone()) }
     }
     fn write(&self, secret: &str) -> Result<(), String> {
+        if self.fail_write.load(std::sync::atomic::Ordering::Relaxed) {
+            return Err("dummy credential write access failed".to_string());
+        }
         *self.persistent.lock().unwrap() = Some(secret.to_string());
         Ok(())
     }
@@ -1337,8 +1375,17 @@ async fn enabled_extension_passes_only_declared_capability_routes() {
     assert_eq!(apply_fixture(&other, &other.token).await, StatusCode::UNAUTHORIZED);
     assert!(other.events.lock().unwrap().is_empty());
     assert_eq!(insert_fixture(&other, Some(&other.token)).await, StatusCode::UNAUTHORIZED);
-    // The owned stream route keeps working under C-SEC-STREAM-AUTH fencing.
+    // The owned stream route keeps working under C-SEC-STREAM-AUTH fencing;
+    // since C-SEC-EXT-GRANT-BOUND its 200 is grant-derived — the stored
+    // stream.document grant, not the live manifest, authorizes it.
     assert_eq!(stream_open_fixture(&other, &other.id, &other.token, "session-a").await.status(), StatusCode::OK);
+    // F-002 pin: a stream.document credential without a stored grant is
+    // refused at open even while enabled and its manifest declares the
+    // capability.
+    let grantless = incoming_fixture_grantless(true, "stream.document");
+    assert_eq!(stream_open_fixture(&grantless, &grantless.id, &grantless.token, "session-g").await.status(), StatusCode::UNAUTHORIZED);
+    assert!(grantless.events.lock().unwrap().is_empty());
+    assert!(grantless.live_events.lock().unwrap().is_empty());
 }
 
 #[test]
@@ -1440,6 +1487,191 @@ async fn fresh_pairing_restores_access() {
     assert_eq!(insert_fixture(&inserter, Some(&inserter.token)).await, StatusCode::UNAUTHORIZED);
 }
 // END_BLOCK_DISABLE_AUTH_TESTS
+
+// START_BLOCK_GRANT_BOUND_SECURITY_TESTS
+// C-SEC-EXT-GRANT-BOUND: the approved incoming set is captured at pairing
+// and stored beside the credential; every incoming route — the data routes
+// and every /stream/* route at open and on state changes — authorizes by
+// that stored grant; enabling beyond the grant is refused into explicit
+// re-approval; credentials without a grant fail closed; and key
+// replacement is honest. The fail-closed migration shape and the debug
+// rebind refusals over a dead/unreadable keychain are deliberate, pinned
+// consequences.
+
+async fn pair_request(f: &IncomingFixture, id: &str, prior_secret: Option<String>) -> axum::response::Response {
+    super::live_server::handle_pair(State(f.state.clone()), Json(super::live_server::PairRequest {
+        extension_id: id.to_string(), extension_name: "Grant matrix fixture".to_string(), protocol_version: 1,
+        prior_secret,
+    })).await.into_response()
+}
+
+#[tokio::test]
+async fn pairing_persists_the_captured_grant() {
+    // Disabled-but-registered: get_manifest refuses the id, yet the pair
+    // captures the real declared set — exactly what the (auto-)approval
+    // presented — instead of the honest-empty fallback reserved for
+    // unregistered ids.
+    let f = incoming_fixture_grantless(false, "context.read");
+    assert!(f.app.state::<ExtRegistry>().get_manifest(&f.id).is_err());
+    super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap();
+    assert_old_token_fenced(&f).await;
+    let fresh = fresh_pair_secret(&f).await;
+    assert_eq!(
+        super::auth::get_grant(&f.id).unwrap().as_deref(),
+        Some(["context.read".to_string()].as_slice()),
+    );
+    super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap();
+    assert_eq!(context_fixture(&f, &fresh).await, StatusCode::OK);
+    assert_eq!(apply_fixture(&f, &fresh).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(insert_fixture(&f, Some(&fresh)).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::UNAUTHORIZED);
+    assert!(f.events.lock().unwrap().is_empty());
+
+    // An unregistered id captures the honest empty grant.
+    let unregistered_id = format!("{}-never-registered", f.id);
+    let response = pair_request(&f, &unregistered_id, None).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(super::auth::get_grant(&unregistered_id).unwrap(), Some(Vec::<String>::new()));
+    assert!(super::auth::get_secret(&unregistered_id).unwrap().is_some());
+    super::auth::clear_test_secret(&unregistered_id);
+    super::auth::clear_test_grant(&unregistered_id);
+}
+
+#[tokio::test]
+async fn grow_after_pairing_enable_is_refused_to_reapproval() {
+    let f = incoming_fixture_grantless(false, "context.read");
+    super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap();
+    let fresh = fresh_pair_secret(&f).await;
+    assert_eq!(
+        super::auth::get_grant(&f.id).unwrap().as_deref(),
+        Some(["context.read".to_string()].as_slice()),
+    );
+    // The manifest grows behind the pairing: re-registration replaces the
+    // stored state (the extension is disabled again) with a larger
+    // incoming request.
+    let mut grown = test_manifest(&f.id);
+    grown.capabilities = vec![
+        Capability { name: "context.read".to_string(), version: 1 },
+        Capability { name: "text.edit".to_string(), version: 1 },
+    ];
+    f.app.state::<ExtRegistry>().register(grown, true).unwrap();
+    let error = super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap_err();
+    assert_eq!(error, "ext_enable_reapproval_required");
+    assert!(f.app.state::<ExtRegistry>().get_manifest(&f.id).is_err(), "the refused enable leaves the registry disabled");
+    assert_eq!(super::auth::get_secret(&f.id).unwrap().as_deref(), Some(fresh.as_str()), "the refused enable re-keys nothing");
+    assert!(f.events.lock().unwrap().is_empty());
+
+    // A shrunk manifest enables and works within the stored grant.
+    let mut shrunk = test_manifest(&f.id);
+    shrunk.capabilities = vec![Capability { name: "context.read".to_string(), version: 1 }];
+    f.app.state::<ExtRegistry>().register(shrunk, true).unwrap();
+    super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap();
+    assert_eq!(context_fixture(&f, &fresh).await, StatusCode::OK);
+    assert_eq!(apply_fixture(&f, &fresh).await, StatusCode::UNAUTHORIZED);
+
+    // An enable-minted credential deliberately receives NO grant: with an
+    // incoming-capability manifest it is refused exactly the same way.
+    let minted = incoming_fixture_grantless(true, "text.insert");
+    super::mt_ext_disable(minted.id.clone(), minted.app.state(), minted.app.handle().clone()).await.unwrap();
+    super::mt_ext_enable(minted.id.clone(), minted.app.state()).await.unwrap_err();
+    assert!(super::auth::get_secret(&minted.id).unwrap().is_some(), "the enable minted its credential");
+    assert_eq!(super::auth::get_grant(&minted.id).unwrap(), None, "the minted credential holds no grant");
+
+    // A manifest with no incoming-route capabilities enables freely.
+    let bare = incoming_fixture_grantless(true, "text.insert");
+    let mut transform_only = test_manifest(&bare.id);
+    transform_only.capabilities = vec![Capability { name: "text.transform".to_string(), version: 1 }];
+    bare.app.state::<ExtRegistry>().register(transform_only, true).unwrap();
+    super::mt_ext_enable(bare.id.clone(), bare.app.state()).await.unwrap();
+}
+
+#[tokio::test]
+async fn legacy_credential_without_grant_fails_closed() {
+    // Recorded fail-closed migration consequence: a credential paired
+    // before C-SEC-EXT-GRANT-BOUND holds no stored grant and authorizes
+    // no incoming route — data routes and stream alike — until the owner
+    // disables and freshly pairs (re-approval).
+    let f = incoming_fixture_grantless(true, "context.read");
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(apply_fixture(&f, &f.token).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(stream_open_fixture(&f, &f.id, &f.token, "session-legacy").await.status(), StatusCode::UNAUTHORIZED);
+    assert!(f.events.lock().unwrap().is_empty());
+    assert!(f.live_events.lock().unwrap().is_empty());
+    assert!(f.state.session.lock().await.is_none());
+}
+
+#[tokio::test]
+async fn stream_requires_stored_stream_document_grant() {
+    let f = incoming_fixture(true, "stream.document");
+    assert_eq!(stream_open_fixture(&f, &f.id, &f.token, "session-a").await.status(), StatusCode::OK);
+    assert_eq!(stream_route_fixture(&f, "patch").await, StatusCode::OK);
+    assert_eq!(stream_route_fixture(&f, "heartbeat").await, StatusCode::OK);
+    assert_eq!(stream_route_fixture(&f, "close").await, StatusCode::OK);
+    {
+        let guard = f.state.session.lock().await;
+        let session = guard.as_ref().unwrap();
+        assert!(!session.active);
+        assert_eq!(session.revision, 2);
+        assert_eq!(session.document_md, "replacement");
+        assert_eq!(session.last_seq, 1);
+    }
+    let live_event_count = f.live_events.lock().unwrap().len();
+    // Revoking the stored grant fences every state change and the re-open
+    // with no session mutation, revision drift or live event.
+    super::auth::revoke_grant(&f.id).unwrap();
+    for route in ["patch", "close", "heartbeat"] {
+        assert_eq!(stream_route_fixture(&f, route).await, StatusCode::UNAUTHORIZED, "{route}");
+    }
+    assert_eq!(stream_open_fixture(&f, &f.id, &f.token, "session-a").await.status(), StatusCode::UNAUTHORIZED);
+    {
+        let guard = f.state.session.lock().await;
+        let session = guard.as_ref().unwrap();
+        assert!(!session.active);
+        assert_eq!(session.revision, 2);
+        assert_eq!(session.document_md, "replacement");
+        assert_eq!(session.last_seq, 1);
+    }
+    assert_eq!(f.live_events.lock().unwrap().len(), live_event_count);
+    assert!(f.events.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn rebind_refused_when_new_key_fails_verification() {
+    // Keychain write failure: the effective credential path still serves
+    // the old record, so the verifying store refuses with a distinct
+    // mismatch state, rolls the memory mirror back, and the pair answers
+    // 500 — never paired:true — while the prior token stays valid and
+    // authorized on its granted routes.
+    let f = incoming_fixture(true, "context.read");
+    f.credential.fail_write.store(true, std::sync::atomic::Ordering::Relaxed);
+    let response = pair_request(&f, &f.id, Some(f.token.clone())).await;
+    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(super::auth::get_secret(&f.id).unwrap().as_deref(), Some(f.token.as_str()));
+    assert!(super::auth::validate_token(&f.id, &f.token), "the prior token still validates");
+    assert_eq!(f.credential.persistent.lock().unwrap().as_deref(), Some(f.token.as_str()), "the failed keychain write displaced nothing");
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK, "the prior token is still authorized on its granted route");
+    assert!(f.events.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn pair_keychain_read_error_is_a_distinct_refusal() {
+    // Keychain read error: the new key verifies through the effective
+    // (memory) path, but the rebind-only proof must read the credential
+    // record itself — an unreadable record cannot prove the previous key
+    // dead, a distinct refusal that never reports success and restores
+    // the prior credential, so the refused rebind re-keys nothing.
+    let f = incoming_fixture(true, "context.read");
+    f.credential.fail_read.store(true, std::sync::atomic::Ordering::Relaxed);
+    let response = pair_request(&f, &f.id, Some(f.token.clone())).await;
+    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert!(super::auth::validate_token(&f.id, &f.token), "the prior token still validates after the refused rebind");
+    assert_eq!(super::auth::get_secret(&f.id).unwrap().as_deref(), Some(f.token.as_str()));
+    assert_eq!(f.credential.persistent.lock().unwrap().as_deref(), Some(f.token.as_str()));
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    assert!(f.events.lock().unwrap().is_empty());
+}
+// END_BLOCK_GRANT_BOUND_SECURITY_TESTS
 
 // START_BLOCK_LOOPBACK_URL_TESTS
 #[test]
@@ -1658,6 +1890,15 @@ async fn stream_foreign_owner_cannot_disclose_or_replace_session() {
     f.app.state::<ExtRegistry>().register(test_manifest(&other_id), true).unwrap();
     f.app.state::<ExtRegistry>().enable(&other_id).unwrap();
     super::auth::inject_test_secret(&other_id, other_token);
+    // The foreign owner is fully paired-and-granted: a valid token AND a
+    // stored stream.document grant — it is the owner/epoch fencing, not a
+    // missing grant, that fences it.
+    let grant: Vec<String> = vec!["stream.document".to_string()];
+    let other_grant_store = Arc::new(DummyCredential::default());
+    *other_grant_store.persistent.lock().unwrap() =
+        Some(serde_json::to_string(&grant).unwrap());
+    super::auth::inject_test_grant_backend(&other_id, Ok(other_grant_store));
+    super::auth::store_grant(&other_id, &grant).unwrap();
     assert_eq!(stream_open_fixture(&f, &f.id, &f.token, "session-a").await.status(), StatusCode::OK);
     for sid in ["different-session", "session-a"] {
         let response = stream_open_fixture(&f, &other_id, other_token, sid).await;
@@ -1672,6 +1913,7 @@ async fn stream_foreign_owner_cannot_disclose_or_replace_session() {
     }
     assert_eq!(stream_open_fixture(&f, &f.id, &f.token, "session-a").await.status(), StatusCode::OK);
     super::auth::clear_test_secret(&other_id);
+    super::auth::clear_test_grant(&other_id);
 }
 
 #[tokio::test]
