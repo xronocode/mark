@@ -1,7 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Mark",
-  "version": "2.5.0",
   "app": {
     "security": {
       "capabilities": ["mas"]
@@ -11,8 +10,7 @@
     "targets": ["app"],
     "createUpdaterArtifacts": false,
     "macOS": {
-      "entitlements": "Entitlements.plist",
-      "bundleVersion": "2.5.1"
+      "entitlements": "Entitlements.plist"
     }
   }
 }

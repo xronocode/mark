@@ -346,6 +346,46 @@ describe('util/theme', () => {
     })
   })
 
+  describe('addCustomStyle C-PREFS-TRUTH clear path (F-001/F-011)', () => {
+    it('an empty save after a non-empty apply empties the existing layer (the truthy→falsy watch delivery)', () => {
+      // Dark active theme: the stale layer paints over Ink until the empty
+      // save clears it.
+      addThemeStyle('ink')
+      addCustomStyle({ customCss: 'body { color: red; }' })
+      const el = document.querySelector('#custom-styles')
+      expect(el).not.toBeNull()
+      expect(el.textContent).toBe('body { color: red; }')
+      // pages/app.vue delivers watch(customCss) → addCustomStyle({ customCss: '' })
+      addCustomStyle({ customCss: '' })
+      expect(document.querySelector('#custom-styles')).toBe(el)
+      expect(el.textContent).toBe('')
+      // The reset path delivers undefined the same way.
+      addCustomStyle({})
+      expect(el.textContent).toBe('')
+      // A later non-empty save applies again through the same element.
+      addCustomStyle({ customCss: 'mark { color: blue; }' })
+      expect(document.querySelector('#custom-styles')).toBe(el)
+      expect(el.textContent).toBe('mark { color: blue; }')
+      // jsdom does not resolve stylesheet custom properties, so the
+      // computed-style truth (themed elements returning to the theme
+      // values once the layer empties) rides the built-app chromium run;
+      // the element-level contract above is the unit-pinnable half.
+    })
+
+    it('an empty save clears for real under a light active theme too', () => {
+      addThemeStyle('paper')
+      addCustomStyle({ customCss: 'body { color: red; }' })
+      expect(document.querySelector('#custom-styles').textContent).not.toBe('')
+      addCustomStyle({ customCss: '' })
+      expect(document.querySelector('#custom-styles').textContent).toBe('')
+    })
+
+    it('an empty save never force-creates a fresh empty element when none exists', () => {
+      addCustomStyle({ customCss: '' })
+      expect(document.querySelector('#custom-styles')).toBeNull()
+    })
+  })
+
   describe('addThemeStyle pele variables (C-55)', () => {
     it('sets the --pele-* block on the root and re-derives it per theme', () => {
       // The mocked themeColor factories carry no real variables, so the

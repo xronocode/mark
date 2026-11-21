@@ -552,6 +552,7 @@
         "statusBar": "Show the status bar",
         "wordWrapInToc": "Wrap long headings in the outline",
         "titleBarStyleHelp": "Custom draws Mark's own title bar with tabs. Requires a restart.",
+        "titleBarStyleWindowsHelp": "On Windows, Custom is the only working choice: Mark's window ships without the system frame (no decorations).",
         "hideScrollbar": "Hide scroll bars"
       },
       "text": {

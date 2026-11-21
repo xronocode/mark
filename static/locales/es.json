@@ -544,6 +544,7 @@
         "statusBar": "Mostrar la barra de estado",
         "wordWrapInToc": "Ajustar los encabezados largos en el esquema",
         "titleBarStyleHelp": "Personalizada muestra la barra de título propia de Mark con pestañas. Requiere reiniciar.",
+        "titleBarStyleWindowsHelp": "En Windows, «Personalizada» es la única opción funcional: la ventana de Mark se distribuye sin el marco del sistema (sin decoraciones).",
         "hideScrollbar": "Ocultar las barras de desplazamiento"
       },
       "text": {

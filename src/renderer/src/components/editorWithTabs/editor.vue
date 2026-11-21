@@ -83,7 +83,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.35.0
+// VERSION: 1.36.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration; the insert-table dialog's initial row-input focus is owned by handleDialogTableOpened — claimed immediately after the Element Plus focus trap's own container focus (the dialog's open-auto-focus → double-nextTick chain, with @opened as the guarded fallback) (C-TABLE-DIALOG-CREATION-VERIFICATION); with the C-LARGE-DOC-WAVE-A T-004 experimental toggle ON, plain document opens mount progressively (visible region first, tail in bounded slices).
 //   SCOPE: C-SPLIT-SAVE-AUTHORITY: committed rich Split snapshots remain eligible with a retained Source preference, subject to pane focus, mirror, owner and IME guards. Unified split document history, focused-pane commands, per-surface caret/IME coordination and render-only synchronization; renderer-side Muya lifecycle and UI orchestration, including active/rendered document ownership, missed-activation recovery and invalidating tab block caches after a footnote grammar change; the C-LARGE-DOC-WAVE-A T-004 orchestration (progressive open-path branch for plain content loads only, scroll-driven prefetch ~3 viewports ahead, the reserved-space ag-tail-pending indication, marker-fed session counters, explicit-scroll gating while a tail is pending); does not own Markdown parsing rules or backend file persistence.
@@ -141,13 +141,25 @@
 //   applyStoredTableLayouts - C-65 T-001: load the active file's persisted table layouts (prune + cap inside the store util) and hand them to muya.tableResize.applyPersistedLayouts; sequenced per tab so a slow load cannot land on a switched document.
 //   applyHostPageState - C-PAGE-WIDTH-TABLES: the open/tab-switch funnel — re-read the active document's pageWidths entry (prune + cap inside the store util, seq-guarded per tab like applyStoredTableLayouts) and apply the effective width (document > global; the canvas clamp never writes the store) plus the pinned per-document theme; untitled tabs and entry-less documents clear to the global tier without stealing the variable from the legacy writer.
 //   reapplyHostWidthFromCache - C-PAGE-WIDTH-TABLES corner C-3: one --editorAreaWidth property write from the cached entry on canvas changes (window resize, sidebar show/hide/drag commit) — never a content re-render, no store IO on the tick.
-//   applyDocumentSurfaceTheme - C-PAGE-WIDTH-TABLES R-4: apply a pinned themeOverride to the document surface (addThemeStyle + the muya diagram classification mirroring the shipped watch(theme) branch); restore the Auto-aware global theme when the pin leaves.
+//   applyDocumentSurfaceTheme - C-PAGE-WIDTH-TABLES R-4: apply a pinned themeOverride to the document surface (C-PREFS-TRUTH F-004: scoped via addDocumentThemeStyle to the editor host — variables, dark classification, color-scheme; the shell keeps the global mode — plus the muya diagram classification mirroring the shipped watch(theme) branch); restore the Auto-aware global theme when the pin leaves.
 //   syncDiagramClassification - C-PAGE-WIDTH-TABLES: the muya mermaid/vega options follow the applied surface theme (dark regex classification — the shipped watch(theme) branch); safe to re-run once the Muya instance exists.
 //   extBindingMatchesRendered - C-SEC-EDIT-TARGETING: drops ext insert/transform/undo bus events whose document binding (documentId + documentGeneration from the wire) does not match the rendered tab identity (renderedTabId + renderedDocumentOwner.documentToken) before any mutation — including the whole-document setMarkdown fallback; the ext-context-request response names the rendered instance via document_id/document_generation or explicit nulls.
 //   handleDocumentPageStateChanged - C-PAGE-WIDTH-TABLES: the panel's mt::document-page-state-changed handler — a Page/View tab write re-reads the entry so a fresh pin reaches the surface without waiting for a tab switch and the host cache never goes stale behind a panel write.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   2026-11-21 C-PREFS-TRUTH (frontend F-004): the pinned per-document
+//   theme stays on the document. applyDocumentSurfaceTheme no longer runs
+//   the global addThemeStyle shell path for the pinned id — the pin
+//   applies through addDocumentThemeStyle scoped to the editor host (the
+//   .editor-component surface: its CSS variables, dark classification and
+//   color-scheme), while root-level variables, body.dark, the document
+//   color-scheme, the native window theme, the file sidebar, the title bar
+//   and the quick-settings panel keep following the global mode. Unpin,
+//   tab switch and unmount clear the scoped pin first
+//   (removeDocumentThemeStyle) and restore the global theme exactly as
+//   before; the width pipeline, the single writer and the R-4 model are
+//   untouched.
 //   2026-11-21 C-EXPORT-BOUNDARIES: both export consent gates ride the notice.notify facade into the shared notification stack (components/rollbackConfirm pattern re-expressed inline: sticky entry, dedupKey singleton, Confirm/Cancel actions resolving a local Promise, DISMISS on decision) — 'export-embed-consent' lists the deduplicated resolved out-of-scope image paths, their count and the document directory for the T-001 requestScopeConsent seam, 'export-plantuml-consent' names exactly https://www.plantuml.com/plantuml plus the per-diagram count before exportStyledHTML carries the opaque plantumlRemoteConsent key in both the styledHtml and docx branches (count 0 skips the dialog and passes false); markers BLOCK_PLANTUML_EXPORT_CONSENT/_DECLINED stay count-only, decisions are never persisted, the declined PlantUML artifact is muya's pre.ag-plantuml-export-source placeholder, and pdf/print never run either gate.
 //   2026-11-20 C-SEC-EDIT-TARGETING: the ext insert/transform/undo handlers run extBindingMatchesRendered (renderedTabId + renderedDocumentOwner.documentToken) as their FIRST statement and log BLOCK_EXT_TARGETING_MISMATCH, returning before any mutation — insertParagraph, replace and the whole-document setMarkdown fallback included; unbound events (documentId undefined, e.g. /ext/text-insert or the text_ops.rs commands) never match, fail-closed. handleExtContextRequest adds document_id (renderedTabId) + document_generation (renderedDocumentOwner.documentToken) — explicit nulls when there is no rendered identity — to the context response. Typing between context and apply never invalidates a matched apply: the generation is the instance token, not a content revision.
 //   2026-11-19 C-TABLE-DIALOG-CREATION-VERIFICATION T-001: the insert-table dialog's initial row-input focus moves from a pre-trap nextTick claim (overwritten by the Element Plus FocusTrap's opening container focus) to a claim that runs immediately AFTER that container focus — the @open-auto-focus handler chains two nextTicks (the trap registers its container focus on the first), guarded by dialog visibility and trap-default focus, with @opened re-running the same guarded claim as fallback; no timers, no retries, no trap interference, no focus theft after a deliberate user focus move.
@@ -395,7 +407,7 @@ import { getCssForOptions, getHtmlToc } from '@/util/pdf'
 import { embedLocalImages } from '@/util/exportImages'
 import { countPlantUMLFences } from 'muya/lib/utils/exportHtml'
 import { loadTableLayoutsFor, saveTableLayoutsFor } from '@/util/tableLayoutStore'
-import { addCommonStyle, addThemeStyle, setEditorWidth, setWrapCodeBlocks } from '@/util/theme'
+import { addCommonStyle, addThemeStyle, addDocumentThemeStyle, removeDocumentThemeStyle, setEditorWidth, setWrapCodeBlocks } from '@/util/theme'
 // C-PAGE-WIDTH-TABLES (host wiring): the resolution pipeline (pure maths +
 // the single --editorAreaWidth writer), the per-document store and the
 // Auto-theme resolver the pinned-theme restore rides.
@@ -2712,7 +2724,7 @@ const handleTableLayoutsChange = async ({ entries } = {}) => {
 //   PURPOSE: C-PAGE-WIDTH-TABLES — the document host side of the page-width system: every active-document change (open, tab switch, close-to-unmount) re-reads the document's pageWidths entry and applies the effective width (document > global through the resolution pipeline) plus the pinned per-document theme (entry.themeOverride) to the document surface; canvas changes re-apply the pipeline value from the cached entry with one custom-property write, never a content re-render.
 //   INPUTS: { none — reads currentFile, editorLineWidth, the layout store, and the quick-settings panel's mt::document-page-state-changed bus announcements }
 //   OUTPUTS: { Promise<void> }
-//   SIDE_EFFECTS: ipcPrefs read of the pageWidths key (through util/pageWidthStore.loadPageWidthFor: prune + cap inside the store util); one inline --editorAreaWidth custom property write on the document root (util/pageWidth applyEditorWidth / clearAppliedEditorWidth); addThemeStyle of the pinned theme id while a pin governs the surface, restored to the global theme (Auto-aware) when the pin leaves; muya mermaid/vega classification following the applied theme (mirrors the shipped watch(theme) branch).
+//   SIDE_EFFECTS: ipcPrefs read of the pageWidths key (through util/pageWidthStore.loadPageWidthFor: prune + cap inside the store util); one inline --editorAreaWidth custom property write on the document root (util/pageWidth applyEditorWidth / clearAppliedEditorWidth); C-PREFS-TRUTH (F-004): addDocumentThemeStyle of the pinned theme id SCOPED to the document surface (the editor host element's variables, dark classification and color-scheme) while a pin governs it, and removeDocumentThemeStyle + the global addThemeStyle (Auto-aware) when the pin leaves; muya mermaid/vega classification following the applied theme (mirrors the shipped watch(theme) branch).
 //   LINKS: .grace/changes/archive/C-PAGE-WIDTH-TABLES (plan T-002/T-005, corners C-1/C-2/C-3); util/pageWidth.js (the resolution pipeline and the single writer); util/pageWidthStore.js (the per-document store this block reads); util/theme.js addThemeStyle (re-applies the pipeline value after every theme switch); store/editor.js RENAME/RENAME_IF_NEEDED (the rename move).
 // END_CONTRACT: applyHostPageState / reapplyHostWidthFromCache
 // START_BLOCK_PAGE_WIDTH_HOST
@@ -2764,8 +2776,30 @@ const applySurfaceTheme = (themeId) => {
   syncDiagramClassification(themeId)
 }
 
+// C-PREFS-TRUTH (frontend F-004): the document surface element the pin
+// scopes to — .editor-component, Muya's contenteditable host. The boot
+// funnel runs at setup, before the element exists (addDocumentThemeStyle
+// no-ops on a null host); the mount funnel re-runs applyHostPageState so
+// the scoped application lands once the surface is live.
+const documentSurfaceEl = () => editorRef.value
+
+// The pinned id applies SCOPED to the document surface (its CSS variables,
+// dark classification and color-scheme on the host element only); the
+// shared shell surfaces — root-level variables, body.dark, the document
+// color-scheme, the native window theme, the file sidebar, the title bar
+// and the quick-settings panel — keep following the global mode. The muya
+// diagram classification still follows the applied surface theme.
+const applyDocumentTheme = (themeId) => {
+  addDocumentThemeStyle(themeId, documentSurfaceEl())
+  syncDiagramClassification(themeId)
+}
+
 const restoreGlobalSurfaceTheme = () => {
   hostSurfaceThemeId = null
+  // C-PREFS-TRUTH: the scoped pin must GO before the global mode
+  // re-applies, or the host's inline variables would keep out-ranking the
+  // restored root values for the editor subtree.
+  removeDocumentThemeStyle(documentSurfaceEl())
   const globalTheme = preferencesStore.followSystemTheme
     ? resolveAutoTheme(preferencesStore)
     : preferencesStore.theme
@@ -2779,12 +2813,19 @@ const applyDocumentSurfaceTheme = (entry) => {
       : null
   if (pinned) {
     if (pinned !== hostSurfaceThemeId) {
-      applySurfaceTheme(pinned)
+      applyDocumentTheme(pinned)
       hostSurfaceThemeId = pinned
+    } else if (editorRef.value) {
+      // C-PREFS-TRUTH: the boot funnel ran at setup, before the surface
+      // element existed, so the scoped application no-oped on a null host
+      // — land it now that the surface is live (the scoped application is
+      // idempotent: stale scoped variables are removed before re-set), and
+      // sync the diagram classification with it.
+      applyDocumentTheme(pinned)
     } else {
-      // The boot funnel runs at setup, before the Muya instance exists —
-      // when only the classification is missing (editor.value was null on
-      // the first pass), sync it now that the surface is live.
+      // The scoped theme is already on the surface; only the muya
+      // classification may still be missing (editor.value was null on the
+      // first pass).
       syncDiagramClassification(pinned)
     }
     return
@@ -2870,7 +2911,8 @@ watch(
 )
 
 // A global theme cycle (title bar, Settings, Auto resolution, cross-window
-// echo) must never move a pinned document's surface: re-assert the pin.
+// echo) must never move a pinned document's surface: re-assert the pin —
+// C-PREFS-TRUTH: scoped to the document surface, the shell follows the cycle.
 watch(
   () => [
     theme.value,
@@ -2879,7 +2921,7 @@ watch(
     preferencesStore.darkModeTheme
   ],
   () => {
-    if (hostSurfaceThemeId) applySurfaceTheme(hostSurfaceThemeId)
+    if (hostSurfaceThemeId) applyDocumentTheme(hostSurfaceThemeId)
   }
 )
 
@@ -3650,6 +3692,12 @@ const diffGuarded = Object.fromEntries(
 onMounted(() => {
   printer = new Printer()
   const ele = editorRef.value
+
+  // C-PREFS-TRUTH (frontend F-004): the open/tab funnel ran at setup with a
+  // null surface, so a pinned theme recorded its id without landing its
+  // scoped variables. Land it now that the surface element is live (the
+  // scoped application is idempotent — stale vars are removed before re-set).
+  if (hostSurfaceThemeId) applyDocumentTheme(hostSurfaceThemeId)
 
   // use muya UI plugins
   Muya.use(TablePicker)
