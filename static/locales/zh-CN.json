@@ -544,6 +544,7 @@
         "statusBar": "显示状态栏",
         "wordWrapInToc": "在目录中换行长标题",
         "titleBarStyleHelp": "自定义会绘制带标签页的 Mark 专属标题栏。需要重启。",
+        "titleBarStyleWindowsHelp": "在 Windows 上只有“自定义”真正可用：Mark 的窗口不带系统边框（无装饰）发布。",
         "hideScrollbar": "隐藏滚动条"
       },
       "text": {

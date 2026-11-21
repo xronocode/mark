@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # FILE: tools/release/mas-pkg.sh
-# VERSION: 1.0.0
+# VERSION: 1.1.0
 # START_MODULE_CONTRACT
 #   PURPOSE: C-15 T-M6 — sign the MAS app build with Apple Distribution +
 #            Entitlements.plist, wrap into an App Store .pkg via
 #            productbuild signed with Mac Installer Distribution.
 #   SCOPE: codesign + productbuild + pkgutil --check-signature; no upload
 #          (Transporter/upload is a separate human step).
-#   DEPENDS: release MAS bundle (tauri build --config mas.conf.json
-#            --features app-store), both distribution identities in the
-#          login keychain.
+#   DEPENDS: release MAS bundle (tools/build-mas.sh — npx tauri build
+#            --config src-tauri/tauri.mas.conf.json --features app-store),
+#            both distribution identities in the login keychain.
 #   LINKS: tools/release/asc-metadata.md; .grace/changes/archive/C-15 T-M6.
 #   ROLE: SCRIPT
 #   MAP_MODE: LOCALS
@@ -30,7 +30,13 @@ PKG="target/release/bundle/macos/Mark-mas.pkg"
 say() { printf '%s\n' "$*" >&2; }
 
 [ -d "$APP" ] || { say "missing $APP — build first:"; \
-  say "  npx tauri build --config src-tauri/mas.conf.json --features app-store"; exit 1; }
+  say "  ./tools/build-mas.sh  (equivalent: npx tauri build --config src-tauri/tauri.mas.conf.json --features app-store)"; exit 1; }
+# C-PREFS-TRUTH (F-006): ONE MAS recipe and ONE version source. The hint
+# names the profile tools/build-mas.sh actually builds with
+# (tauri.mas.conf.json in src-tauri); the stale duplicate mas.conf.json
+# profile is no longer referenced anywhere (its divergent 2.5.0/2.5.1
+# metadata was removed so the profile inherits from tauri.conf.json). No
+# signing identity, entitlements, capability list or upload step changed.
 
 say "== 1/3 signing app =="
 

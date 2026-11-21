@@ -2,7 +2,7 @@
   "autoSave": {
     "description": "General--Save changes automatically shortly after you stop typing.",
     "type": "boolean",
-    "default": false
+    "default": true
   },
   "autoSaveDelay": {
     "description": "General--How long to wait after the last keystroke before saving (shown in seconds).",

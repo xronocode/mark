@@ -941,6 +941,7 @@
           <SummaryDelta>C-COMPACT-WINDOWS-FIT: the quick-settings panel is viewport-bound at compact sizes (max-height calc(100vh - 64px); the toolbar and Open Settings footer are pinned and the body is the single scroll region — the 62vh double-cap is removed; the approved 428px/12px metrics are verbatim), and the «Aa» button is Space-operable per the enter+space pair and carries the keyboard-focus outline.</SummaryDelta>
           <SummaryDelta>C-TABLE-PROFILE-SCHEMA: the persisted table-layout profile consumers share one zero-import schema owner, so profile adoption and migration cost one validation pass with unchanged store/serialization behavior.</SummaryDelta>
       <SummaryDelta>C-TABLE-LAYOUT-COMPLETION: terminal table operations run one ordered completion pass instead of six ad-hoc persist paths; no new timers, polling or geometry reads beyond the existing cue measurement.</SummaryDelta>
+      <SummaryDelta>C-PREFS-TRUTH (2026-11-21): the width precedence extends to the legacy global tier without forking a second writer — a theme switch's inline mirror no longer reverts the saved global editorLineWidth when the pipeline has no recorded width (reapplyLastEditorWidth stays the pipeline-tier hook and util/pageWidth.js is untouched) — and the pinned theme application is scoped to the document surface (addDocumentThemeStyle skips the pipeline-owned --editorAreaWidth) so a per-document theme can never shadow the single inline writer.</SummaryDelta>
 </M-061>
   </GD-PERFORMANCE>
 </GraceGraphDocument>

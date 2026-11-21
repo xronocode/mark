@@ -3,14 +3,20 @@
 # verify the window actually renders (not a white screen from a dead server).
 #
 # Usage:
-#   ./tools/dev-smoke.sh          # full cycle: server + build + launch
-#   ./tools/dev-smoke.sh --quick  # skip cargo build, reuse existing binary
-#   ./tools/dev-smoke.sh --check  # only check health, no restart
+#   ./tools/dev-smoke.sh            # full cycle: server + build + launch
+#   ./tools/dev-smoke.sh --full     # same as no argument
+#   ./tools/dev-smoke.sh --quick    # skip cargo build, reuse existing binary
+#   ./tools/dev-smoke.sh --check    # only check health, no restart
+#
+# C-PREFS-TRUTH (F-008/F-009): the dispatch is explicit — an unknown
+# argument prints usage and exits non-zero BEFORE touching the dev server,
+# any process or any build (no restart, no cargo build, no kill of a
+# running Mark); and --check exits honestly: 0 only when the dev server
+# answers HTTP 200 AND the Mark process is alive, non-zero otherwise.
 
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
-MODE="${1:-full}"
 DEV_LOG="/tmp/mark-vite-dev.log"
 STDERR_LOG="/tmp/mark-stderr.log"
 DEV_URL="http://localhost:1420"
@@ -106,32 +112,63 @@ launch_mark() {
 
 health_report() {
   echo "=== Health Report ==="
+  local server_ok=false
+  local process_ok=false
   local server_code
   server_code=$(check_dev_server)
   if [ "$server_code" = "200" ]; then
     green "Dev server: HTTP $server_code"
+    server_ok=true
   else
     red "Dev server: HTTP $server_code (DEAD)"
   fi
 
   if pgrep -f "target/debug/mark" > /dev/null 2>&1; then
     green "Mark process: running (PID $(pgrep -f 'target/debug/mark' | head -1))"
+    process_ok=true
   else
     red "Mark process: not running"
   fi
+
+  # C-PREFS-TRUTH (F-009): --check exits honestly — 0 only when both the
+  # server answers HTTP 200 and the process is alive; any dead surface is
+  # a non-zero exit so callers can trust the exit code (set -euo pipefail
+  # propagates the failing status as the script's exit code).
+  if [ "$server_ok" = true ] && [ "$process_ok" = true ]; then
+    return 0
+  fi
+  return 1
 }
 
-case "$MODE" in
-  --check)
-    health_report
+print_usage() {
+  cat <<'EOF'
+Usage: ./tools/dev-smoke.sh [--full|--quick|--check]
+
+  (no argument)  full cycle: dev server + cargo build + launch
+  --full         the same full cycle, explicitly
+  --quick        skip the cargo build, reuse the existing binary
+  --check        only run the health report (honest exit code), no restart
+
+C-PREFS-TRUTH (F-008): any other argument prints this usage and exits
+non-zero before touching the dev server, any process or any build.
+EOF
+}
+
+case "${1:-}" in
+  ""|--full)
+    start_dev_server
+    build_binary
+    launch_mark
     ;;
   --quick)
     start_dev_server
     launch_mark
     ;;
+  --check)
+    health_report
+    ;;
   *)
-    start_dev_server
-    build_binary
-    launch_mark
+    print_usage
+    exit 2
     ;;
 esac

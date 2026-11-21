@@ -1,8 +1,8 @@
 // FILE: src/renderer/src/store/preferences.js
-// VERSION: 2.1.0
+// VERSION: 2.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pinia store for persistent user preferences, their hydration, persistence, the unified fontSize zoom actions (C-49), the UI-language application paths (concrete or 'system'), the retired-theme id migration (C-41 T-002), the C-38 T-004 «Restore all defaults» reset, the C-51 T-001 treeShowAllFiles preference, the C-LARGE-DOC-WAVE-A T-004 experimental progressive-mount toggle plus its session-only served-opens counters, and the C-PAGE-WIDTH-TABLES T-006 table preferences (the default table mode under the existing muya option name tableFullWidthDefault and the rememberTableColumnSizes switch — the quick-settings Tables tab writes them through the same SET_SINGLE_PREFERENCE path as every other row).
-//   SCOPE: Supported-codec default validation with visible retained legacy values; default state, SET_USER_PREFERENCE / SET_SINGLE_PREFERENCE, the C-49 zoom actions (APPLY_FONT_SIZE / ZOOM_STEP / ZOOM_ACTUAL_SIZE) and the one-time legacy `zoom` migration, the C-41 T-002 retired-theme migration in ASK_FOR_USER_PREFERENCE, ASK_FOR_USER_PREFERENCE boot hydration, buildCapabilities + default-handler queries, LISTEN_SYSTEM_LANGUAGE re-resolution (C-45), RESET_PREFERENCES_TO_DEFAULTS (C-38 T-004), treeShowAllFiles default + resettable membership (C-51 T-001), the experimental session-only surface (SET_EXPERIMENTAL_PROGRESSIVE_MOUNT / RECORD_EXPERIMENTAL_MOUNT_SERVED / LISTEN_EXPERIMENTAL_PROGRESSIVE_MOUNT, the hydration strip of EXPERIMENTAL_SESSION_ONLY_KEYS and the mt::experimental-progressive-* cross-window events; never persisted, never resettable).
+//   SCOPE: Supported-codec default validation with visible retained legacy values; C-PREFS-TRUTH (F-007) schema-driven hydration validation with one-shot in-memory repair (the documented _shims/preferences/schema.json keys only, legacy consumer value forms preserved); default state, SET_USER_PREFERENCE / SET_SINGLE_PREFERENCE, the C-49 zoom actions (APPLY_FONT_SIZE / ZOOM_STEP / ZOOM_ACTUAL_SIZE) and the one-time legacy `zoom` migration, the C-41 T-002 retired-theme migration in ASK_FOR_USER_PREFERENCE, ASK_FOR_USER_PREFERENCE boot hydration, buildCapabilities + default-handler queries, LISTEN_SYSTEM_LANGUAGE re-resolution (C-45), RESET_PREFERENCES_TO_DEFAULTS (C-38 T-004), treeShowAllFiles default + resettable membership (C-51 T-001), the experimental session-only surface (SET_EXPERIMENTAL_PROGRESSIVE_MOUNT / RECORD_EXPERIMENTAL_MOUNT_SERVED / LISTEN_EXPERIMENTAL_PROGRESSIVE_MOUNT, the hydration strip of EXPERIMENTAL_SESSION_ONLY_KEYS and the mt::experimental-progressive-* cross-window events; never persisted, never resettable).
 //   DEPENDS: pinia, @tauri-apps/api/core, @tauri-apps/api/event (listen/emit — experimental cross-window sync only), bus, services/notification, i18n/index.js, i18n/systemLocale.js, util/autoTheme.js, util/themeMigration.js, util/docStats.js, common/encoding capability catalog.
 //   LINKS: _shims/preferences/schema.json defaults; pages/app.vue boot + zoom keys/wheel; components/zoomIndicator; store/treeFilter.js (consumer); prefComponents/tabs/experimental (the Experimental tab); components/editorWithTabs/editor.vue (the open-path consumer); components/titleBar/quickSettings/tablesTab.vue (the T-006 writer of the table preference keys); src/muya/lib/config/index.js tableFullWidthDefault (the option the tri-state preference feeds from plan T-007); .grace/changes/archive/C-49; .grace/changes/archive/C-38 T-004; .grace/changes/archive/C-51 T-001; .grace/changes/archive/C-LARGE-DOC-WAVE-A; .grace/changes/archive/C-PAGE-WIDTH-TABLES.
 //   ROLE: RUNTIME
@@ -21,12 +21,29 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   LAST_CHANGE: v2.2.0 - 2026-11-21 C-PREFS-TRUTH (F-007): the single
+//   hydration load point (SET_USER_PREFERENCE) validates every key
+//   documented in _shims/preferences/schema.json against its declared
+//   type/enum/minimum/maximum/pattern and repairs an invalid value IN
+//   MEMORY to the schema default exactly once, with a loud
+//   [PREFERENCES][BLOCK_PREFERENCES_REPAIR] key=... raw=... reason=...
+//   marker (reason type|enum|min|max|pattern). Conservative scope: keys
+//   outside the schema, the session-only experimental keys and null /
+//   undefined values keep today's pass-through (the C-38 T-004 null
+//   guard stays); a documented legacy consumer value form is NOT
+//   repaired — codeFontSize stored as the '14px' string (the C-49
+//   contract parsed by util/theme.js addCommonStyle) passes through
+//   unvalidated until its schema entry is honest. Repair never rewrites
+//   the preferences file: it persists only when the user next saves that
+//   key through SET_SINGLE_PREFERENCE, and the m005_prefs.rs backend
+//   keeps its loose-typed load_from contract ("Schema validation is the
+//   renderer's job").
 //   - 2026-11-17 C-AUTOSAVE-DEFAULT-ON: the write-through autosave default
 //     flips to true (external-tester expectation, Obsidian parity); an
 //     explicitly persisted false still keeps it off, the delay and the
 //     requiresExplicitSave guards are unchanged.
 //   - 2026-11-11 C-METADATA-SAVE-SAFETY: supported-codec default guard, with unavailable stored defaults retained and surfaced.
-//   LAST_CHANGE: v2.1.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-006: two new
+//   v2.1.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-006: two new
 //   persisted, resettable keys for the quick-settings Tables tab —
 //   tableFullWidthDefault (the tri-state 'auto'|'fit'|'full' default
 //   table mode under the EXISTING muya option name; 'auto' per owner
@@ -123,6 +140,9 @@ import { SYSTEM_LANGUAGE, resolveSystemLocale } from '../i18n/systemLocale'
 import { resolveAutoTheme } from '../util/autoTheme'
 import { migrateThemePreferences } from '../util/themeMigration'
 import { defaultStatusBarVisibility } from '../util/docStats'
+// C-PREFS-TRUTH (F-007): the documented preference schema is the hydration
+// validation source (see START_BLOCK_HYDRATION_VALIDATION below).
+import preferenceSchema from '../_shims/preferences/schema.json'
 
 // C-49: the unified zoom clamps the editor font size to 12–36 px. 16 px is
 // the base unit — --mark-zoom (fontSize / 16) scales pele diagrams with
@@ -486,6 +506,70 @@ export const RESETTABLE_PREFERENCE_KEYS = Object.freeze([
 ])
 // END_BLOCK_RESETTABLE_KEYS
 
+// START_BLOCK_HYDRATION_VALIDATION
+// C-PREFS-TRUTH (F-007, plan T-001): schema-driven hydration validation at
+// the single load point. The renderer — not the Rust store (m005_prefs.rs
+// keeps its loose-typed load_from) — checks every value a hydration payload
+// carries for a key DOCUMENTED in _shims/preferences/schema.json against
+// the declared type / enum / minimum / maximum / pattern, and repairs an
+// invalid value in memory to the schema default (preferenceDefaults()
+// factory value where the schema entry omits one) exactly once, with a
+// loud [PREFERENCES][BLOCK_PREFERENCES_REPAIR] marker. Conservative
+// scope, per the C-PREFS-TRUTH spec:
+//   - keys outside the documented schema pass through untouched;
+//   - the session-only experimental keys are stripped from hydration
+//     before this runs (EXPERIMENTAL_SESSION_ONLY_KEYS) and are not
+//     documented in the schema, so they stay untouched either way;
+//   - null/undefined values keep the C-38 T-004 pass-through;
+//   - a documented LEGACY consumer value form is NOT "repaired": where
+//     the schema and a shipped consumer contract disagree, the consumer
+//     contract wins and the key stays unvalidated until its schema entry
+//     is honest. Concretely codeFontSize may be stored as the legacy
+//     '14px' string (the C-49 contract parsed by util/theme.js
+//     addCommonStyle via Number.parseFloat) even though the schema
+//     declares type number — it passes through unvalidated and unmarked.
+// Repair is in-memory at load time only: the preferences file is never
+// rewritten here; the corrected value persists exactly when the user next
+// saves that key through the existing SET_SINGLE_PREFERENCE path.
+const SCHEMA_VALIDATION_SKIP_KEYS = new Set([
+  // codeFontSize: schema declares number, the C-49 consumer contract also
+  // accepts the legacy '14px' string form — consumer contract wins.
+  'codeFontSize'
+])
+
+// Returns the violation reason (type|enum|min|max|pattern) or null when the
+// value satisfies the schema entry (or the key is not schema-validated).
+const preferenceViolation = (key, value) => {
+  const entry = preferenceSchema[key]
+  if (!entry || SCHEMA_VALIDATION_SKIP_KEYS.has(key)) return null
+  if (entry.type === 'boolean' && typeof value !== 'boolean') return 'type'
+  if (entry.type === 'number') {
+    if (typeof value !== 'number' || !Number.isFinite(value)) return 'type'
+    if (typeof entry.minimum === 'number' && value < entry.minimum) return 'min'
+    if (typeof entry.maximum === 'number' && value > entry.maximum) return 'max'
+  }
+  if (entry.type === 'string' && typeof value !== 'string') return 'type'
+  if (entry.type === 'array' && !Array.isArray(value)) return 'type'
+  if (Array.isArray(entry.enum) && !entry.enum.includes(value)) return 'enum'
+  if (
+    typeof entry.pattern === 'string' &&
+    typeof value === 'string' &&
+    !new RegExp(entry.pattern).test(value)
+  ) {
+    return 'pattern'
+  }
+  return null
+}
+
+// The schema default, else the named factory default (same fallback rule
+// RESET_PREFERENCES_TO_DEFAULTS uses for the code-level truth).
+const repairedPreferenceValue = (key) => {
+  const entry = preferenceSchema[key]
+  if (entry && typeof entry.default !== 'undefined') return entry.default
+  return preferenceDefaults()[key]
+}
+// END_BLOCK_HYDRATION_VALIDATION
+
 export const usePreferencesStore = defineStore('preferences', {
   state: preferenceDefaults,
 
@@ -516,14 +600,27 @@ export const usePreferencesStore = defineStore('preferences', {
       prefKeys.forEach((key) => {
         // C-38 T-004 (IA §5 bug 15): bootstrap.js fills absent URL params
         // with null; a null must never stomp a real default (it used to
-        // null codeFontSize/codeFontFamily/titleBarStyle before the first
+        // null-stomp codeFontSize/codeFontFamily/titleBarStyle before the first
         // hydration because only `undefined` was filtered).
         if (
           preference[key] !== null &&
           typeof preference[key] !== 'undefined' &&
           typeof this[key] !== 'undefined'
         ) {
-          this[key] = preference[key]
+          // C-PREFS-TRUTH (F-007): schema-driven hydration validation —
+          // a value failing its documented schema constraints is repaired
+          // in memory to the schema default exactly once per key, with a
+          // loud marker; valid values, undocumented keys and legacy
+          // consumer forms keep the byte-for-byte pass-through.
+          const reason = preferenceViolation(key, preference[key])
+          if (reason) {
+            this[key] = repairedPreferenceValue(key)
+            console.log(
+              `[PREFERENCES][BLOCK_PREFERENCES_REPAIR] key=${key} raw=${JSON.stringify(preference[key])} reason=${reason}`
+            )
+          } else {
+            this[key] = preference[key]
+          }
         }
       })
 
@@ -556,7 +653,7 @@ export const usePreferencesStore = defineStore('preferences', {
       // size. Payloads from post-C-49 profiles carry baseFontSize and apply
       // it verbatim above. Fire-and-forget persist: once written, every
       // later hydration carries the key and the mirror stops firing.
-      const incomingFontSize = Number(preference && preference.fontSize)
+      const incomingFontSize = Number(preference && this.fontSize)
       if (
         preference &&
         preference.baseFontSize === undefined &&
@@ -581,9 +678,11 @@ export const usePreferencesStore = defineStore('preferences', {
         this.imageInsertAction = 'folder'
       }
       // END_BLOCK_IMAGE_UPLOAD_RETIRED
-      // Update i18n language if language preference changed
-      if (preference.language && preference.language !== oldLanguage) {
-        setLanguage(preference.language)
+      // Update i18n language if language preference changed (the corrected
+      // store value — C-PREFS-TRUTH: a repaired language must not re-run
+      // setLanguage with its raw invalid payload form).
+      if (this.language && this.language !== oldLanguage) {
+        setLanguage(this.language)
       }
     },
     SET_MODE({ type, checked }) {
