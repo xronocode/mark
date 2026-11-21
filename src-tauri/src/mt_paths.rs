@@ -2,14 +2,16 @@
 // VERSION: 2.0.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Resolve OS-native cache and durable data roots in the configured application namespace.
-//   SCOPE: Immutable validated namespace selection and pure path calculation; no filesystem I/O or Tauri runtime dependency.
-//   DEPENDS: stdlib; main initializes the identifier from the generated Tauri Context before state access.
+//   SCOPE: Immutable validated namespace selection and pure path calculation; no filesystem I/O or Tauri runtime dependency. resolve_boot_identifier selects the debug dev-namespace default (DEV_BUNDLE_ID) or the configured release identifier before initialization.
+//   DEPENDS: stdlib; main selects the boot namespace via resolve_boot_identifier — debug builds default to DEV_BUNDLE_ID with the debug-only MARK_PROFILE_IDENTIFIER escape (invalid values fail closed), release keeps the configured identifier — and initializes the identifier from the generated Tauri Context before state access.
 //   LINKS: M-022, .grace/graph/runtime.xml M-022; .grace/verification/runtime.xml V-M-022.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 // START_MODULE_MAP
 //   APP_BUNDLE_ID - Canonical release identifier, retained as the default for non-app callers.
+//   DEV_BUNDLE_ID - Dev-profile namespace default bound by debug builds (com.xronocode.mark.dev).
+//   resolve_boot_identifier - Pure boot selection: debug defaults to DEV_BUNDLE_ID, release keeps the configured identifier, a valid debug-only override wins, an invalid override fails closed.
 //   initialize_application_identifier - Bind the validated configured namespace once.
 //   application_identifier - Read the initialized namespace for native consumer identities.
 //   cache_root - Resolve the current namespace's OS-native cache root.
@@ -18,6 +20,7 @@
 //   data_root_from_env - Resolve durable root using a synthetic environment lookup.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   - 2026-11-21 C-DEV-ENV-ISOLATION: debug builds resolve the DEV_BUNDLE_ID dev namespace through the pure resolve_boot_identifier with the debug-only MARK_PROFILE_IDENTIFIER escape; release selection stays byte-identical.
 //   - 2026-11-09 C-STABILIZE-NATIVE-PROFILE-CLOSEOUT: expose the same initialized identifier for native credential/discovery/default-handler consumers.
 //   - 2026-11-09 C-STABILIZE-PROFILE-ISOLATION: separate configured test namespaces while preserving release paths and pre-boot rollback state ownership.
 // END_CHANGE_SUMMARY
@@ -27,6 +30,11 @@ use std::sync::OnceLock;
 
 /// Canonical release namespace. Alternate builds use their configured identifier.
 pub const APP_BUNDLE_ID: &str = "com.xronocode.mark";
+
+/// Dev-profile namespace. Debug builds (npm run tauri:dev and the
+/// dev-smoke cargo-built debug binary alike) bind it by default so ordinary
+/// dev runs never touch the production profile.
+pub const DEV_BUNDLE_ID: &str = "com.xronocode.mark.dev";
 
 static APPLICATION_IDENTIFIER: OnceLock<String> = OnceLock::new();
 
@@ -39,6 +47,32 @@ fn valid_application_identifier(identifier: &str) -> bool {
                     .bytes()
                     .all(|c| c.is_ascii_alphanumeric() || c == b'-' || c == b'_')
         })
+}
+
+/// Pure boot-namespace selection, evaluated before any initialization.
+///
+/// - Release builds (`debug_enabled == false`) always keep the configured
+///   identifier; any override is ignored entirely, so release binaries
+///   cannot be diverted from the configured Context namespace.
+/// - Debug builds default to [`DEV_BUNDLE_ID`]; a valid `MARK_PROFILE_IDENTIFIER`
+///   override (the documented debug-only escape hatch for migration testing)
+///   replaces the default; an invalid override fails closed instead of
+///   silently falling back to either namespace.
+pub(crate) fn resolve_boot_identifier(
+    configured: &str,
+    debug_enabled: bool,
+    env_override: Option<&str>,
+) -> Result<String, &'static str> {
+    if !debug_enabled {
+        return Ok(configured.to_owned());
+    }
+    match env_override {
+        None => Ok(DEV_BUNDLE_ID.to_owned()),
+        Some(override_id) if valid_application_identifier(override_id) => {
+            Ok(override_id.to_owned())
+        }
+        Some(_) => Err("Invalid application profile identifier"),
+    }
 }
 
 fn initialize_identifier(
@@ -265,6 +299,66 @@ mod tests {
         );
         assert!(test_cache.to_string_lossy().contains(test_id));
         assert!(test_data.to_string_lossy().contains(test_id));
+    }
+
+    #[test]
+    fn dev_namespace_default_resolves_disjoint_roots() {
+        assert!(
+            valid_application_identifier(DEV_BUNDLE_ID),
+            "the dev default must pass the existing identifier validator"
+        );
+        let env = mock_env(&[
+            ("HOME", "/Users/test"),
+            ("XDG_CACHE_HOME", "/test/cache"),
+            ("XDG_DATA_HOME", "/test/data"),
+            ("LOCALAPPDATA", r"C:\Users\test\AppData\Local"),
+            ("APPDATA", r"C:\Users\test\AppData\Roaming"),
+        ]);
+        let dev_id = resolve_boot_identifier(APP_BUNDLE_ID, true, None).unwrap();
+        assert_eq!(dev_id, DEV_BUNDLE_ID);
+        let release_cache = cache_root_for_identifier_from_env(&env, APP_BUNDLE_ID).unwrap();
+        let dev_cache = cache_root_for_identifier_from_env(&env, &dev_id).unwrap();
+        let release_data = data_root_for_identifier_from_env(&env, APP_BUNDLE_ID).unwrap();
+        let dev_data = data_root_for_identifier_from_env(&env, &dev_id).unwrap();
+        assert_ne!(
+            release_cache, dev_cache,
+            "dev preferences must not share the release cache root"
+        );
+        assert_ne!(
+            release_data, dev_data,
+            "dev durable state must not share the release data root"
+        );
+        assert!(dev_cache.to_string_lossy().contains(DEV_BUNDLE_ID));
+        assert!(dev_data.to_string_lossy().contains(DEV_BUNDLE_ID));
+    }
+
+    #[test]
+    fn escape_hatch_override_is_debug_gated() {
+        let configured = APP_BUNDLE_ID;
+        // Debug builds honor a valid override (migration testing).
+        assert_eq!(
+            resolve_boot_identifier(configured, true, Some("com.xronocode.mark.test.migration"))
+                .unwrap(),
+            "com.xronocode.mark.test.migration"
+        );
+        // Debug builds default to the dev namespace without an override.
+        assert_eq!(
+            resolve_boot_identifier(configured, true, None).unwrap(),
+            DEV_BUNDLE_ID
+        );
+        // Release builds ignore any override entirely (release-absence proof).
+        assert_eq!(
+            resolve_boot_identifier(configured, false, Some(DEV_BUNDLE_ID)).unwrap(),
+            configured
+        );
+        assert_eq!(
+            resolve_boot_identifier(configured, false, None).unwrap(),
+            configured
+        );
+        // Invalid overrides fail closed instead of silently falling back.
+        assert!(resolve_boot_identifier(configured, true, Some("")).is_err());
+        assert!(resolve_boot_identifier(configured, true, Some("com..bad")).is_err());
+        assert!(resolve_boot_identifier(configured, true, Some("com.example/other")).is_err());
     }
 
     #[test]
