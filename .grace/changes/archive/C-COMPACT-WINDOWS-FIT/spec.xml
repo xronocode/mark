@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved">
+<GraceChangeSpec graceVersion="4.0" status="applied">
   <C-COMPACT-WINDOWS-FIT>
     <Name>Compact-window fit and keyboard integrity for Quick Settings, Settings navigation and sheets</Name>
     <Created>2026-11-21</Created>

@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved">
+<GraceChangePlan graceVersion="4.0" status="applied">
   <C-DEV-ENV-ISOLATION>
     <Name>Dev environment isolation: dev profile namespace default, owned-PID dev-smoke cycle, POSIX review-lane handoff docs — implementation plan</Name>
     <Created>2026-11-21</Created>

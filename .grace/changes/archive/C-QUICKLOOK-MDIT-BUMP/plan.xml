@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved">
+<GraceChangePlan graceVersion="4.0" status="applied">
   <C-QUICKLOOK-MDIT-BUMP>
     <Name>QuickLook vendored markdown-it 14.3.3 + Highlight.js 11.12.0 refresh — implementation plan</Name>
     <Created>2026-11-21</Created>
