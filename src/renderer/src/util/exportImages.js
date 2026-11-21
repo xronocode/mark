@@ -20,7 +20,7 @@
 //   - 2026-11-21 C-EXPORT-BOUNDARIES: the embed scope gate. The pure
 //     isInDocumentScope classifier (segment-boundary prefix on
 //     forward-slash-normalized paths, trailing-slash tolerant,
-//     case-insensitive only under isWindows()) decides which resolved
+//     case-insensitive only under isWindows) decides which resolved
 //     paths the pass may read; embedLocalImages is now a two-phase
 //     consent pass — classify first, then ONE awaited requestScopeConsent
 //     callback receiving the deduplicated resolved out-of-scope candidates
@@ -103,7 +103,7 @@ const resolveImageSrc = (rawSrc, baseDir) => {
   // Explicit file:// URL.
   if (/^file:/i.test(decoded)) return fileUrlToPath(decoded)
 
-  if (isWindows()) {
+  if (isWindows) {
     // Drive letter (C:\ or C:/) — correctImageSrc's first branch.
     if (/^[a-zA-Z]:[\\/].+/.test(decoded)) {
       return decoded.replace(/\\/g, '/')
@@ -137,7 +137,7 @@ const resolveImageSrc = (rawSrc, baseDir) => {
 // path inside the exporting document's directory? Segment-boundary
 // prefix match on forward-slash-normalized, trailing-slash-stripped
 // paths ('/docs' never claims '/docsfiles/x.png'), case-insensitive
-// only under isWindows(). Reads no DOM, performs no I/O.
+// only under isWindows. Reads no DOM, performs no I/O.
 // ──────────────────────────────────────────────────────────────────────
 export const isInDocumentScope = (resolvedPath, baseDir) => {
   if (!baseDir || !resolvedPath) return false
@@ -145,7 +145,7 @@ export const isInDocumentScope = (resolvedPath, baseDir) => {
   const base = normalize(baseDir)
   if (!base) return false
   const resolved = normalize(resolvedPath)
-  const fold = (p) => (isWindows() ? p.toLowerCase() : p)
+  const fold = (p) => (isWindows ? p.toLowerCase() : p)
   const scopedBase = fold(base)
   const scopedResolved = fold(resolved)
   return scopedResolved === scopedBase || scopedResolved.startsWith(`${scopedBase}/`)

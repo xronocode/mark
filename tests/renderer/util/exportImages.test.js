@@ -14,9 +14,12 @@ vi.mock('@/ipc/runtime', () => ({
   }
 }))
 
-const isWindowsMock = vi.fn(() => false)
+// The real '@/util/index' exports isWindows as a BOOLEAN (module-level
+// platform constant). The mock toggles through a live getter so the
+// Windows-folding describes can flip it per-test.
+const isWindowsState = { value: false }
 vi.mock('@/util/index', () => ({
-  isWindows: (...args) => isWindowsMock(...args)
+  get isWindows() { return isWindowsState.value }
 }))
 
 // START_MODULE_CONTRACT
@@ -54,7 +57,7 @@ const img = (src) => `<p><img src="${src}" alt="x"></p>`
 beforeEach(() => {
   vi.mocked(ipcFs.stat).mockReset()
   vi.mocked(ipcFs.readBinary).mockReset()
-  isWindowsMock.mockReturnValue(false)
+  isWindowsState.value = false
 })
 
 describe('embedLocalImages — embedding (corners C-1, C-2)', () => {
@@ -240,7 +243,7 @@ describe('embedLocalImages — dedup (corner C-10)', () => {
 
 describe('embedLocalImages — Windows normalization (corner C-3)', () => {
   beforeEach(() => {
-    isWindowsMock.mockReturnValue(true)
+    isWindowsState.value = true
   })
 
   it('normalizes drive-letter paths with backslashes', async () => {
@@ -330,9 +333,9 @@ describe('embedLocalImages — embed scope consent gate (C-EXPORT-BOUNDARIES)', 
   })
 
   it('isInDocumentScope folds case only under isWindows()', async () => {
-    isWindowsMock.mockReturnValue(true)
+    isWindowsState.value = true
     expect(isInDocumentScope('/Docs/Img/x.png', '/docs')).toBe(true)
-    isWindowsMock.mockReturnValue(false)
+    isWindowsState.value = false
     expect(isInDocumentScope('/Docs/Img/x.png', '/docs')).toBe(false)
   })
 

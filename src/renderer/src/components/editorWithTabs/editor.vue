@@ -2386,9 +2386,11 @@ const handleExport = async (options) => {
         // (count 0 → no dialog, declined); muya renders the remote
         // plantuml.com img on consent, the pinned source placeholder on
         // decline. This branch only — pdf/print never run either gate.
+
         const plantumlRemoteConsent = await requestPlantUMLExportConsent(
           countPlantUMLFences(editor.value.getMarkdown())
         )
+
         const rawHtml = await editor.value.exportStyledHTML({
           title: htmlTitle || '',
           printOptimization: false,
@@ -2405,7 +2407,9 @@ const handleExport = async (options) => {
         // containers resolve src at print time (corner C-12).
         const { pathname } = editorStore.currentFile || {}
         const documentDir = pathname ? window.path.dirname(pathname) : null
+
         const { html, embedded, total, skipped } = await embedLocalImages(rawHtml, documentDir, { requestScopeConsent })
+
         // Counts only, never paths (console-privacy convention).
         // eslint-disable-next-line no-console
         console.debug(`[export][embed-images][BLOCK_EMBED_IMAGES] embedded=${embedded} total=${total} skipped=${skipped}`)
@@ -2436,9 +2440,11 @@ const handleExport = async (options) => {
       // two consent gates run here — the converter consumes the
       // post-consent HTML with no gate of its own (M-066 unchanged).
       try {
+
         const plantumlRemoteConsent = await requestPlantUMLExportConsent(
           countPlantUMLFences(editor.value.getMarkdown())
         )
+
         const rawHtml = await editor.value.exportStyledHTML({
           title: htmlTitle || '',
           printOptimization: false,
@@ -2447,7 +2453,9 @@ const handleExport = async (options) => {
         })
         const { pathname } = editorStore.currentFile || {}
         const documentDir = pathname ? window.path.dirname(pathname) : null
+
         const { html, embedded, total, skipped } = await embedLocalImages(rawHtml, documentDir, { requestScopeConsent })
+
         // eslint-disable-next-line no-console
         console.debug(`[export][embed-images][BLOCK_EMBED_IMAGES] embedded=${embedded} total=${total} skipped=${skipped}`)
         if (skipped > 0) {
