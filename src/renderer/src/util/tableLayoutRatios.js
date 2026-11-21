@@ -4,7 +4,7 @@
 //   PURPOSE: C-PAGE-WIDTH-TABLES T-008 (M-061) the store-side pure maths of the tableLayouts schema v2 — the ratios (fractions of the table width) that let persisted column sizes survive window resizes, zoom, page-width changes and Fit↔Full switches, plus the one-way migration of the legacy px-only entries (the fullWidth/fit booleans become the v2 mode field; a stored fit:true — the retired fake fit — opens in the honest Fit page). The muya counterpart of the apply/re-apply maths lives in src/muya/lib/tableResize/tableFit.js (muya stays self-contained); this module owns what the persistence layer needs: normalize, derive, apply, migrate.
 //   SCOPE: Pure transforms only — normalizeRatios (sanitize + unit-sum correction), ratiosFromWidths, applyRatios (ratios + frame → px widths floored at minima, summing to the frame), migrateTableEntry (schema v1 → v2: legacy fullWidth/fit booleans → mode, idempotent by construction), MIN_TABLE_COLUMN_PX (the shared 48px floor). No IO, no DOM — unit-pinnable with plain objects. C-TABLE-PROFILE-SCHEMA: migrateTableEntry's field decoding, legacy mode precedence and meaningful-entry rules delegate to muya/lib/tableResize/tableLayoutSchema (the shared owner); the explicit-Auto strip, the floor-less rounding, the unit-sum normalization, the array rejection and MIN_TABLE_COLUMN_PX stay local.
 //   DEPENDS: muya/lib/tableResize/tableLayoutSchema (the shared persisted-layout schema owner — C-TABLE-PROFILE-SCHEMA; the renderer→muya import direction only, never the reverse).
-//   LINKS: .grace/changes/archive/C-STABILIZE-TABLE-AUTO-PERSISTENCE;  .grace/changes/archive/C-PAGE-WIDTH-TABLES (plan T-008, spec R-8/R-10, corners C-8/C-9); .grace/changes/active/C-TABLE-PROFILE-SCHEMA (the shared schema owner — spec + plan); .grace/graph/performance.xml M-061; src/muya/lib/tableResize/tableLayoutSchema.js (the shared persisted-layout schema owner); util/tableLayoutStore.js (the store consuming migrateTableEntry + normalizeRatios); src/muya/lib/tableResize/index.js + tableFit.js (the muya-side sanitize/apply counterparts); store/preferences.js rememberTableColumnSizes (the consumption gate).
+//   LINKS: .grace/changes/archive/C-STABILIZE-TABLE-AUTO-PERSISTENCE;  .grace/changes/archive/C-PAGE-WIDTH-TABLES (plan T-008, spec R-8/R-10, corners C-8/C-9); .grace/changes/archive/C-TABLE-PROFILE-SCHEMA (the shared schema owner — spec + plan); .grace/graph/performance.xml M-061; src/muya/lib/tableResize/tableLayoutSchema.js (the shared persisted-layout schema owner); util/tableLayoutStore.js (the store consuming migrateTableEntry + normalizeRatios); src/muya/lib/tableResize/index.js + tableFit.js (the muya-side sanitize/apply counterparts); store/preferences.js rememberTableColumnSizes (the consumption gate).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -18,6 +18,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-21 C-DOCS-SYNC: C-TABLE-PROFILE-SCHEMA link repointed to .grace/changes/archive/ (the change archived); no behavior change.
 //   CURRENT: 2026-11-19 C-TABLE-PROFILE-SCHEMA: migrateTableEntry
 //   delegates the shared schema decisions (width/manual/ratio/tableWidth
 //   decoding, legacy mode precedence, meaningful-entry rules) to the new

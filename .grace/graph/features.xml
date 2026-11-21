@@ -158,6 +158,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-031; docs/development-plan.xml: M-031</LegacySource>
     </M-031>
     <M-032>
+      <SummaryDelta>C-DOCS-SYNC (2026-11-21): documentation-only delta with no code change — PlannedPath and KnowledgeGraphPath now name src/renderer/src/util/externalReload.js, the module owning reload admission, re-confirmation and replacement, beside the existing src/renderer/src/store/editor.js entry point and src/renderer/src/store/preferences.js.</SummaryDelta>
       <Name>live-reload</Name>
       <DisplayName>live-reload</DisplayName>
       <Type>INTEGRATION</Type>
@@ -178,7 +179,7 @@
         ipcFs.read. C-4: RENAME_IF_NEEDED moves the tabs and
         per-file watcher of a sidebar-renamed file to its new path.
       </Summary>
-      <PlannedPath>src/renderer/src/store/editor.js, src/renderer/src/store/preferences.js</PlannedPath>
+      <PlannedPath>src/renderer/src/store/editor.js, src/renderer/src/util/externalReload.js, src/renderer/src/store/preferences.js</PlannedPath>
       <Dependencies>
         <M-003/>
         <M-011/>
@@ -198,7 +199,7 @@
       </Contract>
       <Interface/>
       <Sources>
-        <KnowledgeGraphPath>src/renderer/src/store/editor.js, src/renderer/src/store/preferences.js</KnowledgeGraphPath>
+        <KnowledgeGraphPath>src/renderer/src/store/editor.js, src/renderer/src/util/externalReload.js, src/renderer/src/store/preferences.js</KnowledgeGraphPath>
       </Sources>
       <Observability/>
       <LegacyKnowledgeDetail>
