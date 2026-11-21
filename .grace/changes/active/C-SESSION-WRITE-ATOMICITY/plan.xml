@@ -1,0 +1,323 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-SESSION-WRITE-ATOMICITY>
+    <IntentSummary>Make the persisted session profile one all-or-nothing backend transaction: a new mt_prefs_set_many command applies the four lastSession* keys (lastSessionTabs, lastSessionActive, lastSessionFolders, lastSessionFormats) under one PrefsState mutex acquisition and one PrefsStore::save(), so the existing temp-sibling + sync_all + rename atomicity that already protects the single store file covers the whole profile and every on-disk state is one complete generation, never a torn mix of two generations. Quarantine a corrupt profile store honestly on read — the corrupt preferences.json is renamed to a stable quarantined sibling (m068 move-aside precedent) before the empty-defaults fallback, preserving the evidence instead of letting the next save silently overwrite it. Bound the window-close wait on the in-flight session write: the renderer close path (editor.js's prepareCommit arm for quit/window-close) races the profile write against a fixed two-second timer; on confirmation the close proceeds after the write settled, on timeout or write rejection the close still proceeds with a logged BLOCK marker — the save can delay the close at most two seconds, never block it forever. Surface the session write's rejection instead of swallowing it: _saveSessionState replaces the four sequential ipcPrefs.set(...).catch(() =&gt; {}) calls with one batched write whose rejection propagates to the callers, while the Promise.allSettled per-tab position flushes keep their current ordering and always run. Profile content schema is unchanged (same four keys, same value shapes, readable by the current RESTORE_SESSION and the cold-start offer); mt_prefs_get/mt_prefs_set/mt_prefs_get_all keep their semantics with mt_prefs_set remaining the canonical single-key surface; the m001 close state machine, prevent_close handoff, mt_close_window destroy and the debounced 400 ms autosave boot gate are unchanged.</IntentSummary>
+    <Spec>C-SESSION-WRITE-ATOMICITY</Spec>
+    <ReferenceState>Authored 2026-11-21 against the read-only canary-beta-wave worktree. src/renderer/src/store/editor.js _saveSessionState (:653-666) writes the four session keys as four sequential awaited ipcPrefs.set calls (:655-658), each ending in .catch(() =&gt; {}), then awaits Promise.allSettled of _flushFilePositionForTab per named tab (:662-665); the only call sites are the deps.prepareCommit arm for quit/window-close kinds (:494-495, consumed by util/documentOperations.js run() at :134 `if (!savingOnly) await deps.prepareCommit?.(context)` before the commit handoff) and the debounced autosave watcher fired 400 ms after a snapshot change (:676, `void this._saveSessionState()`); LISTEN_FOR_CLOSE (:860-863) routes mt::ask-for-close into REQUEST_DOCUMENT_OPERATION({kind:'window-close', commit: () =&gt; this._commitDocumentWindow('mt_close_window')}). src-tauri/src/m005_prefs.rs: PrefsStore::save() (:121-139) is the single-file atomic write — .tmp sibling via with_extension("json.tmp"), write_all, sync_all, fs::rename over the canonical name — pinned by save_is_atomic (:490-501); PrefsState::set (:236-240) takes the Mutex, inserts one key, runs one save per call, which is why four renderer calls are four transactions; load_from (:83-116) maps parse failures, non-object roots and io errors to Map::new() plus [Prefs][load][BLOCK_PREFS_CORRUPT ...] markers and NotFound to BLOCK_FIRST_LAUNCH, leaving corrupt bytes in place (pinned red today by corrupt_json_falls_back_to_empty :464-478 and non_object_root_is_corrupt :481-487); mt_prefs_set (:311-332) broadcasts the full snapshot on mt::user-preference after save with BLOCK_EMIT_FAILED/BLOCK_FANOUT logging; the C-UPDATER-ROLLBACK replace_from_snapshot helper (:256-270) already writes under one lock through the same atomic save. src-tauri/src/main.rs registers the prefs commands at :892-894 (mt_prefs_get, mt_prefs_set, mt_prefs_get_all) inside invoke_handler. The move-aside precedent lives in src-tauri/src/m068_rollback.rs: PROMOTION_ASIDE_DIR "live.promotion-aside" (:77-80) keeps the superseded live set under a stable sibling name until the replacement rename confirms, and promote_staging_over_live (:734-) takes the rename operation as an injected `rename: &amp;dyn Fn(&amp;Path, &amp;Path) -&gt; std::io::Result&lt;()&gt;` parameter — the seam this plan reuses for injected-failure pins. Close lifecycle anchors (read-only): m001_save_close.rs wire_close_handler (:581-601) prevent_close + mt::ask-for-close emit, mt_close_window (:410-419) advance_to_destroy + win.destroy() with BLOCK_DESTROY_WINDOW; m001_lifecycle.rs owns CloseStateMachine; nothing in either file needs to change. The e2e pin tests/e2e/perf/characterization-save-close.spec.ts:380-432 ("_saveSessionState writes lastSessionTabs/lastSessionActive/lastSessionFolders through mt_prefs_set") mocks mt_prefs_set via __mockInvoke, waits for the three per-key writes, asserts the values and that the invoke log contains mt_prefs_set — this is the rebinding target. The tauri e2e shim (tests/e2e/fixtures/tauri-shim.ts) resolves handlers by the raw command name at __TAURI_INTERNALS__.invoke and records every command into __invokeLog; ipcInvoke translates the mt:: channel form to the mt_ command form (src/renderer/src/ipc/contract/invoke.ts:107-109). Deviation notes: (1) the plan canon command `npx playwright test --project chromium ...` from the spec's VerificationIntent would silently run ZERO tests of the characterization spec, because the chromium project testIgnores **/perf/** (playwright.config.ts:39) and that spec runs only in webkit-perf (:52) — the TargetAssertions therefore pass `--project chromium --project webkit-perf` so all three listed specs actually execute; (2) the batch facade wrapper in prefs.ts calls the raw Tauri invoke('mt_prefs_set_many', ...) directly — extending the typed M-013-A contract (src/renderer/src/ipc/contract/types.ts) is outside this change's ObservedWriteScope, and the repository already has the direct-invoke precedent for commands outside the typed contract (editor.js imports invoke from '@tauri-apps/api/core' for mt_close_window/mt_app_quit); (3) the worktree commit hash is not recorded here (no shell access from the drafting session); every file, line and byte-level anchor above was verified directly against this tree. Per the drafting instruction this plan carries no self-referential grace-lint MustPassCommand; the orchestrator runs the current/target/final lifecycle gates itself. Writing this draft approves neither implementation, apply/archive, commit/push, lane departure, release, signing, tag nor publication.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-001</Value>
+        <Value>M-005</Value>
+        <Value>M-011</Value>
+        <Value>src-tauri/src/m005_prefs.rs</Value>
+        <Value>src-tauri/src/main.rs</Value>
+        <Value>src/renderer/src/store/editor.js</Value>
+        <Value>src/renderer/src/ipc/runtime/prefs.ts</Value>
+        <Value>tests/renderer/store/session-restore.test.js</Value>
+        <Value>tests/renderer/util/document-operations.test.js</Value>
+        <Value>tests/e2e/perf/characterization-save-close.spec.ts</Value>
+        <Value>src-tauri/src/m068_rollback.rs</Value>
+        <Value>.grace/graph/runtime.xml</Value>
+        <Value>.grace/verification/runtime.xml</Value>
+      </MustExist>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>await ipcPrefs.set('lastSessionTabs', tabs).catch(() =&gt; {})</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>await ipcPrefs.set('lastSessionActive', active).catch(() =&gt; {})</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>await ipcPrefs.set('lastSessionFolders', folders).catch(() =&gt; {})</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>await ipcPrefs.set('lastSessionFormats', formats).catch(() =&gt; {})</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>let tmp = self.path.with_extension("json.tmp");</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>f.sync_all()?;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fs::rename(&amp;tmp, &amp;self.path)?;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn save_is_atomic()</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn corrupt_json_falls_back_to_empty()</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn non_object_root_is_corrupt()</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>[Prefs][load][BLOCK_PREFS_CORRUPT reason=parse_failed</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/main.rs</File>
+        <Text>m005_prefs::mt_prefs_set,</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/main.rs</File>
+        <Text>m005_prefs::mt_prefs_get_all,</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/perf/characterization-save-close.spec.ts</File>
+        <Text>_saveSessionState writes lastSessionTabs/lastSessionActive/lastSessionFolders through mt_prefs_set</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-005</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-001</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-011</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>pub async fn mt_prefs_set_many(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn set_many(&amp;self, entries: Vec&lt;PrefsEntry&gt;) -&gt; Result&lt;(), std::io::Error&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>C-SESSION-WRITE-ATOMICITY</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn set_many_writes_session_profile_in_one_transaction(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn corrupt_store_file_is_quarantined_aside_not_overwritten(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>BLOCK_PREFS_QUARANTINED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn save_with_rename(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/main.rs</File>
+        <Text>m005_prefs::mt_prefs_set_many,</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/ipc/runtime/prefs.ts</File>
+        <Text>setMany(entries</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/ipc/runtime/prefs.ts</File>
+        <Text>mt_prefs_set_many</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>ipcPrefs.setMany(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>SESSION_COMMIT_TIMEOUT_MS = 2000</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>BLOCK_SESSION_COMMIT_TIMEOUT</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>BLOCK_SESSION_WRITE_FAILED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>C-SESSION-WRITE-ATOMICITY</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/session-restore.test.js</File>
+        <Text>// VERSION: 1.1.0</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/session-restore.test.js</File>
+        <Text>C-SESSION-WRITE-ATOMICITY</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/session-restore.test.js</File>
+        <Text>setMany</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/util/document-operations.test.js</File>
+        <Text>close_waits_for_session_write_confirmation_before_destroy</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/util/document-operations.test.js</File>
+        <Text>bounded_timeout_still_closes_honestly</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/ipc/runtime-prefs.test.ts</File>
+        <Text>mt_prefs_set_many</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/perf/characterization-save-close.spec.ts</File>
+        <Text>// VERSION: 1.2.0</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/perf/characterization-save-close.spec.ts</File>
+        <Text>mt_prefs_set_many</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/runtime.xml</File>
+        <Text>C-SESSION-WRITE-ATOMICITY</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/runtime.xml</File>
+        <Text>C-SESSION-WRITE-ATOMICITY</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>ipcPrefs.set('lastSessionTabs'</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>ipcPrefs.set('lastSessionActive'</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>ipcPrefs.set('lastSessionFolders'</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>ipcPrefs.set('lastSessionFormats'</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/renderer/src/ipc/contract/types.ts</File>
+        <Text>mt_prefs_set_many</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command budgetSeconds="600">cargo test --manifest-path src-tauri/Cargo.toml --bin mark prefs</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/store/session-restore.test.js tests/renderer/store/editor-session-coldstart.test.js tests/renderer/util/document-operations.test.js tests/renderer/ipc/runtime-prefs.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="900">npx playwright test tests/e2e/session-restore.spec.ts tests/e2e/multi-root-workspace.spec.ts tests/e2e/perf/characterization-save-close.spec.ts --project chromium --project webkit-perf</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-001 />
+        <M-005 />
+        <M-011 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-005 />
+        <V-M-011 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src-tauri/src/m005_prefs.rs</File>
+      <File>src-tauri/src/main.rs</File>
+      <File>src/renderer/src/ipc/runtime/prefs.ts</File>
+      <File>src/renderer/src/store/editor.js</File>
+      <File>tests/renderer/store/session-restore.test.js</File>
+      <File>tests/renderer/store/editor-session-coldstart.test.js</File>
+      <File>tests/renderer/util/document-operations.test.js</File>
+      <File>tests/renderer/ipc/runtime-prefs.test.ts</File>
+      <File>tests/e2e/perf/characterization-save-close.spec.ts</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+    <File>tests/e2e/fixtures/tauri-shim.ts</File><File>tests/renderer/store/editor-fn.test.js</File><File>tests/renderer/store/editor-position-memory.test.js</File></ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>M-005 batch command: mt_prefs_set_many applies the session profile under one mutex acquisition and one atomic save, with an injected-rename one-transaction pin</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Failing-first proof precedes implementation: the new pins below are added and shown red on the delivery baseline (the batch command absent, the four-key profile writable only as four separate transactions) before the implementation lands; the red run must demonstrate the current torn-profile window — a mid-sequence stop between two per-key writes leaves two generations on disk with no error surfaced.</Criterion>
+          <Criterion>src-tauri/src/m005_prefs.rs gains a serde wire struct PrefsEntry { key: String, value: Value } and a PrefsState::set_many(&amp;self, entries: Vec&lt;PrefsEntry&gt;) -&gt; Result&lt;(), std::io::Error&gt; that takes the store mutex exactly once, inserts every entry, and runs guard.save() exactly once — no intermediate save, no per-key flush, no lock release between inserts — so the whole profile becomes one temp+sync_all+rename transaction. A new #[tauri::command] pub async fn mt_prefs_set_many(entries: Vec&lt;PrefsEntry&gt;, app: tauri::AppHandle, prefs: State&lt;'_, PrefsState&gt;) -&gt; Result&lt;(), String&gt; applies the batch through set_many, maps the io error to String for the caller, and preserves the mt_prefs_set broadcast semantics once per batch: after the single save it emits the full snapshot on mt::user-preference to every webview window with the existing [Prefs][broadcast] logging shape (BLOCK_EMIT_FAILED on emit failure, BLOCK_FANOUT count) — one broadcast, not four. mt_prefs_get, mt_prefs_set and mt_prefs_get_all keep their exact current bodies and semantics; ordinary single-key preference writes do not migrate to the batch command.</Criterion>
+          <Criterion>src-tauri/src/main.rs registers the new command in invoke_handler as m005_prefs::mt_prefs_set_many, placed immediately after the existing m005_prefs::mt_prefs_set, line — registration only, no other main.rs change.</Criterion>
+          <Criterion>Injection seam per the m068 promote_staging_over_live precedent: the body of PrefsStore::save() moves into a private save_with_rename(&amp;self, rename: &amp;dyn Fn(&amp;Path, &amp;Path) -&gt; std::io::Result&lt;()&gt;) -&gt; Result&lt;(), std::io::Error&gt; (identical steps: create_dir_all, .tmp sibling, write_all, sync_all, injected rename over the canonical name, BLOCK_PERSISTED log), save() delegates to save_with_rename(fs::rename), and a #[cfg(test)] PrefsState::set_many_with_rename(entries, rename) mirrors set_many with the injected rename so tests can fail the rename without touching the production path. Every existing call site behavior is byte-equivalent.</Criterion>
+          <Criterion>Inline #[cfg(test)] pins, failing-first: set_many_writes_session_profile_in_one_transaction — seed a previous generation (a set of a non-session key plus distinct lastSession* values), snapshot the raw file bytes, run set_many (or set_many_with_rename with a counting rename closure) carrying all four lastSession* keys, and prove the counting closure recorded exactly ONE rename invocation, the on-disk file contains the complete new generation (all four keys present, previous values replaced), and a fresh PrefsState::from_path reads every key back; set_many_failure_keeps_previous_generation_and_never_promotes_tmp — the same seed, then set_many_with_rename with an always-failing rename closure: the error is returned to the caller, the live file bytes are still exactly the previous generation, no partial or mixed content appears, and the .tmp sibling never became the live file. The existing save_is_atomic, persistence_across_reloads, set_get_roundtrip, prefs_store_save_roundtrip_writes_pretty_json and follow_system_theme_true_survives_reload pins keep passing with UNCHANGED bodies.</Criterion>
+          <Criterion>Synchronize the file-local GRACE markup in src-tauri/src/m005_prefs.rs: the MODULE_CONTRACT SCOPE sentence records the batch command and the quarantine-on-load behavior (T-002 lands the quarantine text), and a dated 2026-11-21 C-SESSION-WRITE-ATOMICITY CHANGE_SUMMARY entry names the batch transaction, the PrefsEntry wire shape and the one-broadcast fanout; no unrelated markup edits.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">cargo test --manifest-path src-tauri/Cargo.toml --bin mark prefs</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>M-005 quarantine-on-load: a corrupt preferences.json is moved aside to a stable sibling with its bytes preserved before the empty-defaults fallback</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Failing-first proof precedes implementation: corrupt_store_file_is_quarantined_aside_not_overwritten is added and shown red on the baseline (the corrupt file stays in place with no quarantined sibling) before the quarantine lands.</Criterion>
+          <Criterion>PrefsStore::load_from quarantines before falling back: on every corrupt branch (parse failure, non-object root, non-NotFound io error) the store attempts one fs::rename of the unreadable file to a stable quarantined sibling derived from the file name — preferences.json becomes preferences.json.corrupt in the same directory (a with_file_name/format!("{}.corrupt") derivation; never a path built from store data) — before the existing Map::new() empty-defaults return. On rename success the [Prefs][load] marker family gains BLOCK_PREFS_QUARANTINED naming the quarantine sibling by file name only (no absolute paths in the new diagnostic fields — the safe_eprintln BLOCK_* convention with the existing [Prefs] prefix); on rename failure it logs BLOCK_PREFS_QUARANTINE_FAILED with the error and still proceeds to empty defaults — quarantine failure never blocks boot or panics. The NotFound first-launch branch keeps BLOCK_FIRST_LAUNCH and performs no quarantine. The corrupt bytes are therefore preserved for diagnosis instead of being silently overwritten by the next save.</Criterion>
+          <Criterion>Expectation updates on the two existing corrupt pins keep every current assertion that still holds and add the quarantine expectation without weakening the empty-defaults behavior: corrupt_json_falls_back_to_empty keeps asserting the empty store and that a subsequent set writes a valid file readable at the canonical path, and additionally asserts the .corrupt sibling exists carrying the exact original garbage bytes; non_object_root_is_corrupt keeps asserting the empty store for an array root and additionally asserts the sibling holds the original "[1, 2, 3]" bytes. CAUTION: these two pins change expectations by design — the review must confirm the empty-defaults assertions survived intact, not just that the suite is green. A new pin (or an extension of corrupt_store_file_is_quarantined_aside_not_overwritten) proves a missing store file produces no .corrupt sibling, and that after a quarantined load a subsequent save writes a fresh store at the canonical path while the quarantined evidence bytes stay untouched.</Criterion>
+          <Criterion>Module markup: the SCOPE/CONTRACT quarantine sentence from T-001's markup criterion is finalized here and the dated CHANGE_SUMMARY entry names the quarantine sibling, the two new markers and the honest-evidence rationale; no schema change to profile content — the four lastSession* keys and every other key keep their value shapes, and no migration or new pref key is introduced.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">cargo test --manifest-path src-tauri/Cargo.toml --bin mark prefs</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>M-011/M-005 renderer: ipcPrefs.setMany facade wrapper and _saveSessionState batch write with honest rejection surfacing</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Failing-first proof precedes implementation: the session-restore pins below are added and shown red on the baseline (the facade wrapper absent, _saveSessionState issuing four sequential sets with swallowed rejections) before the implementation lands; the red run must demonstrate the silently-swallowed write rejection — a rejecting prefs transport leaves _saveSessionState resolving normally today.</Criterion>
+          <Criterion>src/renderer/src/ipc/runtime/prefs.ts gains setMany(entries: Array&lt;{ key: string; value: unknown }&gt;): Promise&lt;void&gt; that dispatches the raw Tauri invoke('mt_prefs_set_many', { entries }) — direct @tauri-apps/api/core invoke per the mt_close_window precedent, because extending the typed M-013-A contract is outside this change's ObservedWriteScope (types.ts must NOT gain the channel; guarded by the TargetAssertion MustNotContain). The file-local markup gains a dated 2026-11-21 C-SESSION-WRITE-ATOMICITY CHANGE_SUMMARY entry recording the wrapper and the rationale; the existing get/set/getAll wrappers keep their exact bodies.</Criterion>
+          <Criterion>src/renderer/src/store/editor.js _saveSessionState replaces the four awaited per-key ipcPrefs.set(...).catch(() =&gt; {}) calls with ONE awaited ipcPrefs.setMany call carrying the full four-entry profile payload ([{key:'lastSessionTabs',value:tabs},{key:'lastSessionActive',value:active},{key:'lastSessionFolders',value:folders},{key:'lastSessionFormats',value:formats}]) built from the unchanged _sessionSnapshot(). The batch rejection is no longer swallowed: _saveSessionState captures it, still runs the Promise.allSettled per-tab position flushes afterwards in the current order (the flushes keep running regardless of the batch outcome, matching today's always-flush behavior), and then rethrows the batch error to the caller. The debounced autosave watcher (:676) keeps its 400 ms debounce and boot gate but its void _saveSessionState() gains an honest catch that logs the failure through the renderer console marker [Session][prefs][BLOCK_SESSION_WRITE_FAILED ...] instead of an unhandled rejection or silence. No reordering of the flushes, no change to _sessionSnapshot, BOOT_SESSION, RESTORE_SESSION, GET_SESSION_PATHS or the cold-start frozen offer; the profile content schema is unchanged.</Criterion>
+          <Criterion>The close-path prepareCommit arm (:494-495) is where T-004 binds; in this task only the arm's inner call switches to the batch-writing _saveSessionState unchanged in signature. The renderer close path behavior for ordinary (settling) writes is identical: documentOperations.js stays untouched.</Criterion>
+          <Criterion>Failing-first renderer pins in tests/renderer/store/session-restore.test.js (the in-memory ipcPrefs mock gains setMany): _saveSessionState issues exactly one setMany whose entries carry the four session keys with the exact snapshot values (tab paths in order with untitled skipped, active pathname, project roots, format records) and issues NO per-key ipcPrefs.set for any lastSession* key; a rejecting setMany makes _saveSessionState reject (assert.rejects) while the position-flush spy still ran; the boot-gate, debounce and restore-order pins keep passing unweakened. The suite's in-memory PREFS map semantics are preserved (setMany writes the same map so downstream reads behave as before). File markup: VERSION 1.0.0 to 1.1.0 and a dated CHANGE_SUMMARY entry naming C-SESSION-WRITE-ATOMICITY. tests/renderer/store/editor-session-coldstart.test.js gains only the ipcPrefs mock's setMany member (its cold-start, FORCE_CLOSE_TAB and reopen pins keep passing unweakened).</Criterion>
+          <Criterion>tests/renderer/ipc/runtime-prefs.test.ts gains pins for the new wrapper: setMany invokes the raw transport with 'mt_prefs_set_many' and the { entries } argument shape (mirroring the existing mt_prefs_set pin style) and propagates transport errors; existing get/set/getAll/ipcWorkspace pins unchanged.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/store/session-restore.test.js tests/renderer/store/editor-session-coldstart.test.js tests/renderer/ipc/runtime-prefs.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>M-011 bounded close-wait: the quit/window-close prepareCommit races the session write against a fixed two-second bound and proceeds honestly on timeout or rejection</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Failing-first proof precedes implementation: the document-operations pins below are added and shown red on the baseline (today's unbounded await commits only after an arbitrarily slow write and never completes for a never-settling one) before the bounded wait lands.</Criterion>
+          <Criterion>CAUTION — owner-confirmable value: the bound is a module-level constant in src/renderer/src/store/editor.js, SESSION_COMMIT_TIMEOUT_MS = 2000, with a comment recording it as the C-SESSION-WRITE-ATOMICITY owner-confirmable proposal (consistent with the 400 ms debounce and typical prefs write latency); the owner's confirmation or adjustment is recorded before implementation starts, and any owner-amended value replaces the constant without changing the mechanism.</Criterion>
+          <Criterion>The deps factory's prepareCommit arm for quit/window-close kinds wraps _saveSessionState in a bounded race: the write promise races a setTimeout(SESSION_COMMIT_TIMEOUT_MS) timer; write settled before the timer → close proceeds with the write's outcome (success: proceed; rejection: log the renderer console marker [Session][close][BLOCK_SESSION_WRITE_FAILED ...] and still proceed — a rejected session write completes the close with the failure surfaced); timer won → the marker [Session][close][BLOCK_SESSION_COMMIT_TIMEOUT bound=2000ms] (or the owner-amended bound) is logged, the timer is cleared, and the close proceeds while the in-flight write is left to settle in the background where the single-transaction backend keeps the previous complete generation on disk. Markers use the existing BLOCK_* console convention; no query text, document contents or absolute user paths in marker fields. The bound exists in the renderer wiring only — documentOperations.js (read-only anchor) keeps awaiting prepareCommit as today, and the m001 close state machine, prevent_close handoff and mt_close_window destroy are unchanged. Non-close kinds keep the exact current prepareCommit behavior (per-owner position flushes, unbounded).</Criterion>
+          <Criterion>Failing-first renderer pins in tests/renderer/util/document-operations.test.js driving the REAL store wiring (setupTestPinia pattern; documentOperations.js itself stays read-only, so the pins exercise the actual deps factory, not a copy): close_waits_for_session_write_confirmation_before_destroy — with clean tabs and a stubbed still-pending ipcPrefs.setMany, REQUEST_DOCUMENT_OPERATION({kind:'window-close', commit: spy}) does NOT invoke the commit (the close command) before the write settles, and invokes it exactly once after the write resolves; bounded_timeout_still_closes_honestly — with a never-settling setMany the commit is invoked within the fixed bound (the pin exercises the real default bound once; generous waitFor timeout above the bound) and the honest timeout marker is recorded (console.warn spy), the window not left hanging; rejected_session_write_still_closes — with a rejecting setMany the commit is invoked and the failure marker recorded. The existing document-operation pins (admission, barriers, composition checks, version guards) keep passing unweakened — their hand-built deps mock is untouched, so their prepareCommit stays the plain vi.fn(async () =&gt; {}).</Criterion>
+          <Criterion>Session behavior preservation pins stay green: the snapshot content through the batch is shape-identical to the four-key payload, the boot gate and debounce pins keep passing, and no new marker, store field or UI surface appears beyond the two close-path console markers.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/util/document-operations.test.js tests/renderer/store/session-restore.test.js</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>E2E rebinding plus graph, verification and file-local markup deltas</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/e2e/perf/characterization-save-close.spec.ts: the :380 pin is rebound from the three mt_prefs_set session keys to the batch command with the same value expectations — the spec installs a __mockInvoke.mt_prefs_set_many recorder (and keeps a mt_prefs_set recorder), drives the real _saveSessionState, asserts exactly ONE mt_prefs_set_many call whose entries carry the session profile (tabs equal to the opened fixture path list, active equal to the fixture pathname, folders equal to the project roots, formats present in the current validated-record shape), asserts the invoke log contains mt_prefs_set_many and still does NOT contain mt_set_user_preference for the session write, and asserts no per-key mt_prefs_set write occurred for any lastSession* key. All other characterization boundaries (save, Save As, Save All, Save &amp; Close, quit dialogs, wordCount/TOC/cursor, readers) keep passing unweakened. File markup: VERSION 1.1.1 to 1.2.0 and a dated CHANGE_SUMMARY entry naming C-SESSION-WRITE-ATOMICITY and the rebinding.</Criterion>
+          <Criterion>.grace/graph/runtime.xml: one dated C-SESSION-WRITE-ATOMICITY SummaryDelta appended adjacent to the trailing SummaryDelta inside each of M-005 (batch one-transaction profile write via mt_prefs_set_many + one mutex acquisition + one save, quarantine-on-load to the .corrupt sibling with BLOCK_PREFS_QUARANTINED/BLOCK_PREFS_QUARANTINE_FAILED, existing single-key surface and atomic save unchanged), M-001 (invoke_handler registration of mt_prefs_set_many only; close lifecycle unchanged) and M-011 (_saveSessionState issues one batched profile write with surfaced rejection; the quit/window-close prepareCommit is bounded by SESSION_COMMIT_TIMEOUT_MS = 2000 and proceeds honestly on timeout or rejection) — no other graph content changes.</Criterion>
+          <Criterion>.grace/verification/runtime.xml: one dated C-SESSION-WRITE-ATOMICITY scenario entry appended inside V-M-005 naming the new Rust pins (one-transaction batch write with the counting-rename proof, previous-generation survival under injected rename failure, quarantined corrupt store with preserved bytes, no quarantine on first launch, the expectation-updated corrupt pins with intact empty-defaults), the new markers, and the commands (the cargo prefs filter and the focused vitest set); one dated scenario entry appended inside V-M-011 naming the renderer pins (single batched session write with surfaced rejection, close-destroy ordering after write confirmation, two-second-bounded honest timeout that still closes, rejected write completes the close), the two close-path markers, the rebound characterization spec, and the e2e command. No other verification content changes.</Criterion>
+          <Criterion>Combined-diff audit: the whole change touches exactly the ObservedWriteScope files — m005_prefs.rs, main.rs, prefs.ts, editor.js, the four test files, the characterization spec and the two grace xml documents; documentOperations.js, m001_save_close.rs, m001_lifecycle.rs, m068_rollback.rs and src/renderer/src/ipc/contract/types.ts carry zero diffs (read-only anchors / out-of-scope contract).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/store/session-restore.test.js tests/renderer/store/editor-session-coldstart.test.js tests/renderer/util/document-operations.test.js tests/renderer/ipc/runtime-prefs.test.ts</Command>
+          <Command budgetSeconds="900">npx playwright test tests/e2e/session-restore.spec.ts tests/e2e/multi-root-workspace.spec.ts tests/e2e/perf/characterization-save-close.spec.ts --project chromium --project webkit-perf</Command>
+          <Command budgetSeconds="60">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/runtime.xml'); ET.parse('.grace/verification/runtime.xml')"</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Environment>Baseline discipline: this plan was drafted against the canary-beta-wave inspection tree; at implementation start the executor rebinds to the actual prepared delivery baseline, revalidates every BaselinesAssertion anchor (the four-call shape in editor.js, the save() temp+sync_all+rename body and the corrupt pins in m005_prefs.rs, the :892-894 registration in main.rs, the :380-432 characterization pin), reruns the session-restore, cold-start, document-operations and characterization suites on that baseline, and revalidates the spec assumption that SearchSessionCoordinator (M-013-B) owns no profile writes. Tasks run strictly sequentially T-001 → T-002 → T-003 → T-004 → T-005; every new pin is demonstrated failing-first on the baseline before its implementation lands, and the failing-first runs must detect the torn-profile window (interleaved per-key writes), the silently-swallowed rejection, the un-bounded close wait and the silently-overwritten corrupt bytes. Final assertions, all green with no skips, retries (beyond webkit-perf's configured one) or budget increases: cargo test --manifest-path src-tauri/Cargo.toml --bin mark prefs; npx --no-install vitest run tests/renderer/store/session-restore.test.js tests/renderer/store/editor-session-coldstart.test.js tests/renderer/util/document-operations.test.js tests/renderer/ipc/runtime-prefs.test.ts; npx playwright test tests/e2e/session-restore.spec.ts tests/e2e/multi-root-workspace.spec.ts tests/e2e/perf/characterization-save-close.spec.ts --project chromium --project webkit-perf; python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/runtime.xml'); ET.parse('.grace/verification/runtime.xml')". CAUTION ledger carried from the spec: (1) the two-second close bound is owner-confirmable — the owner's confirmation or amended value is recorded before T-004 implements the constant; (2) corrupt_json_falls_back_to_empty and non_object_root_is_corrupt change expectations by design and review must confirm the empty-defaults assertions survived; (3) no schema change to the profile content — the same four lastSession* keys with the same value shapes, no new pref key, no migration; (4) save_is_atomic, persistence_across_reloads and every other existing m005 pin keep unchanged bodies; (5) the playwright project set deviates from the spec's `--project chromium` wording by adding `--project webkit-perf` because the chromium project testIgnores **/perf/** and would otherwise silently run zero characterization tests (playwright.config.ts:39/:52) — recorded in ReferenceState as deviation note (1). Hosted/native close evidence (a real window destroy during an injected slow write against the real backend) remains a manual/open item and is not substituted by a shim or a renderer double. The orchestrator runs the current/target/final grace-lint lifecycle gates itself (current before editing, target during implementation, final --run-commands before archive, current after archiving); no command in this plan is self-referential to those gates. No apply/archive, commit/push, lane departure, release, signing, version, tag or publication is authorized by this plan.</Environment>
+    </AcceptanceVerification>
+    <ExecutionMode>sequential</ExecutionMode>
+    <Lifecycle>Drafted 2026-11-21 from the drafted spec C-SESSION-WRITE-ATOMICITY for orchestrator admission; the orchestrator owns status transitions and the durable/final/archive/publication boundaries. Writing this draft approves neither implementation nor apply/archive, commit/push, lane admission, release, signing, tag or publication.</Lifecycle>
+  </C-SESSION-WRITE-ATOMICITY>
+</GraceChangePlan>

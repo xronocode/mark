@@ -891,6 +891,7 @@ fn main() {
             m001_pdf::mt_print_to_pdf,
             m005_prefs::mt_prefs_get,
             m005_prefs::mt_prefs_set,
+            m005_prefs::mt_prefs_set_many,
             m005_prefs::mt_prefs_get_all,
             m005_prefs::mt_workspace_set,
             m008_fonts::mt_fonts_list,
