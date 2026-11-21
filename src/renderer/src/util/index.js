@@ -166,12 +166,12 @@ export const deepClone = (obj) => {
   return JSON.parse(JSON.stringify(obj))
 }
 
-// step-8b: read platform via preload bridge instead of direct
-// `process.platform`. Preload (@electron-toolkit/preload electronAPI)
-// runs synchronously and sets `window.electron.process` before any
-// renderer module loads, so these module-level constants resolve
-// reliably at import time.
-const _platform = window.electron.process.platform
+// vite-8 chunking no longer guarantees the shim (window.electron) has run
+// before this module evaluates, so read the platform through the
+// `process.platform` define (vite.config.js) which folds to the build-host
+// platform at build time — order-independent and per-platform correct in
+// the release matrix (macos/windows/linux build on their own hosts).
+const _platform = process.platform
 export const isOsx = _platform === 'darwin'
 export const isWindows = _platform === 'win32'
 export const isLinux = _platform === 'linux'

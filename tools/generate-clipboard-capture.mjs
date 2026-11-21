@@ -1,9 +1,9 @@
 // FILE: tools/generate-clipboard-capture.mjs
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Deterministically generate tools/clipboard-capture/capture-core.browser.js from the canonical ESM capture core and enforce generated-artifact freshness on demand.
 //   SCOPE: Read-only freshness check (no flags or --check), regeneration (--write), and pure render/compare helpers for tests; adaptation only - no capture, normalization, payload, metadata, filename or issue logic lives here.
-//   DEPENDS: vite (transformWithEsbuild), node:fs, node:url, node:path, tools/clipboard-capture/capture-core.js (canonical source).
+//   DEPENDS: esbuild (direct transform; vite 8 unbundled it), node:fs, node:url, node:path, tools/clipboard-capture/capture-core.js (canonical source).
 //   LINKS: M-044, V-M-044
 //   ROLE: SCRIPT
 //   MAP_MODE: LOCALS
@@ -26,7 +26,7 @@
 //   invokedAsScript - import.meta.url guard so vitest imports stay side-effect free.
 // END_MODULE_MAP
 
-import { transformWithEsbuild } from 'vite'
+import { transform as esbuildTransform } from 'esbuild'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
@@ -136,7 +136,7 @@ function projectCodeBody(transformedCode) {
 // Pure generator: canonical source text -> expected artifact text.
 export async function renderBrowserCore(sourceText) {
   const normalizedSource = normalizeSourceLineEndings(sourceText)
-  const { code } = await transformWithEsbuild(normalizedSource, SOURCE_FILE_LABEL, FIXED_TRANSFORM_OPTIONS)
+  const { code } = await esbuildTransform(normalizedSource, FIXED_TRANSFORM_OPTIONS)
   const body = projectCodeBody(code)
   return [PROLOGUE, body, EPILOGUE].join('\n') + '\n'
 }
