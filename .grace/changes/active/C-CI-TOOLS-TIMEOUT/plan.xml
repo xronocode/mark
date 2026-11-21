@@ -1,0 +1,48 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-CI-TOOLS-TIMEOUT>
+    <Name>Heavy tool-suite test timeouts raised</Name>
+    <Created>2026-11-21</Created>
+    <Spec>C-CI-TOOLS-TIMEOUT</Spec>
+    <IntentSummary>Raise the per-test timeout to 30 s in the three spawn-fixture tool suites — the same containment proven in tests/tools/dev-smoke.test.mjs. No fixture, assertion or behavior changes.</IntentSummary>
+    <BaselineAssertions>
+      <MustContain><File>tests/tools/run-rust-tests.test.mjs</File><Text>from 'vitest'</Text></MustContain>
+      <MustContain><File>tests/tools/qa-launch-gate.test.mjs</File><Text>from 'vitest'</Text></MustContain>
+      <MustContain><File>tests/tools/qa-artifact-smoke.test.mjs</File><Text>from 'vitest'</Text></MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify><Module>M-064</Module></MustVerify>
+      <MustContain><File>tests/tools/run-rust-tests.test.mjs</File><Text>vi.setConfig({ testTimeout: 30000 })</Text></MustContain>
+      <MustContain><File>tests/tools/qa-launch-gate.test.mjs</File><Text>vi.setConfig({ testTimeout: 30000 })</Text></MustContain>
+      <MustContain><File>tests/tools/qa-artifact-smoke.test.mjs</File><Text>vi.setConfig({ testTimeout: 30000 })</Text></MustContain>
+      <MustPassCommand><Command budgetSeconds="600">npx vitest run tests/tools/run-rust-tests.test.mjs tests/tools/qa-launch-gate.test.mjs tests/tools/qa-artifact-smoke.test.mjs</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-064 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-064 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>tests/tools/run-rust-tests.test.mjs</File>
+      <File>tests/tools/qa-launch-gate.test.mjs</File>
+      <File>tests/tools/qa-artifact-smoke.test.mjs</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Add the 30 s per-test budget to the three spawn-fixture suites</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Each file gains vi.setConfig({ testTimeout: 30000 }) directly after its vitest import with the C-CI-TOOLS-TIMEOUT comment; the vi import is extended where absent; nothing else changes.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">npx vitest run tests/tools/run-rust-tests.test.mjs tests/tools/qa-launch-gate.test.mjs tests/tools/qa-artifact-smoke.test.mjs</Command>
+        </Verification>
+      </T-001>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Criterion>226/226 across the three suites; grace lint final clean.</Criterion>
+    </AcceptanceVerification>
+  </C-CI-TOOLS-TIMEOUT>
+</GraceChangePlan>

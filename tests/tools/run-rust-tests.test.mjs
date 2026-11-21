@@ -41,7 +41,11 @@ import { EventEmitter } from 'node:events'
 import { spawn } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 import { createHash, randomUUID } from 'node:crypto'
-import { beforeAll, afterAll, afterEach, describe, expect, it } from 'vitest'
+import { beforeAll, afterAll, afterEach, describe, expect, it, vi } from 'vitest'
+
+// Spawn-fixture suites drive real child processes through shims; the 5 s
+// vitest default flakes on loaded shared runners (C-CI-TOOLS-TIMEOUT).
+vi.setConfig({ testTimeout: 30000 })
 import { runRustTests, runExecutable, runOwned, cleanupFiles, validateRuntime, snapshotExecutables } from '../../tools/run-rust-tests.mjs'
 
 const helper = resolve('tools/run-rust-tests.mjs')

@@ -23,6 +23,10 @@
 //   - 2026-11-15 C-QA-INSTALLER-ARTIFACTS: exact lifecycle fixture evidence; native acceptance remains separate.
 // END_CHANGE_SUMMARY
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
+// Spawn-fixture suites drive real child processes through shims; the 5 s
+// vitest default flakes on loaded shared runners (C-CI-TOOLS-TIMEOUT).
+vi.setConfig({ testTimeout: 30000 })
 import { runInNewContext } from 'node:vm'
 const commandBoundary = vi.hoisted(() => ({ run() { throw Error('unexpected native command: blocked') } }))
 vi.mock('node:child_process', () => ({ execFileSync: (...args) => commandBoundary.run(...args) }))

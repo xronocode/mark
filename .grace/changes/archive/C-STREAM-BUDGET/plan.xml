@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved">
+<GraceChangePlan graceVersion="4.0" status="applied">
   <C-STREAM-BUDGET>
     <Name>Per-session stream budgets (bytes, sections, rate) — implementation plan</Name>
     <Created>2026-11-21</Created>
