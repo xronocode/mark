@@ -182,9 +182,11 @@ commit, or any missing or unsuccessful required GitHub Actions check
 SHA. It then invokes Wrangler from this directory and writes the SHA,
 Worker version ID and UTC time to the owner-local
 `~/.local/state/mark/stats-gateway-deployments.jsonl` receipt. Never run
-Wrangler directly for a production deploy. The dedicated manifest pins Wrangler 4.159.0 and the committed lockfile fixes
-its complete dependency graph with integrity. The wrapper invokes only the
-prepared local CLI; missing or mismatched tooling fails without downloading it.
+Wrangler directly for a production deploy.
+The manifest and the committed lockfile are the version source: the dedicated
+manifest pins Wrangler and the lockfile fixes its complete dependency graph
+with integrity. The wrapper invokes only the prepared local CLI; missing or
+mismatched tooling fails without downloading it.
 Git/GitHub admission subprocesses receive no Cloudflare credentials. Only the
 prepared deployment process receives the explicit narrow token/account pair;
 there is no OAuth fallback. Telemetry is disabled for that process.

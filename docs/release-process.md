@@ -110,20 +110,23 @@ not a train dispatch and records no acceptance.
 
 The workflow publishes only the automated verification block. Once the release
 is live, prepend the drafted English “What's new” section and keep the automated
-block below a `---` separator:
+block below a `---` separator. The commands use the stable `v2.X.Y` tag; for a
+prerelease, substitute the `vX.Y.Z-beta.N` form section 4a mints:
 
 ```sh
-gh release view v2.X.Y-beta -R xronocode/mark --json body --jq '.body' > /tmp/rel-body.md
+gh release view v2.X.Y -R xronocode/mark --json body --jq '.body' > /tmp/rel-body.md
 # prepend the user-facing section, then:
-gh release edit v2.X.Y-beta -R xronocode/mark --notes-file /tmp/rel-combined.md
+gh release edit v2.X.Y -R xronocode/mark --notes-file /tmp/rel-combined.md
 ```
 
 Derive the content from the frozen train, shipped change specs and exact release
 diff (`git log vPREV..vNEW --oneline` plus the relevant spec names, summaries and
 decisions).
 
-Beta tags are published as normal releases (`--prerelease=false` on the
-draft-to-published edit, asserted by tests), so `/releases/latest` advances for
-the in-app updater. A release is live
+The `releases/latest` outcome follows the channel (section 4a). Editing notes
+on a prerelease tag (`vX.Y.Z-beta.N`) never advances `releases/latest`: the
+in-app updater feed stays on the previous stable tag. A stable tag advances
+`releases/latest` when the tag run publishes it, and the feed serves the new
+version. A stable release is live
 only when `https://github.com/xronocode/mark/releases/latest/download/latest.json`
 serves the new version.
