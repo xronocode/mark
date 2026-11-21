@@ -19,7 +19,7 @@
 //            mode uses global fetch + STATS_READ_KEY).
 //   LINKS:   .grace/graph/features.xml M-071;
 //            .grace/verification/features.xml V-M-071;
-//            .grace/changes/active/C-STATS-READOUT spec R-5, plan
+//            .grace/changes/archive/C-STATS-READOUT spec R-5, plan
 //            T-004 — the bundle path moves under
 //            .grace/changes/archive/ when the change archives;
 //            README.md for the readings (success, downloads-vs-clicks)
@@ -40,6 +40,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-21 C-DOCS-SYNC: the C-STATS-READOUT LINKS reference repointed to .grace/changes/archive/ (the change archived); no behavior change.
 //   - 2026-11-03 v1.3.0 C-STATS-DASH-PUSH: the --remote error pointer
 //     retargeted to the README's 'Where the numbers go' section (the
 //     old Readout access section no longer exists).

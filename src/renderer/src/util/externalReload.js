@@ -4,7 +4,7 @@
 //   PURPOSE: Single owner of external-file-change reload admission, the one 100ms settle + disk read with liveness revalidation, and the explicit replacement-state manifest plus synchronous commit boundary for editor tabs.
 //   SCOPE: Permission-aware admission (automatic clean-tab reloads skip equal text without replacement, snapshot or announcement; explicitly confirmed reloads replace even on equal text and snapshot only unequal content), one read/settle mechanism bound to a dispatch attempt (generation + exact live tab object + path), one replacement manifest built once over the injected getSingleFileState fresh state, and one commit stage recording the pre-reload snapshot, the opened snapshot, the eligible non-unified history surgery, the stale muya blocks drop, the mixed-line-ending notice, the contentReloaded stamp and the current-tab file-changed announcement. No stores, components, window, notification or i18n imports — every external effect is injected.
 //   DEPENDS: injected read/schedule/log/bus/isSamePath/buildSingleFileState/recordPreReloadSnapshot/recordOpenedSnapshot/notify/t (wired once from store/editor.js; all bindings call-time).
-//   LINKS: .grace/changes/active/C-EXTERNAL-RELOAD-OPERATION; store/editor.js (thin adapters APPLY_FILE_CHANGE/loadChange); store/help.js getSingleFileState (injected builder); store/diffSnapshots.js recordSnapshot/recordOpenedSnapshot (injected recorders).
+//   LINKS: .grace/changes/archive/C-EXTERNAL-RELOAD-OPERATION; store/editor.js (thin adapters APPLY_FILE_CHANGE/loadChange); store/help.js getSingleFileState (injected builder); store/diffSnapshots.js recordSnapshot/recordOpenedSnapshot (injected recorders).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -20,6 +20,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-21 C-DOCS-SYNC: C-EXTERNAL-RELOAD-OPERATION link repointed to .grace/changes/archive/ (the change archived); no behavior change.
 //   LAST_CHANGE: 1.0.0 - 2026-11-20 C-EXTERNAL-RELOAD-OPERATION: extraction of the duplicated APPLY_FILE_CHANGE read/settle/snapshot/replacement sequencing and the loadChange replacement body into this one owned boundary; permissions, timing, identity, history and snapshot behavior preserved.
 // END_CHANGE_SUMMARY
 

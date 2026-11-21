@@ -18,7 +18,7 @@
 //          bootstrap-ipc.js mt::open-new-tab (consume funnel);
 //          components/editorWithTabs/tabs.vue (the popover renders inline — teleported past the strip clip; no separate popover module);
 //          components/recent/index.vue; commands/index.js
-//          file.reopen-closed-tab; .grace/changes/active/
+//          file.reopen-closed-tab; .grace/changes/archive/
 //          C-FIX-009-RECENTLY-CLOSED; .grace/graph/runtime.xml M-011;
 //          .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
@@ -31,6 +31,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-21 C-DOCS-SYNC: C-FIX-009-RECENTLY-CLOSED link repointed to .grace/changes/archive/ (the change archived); no behavior change.
 //   LAST_CHANGE: v1.0.0 - 2026-10-21 C-FIX-009-RECENTLY-CLOSED: initial
 //     store. Memory-only by design — "clear it on the next cold launch"
 //     holds by construction; nothing here persists.

@@ -12,7 +12,7 @@
 //   DEPENDS: none.
 //   LINKS:   .grace/graph/features.xml M-071;
 //            .grace/verification/features.xml V-M-071;
-//            .grace/changes/active/C-STATS-READOUT spec R-3, plan T-002.
+//            .grace/changes/archive/C-STATS-READOUT spec R-3, plan T-002.
 //   ROLE: SCRIPT
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -24,6 +24,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-21 C-DOCS-SYNC: the C-STATS-READOUT LINKS reference repointed to .grace/changes/archive/ (the change archived); no behavior change.
 //   - 2026-11-03 C-STATS-READOUT T-002: initial shared module (renderer,
 //     SQL text and normalization moved out of query.mjs).
 // END_CHANGE_SUMMARY
