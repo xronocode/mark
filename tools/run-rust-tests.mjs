@@ -240,7 +240,22 @@ export function runOwned(file, args, {
   })
 }
 
-export function cleanupFiles(target, artifacts, errors, remove = path => fs.rmSync(path), stat = fs.lstatSync) {
+// Windows can keep a just-reaped test executable briefly locked (EBUSY/
+// EPERM, typically an antivirus scan); a bounded retry keeps the cleanup
+// honest instead of failing the suite on the platform's unlink timing.
+const removeWithRetry = (target, attempts = 20, delayMs = 50) => {
+  let lastError = null
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try { fs.rmSync(target, { force: true }); return } catch (error) {
+      if (!['EBUSY', 'EPERM'].includes(error?.code)) throw error
+      lastError = error
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, delayMs)
+    }
+  }
+  throw lastError
+}
+
+export function cleanupFiles(target, artifacts, errors, remove = removeWithRetry, stat = fs.lstatSync) {
   for (const item of artifacts) {
     try {
       if (!present(item.path, stat)) { item.available = false; continue }
