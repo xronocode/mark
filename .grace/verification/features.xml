@@ -654,6 +654,7 @@
       <Commands>
         <Command>npx vitest run tests/renderer/store/live-reload.test.js tests/renderer/store/live-reload-snapshots.test.js tests/renderer/store/editor-lock.test.js tests/renderer/store/editor.preview.test.ts tests/renderer/store/editor.test.ts tests/renderer/store/preview-mode.test.js</Command>
         <Command>npx vitest run tests/renderer/store/editor-deep2.test.js</Command>
+        <Command>npx vitest run tests/renderer/util/external-reload.test.js tests/renderer/store/live-reload.test.js</Command>
       </Commands>
       <Scenarios>
         <Scenario>scenario-stabilize-dirty-reload: direct-data and disk events preserve dirty markdown with liveReload enabled, including preview/locked/watch flags. Local edits during settle/read or after an explicit reload confirmation require a fresh conflict choice. Repeated dirty events retain one latest choice; stale generations and closed/reopened tab callbacks cannot replace current content. Clean preview/watch reload with preferences off and identical-content skipping remain supported (live-reload.test.js).</Scenario>

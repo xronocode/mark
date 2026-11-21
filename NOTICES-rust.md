@@ -1,6 +1,6 @@
 # NOTICES — Rust dependencies (Tauri backend)
 
-Generated from `cargo-bundle-licenses --format json` over **637 crates**.
+Generated from `cargo-bundle-licenses --format json` over **636 crates**.
 
 Each entry lists the crate name, version, license SPDX identifier, and upstream repository when available. Re-generate with:
 
@@ -14,7 +14,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | License | Crate count |
 |---|---:|
 | MIT OR Apache-2.0 | 303 |
-| MIT | 136 |
+| MIT | 135 |
 | Apache-2.0 OR MIT | 55 |
 | MIT/Apache-2.0 | 23 |
 | Unicode-3.0 | 18 |
@@ -362,7 +362,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | xattr | 1.6.1 | https://github.com/Stebalien/xattr |
 | zbus-secret-service-keyring-store | 1.0.1 | https://github.com/open-source-cooperative/zbus-secret-service-keyring-store.git |
 
-## MIT (136)
+## MIT (135)
 
 | Crate | Version | Repository |
 |---|---|---|
@@ -425,7 +425,6 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | libredox | 0.1.17 | https://gitlab.redox-os.org/redox-os/libredox.git |
 | malloc_buf | 0.0.6 | https://github.com/SSheldon/malloc_buf |
 | memoffset | 0.9.1 | https://github.com/Gilnaa/memoffset |
-| minisign-verify | 0.2.5 | https://github.com/jedisct1/rust-minisign-verify |
 | minisign-verify | 0.3.0 | https://github.com/jedisct1/rust-minisign-verify |
 | mio | 1.2.1 | https://github.com/tokio-rs/mio |
 | new_debug_unreachable | 1.0.6 | https://github.com/mbrubeck/rust-debug-unreachable |
@@ -471,7 +470,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | tracing | 0.1.44 | https://github.com/tokio-rs/tracing |
 | tracing-attributes | 0.1.31 | https://github.com/tokio-rs/tracing |
 | tracing-core | 0.1.36 | https://github.com/tokio-rs/tracing |
-| trash | 5.2.9 | https://github.com/ArturKovacs/trash |
+| trash | 5.3.0 | https://github.com/ArturKovacs/trash |
 | tree_magic_mini | 3.2.2 | https://github.com/mbrubeck/tree_magic/ |
 | try-lock | 0.2.5 | https://github.com/seanmonstar/try-lock |
 | uds_windows | 1.2.1 | https://github.com/haraldh/rust_uds_windows |

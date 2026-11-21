@@ -11,7 +11,7 @@ Give this to Claude Code, Codex, Cursor or any agent once. Paste it into its ins
 ````
 
 1. **It writes a file** — long plans and reports land in a `.md` file and open in Mark.
-2. **Mark keeps up** — every save reloads the page and keeps your place.
+2. **Mark keeps up** — every save reloads the page and keeps your place; a clean tab reloads silently, and Mark asks before replacing unsaved edits.
 3. **You shape it** — edit the finished page: fix steps, add notes, cut what's wrong.
 4. **It reads you back** — the agent re-reads the file; your edits are its next instruction.
 

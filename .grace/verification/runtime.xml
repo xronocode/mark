@@ -1116,7 +1116,7 @@
     <V-M-004>
       <Priority>critical</Priority>
       <Commands>
-        <Command>cd src-tauri &amp;&amp; cargo test --manifest-path src-tauri/Cargo.toml search</Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml search</Command>
       </Commands>
       <Scenarios>
         <Scenario>scenario-1: literal + regex + case-insensitive + whole-word options all work.</Scenario>
@@ -2378,7 +2378,7 @@
       <Priority>high</Priority>
       <Commands>
         <Command>npx vitest run tests/renderer/commands/fileEncoding.test.js tests/renderer/commands/lineEnding.test.js tests/renderer/commands/trailingNewline.test.js</Command>
-        <Command>cd src-tauri &amp;&amp; cargo test --manifest-path src-tauri/Cargo.toml menu</Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml menu</Command>
         <Command>npx vitest run tests/renderer/commands/shortcut-routing-audit.test.js tests/renderer/commands/menu-consistency.test.js</Command>
         <Command>npx vitest run tests/renderer/commands/index.test.js tests/renderer/commands/paragraph-shortcuts.test.js tests/renderer/pages/app-deep.test.js</Command>
       <Command>npx --no-install vitest run tests/renderer/util/split-commands.test.js tests/renderer/commands/index.test.js</Command>
@@ -9690,7 +9690,7 @@
     <V-M-015>
       <Priority>medium</Priority>
       <Commands>
-        <Command>cd src-tauri &amp;&amp; cargo test --manifest-path src-tauri/Cargo.toml pandoc</Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml pandoc</Command>
       </Commands>
       <Scenarios>
         <Scenario>scenario-1: pandoc on PATH → convert sample.docx → markdown.</Scenario>

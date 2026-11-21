@@ -3,6 +3,9 @@ contact_links:
   - name: Documentation
     url: https://mark.xronocode.com
     about: Guides for installing and using Mark.
+  - name: Ask a question
+    url: https://github.com/xronocode/mark/discussions/categories/q-a
+    about: Usage questions get answers in the public Q&A discussions.
   - name: Report a security problem
     url: https://github.com/xronocode/mark/security/advisories/new
     about: Please report vulnerabilities privately, not as a public issue.
