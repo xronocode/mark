@@ -1,10 +1,10 @@
 // FILE: tests/renderer/components/editor-export-images.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin the C-SELF-CONTAINED-HTML-EXPORT wiring in editor.vue's handleExport — the styledHtml branch runs embedLocalImages with the active document's directory before EXPORT and warns on skips; the pdf and print branches never run the pass (design-context corner C-12); an untitled document passes no directory.
-//   SCOPE: The bus 'export' handler branch wiring only — the embedding semantics themselves live in tests/renderer/util/exportImages.test.js (M-065 unit matrix).
-//   DEPENDS: Vitest, editor.vue (mounted with the editor-print-clearup harness: mocked Muya/Printer/Tauri surfaces, global @tauri-apps mocks from tests/renderer/setup.ts), a mocked '@/util/exportImages'.
-//   LINKS: .grace/verification/features.xml V-M-065; .grace/changes/archive/C-SELF-CONTAINED-HTML-EXPORT (R-4/R-5/R-6, corners C-9/C-12).
+//   PURPOSE: Pin the C-SELF-CONTAINED-HTML-EXPORT wiring in editor.vue's handleExport — the styledHtml branch runs embedLocalImages with the active document's directory before EXPORT and warns on skips; the pdf and print branches never run the pass (design-context corner C-12); an untitled document passes no directory. C-EXPORT-BOUNDARIES adds the two consent-gate wiring pins: the PlantUML card ('export-plantuml-consent') raised before exportStyledHTML in the styledHtml and docx branches with the decision riding plantumlRemoteConsent, the embed card ('export-embed-consent') granting exactly the listed files through requestScopeConsent, the rollbackConfirm-pattern card shape, the ten-locale editor.export consent-key completeness pin and the count-only console-privacy pin.
+//   SCOPE: The bus 'export' handler branch wiring only — the embedding semantics themselves live in tests/renderer/util/exportImages.test.js (M-065 unit matrix) and the pure PlantUML gate helpers in tests/renderer/util/export-plantuml-gate.test.js.
+//   DEPENDS: Vitest, editor.vue (mounted with the editor-print-clearup harness: mocked Muya/Printer/Tauri surfaces, global @tauri-apps mocks from tests/renderer/setup.ts), a mocked '@/util/exportImages', node:fs for the locale-table pin.
+//   LINKS: .grace/verification/features.xml V-M-065; .grace/changes/archive/C-SELF-CONTAINED-HTML-EXPORT (R-4/R-5/R-6, corners C-9/C-12); .grace/changes/active/C-EXPORT-BOUNDARIES.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -21,10 +21,21 @@
 //   getCssForOptionsMock - export CSS helper double.
 //   getHtmlTocMock - export TOC helper double.
 //   animatedScrollToMock - @/util scroll double.
-//   i18n - test i18n instance with the two export keys.
+//   i18n - test i18n instance with the export keys incl. the eight C-EXPORT-BOUNDARIES consent keys.
+//   (per-describe fixtures: PLANTUML_DOC one-fence markdown; CONSENT_KEYS nested key list) - the PlantUML gate wiring pins and the ten-locale editor.export consent-key completeness pin.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-21 v1.1.0 C-EXPORT-BOUNDARIES T-004: the two consent-gate
+//   wiring pins (export-plantuml-consent before exportStyledHTML in both
+//   branches with the plantumlRemoteConsent decision; export-embed-consent
+//   granting exactly the listed files through the requestScopeConsent
+//   third argument), the rollbackConfirm-pattern card shape pin, the
+//   count-only console-privacy pin and the ten-locale editor.export
+//   eight-key completeness pin with the en placeholder sets; the
+//   two-arg embedMock pins updated to the three-arg shape (corner C-9
+//   arity-only) — every semantic assertion of the pre-existing pins is
+//   unchanged.
 //   LAST_CHANGE: 2026-10-22 v1.0.0 - C-SELF-CONTAINED-HTML-EXPORT T-002:
 //   initial file — branch wiring pin for the styledHtml image-embedding
 //   pass (call args, skipped-notice gate, pdf/print non-invocation,
@@ -34,6 +45,8 @@
 import { shallowMount } from '@vue/test-utils'
 import { setupTestPinia } from '../pinia'
 import { createI18n } from 'vue-i18n'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 /* ── hoisted mock state (editor-print-clearup harness) ────────────── */
 const busMock = vi.hoisted(() => ({ on: vi.fn(), off: vi.fn(), emit: vi.fn() }))
@@ -206,9 +219,10 @@ globalThis.ResizeObserver = class ResizeObserver {
   disconnect() {}
 }
 
-// Minimal en messages for the two export keys so the warning assertion
+// Minimal en messages for the export keys so the warning assertion
 // exercises the real placeholder shape ({embedded}/{total}) the ten
-// locales must use.
+// locales must use, and the consent-card assertions read the same
+// interpolated copy the ten locales carry (mirrors static/locales/en.json).
 const i18n = createI18n({
   legacy: false,
   locale: 'en',
@@ -217,7 +231,15 @@ const i18n = createI18n({
       editor: {
         export: {
           imagesEmbeddedTitle: 'Some images were not embedded',
-          imagesEmbeddedMessage: '{embedded} of {total} images embedded'
+          imagesEmbeddedMessage: '{embedded} of {total} images embedded',
+          embedConsentTitle: 'Embed images from outside the document folder?',
+          embedConsentMessage: '{count} image file(s) outside the document directory ({dir}) would be read and embedded: {paths}',
+          embedConsentConfirm: 'Embed these files',
+          embedConsentCancel: 'Skip them',
+          plantumlConsentTitle: 'PlantUML diagrams are rendered by plantuml.com',
+          plantumlConsentMessage: '{count} PlantUML diagram(s) would be sent to {address} for rendering — the diagram source text leaves this machine',
+          plantumlConsentConfirm: 'Send to plantuml.com',
+          plantumlConsentCancel: 'Keep source local'
         }
       }
     }
@@ -265,6 +287,12 @@ describe('editor.vue — C-SELF-CONTAINED-HTML-EXPORT styledHtml wiring', () => 
     theme: null
   }
 
+  // C-EXPORT-BOUNDARIES: a one-fence document for the PlantUML gate pins.
+  const PLANTUML_DOC = ['# Doc', '', '```plantuml', '@startuml', 'A -> B', '@enduml', '```', ''].join('\n')
+  const flushAsync = () => new Promise((resolve) => setTimeout(resolve, 0))
+
+  let consoleDebugSpy
+
   beforeEach(async () => {
     pinia = setupTestPinia()
     const { useEditorStore } = await import('@/store/editor')
@@ -297,10 +325,20 @@ describe('editor.vue — C-SELF-CONTAINED-HTML-EXPORT styledHtml wiring', () => 
     noticeMock.notify.mockClear()
     embedMock.mockClear()
     embedMock.mockResolvedValue({ html: '<html>embedded</html>', embedded: 2, total: 2, skipped: 0 })
+    // C-EXPORT-BOUNDARIES: the gate wiring reads the document markdown and
+    // asserts on exportStyledHTML calls — reset both between tests.
+    mockEditorInstance.getMarkdown.mockReturnValue('')
+    mockEditorInstance.exportStyledHTML.mockClear()
+    mockEditorInstance.exportStyledHTML.mockResolvedValue('<html><body>doc</body></html>')
+    consoleDebugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {})
 
     const { save } = await import('@tauri-apps/plugin-dialog')
     save.mockReset()
     save.mockResolvedValue(null)
+  })
+
+  afterEach(() => {
+    consoleDebugSpy.mockRestore()
   })
 
   it('styledHtml: runs the pass with the generated HTML and the document directory, then EXPORT (R-6)', async () => {
@@ -309,9 +347,12 @@ describe('editor.vue — C-SELF-CONTAINED-HTML-EXPORT styledHtml wiring', () => 
     await getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
 
     expect(embedMock).toHaveBeenCalledTimes(1)
+    // C-EXPORT-BOUNDARIES: the pass receives the requestScopeConsent
+    // callback as its third argument.
     expect(embedMock).toHaveBeenCalledWith(
       '<html><body>doc</body></html>',
-      '/tmp'
+      '/tmp',
+      { requestScopeConsent: expect.any(Function) }
     )
   })
 
@@ -344,7 +385,13 @@ describe('editor.vue — C-SELF-CONTAINED-HTML-EXPORT styledHtml wiring', () => 
 
     await getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
 
-    expect(embedMock).toHaveBeenCalledWith('<html><body>doc</body></html>', null)
+    // C-EXPORT-BOUNDARIES: arity-only update — the null directory and the
+    // export itself are pinned exactly as before.
+    expect(embedMock).toHaveBeenCalledWith(
+      '<html><body>doc</body></html>',
+      null,
+      expect.objectContaining({ requestScopeConsent: expect.any(Function) })
+    )
   })
 
   it('pdf: never runs the embedding pass (corner C-12)', async () => {
@@ -375,3 +422,333 @@ describe('editor.vue — C-SELF-CONTAINED-HTML-EXPORT styledHtml wiring', () => 
     expect(mockPrinter.renderMarkdown).toHaveBeenCalledTimes(1)
   })
 })
+
+// ──────────────────────────────────────────────────────────────────────
+// START_BLOCK_CONSENT_WIRING_PINS
+// C-EXPORT-BOUNDARIES T-004: the two consent-gate wiring pins — the
+// PlantUML card raised before exportStyledHTML in the styledHtml and
+// docx branches with the decision riding plantumlRemoteConsent, the
+// embed card granting exactly the listed files through the third
+// argument, the rollbackConfirm-pattern card shape and the count-only
+// console-privacy convention.
+// ──────────────────────────────────────────────────────────────────────
+describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
+  let pinia, editorStore
+
+  const mountEditor = async () => {
+    const Editor = (await import('@/components/editorWithTabs/editor.vue')).default
+    return shallowMount(Editor, {
+      props: {
+        markdown: '# Hello',
+        cursor: null,
+        textDirection: 'ltr',
+        platform: 'darwin'
+      },
+      global: {
+        plugins: [pinia, i18n],
+        stubs: {
+          ElDialog: true,
+          ElForm: true,
+          ElFormItem: true,
+          ElInputNumber: true,
+          ElButton: true,
+          EditorSearch: true,
+          CloseIcon: true
+        }
+      }
+    })
+  }
+
+  const getBusHandler = (eventName) => {
+    const call = busMock.on.mock.calls.find((c) => c[0] === eventName)
+    if (!call) throw new Error(`no bus.on handler for ${eventName}`)
+    return call[1]
+  }
+
+  const exportOptions = {
+    header: '',
+    footer: '',
+    headerFooterStyled: false,
+    htmlTitle: '',
+    theme: null
+  }
+
+  const PLANTUML_DOC = ['# Doc', '', '```plantuml', '@startuml', 'A -> B', '@enduml', '```', ''].join('\n')
+  const flushAsync = () => new Promise((resolve) => setTimeout(resolve, 0))
+
+  const findCard = (dedupKey) => {
+    const call = noticeMock.notify.mock.calls.find((c) => c[0].dedupKey === dedupKey)
+    return call ? call[0] : null
+  }
+
+  let consoleDebugSpy
+
+  beforeEach(async () => {
+    pinia = setupTestPinia()
+    const { useEditorStore } = await import('@/store/editor')
+    const { usePreferencesStore } = await import('@/store/preferences')
+    const { useLayoutStore } = await import('@/store/layout')
+    const { useProjectStore } = await import('@/store/project')
+    editorStore = useEditorStore()
+    usePreferencesStore()
+    useLayoutStore()
+    useProjectStore()
+
+    editorStore.currentFile = {
+      id: 'tab-1',
+      filename: 'test.md',
+      pathname: '/tmp/test.md',
+      markdown: '# Hello',
+      isSaved: true,
+      cursor: null,
+      wordCount: { word: 1, character: 5, paragraph: 1, all: 7 },
+      notifications: [],
+      searchMatches: null,
+      scrollTop: 0,
+      previewMode: false
+    }
+    editorStore.tabs = [editorStore.currentFile]
+
+    busMock.on.mockClear()
+    mockPrinter.renderMarkdown.mockClear()
+    mockPrinter.clearup.mockClear()
+    noticeMock.notify.mockClear()
+    embedMock.mockClear()
+    embedMock.mockResolvedValue({ html: '<html>embedded</html>', embedded: 2, total: 2, skipped: 0 })
+    mockEditorInstance.getMarkdown.mockReturnValue('')
+    mockEditorInstance.exportStyledHTML.mockClear()
+    mockEditorInstance.exportStyledHTML.mockResolvedValue('<html><body>doc</body></html>')
+    consoleDebugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {})
+
+    const { save } = await import('@tauri-apps/plugin-dialog')
+    save.mockReset()
+    save.mockResolvedValue(null)
+  })
+
+  afterEach(() => {
+    consoleDebugSpy.mockRestore()
+  })
+
+  it('plantuml gate: a plantuml fence raises export-plantuml-consent before exportStyledHTML; Confirm passes plantumlRemoteConsent: true', async () => {
+    mockEditorInstance.getMarkdown.mockReturnValue(PLANTUML_DOC)
+    await mountEditor()
+
+    const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
+    await flushAsync()
+
+    const card = findCard('export-plantuml-consent')
+    expect(card).not.toBeNull()
+    expect(card.sticky).toBe(true)
+    expect(card.message).toContain('https://www.plantuml.com/plantuml')
+    expect(card.message).toContain('1')
+    // Raised BEFORE the export call.
+    expect(mockEditorInstance.exportStyledHTML).not.toHaveBeenCalled()
+
+    card.actions.find((a) => a.style === 'primary').handler()
+    await done
+
+    expect(mockEditorInstance.exportStyledHTML).toHaveBeenCalledWith(
+      expect.objectContaining({ plantumlRemoteConsent: true })
+    )
+    // Count-only marker: diagrams=N, never diagram text.
+    const logged = consoleDebugSpy.mock.calls.map((args) => args.map(String).join(' ')).join('\n')
+    expect(logged).toContain('[export][plantuml][BLOCK_PLANTUML_EXPORT_CONSENT diagrams=1]')
+  })
+
+  it('plantuml gate: Cancel passes plantumlRemoteConsent: false with the declined marker', async () => {
+    mockEditorInstance.getMarkdown.mockReturnValue(PLANTUML_DOC)
+    await mountEditor()
+
+    const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
+    await flushAsync()
+
+    const card = findCard('export-plantuml-consent')
+    expect(card).not.toBeNull()
+    card.actions.find((a) => a.style !== 'primary').handler()
+    await done
+
+    expect(mockEditorInstance.exportStyledHTML).toHaveBeenCalledWith(
+      expect.objectContaining({ plantumlRemoteConsent: false })
+    )
+    const logged = consoleDebugSpy.mock.calls.map((args) => args.map(String).join(' ')).join('\n')
+    expect(logged).toContain('[export][plantuml][BLOCK_PLANTUML_EXPORT_DECLINED diagrams=1]')
+  })
+
+  it('plantuml gate: a document without plantuml fences raises no card and passes plantumlRemoteConsent: false', async () => {
+    mockEditorInstance.getMarkdown.mockReturnValue('# Doc\n\n```mermaid\ngraph TD; A-->B\n```\n')
+    await mountEditor()
+
+    await getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
+
+    expect(findCard('export-plantuml-consent')).toBeNull()
+    expect(mockEditorInstance.exportStyledHTML).toHaveBeenCalledWith(
+      expect.objectContaining({ plantumlRemoteConsent: false })
+    )
+  })
+
+  it('plantuml gate: the docx branch raises the same card and passes the decision into exportStyledHTML', async () => {
+    mockEditorInstance.getMarkdown.mockReturnValue(PLANTUML_DOC)
+    await mountEditor()
+
+    const done = getBusHandler('export')({ type: 'docx', ...exportOptions })
+    await flushAsync()
+
+    const card = findCard('export-plantuml-consent')
+    expect(card).not.toBeNull()
+    expect(mockEditorInstance.exportStyledHTML).not.toHaveBeenCalled()
+
+    card.actions.find((a) => a.style === 'primary').handler()
+    await done
+
+    expect(mockEditorInstance.exportStyledHTML).toHaveBeenCalledWith(
+      expect.objectContaining({ plantumlRemoteConsent: true })
+    )
+    // The docx branch consumed the same post-consent HTML through the
+    // embed pass (M-066 unchanged in code — no gate of its own here).
+    expect(embedMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('embed gate: the pass receives a requestScopeConsent function; Confirm grants exactly the listed files', async () => {
+    embedMock.mockImplementation(async (html, dir, { requestScopeConsent }) => {
+      const granted = await requestScopeConsent(['/vault/pics/outside.png'])
+      return { html, embedded: granted.length, total: 1, skipped: 0 }
+    })
+    await mountEditor()
+
+    const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
+    await flushAsync()
+
+    const card = findCard('export-embed-consent')
+    expect(card).not.toBeNull()
+    expect(card.sticky).toBe(true)
+    // The card names the resolved path, its count and the document directory.
+    expect(card.message).toContain('/vault/pics/outside.png')
+    expect(card.message).toContain('/tmp')
+
+    card.actions.find((a) => a.style === 'primary').handler()
+    await done
+
+    expect(embedMock).toHaveBeenCalledWith(
+      '<html><body>doc</body></html>',
+      '/tmp',
+      { requestScopeConsent: expect.any(Function) }
+    )
+  })
+
+  it('embed gate: Cancel grants the empty list', async () => {
+    let grantedList = ['sentinel']
+    embedMock.mockImplementation(async (html, dir, { requestScopeConsent }) => {
+      grantedList = await requestScopeConsent(['/vault/pics/outside.png'])
+      return { html, embedded: grantedList.length, total: 1, skipped: 1 }
+    })
+    await mountEditor()
+
+    const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
+    await flushAsync()
+
+    const card = findCard('export-embed-consent')
+    expect(card).not.toBeNull()
+    card.actions.find((a) => a.style !== 'primary').handler()
+    await done
+
+    expect(grantedList).toEqual([])
+  })
+
+  it('consent card shape: sticky dedupKey singleton with two decision actions (rollbackConfirm pattern)', async () => {
+    mockEditorInstance.getMarkdown.mockReturnValue(PLANTUML_DOC)
+    await mountEditor()
+
+    const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
+    await flushAsync()
+
+    const card = findCard('export-plantuml-consent')
+    expect(card.dedupKey).toBe('export-plantuml-consent')
+    expect(card.sticky).toBe(true)
+    expect(card.actions).toHaveLength(2)
+    for (const action of card.actions) {
+      expect(typeof action.handler).toBe('function')
+    }
+    expect(card.actions[0].style).toBe('primary')
+
+    // The awaited decision resolves through the handlers — dismissing
+    // the card after the decision completes the export.
+    card.actions[0].handler()
+    await done
+    expect(mockEditorInstance.exportStyledHTML).toHaveBeenCalledTimes(1)
+  })
+
+  it('privacy: consent markers log counts only — no resolved path and no diagram text', async () => {
+    mockEditorInstance.getMarkdown.mockReturnValue(PLANTUML_DOC)
+    await mountEditor()
+
+    const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
+    await flushAsync()
+    const card = findCard('export-plantuml-consent')
+    card.actions.find((a) => a.style === 'primary').handler()
+    await done
+
+    const logged = consoleDebugSpy.mock.calls.map((args) => args.map(String).join(' ')).join('\n')
+    expect(logged).toContain('BLOCK_PLANTUML_EXPORT_CONSENT diagrams=1')
+    expect(logged).not.toContain('/tmp/test.md')
+    expect(logged).not.toContain('@startuml')
+    expect(logged).not.toContain('A -> B')
+  })
+})
+// END_BLOCK_CONSENT_WIRING_PINS
+
+// ──────────────────────────────────────────────────────────────────────
+// START_BLOCK_LOCALE_CONSENT_PINS
+// C-EXPORT-BOUNDARIES T-004: the ten-locale editor.export consent-key
+// completeness pin (existing V-M-065 locale convention) with the en
+// placeholder sets.
+// ──────────────────────────────────────────────────────────────────────
+describe('editor.export consent keys — ten-locale completeness (C-EXPORT-BOUNDARIES)', () => {
+  const ROOT = process.cwd()
+  const LOCALES = ['de', 'en', 'es', 'fr', 'ja', 'ko', 'pt', 'ru', 'zh-CN', 'zh-TW']
+  const CONSENT_KEYS = [
+    'embedConsentTitle',
+    'embedConsentMessage',
+    'embedConsentConfirm',
+    'embedConsentCancel',
+    'plantumlConsentTitle',
+    'plantumlConsentMessage',
+    'plantumlConsentConfirm',
+    'plantumlConsentCancel'
+  ]
+
+  const readTable = (locale) =>
+    JSON.parse(readFileSync(join(ROOT, 'static/locales', `${locale}.json`), 'utf8'))
+
+  it('every locale carries all eight consent keys with non-empty copy', () => {
+    for (const locale of LOCALES) {
+      const table = readTable(locale).editor?.export
+      for (const key of CONSENT_KEYS) {
+        expect(typeof table?.[key], `${locale}.${key}`).toBe('string')
+        expect(table[key].trim().length, `${locale}.${key}`).toBeGreaterThan(0)
+      }
+    }
+  })
+
+  it('en pins the consent placeholder sets', () => {
+    const table = readTable('en').editor.export
+    for (const token of ['{count}', '{dir}', '{paths}']) {
+      expect(table.embedConsentMessage).toContain(token)
+    }
+    for (const token of ['{count}', '{address}']) {
+      expect(table.plantumlConsentMessage).toContain(token)
+    }
+  })
+
+  it('every locale keeps the same placeholders as en', () => {
+    for (const locale of LOCALES) {
+      const table = readTable(locale).editor.export
+      for (const token of ['{count}', '{dir}', '{paths}']) {
+        expect(table.embedConsentMessage.includes(token), `${locale} ${token}`).toBe(true)
+      }
+      for (const token of ['{count}', '{address}']) {
+        expect(table.plantumlConsentMessage.includes(token), `${locale} ${token}`).toBe(true)
+      }
+    }
+  })
+})
+// END_BLOCK_LOCALE_CONSENT_PINS

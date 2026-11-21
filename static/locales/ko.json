@@ -83,7 +83,15 @@
       "error": "내보내기 오류",
       "imagesEmbeddedMessage": "전체 {total}개 중 {embedded}개의 이미지를 포함했습니다. 크기가 크거나 찾을 수 없는 이미지는 원래 링크로 유지됩니다",
       "errorExporting": "파일 내보내기 오류",
-      "settingsAction": "내보내기 설정"
+      "settingsAction": "내보내기 설정",
+      "embedConsentTitle": "문서 폴더 외부의 이미지를 포함할까요?",
+      "embedConsentMessage": "문서 디렉터리({dir}) 외부의 이미지 파일 {count}개를 읽어 포함합니다: {paths}",
+      "embedConsentConfirm": "이 파일들 포함",
+      "embedConsentCancel": "건너뛰기",
+      "plantumlConsentTitle": "PlantUML 다이어그램은 plantuml.com에서 렌더링됩니다",
+      "plantumlConsentMessage": "{count}개의 PlantUML 다이어그램이 렌더링을 위해 {address}로 전송됩니다 — 다이어그램 소스 텍스트가 이 컴퓨터를 벗어납니다",
+      "plantumlConsentConfirm": "plantuml.com으로 보내기",
+      "plantumlConsentCancel": "소스를 로컬에 유지"
     },
     "resizeTable": "표 크기 조정",
     "vega-lite-start": "vega-lite 시작",

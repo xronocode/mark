@@ -84,7 +84,15 @@
       "error": "Export error",
       "imagesEmbeddedMessage": "{embedded} of {total} images embedded — large or missing images keep their original links",
       "errorExporting": "Error exporting {type} file",
-      "settingsAction": "Export settings"
+      "settingsAction": "Export settings",
+      "embedConsentTitle": "Embed images from outside the document folder?",
+      "embedConsentMessage": "{count} image file(s) outside the document directory ({dir}) would be read and embedded: {paths}",
+      "embedConsentConfirm": "Embed these files",
+      "embedConsentCancel": "Skip them",
+      "plantumlConsentTitle": "PlantUML diagrams are rendered by plantuml.com",
+      "plantumlConsentMessage": "{count} PlantUML diagram(s) would be sent to {address} for rendering — the diagram source text leaves this machine",
+      "plantumlConsentConfirm": "Send to plantuml.com",
+      "plantumlConsentCancel": "Keep source local"
     },
     "resizeTable": "Resize Table",
     "vega-lite-start": "vega-lite start",
