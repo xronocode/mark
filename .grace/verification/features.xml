@@ -2895,6 +2895,7 @@
       <Markers><Marker>BLOCK_QUICKLOOK_BOUNDARY_CONFIRMED</Marker><Marker>BLOCK_QUICKLOOK_BOUNDARY_REJECTED</Marker></Markers>
       <TraceAssertions><TraceAssertion>The success marker requires the complete native result set, successful native process and independent zero observer requests. No unsupported-host or missing-evidence path is a green skip.</TraceAssertion></TraceAssertions>
             <scenario-quicklook-syntax-theme>C-QUICKLOOK-SYNTAX-THEME: native theme-light/theme-dark fixture cases prove the applied appearance switches the packaged palette (exact rgb values, media match, palette floors, dark retention) and the fail-closed runner protocol requires exactly 26 literal-passed cases; renderer unit controls pin the append-only CSS shape, the 41-selector coverage and the unrounded contrast table.</scenario-quicklook-syntax-theme>
-</V-M-073>
+
+      <scenario-quicklook-mdit-bump>C-QUICKLOOK-MDIT-BUMP: the vendored releases are pinned by tests/renderer/quicklook-runner.test.js (markdown-it 14.3.3 banner; Highlight.js v11.12.0 header + versionString), the 26-case native boundary matrix stays green with zero network, and check-quicklook.mjs byte-integrity evidence covers the adopted dists.</scenario-quicklook-mdit-bump></V-M-073>
   </VD-FEATURES>
 </GraceVerificationDocument>
