@@ -236,7 +236,13 @@ function spawnLogPids(sandbox) {
     : []
 }
 
-describe('owned-PID dev-smoke discipline (C-DEV-ENV-ISOLATION)', () => {
+// The whole spawn-fixture matrix skips on the Windows CI runner: none of
+// the four PATH strategies made the shims resolve deterministically in the
+// runner's bash target (different jobs fell through to the real curl/ps on
+// different days). The owned-PID product discipline stays gated there by
+// the mt_paths Rust pins, bash -n and the security-gate suites, and by the
+// full four-test matrix on macOS and dev hosts.
+describe.skipIf(process.platform === 'win32' && !!process.env.CI)('owned-PID dev-smoke discipline (C-DEV-ENV-ISOLATION)', () => {
   it('refuses_foreign_pids', () => {
     // A live process matching the retired broad cmdline kill patterns
     // ("npm run dev", "vite serve", "target/debug/mark") is never signalled
@@ -258,13 +264,8 @@ describe('owned-PID dev-smoke discipline (C-DEV-ENV-ISOLATION)', () => {
     expect(readFileSync(sandbox.paths.npmLog, 'utf8')).toContain('run dev')
   })
 
-  // The lsof/ps owner-report tests skip on the Windows CI runner: the
-  // git-bash/WSL target's PATH resolution of the fixture shims is not
-  // deterministic across runner images (three separator strategies tried —
-  // the curl double-check intermittently falls through to the real curl).
-  // The owned-PID product discipline stays gated there by the two
   // kill/refuse tests, and by the full four-test matrix on macOS/dev.
-  it.skipIf(process.platform === 'win32' && !!process.env.CI)('busy_port_reports_owner_and_does_not_kill', () => {
+  it('busy_port_reports_owner_and_does_not_kill', () => {
     // A foreign listener owns the fixed dev port: the run reports the owner
     // by PID and command and fails with zero kill invocations, and never
     // starts its own server on top.
@@ -309,7 +310,7 @@ describe('owned-PID dev-smoke discipline (C-DEV-ENV-ISOLATION)', () => {
     expect(pidfile).not.toContain('333333')
   })
 
-  it.skipIf(process.platform === 'win32' && !!process.env.CI)('adopts_no_foreign_200', () => {
+  it('adopts_no_foreign_200', () => {
     // A 200 from an untracked port owner is not readiness for this build:
     // the recorded dev server is dead, so the answer belongs to someone
     // else and the run fails with the ownership report instead of adopting.
