@@ -4,8 +4,8 @@
     <Created>2026-11-21</Created>
     <Summary>The tests/tools spawn-fixture suites (run-rust-tests, qa-launch-gate, qa-artifact-smoke) drive real child processes through shims; under a loaded shared Windows runner their honest runs exceed the 5 s vitest default and surface as order-dependent timeout flakes across unrelated PRs. Each file gains vi.setConfig({ testTimeout: 30000 }) — the same containment already proven in tests/tools/dev-smoke.test.mjs.</Summary>
     <Problem>Three tool suites timed out at the 5 s default on windows-latest CI runners across PRs (#302/#303/#307/#310 evidence), forcing rerun churn on changes that never touch them.</Problem>
-    <Goals><Goal>Each named suite declares a 30 s per-test budget; no assertion or fixture changes.</Goal></Goals>
-    <Constraints><ObservedWriteScope><File>tests/tools/run-rust-tests.test.mjs</File><File>tests/tools/qa-launch-gate.test.mjs</File><File>tests/tools/qa-artifact-smoke.test.mjs</File></ObservedWriteScope></Constraints>
+    <Goals><Goal>Each named suite declares a 30 s per-test budget; no assertion or fixture changes.</Goal><Goal>The rust-test artifact cleanup tolerates the Windows EBUSY/EPERM unlink window with a bounded retry (av-scanner lock on just-reaped executables) — the same Windows-flake family.</Goal></Goals>
+    <Constraints><ObservedWriteScope><File>tests/tools/run-rust-tests.test.mjs</File><File>tests/tools/qa-launch-gate.test.mjs</File><File>tests/tools/qa-artifact-smoke.test.mjs</File><File>tools/run-rust-tests.mjs</File></ObservedWriteScope></Constraints>
     <NonGoals>Any fixture, assertion or behavior change; global vitest config edits.</NonGoals>
     <AcceptanceCriteria><Criterion>Each of the three files contains vi.setConfig({ testTimeout: 30000 }) after its vitest import; the three suites pass locally; grace lint final is clean.</Criterion></AcceptanceCriteria>
     <AffectedAreas>M-064</AffectedAreas>

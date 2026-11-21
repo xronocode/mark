@@ -13,7 +13,7 @@
       <MustVerify><Module>M-064</Module></MustVerify>
       <MustContain><File>tests/tools/run-rust-tests.test.mjs</File><Text>vi.setConfig({ testTimeout: 30000 })</Text></MustContain>
       <MustContain><File>tests/tools/qa-launch-gate.test.mjs</File><Text>vi.setConfig({ testTimeout: 30000 })</Text></MustContain>
-      <MustContain><File>tests/tools/qa-artifact-smoke.test.mjs</File><Text>vi.setConfig({ testTimeout: 30000 })</Text></MustContain>
+      <MustContain><File>tests/tools/qa-artifact-smoke.test.mjs</File><Text>vi.setConfig({ testTimeout: 30000 })</Text></MustContain><MustContain><File>tools/run-rust-tests.mjs</File><Text>const removeWithRetry</Text></MustContain>
       <MustPassCommand><Command budgetSeconds="600">npx vitest run tests/tools/run-rust-tests.test.mjs tests/tools/qa-launch-gate.test.mjs tests/tools/qa-artifact-smoke.test.mjs</Command></MustPassCommand>
     </TargetAssertions>
     <DurableScope>
@@ -25,6 +25,7 @@
       </VerificationAnchors>
     </DurableScope>
     <ObservedWriteScope>
+      <File>tools/run-rust-tests.mjs</File>
       <File>tests/tools/run-rust-tests.test.mjs</File>
       <File>tests/tools/qa-launch-gate.test.mjs</File>
       <File>tests/tools/qa-artifact-smoke.test.mjs</File>
