@@ -467,6 +467,7 @@
       </LegacyBase>
       <LegacySource>docs/verification-plan.xml: V-M-001</LegacySource>
             <scenario-sec-save-handle-m001>C-SEC-SAVE-HANDLE: save/snapshot race refusals — a leaf symlink planted in the window is refused, outer bytes untouched — verified by the two m001 race tests on the deterministic cfg-test seam.</scenario-sec-save-handle-m001>
+            <scenario-dev-env-isolation-boot-binding>C-DEV-ENV-ISOLATION: the dev namespace default binds through resolve_boot_identifier before any state access at the unchanged C-STABILIZE-PROFILE-ISOLATION boot point; release binaries keep binding exactly the configured Context identifier; MARK_PROFILE_IDENTIFIER is debug-gated, non-default, migration-testing-only and fails closed on invalid values (escape_hatch_override_is_debug_gated).</scenario-dev-env-isolation-boot-binding>
 </V-M-001>
     <V-M-002>
       <Priority>critical</Priority>
@@ -12141,6 +12142,7 @@
         </negative-assertions>
       </LegacyBase>
       <LegacySource>docs/verification-plan.xml: V-M-022</LegacySource>
+      <scenario-dev-env-isolation-namespace>C-DEV-ENV-ISOLATION: dev_namespace_default_resolves_disjoint_roots proves the dev default resolves cache and data roots disjoint from and tagged with com.xronocode.mark.dev versus release; canonical_identifier_preserves_existing_cache_and_data_roots stays green byte-identically; escape_hatch_override_is_debug_gated pins the debug-only override semantics (cargo test --manifest-path src-tauri/Cargo.toml --bin mark mt_paths).</scenario-dev-env-isolation-namespace>
     </V-M-022>
     <LegacyConflictEvidence>
       <Record>

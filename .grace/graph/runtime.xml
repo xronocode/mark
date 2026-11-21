@@ -632,6 +632,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-001; docs/development-plan.xml: M-001</LegacySource>
           <SummaryDelta>C-SEC-SAVE-HANDLE: the save and snapshot writers funnel through the shared re-fencing writer — a save whose path is swapped to escape the sandbox between the boundary check and the open is refused with the existing denial family; allowed inward symlinks keep working (only NEW links at the last fence are denied).</SummaryDelta>
           <SummaryDelta>C-SESSION-WRITE-ATOMICITY (2026-11-21): invoke_handler registers m005_prefs::mt_prefs_set_many only; the m001 close state machine, prevent_close handoff and mt_close_window destroy are unchanged.</SummaryDelta>
+          <SummaryDelta>C-DEV-ENV-ISOLATION: debug builds bind the dev namespace default and the MARK_PROFILE_IDENTIFIER escape through mt_paths::resolve_boot_identifier at the unchanged C-STABILIZE-PROFILE-ISOLATION boot binding point; release binding stays byte-identical.</SummaryDelta>
 </M-001>
     <M-002>
       <SummaryDelta>C-METADATA-SAVE-SAFETY T-001: fs_write_bytes_inner shares validated write_all/sync_all mechanics with the text/binary facades. Codec validation belongs before this mutating boundary; in-place I/O remains non-atomic.</SummaryDelta>
@@ -7502,6 +7503,7 @@ C-TABLE-BAR-MENU-OVERLAP (2026-11-09): the table drag-pill
         </Attribute>
       </LegacyAttributes>
       <LegacySource>docs/knowledge-graph.xml: M-022; docs/development-plan.xml: M-022</LegacySource>
+      <SummaryDelta>C-DEV-ENV-ISOLATION: DEV_BUNDLE_ID (com.xronocode.mark.dev) plus the pure debug-gated resolve_boot_identifier and the disjoint-roots pin-family extension; canonical identifier pins stay untouched and release paths remain byte-identical.</SummaryDelta>
     </M-022>
 
     <M-047>
