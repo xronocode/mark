@@ -65,6 +65,16 @@ const liveReloadGenerations = new Map()
 const renameEchoUntil = new Map()
 const RENAME_ECHO_WINDOW_MS = 2000
 
+// C-SESSION-WRITE-ATOMICITY: owner-confirmable proposal — the quit /
+// window-close prepareCommit races the session profile write against
+// this bound (consistent with the 400 ms autosave debounce and typical
+// prefs write latency). The save can delay the close at most this long,
+// never block it forever; on timeout the close proceeds honestly while
+// the single-transaction backend keeps the previous complete generation
+// on disk. An owner-amended value replaces the constant without
+// changing the mechanism.
+const SESSION_COMMIT_TIMEOUT_MS = 2000
+
 // C-EXTERNAL-RELOAD-OPERATION: one owner for reload admission, the 100ms
 // settle + disk read with liveness revalidation, and the replacement
 // commit (util/externalReload). Every external effect is injected; all
@@ -492,7 +502,7 @@ export const useEditorStore = defineStore('editor', {
           }),
           notify: (outcome, request) => this._notifyDocumentOperation(outcome, request),
           prepareCommit: request => ['quit','window-close'].includes(request.kind)
-            ? this._saveSessionState()
+            ? this._boundedSessionCommit()
             : Promise.all(request.owners.map(owner => {
               const tab=this.tabs.find(t=>t.id===owner.id && t.documentToken===owner.documentToken)
               return tab ? this._flushFilePositionForTab(tab) : null
@@ -600,6 +610,44 @@ export const useEditorStore = defineStore('editor', {
       }
     },
 
+    /**
+     * C-SESSION-WRITE-ATOMICITY: the quit/window-close session write is
+     * bounded — it races a fixed SESSION_COMMIT_TIMEOUT_MS timer so the
+     * save can delay the close at most two seconds, never forever.
+     * Write settled before the timer: the close proceeds with the
+     * write's outcome — a rejection is surfaced through the
+     * BLOCK_SESSION_WRITE_FAILED marker and still completes the close.
+     * Timer won: the BLOCK_SESSION_COMMIT_TIMEOUT marker is logged, the
+     * timer is cleaned up, and the close proceeds while the in-flight
+     * write settles in the background, where the single-transaction
+     * backend keeps the previous complete generation on disk. Always
+     * resolves (never rejects); the marker fields carry no query text,
+     * document contents or absolute user paths. Non-close kinds keep the
+     * exact current prepareCommit behavior (per-owner flushes, unbounded).
+     */
+    async _boundedSessionCommit() {
+      const write = this._saveSessionState().then(
+        () => true,
+        (error) => {
+          console.warn(`[Session][close][BLOCK_SESSION_WRITE_FAILED reason=${String(error?.message || error)}]`)
+          return false
+        }
+      )
+      let fireBound
+      const bound = new Promise((resolve) => {
+        fireBound = () => {
+          console.warn(`[Session][close][BLOCK_SESSION_COMMIT_TIMEOUT bound=${SESSION_COMMIT_TIMEOUT_MS}ms]`)
+          resolve(false)
+        }
+      })
+      const timer = setTimeout(fireBound, SESSION_COMMIT_TIMEOUT_MS)
+      try {
+        await Promise.race([write, bound])
+      } finally {
+        clearTimeout(timer)
+      }
+    },
+
     // END_BLOCK_QUIT_APP
 
     /**
@@ -652,10 +700,25 @@ export const useEditorStore = defineStore('editor', {
 
     async _saveSessionState() {
       const { tabs, active, folders, formats } = this._sessionSnapshot()
-      await ipcPrefs.set('lastSessionTabs', tabs).catch(() => {})
-      await ipcPrefs.set('lastSessionActive', active).catch(() => {})
-      await ipcPrefs.set('lastSessionFolders', folders).catch(() => {})
-      await ipcPrefs.set('lastSessionFormats', formats).catch(() => {})
+      // C-SESSION-WRITE-ATOMICITY: the four lastSession* keys go as ONE
+      // batched transaction (mt_prefs_set_many — one backend mutex
+      // acquisition, one atomic save, one broadcast), so the on-disk
+      // profile is always one complete generation, never a torn mix of
+      // two. The batch rejection is no longer swallowed: it is captured,
+      // the per-tab position flushes below still run afterwards in the
+      // current order regardless of the batch outcome (C-FILE-POSITION-
+      // MEMORY corner C-7), and the error is rethrown to the caller.
+      let batchError = null
+      try {
+        await ipcPrefs.setMany([
+          { key: 'lastSessionTabs', value: tabs },
+          { key: 'lastSessionActive', value: active },
+          { key: 'lastSessionFolders', value: folders },
+          { key: 'lastSessionFormats', value: formats }
+        ])
+      } catch (error) {
+        batchError = error
+      }
       // C-FILE-POSITION-MEMORY (corner C-7): the quit/save-session flush —
       // every open file's position lands on disk with the session paths, so
       // a relaunch restores both the tabs and the reading positions.
@@ -663,6 +726,7 @@ export const useEditorStore = defineStore('editor', {
         const tab = this.tabs.find((t) => t.pathname === p)
         return tab ? this._flushFilePositionForTab(tab) : null
       }))
+      if (batchError) throw batchError
     },
 
     START_SESSION_AUTOSAVE() {
@@ -673,7 +737,14 @@ export const useEditorStore = defineStore('editor', {
         () => JSON.stringify(this._sessionSnapshot()),
         () => {
           clearTimeout(timer)
-          timer = setTimeout(() => { void this._saveSessionState() }, 400)
+          timer = setTimeout(() => {
+            // C-SESSION-WRITE-ATOMICITY: an autosave failure surfaces
+            // through the console marker instead of an unhandled
+            // rejection or silence.
+            this._saveSessionState().catch((error) => {
+              console.warn(`[Session][prefs][BLOCK_SESSION_WRITE_FAILED reason=${String(error?.message || error)}]`)
+            })
+          }, 400)
         }
       )
     },

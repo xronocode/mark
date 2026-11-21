@@ -28,7 +28,8 @@ vi.mock('@/ipc/runtime', () => ({
   ipcFs: { read: vi.fn(async () => 'mocked'), write: vi.fn() },
   ipcWatch: { subscribe: vi.fn(async () => vi.fn()) },
   ipcRecent: { add: vi.fn(async () => {}), list: vi.fn(async () => []), clear: vi.fn(async () => {}) },
-  ipcPrefs: { get: vi.fn(async () => null), set: vi.fn(async () => {}), getAll: vi.fn(async () => ({})) }
+  ipcPrefs: { get: vi.fn(async () => null), set: vi.fn(async () => {}),
+      setMany: vi.fn(async () => {}), getAll: vi.fn(async () => ({})) }
 }))
 vi.mock('deep-equal', () => ({ default: vi.fn(() => false) }))
 vi.mock('@/util', () => ({
@@ -455,7 +456,9 @@ describe('store/editor.js — fn coverage', () => {
     // Should return early without sending ipc
   })
 
-  it('_saveSessionState persists tab paths to ipcPrefs', async () => {
+  it('_saveSessionState persists tab paths through one batch write', async () => {
+    // C-SESSION-WRITE-ATOMICITY: the four session keys ride one
+    // mt_prefs_set_many transaction — no per-key ipcPrefs.set calls.
     const { ipcPrefs } = await import('@/ipc/runtime')
     editorStore.tabs = [
       { pathname: '/a.md' },
@@ -463,7 +466,14 @@ describe('store/editor.js — fn coverage', () => {
       { pathname: '/b.md' }
     ]
     await editorStore._saveSessionState()
-    expect(ipcPrefs.set).toHaveBeenCalledWith('lastSessionTabs', ['/a.md', '/b.md'])
+    expect(ipcPrefs.setMany).toHaveBeenCalledTimes(1)
+    const entries = ipcPrefs.setMany.mock.calls[0][0]
+    const tabs = entries.find((e) => e.key === 'lastSessionTabs')
+    expect(tabs && tabs.value).toEqual(['/a.md', '/b.md'])
+    // Per-key writes remain only for the position flushes — never for the
+    // four session-profile keys.
+    const sessionKeys = ['lastSessionTabs', 'lastSessionActive', 'lastSessionFolders', 'lastSessionFormats']
+    for (const c of ipcPrefs.set.mock.calls) expect(sessionKeys).not.toContain(c[0])
   })
 
   // RESTORE_SESSION (C-69: folders + open path + active tab) is pinned in

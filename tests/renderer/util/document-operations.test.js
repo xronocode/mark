@@ -1,7 +1,29 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { captureDocumentFormat, applyDocumentFormat, recomputeDocumentSaved } from '@/util/documentFormat'
 import { createDocumentOperations } from '@/util/documentOperations'
 import { documentOwner, captureDocumentSnapshot, inspectDocumentComposition, registerDocumentSurface } from '@/util/documentSnapshot'
+import { setupTestPinia } from '../pinia'
+import { ipcPrefs } from '@/ipc/runtime'
+
+// C-SESSION-WRITE-ATOMICITY: the bounded close-wait pins below drive the
+// REAL store wiring (the actual deps factory in store/editor.js), so the
+// prefs transport is mocked at the module boundary. The existing pins
+// above use their own hand-built deps mock and never touch this module.
+vi.mock('@/ipc/runtime', () => ({
+  ipcFs: {
+    read: vi.fn(async () => ''),
+    write: vi.fn(),
+    stat: vi.fn(async () => ({ isFile: true, isDirectory: false }))
+  },
+  ipcWatch: { subscribe: vi.fn(async () => vi.fn()), unsubscribe: vi.fn(async () => {}) },
+  ipcRecent: { add: vi.fn(async () => {}), list: vi.fn(async () => []), clear: vi.fn(async () => {}) },
+  ipcPrefs: {
+    get: vi.fn(async () => null),
+    set: vi.fn(async () => {}),
+    getAll: vi.fn(async () => ({})),
+    setMany: vi.fn(async () => {})
+  }
+}))
 const deferred = () => { let resolve, reject; const promise = new Promise((a,b) => { resolve=a; reject=b }); return {promise,resolve,reject} }
 const make = (data = [{}]) => {
   const store = { tabs: data.map((t,i) => ({ id: String(i), filename: `${i}.md`, pathname: `/tmp/${i}.md`, markdown: 'original', encoding: { encoding: 'utf8', isBom: false }, lineEnding: 'lf', trimTrailingNewline: 3, isSaved: false, contentRevision: 1, ...t })) }
@@ -206,4 +228,86 @@ it.each([{ encoding:'cp1251' },{ isBom:true },{ lineEnding:'crlf' },{ finalNewli
   expect(h.deps.writeSnapshot.mock.calls[0][0].format).toEqual(captureDocumentFormat(h.store.tabs[0]))
   const h2 = make(); h2.deps.confirm.mockImplementation(async () => { applyDocumentFormat(h2.store.tabs[0],patch); return 'discard' })
   expect((await h2.run()).status).toBe('blocked'); expect(h2.commit).not.toHaveBeenCalled(); expect(h2.deps.writeSnapshot).not.toHaveBeenCalled()
+})
+
+// ── C-SESSION-WRITE-ATOMICITY: bounded close-wait through the REAL store
+// wiring (setupTestPinia; documentOperations.js itself stays untouched, so
+// these pins exercise the actual deps factory in store/editor.js — its
+// _boundedSessionCommit prepareCommit arm — not a copy).
+describe('C-SESSION-WRITE-ATOMICITY bounded close-wait (real store wiring)', () => {
+  const cleanTab = (pathname) => ({
+    id: 'tab-close-1',
+    pathname,
+    filename: pathname.split('/').pop(),
+    markdown: '# saved\n',
+    savedMarkdown: '# saved\n',
+    encoding: { encoding: 'utf8', isBom: false },
+    lineEnding: 'lf',
+    trimTrailingNewline: 3,
+    isSaved: true,
+    requiresExplicitSave: false
+  })
+
+  const bootCloseStore = async () => {
+    setupTestPinia()
+    const { useEditorStore } = await import('@/store/editor')
+    return useEditorStore()
+  }
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('close_waits_for_session_write_confirmation_before_destroy', async () => {
+    const store = await bootCloseStore()
+    let release
+    const settled = new Promise((resolve) => { release = resolve })
+    ipcPrefs.setMany.mockImplementationOnce(() => settled)
+    store.tabs = [cleanTab('/tmp/session-close.md')]
+    store.currentFile = store.tabs[0]
+    const commit = vi.fn()
+
+    const attempt = store.REQUEST_DOCUMENT_OPERATION({ kind: 'window-close', commit })
+    // The session write is still pending — the close command (the destroy
+    // handoff) must not have run while the write is in flight.
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    expect(commit).not.toHaveBeenCalled()
+
+    release()
+    await vi.waitFor(() => expect(commit).toHaveBeenCalledTimes(1))
+    expect(commit).toHaveBeenCalledTimes(1)
+    expect((await attempt).status).toBe('completed')
+  })
+
+  it('bounded_timeout_still_closes_honestly', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const store = await bootCloseStore()
+    // Never-settling write: only the honest timeout can complete the close.
+    ipcPrefs.setMany.mockImplementationOnce(() => new Promise(() => {}))
+    store.tabs = [cleanTab('/tmp/session-timeout.md')]
+    store.currentFile = store.tabs[0]
+    const commit = vi.fn()
+
+    const attempt = store.REQUEST_DOCUMENT_OPERATION({ kind: 'window-close', commit })
+    // The pin exercises the REAL default bound (SESSION_COMMIT_TIMEOUT_MS
+    // = 2000) once; the waitFor timeout stays generous above the bound.
+    await vi.waitFor(() => expect(commit).toHaveBeenCalledTimes(1), { timeout: 4500 })
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('BLOCK_SESSION_COMMIT_TIMEOUT'))
+    expect(warn.mock.calls.some(([line]) => String(line).includes('bound=2000ms'))).toBe(true)
+    expect((await attempt).status).toBe('completed')
+  }, 10000)
+
+  it('rejected_session_write_still_closes', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const store = await bootCloseStore()
+    ipcPrefs.setMany.mockImplementationOnce(async () => { throw new Error('MT_PREFS_SET_MANY_FAILED') })
+    store.tabs = [cleanTab('/tmp/session-reject.md')]
+    store.currentFile = store.tabs[0]
+    const commit = vi.fn()
+
+    const attempt = store.REQUEST_DOCUMENT_OPERATION({ kind: 'window-close', commit })
+    await vi.waitFor(() => expect(commit).toHaveBeenCalledTimes(1))
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('BLOCK_SESSION_WRITE_FAILED'))
+    expect((await attempt).status).toBe('completed')
+  })
 })

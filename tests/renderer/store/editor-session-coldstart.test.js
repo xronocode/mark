@@ -32,7 +32,7 @@ vi.mock('@/ipc/runtime', () => ({
   },
   ipcWatch: { subscribe: vi.fn(async () => vi.fn()) },
   ipcRecent: { add: vi.fn(), list: vi.fn(async () => []), clear: vi.fn() },
-  ipcPrefs: { get: vi.fn(async () => null), set: vi.fn(async () => {}) }
+  ipcPrefs: { get: vi.fn(async () => null), set: vi.fn(async () => {}), setMany: vi.fn(async () => {}) }
 }))
 vi.mock('deep-equal', () => ({ default: vi.fn(() => false) }))
 vi.mock('@/util', () => ({

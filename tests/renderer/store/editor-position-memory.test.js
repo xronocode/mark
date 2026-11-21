@@ -37,7 +37,7 @@ vi.mock('@/ipc/runtime', () => ({
   ipcFs: { read: vi.fn(async () => 'mocked'), write: vi.fn() },
   ipcWatch: { subscribe: vi.fn(async () => vi.fn()) },
   ipcRecent: { add: vi.fn(async () => {}), list: vi.fn(async () => []), clear: vi.fn(async () => {}) },
-  ipcPrefs: { get: vi.fn(async () => null), set: vi.fn(async () => {}), getAll: vi.fn(async () => ({})) }
+  ipcPrefs: { get: vi.fn(async () => null), set: vi.fn(async () => {}), setMany: vi.fn(async () => {}), getAll: vi.fn(async () => ({})) }
 }))
 vi.mock('@/util/tableLayoutStore', () => ({
   moveTableLayoutsEntry: vi.fn(async () => true)
