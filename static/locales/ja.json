@@ -544,6 +544,7 @@
         "statusBar": "ステータスバーを表示",
         "wordWrapInToc": "アウトラインで長い見出しを折り返す",
         "titleBarStyleHelp": "カスタムはタブ付きの Mark 独自のタイトルバーを描画します。再起動が必要です。",
+        "titleBarStyleWindowsHelp": "Windows では「カスタム」だけが機能します。Mark のウィンドウはシステム枠なし（装飾なし）で出荷されるためです。",
         "hideScrollbar": "スクロールバーを非表示にする"
       },
       "text": {

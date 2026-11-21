@@ -2,7 +2,7 @@
   "autoSave": {
     "description": "General--Save changes automatically shortly after you stop typing.",
     "type": "boolean",
-    "default": false
+    "default": true
   },
   "autoSaveDelay": {
     "description": "General--How long to wait after the last keystroke before saving (shown in seconds).",
@@ -75,7 +75,11 @@
   },
   "endOfLine": {
     "description": "General--Line endings used for new files and when saving.",
-    "enum": ["default", "lf", "crlf"],
+    "enum": [
+      "default",
+      "lf",
+      "crlf"
+    ],
     "default": "default"
   },
   "treeShowAllFiles": {
@@ -107,7 +111,10 @@
   },
   "titleBarStyle": {
     "description": "Appearance--Window title bar: Mark's own (with tabs) or the system one. Requires a restart. Windows and Linux only.",
-    "enum": ["custom", "native"],
+    "enum": [
+      "custom",
+      "native"
+    ],
     "default": "custom"
   },
   "hideScrollbar": {
@@ -132,16 +139,16 @@
     "default": "Open Sans"
   },
   "fontSize": {
-    "description": "Appearance--Text size in pixels (12–32).",
+    "description": "Appearance--Text size in pixels (12–36).",
     "type": "number",
-    "maximum": 32,
+    "maximum": 36,
     "minimum": 12,
     "default": 16
   },
   "baseFontSize": {
     "description": "Appearance--The Settings font size that Zoom Actual Size (CmdOrCtrl+0) restores; zoom steps never overwrite it (C-49).--internal",
     "type": "number",
-    "maximum": 32,
+    "maximum": 36,
     "minimum": 12,
     "default": 16
   },
@@ -210,7 +217,10 @@
   },
   "textDirection": {
     "description": "Editor--The writing text direction.",
-    "enum": ["ltr", "rtl"],
+    "enum": [
+      "ltr",
+      "rtl"
+    ],
     "default": "ltr"
   },
   "tabSize": {
@@ -274,17 +284,31 @@
   },
   "bulletListMarker": {
     "description": "Markdown--The marker used in bullet list",
-    "enum": ["-", "*", "+"],
+    "enum": [
+      "-",
+      "*",
+      "+"
+    ],
     "default": "-"
   },
   "orderListDelimiter": {
     "description": "Markdown--Numbered list format (1. or 1)).",
-    "enum": [".", ")"],
+    "enum": [
+      ".",
+      ")"
+    ],
     "default": "."
   },
   "listIndentation": {
     "description": "Markdown--List indentation.",
-    "enum": ["dfm", "tab", 1, 2, 3, 4],
+    "enum": [
+      "dfm",
+      "tab",
+      1,
+      2,
+      3,
+      4
+    ],
     "default": 1
   },
   "footnote": {
@@ -304,7 +328,12 @@
   },
   "frontmatterType": {
     "description": "Markdown--Front matter format (the delimiter of the metadata block).",
-    "enum": ["-", "+", ";", "{"],
+    "enum": [
+      "-",
+      "+",
+      ";",
+      "{"
+    ],
     "default": "-"
   },
   "frontmatterProperties": {
@@ -324,12 +353,18 @@
   },
   "sequenceTheme": {
     "description": "Markdown--Sequence diagram style (hand-drawn or simple).",
-    "enum": ["hand", "simple"],
+    "enum": [
+      "hand",
+      "simple"
+    ],
     "default": "hand"
   },
   "imageInsertAction": {
     "description": "Advanced--When I add an image: copy it into a folder or keep its original location.",
-    "enum": ["folder", "path"],
+    "enum": [
+      "folder",
+      "path"
+    ],
     "default": "folder"
   },
   "imagePreferRelativeDirectory": {
