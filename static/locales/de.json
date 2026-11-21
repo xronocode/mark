@@ -1731,8 +1731,8 @@
     "search": {
       "searchInFolder": "Im Ordner suchen...",
       "noResultsFound": "Keine Ergebnisse gefunden.",
-      "startTyping": "Tippen, um Markdown-Dateien in den offenen Ordnern zu durchsuchen.",
-      "openFolder": "Ordner öffnen",
+      "searchFailed": "Search failed. Results may be missing.",
+      "resultsPartial": "Partial results — the search stopped early.",
       "showMoreMatches": "Weitere Treffer anzeigen",
       "noFolderOpen": "Kein Ordner geöffnet",
       "cancel": "Abbrechen",

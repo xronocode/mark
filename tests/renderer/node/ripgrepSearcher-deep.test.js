@@ -456,4 +456,89 @@ describe('node/ripgrepSearcher — deep coverage', () => {
       expect(r.unsubscribeCount).toBe(1)
     })
   })
+
+  // ─── C-SEARCH-ERROR-VISIBILITY: didComplete terminal propagation ────
+  // One additive optional options callback fired exactly once per
+  // terminal with { partial }; the search() signature, the
+  // thenable/cancel contract and every other channel stay unchanged.
+  describe('didComplete terminal propagation (C-SEARCH-ERROR-VISIBILITY)', () => {
+    it('fires exactly once with { partial } from a complete terminal', async () => {
+      const didComplete = vi.fn()
+      const promise = searcher._spawn('content', ['/dir'], 'q', { didComplete })
+
+      capturedHandler({}, { searchId: capturedSearchId, type: 'complete', partial: true })
+
+      await expect(promise).resolves.toBeUndefined()
+      expect(didComplete).toHaveBeenCalledTimes(1)
+      expect(didComplete).toHaveBeenCalledWith({ partial: true })
+    })
+
+    it('fires with partial true from an error terminal before rejecting', async () => {
+      const didComplete = vi.fn()
+      const promise = searcher._spawn('content', ['/dir'], 'q', { didComplete })
+
+      capturedHandler({}, {
+        searchId: capturedSearchId,
+        type: 'error',
+        payload: { message: 'rg exited with code 2' },
+        partial: true
+      })
+
+      await expect(promise).rejects.toThrow('rg exited with code 2')
+      expect(didComplete).toHaveBeenCalledTimes(1)
+      expect(didComplete).toHaveBeenCalledWith({ partial: true })
+    })
+
+    it('coerces an absent partial field to false', async () => {
+      const didComplete = vi.fn()
+      const promise = searcher._spawn('content', ['/dir'], 'q', { didComplete })
+
+      capturedHandler({}, { searchId: capturedSearchId, type: 'complete' })
+
+      await expect(promise).resolves.toBeUndefined()
+      expect(didComplete).toHaveBeenCalledTimes(1)
+      expect(didComplete).toHaveBeenCalledWith({ partial: false })
+    })
+
+    it('does not fire when cancel settles locally (no terminal arrived)', async () => {
+      const didComplete = vi.fn()
+      const promise = searcher._spawn('content', ['/dir'], 'q', { didComplete })
+      promise.cancel()
+
+      await expect(promise).resolves.toBeUndefined()
+      expect(didComplete).not.toHaveBeenCalled()
+    })
+
+    it('absorbs a late terminal after settle (no second didComplete)', async () => {
+      const didComplete = vi.fn()
+      const promise = searcher._spawn('content', ['/dir'], 'q', { didComplete })
+
+      capturedHandler({}, { searchId: capturedSearchId, type: 'complete', partial: false })
+      capturedHandler({}, { searchId: capturedSearchId, type: 'error', payload: { message: 'late' }, partial: true })
+
+      await expect(promise).resolves.toBeUndefined()
+      expect(didComplete).toHaveBeenCalledTimes(1)
+      expect(didComplete).toHaveBeenCalledWith({ partial: false })
+    })
+
+    it('stays silent when no didComplete option is provided', () => {
+      searcher._spawn('content', ['/dir'], 'q', {})
+
+      expect(() => {
+        capturedHandler({}, { searchId: capturedSearchId, type: 'complete', partial: true })
+      }).not.toThrow()
+    })
+
+    it('absorbs a throwing didComplete without breaking settlement', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const didComplete = vi.fn(() => { throw new Error('callback error') })
+      const promise = searcher._spawn('content', ['/dir'], 'q', { didComplete })
+
+      capturedHandler({}, { searchId: capturedSearchId, type: 'complete', partial: true })
+
+      await expect(promise).resolves.toBeUndefined()
+      expect(warnSpy).toHaveBeenCalledWith('search didComplete threw:', expect.any(Error))
+      warnSpy.mockRestore()
+    })
+  })
 })
