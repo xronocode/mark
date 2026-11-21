@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-governance.test.js
-// VERSION: 2.2.0
+// VERSION: 2.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the ordinary release/governance check, Conventional SemVer admission, the payload-open merge window, immutable action references, and staged control configuration.
 //   SCOPE: Pure negative fixtures plus checked-in repository integration; no GitHub API or setting mutation.
@@ -18,9 +18,21 @@
 //   governanceWorkflow - Stable governance workflow whose history-sensitive regression requires a complete checkout.
 //   testWorkflow - Cross-platform unit workflow whose renderer matrix runs the same history-sensitive regression.
 //   governanceConfig - Checked-in GitHub control contract.
+//   authorizeTagJob - authorize-tag job slice of the checked-in release workflow.
+//   prereleaseCollectionStep - prerelease check-runs collection step slice (seal-keyed).
+//   prereleaseGateStep - prerelease required-checks gate step slice (pinned list, fail-closed).
+//   assertPrereleaseChecksGate - comment-blind validator mirroring the gate's fail-closed evaluation.
+//   resolveLatestAttempts - JS mirror of the stable sort-group-keep-last collection shape.
+//   assertPrereleaseGateWiring - red-control validator for the gate's prerelease-only wiring.
+//   prereleaseSeal - green fixture SHA (40 hex chars) for the seal-keyed matrix.
+//   staleSha - stale-SHA fixture for the not-at-seal refusal.
+//   prereleaseRequiredIdentities - the pinned two-entry required-checks identity list.
+//   checkRunAttempt - raw check-run attempt fixture (name/conclusion/sha/started_at) for the collection mirror.
+//   checksFileEntry - checks-file entry fixture (name/conclusion/sha) for the validator matrix.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-21 v2.3.0 C-RELEASE-BETA-CHECKS-GATE: pin the prerelease checks boundary — seal-keyed collection reusing the stable jq shape, the pinned main required-checks list with its derivation comment, prerelease-only step conditions, no payload reference and no new job, plus the fail-closed fixture matrix (failure, cancelled, missing, stale SHA, ambiguous, green-at-seal, superseded rerun) and in-memory red controls rejecting a missing pinned list, a missing gate and a non-prerelease-only gate.
 //   - 2026-11-21 C-SEC-GITLEAKS-CHECKSUM: pin the docs-security Gitleaks install as download, strict sha256 digest verification, then extraction, with red controls rejecting a missing digest constant, a non-strict check and extraction before verification.
 //   - 2026-10-27 v2.1.0: delivery IDs are permanent — a PR title naming an ID the base revision already records is rejected.
 //   - 2026-10-24 v2.0.0: C-RELEASE-CONVEYOR — Release Please removed; release-bearing merges stay closed only while Preparing/Frozen and open again once the seal is Ready.
@@ -62,6 +74,16 @@ const installStep = docsSecurityJob
   .split(/- name: install pinned Gitleaks/)[1]
   .split(/- name:/)[0]
 
+// authorize-tag job and prerelease step slices in the file's existing split
+// style; the job slice ends at the next top-level job key.
+const authorizeTagJob = releaseWorkflow.split(/^  manual-build:/m)[0]
+const prereleaseCollectionStep = authorizeTagJob
+  .split(/- name: collect prerelease check runs at the seal/)[1]
+  .split(/- name:/)[0]
+const prereleaseGateStep = authorizeTagJob
+  .split(/- name: gate prerelease required checks/)[1]
+  .split(/- name:/)[0]
+
 // Red-control validator for the Gitleaks checksum contract. Shape pins alone
 // cannot distinguish a well-formed but different 64-hex digest from the true
 // one — digest truth is anchored by the reviewed diff of the change plus the
@@ -80,6 +102,84 @@ function assertGitleaksChecksumContract(source) {
   if (check === -1 || extract === -1 || extract < check)
     throw new Error('docs-security: extraction precedes digest verification')
 }
+
+// Pure mirror of the prerelease gate's fail-closed evaluation: exactly one
+// live match per required name+app identity, recorded at the exact seal SHA
+// and concluded success. A missing context, an ambiguous identity, a stale
+// SHA or any non-success conclusion (failure, cancelled, timed out) is
+// rejected with the offending identity and reason.
+function assertPrereleaseChecksGate(checks, required, seal) {
+  for (const identity of required) {
+    const matches = checks.filter(
+      (check) => check.name === identity.name && check.app === identity.app
+    )
+    if (matches.length === 0)
+      throw new Error(`${identity.name} (${identity.app}): missing required check at the seal`)
+    if (matches.length > 1)
+      throw new Error(`${identity.name} (${identity.app}): ambiguous identity, ${matches.length} live matches`)
+    if (matches[0].sha !== seal)
+      throw new Error(`${identity.name} (${identity.app}): stale, recorded at ${matches[0].sha} instead of the seal`)
+    if (matches[0].conclusion !== 'success')
+      throw new Error(`${identity.name} (${identity.app}): conclusion ${matches[0].conclusion} is not success`)
+  }
+}
+
+// JS mirror of the stable collection shape: sort by started time, group per
+// name+app keeping the latest attempt, then project to the checks-file
+// fields. Driven by slurp-ed API pages so the superseded-rerun fixture
+// exercises the same resolution the workflow performs.
+function resolveLatestAttempts(pages) {
+  const attempts = pages
+    .flatMap((page) => page.check_runs)
+    .sort((a, b) => (a.started_at < b.started_at ? -1 : a.started_at > b.started_at ? 1 : 0))
+  const latestByKey = new Map()
+  for (const attempt of attempts) latestByKey.set(`${attempt.name}|${attempt.app.name}`, attempt)
+  return [...latestByKey.values()].map((attempt) => ({
+    name: attempt.name,
+    app: attempt.app.name,
+    sha: attempt.head_sha,
+    conclusion: attempt.conclusion
+  }))
+}
+
+// Red-control validator for the gate's wiring. As with the gitleaks
+// digest-pin stance, shape pins cannot distinguish the pinned list from
+// some other well-formed two-entry set — set truth is anchored by the
+// reviewed diff plus the recorded rulesets.main.requiredChecks derivation,
+// never by a runtime fetch. These controls mutate only the in-memory
+// workflow source string: no network, no tracked-file edits.
+function assertPrereleaseGateWiring(source) {
+  const job = source.split(/^  manual-build:/m)[0]
+  const gateSplit = job.split(/- name: gate prerelease required checks/)
+  if (gateSplit.length < 2)
+    throw new Error('prerelease checks gate step is missing from authorize-tag')
+  const gateStep = gateSplit[1].split(/- name:/)[0]
+  // The pinned list must be DECLARED as the gate step's env — a bare
+  // process.env reference in the run code is not a declaration and must
+  // not satisfy the wiring check.
+  if (!/^\s*PRERELEASE_REQUIRED_CHECKS:\s*'/m.test(gateStep))
+    throw new Error('prerelease checks gate: pinned required-checks list missing')
+  if (!gateStep.includes("if: steps.identity.outputs.prerelease == 'true'"))
+    throw new Error('prerelease checks gate is not gated to prereleases only')
+}
+
+// Deterministic check-run fixtures for the fail-closed matrix: raw API
+// attempt shape feeding the collection mirror, and checks-file entries
+// feeding the validator directly.
+const prereleaseSeal = 'a'.repeat(40)
+const staleSha = 'd'.repeat(40)
+const prereleaseRequiredIdentities = [
+  { name: 'status check', app: 'GitHub Actions' },
+  { name: 'release/governance', app: 'GitHub Actions' }
+]
+const checkRunAttempt = (name, conclusion, sha, startedAt) => ({
+  name,
+  app: { name: 'GitHub Actions' },
+  head_sha: sha,
+  conclusion,
+  started_at: startedAt
+})
+const checksFileEntry = (name, conclusion, sha) => ({ name, app: 'GitHub Actions', sha, conclusion })
 
 describe('release governance', () => {
   it('runs on the current train without requiring freeze evidence', () => {
@@ -283,6 +383,221 @@ describe('release governance', () => {
     lines.splice(movedCheck, 0, '          tar -xzf "$archive" -C /usr/local/bin gitleaks')
     expect(() => assertGitleaksChecksumContract(lines.join('\n'))).toThrow(
       /extraction precedes digest verification/
+    )
+  })
+
+  it('wires the prerelease checks collection and gate inside authorize-tag only', () => {
+    // C-RELEASE-BETA-CHECKS-GATE positive pins: both new steps are
+    // prerelease-only, the collection is seal-keyed with the stable jq
+    // shape and no payload reference, the gate pins exactly the two main
+    // required contexts with their derivation comment, and the stable lane
+    // plus the job structure stay untouched.
+    expect(prereleaseCollectionStep).toContain("if: steps.identity.outputs.prerelease == 'true'")
+    expect(prereleaseGateStep).toContain("if: steps.identity.outputs.prerelease == 'true'")
+    expect(prereleaseCollectionStep).toContain('gh api --paginate --slurp')
+    expect(prereleaseCollectionStep).toContain('commits/$SEAL/check-runs')
+    expect(prereleaseCollectionStep).toContain(
+      'sort_by(.started_at) | group_by(.name + "|" + .app.name) | map(last | {name, app:.app.name, sha:.head_sha, conclusion})'
+    )
+    expect(prereleaseCollectionStep).toContain('> /tmp/release-checks.json')
+    expect(prereleaseCollectionStep).not.toContain('$PAYLOAD')
+    expect(prereleaseGateStep).not.toContain('$PAYLOAD')
+    // Lightweight boundary: neither prerelease step uses an action, uploads
+    // an artifact or invokes a release tool; the gate evaluates through the
+    // job's existing Node setup only.
+    expect(prereleaseCollectionStep).not.toContain('uses:')
+    expect(prereleaseGateStep).not.toContain('uses:')
+    expect(prereleaseGateStep).not.toContain('upload-artifact')
+    expect(prereleaseGateStep).not.toContain('npm run release:')
+    expect(prereleaseGateStep).toContain('/tmp/release-checks.json')
+    expect(prereleaseGateStep).toContain('BLOCK_PRERELEASE_CHECKS_NOT_GREEN')
+    // The pinned list carries exactly the two main required contexts (both
+    // GitHub Actions) and no third entry.
+    const pinnedListMatch = prereleaseGateStep.match(/PRERELEASE_REQUIRED_CHECKS: '(.*)'/)
+    expect(pinnedListMatch).not.toBeNull()
+    expect(JSON.parse(pinnedListMatch[1])).toEqual([
+      { name: 'status check', app: 'GitHub Actions' },
+      { name: 'release/governance', app: 'GitHub Actions' }
+    ])
+    // Derivation source and the release/readiness exclusion rationale are
+    // recorded in the comment attached between the collection step and the
+    // gate step; the excluded context is never quoted into the pinned set.
+    expect(authorizeTagJob).toContain(
+      '.github/release-governance.json rulesets.main.requiredChecks'
+    )
+    expect(authorizeTagJob).toContain('cannot pre-exist on the beta commit')
+    expect(releaseWorkflow).not.toContain('"release/readiness"')
+    const marker = (fragment) => authorizeTagJob.indexOf(fragment)
+    expect(marker('install locked dependencies without lifecycle scripts')).toBeGreaterThan(-1)
+    expect(marker('install locked dependencies without lifecycle scripts')).toBeLessThan(
+      marker('collect prerelease check runs at the seal')
+    )
+    expect(marker('collect prerelease check runs at the seal')).toBeLessThan(
+      marker('gate prerelease required checks')
+    )
+    expect(marker('cannot pre-exist on the beta commit')).toBeGreaterThan(
+      marker('collect prerelease check runs at the seal')
+    )
+    expect(marker('cannot pre-exist on the beta commit')).toBeLessThan(
+      marker('gate prerelease required checks')
+    )
+    expect(marker('gate prerelease required checks')).toBeLessThan(
+      marker('read exact payload check runs')
+    )
+    // Stable lane byte-identical: the four stable skip conditions, the
+    // strict-admission run line and the release-identity artifact remain.
+    expect(authorizeTagJob.match(/steps\.identity\.outputs\.prerelease != 'true'/g)).toHaveLength(4)
+    expect(authorizeTagJob).toContain(
+      'run: npm run release:readiness -- --mode strict --tag "$TAG" --payload "$PAYLOAD" --seal "$SEAL" --head "$HEAD_SHA" --checks-file /tmp/release-checks.json'
+    )
+    expect(authorizeTagJob).toContain('name: release-identity')
+    // No new job: exactly the six pre-existing top-level job keys (the
+    // extraction starts at the jobs: block so on:-block triggers like
+    // push: can never leak into the job list).
+    expect(releaseWorkflow.split(/^jobs:/m)[1].match(/^  [a-z][a-z0-9-]*:\r?$/gm)).toEqual([
+      '  authorize-tag:',
+      '  manual-build:',
+      '  build:',
+      '  prepare-publication:',
+      '  publish:',
+      '  publish-cask:'
+    ])
+    expect(() => assertPrereleaseGateWiring(releaseWorkflow)).not.toThrow()
+  })
+
+  it('fails closed on red, cancelled, missing, stale and ambiguous prerelease checks at the seal', () => {
+    // Deterministic fixtures only: no network and no tracked-file edits;
+    // the validator mirrors the gate step's evaluation.
+    const bothGreen = [
+      checksFileEntry('status check', 'success', prereleaseSeal),
+      checksFileEntry('release/governance', 'success', prereleaseSeal)
+    ]
+    expect(() =>
+      assertPrereleaseChecksGate(bothGreen, prereleaseRequiredIdentities, prereleaseSeal)
+    ).not.toThrow()
+    const failedStatus = [
+      checksFileEntry('status check', 'failure', prereleaseSeal),
+      checksFileEntry('release/governance', 'success', prereleaseSeal)
+    ]
+    expect(() =>
+      assertPrereleaseChecksGate(failedStatus, prereleaseRequiredIdentities, prereleaseSeal)
+    ).toThrow(/status check .* conclusion failure is not success/)
+    const cancelledStatus = [
+      checksFileEntry('status check', 'cancelled', prereleaseSeal),
+      checksFileEntry('release/governance', 'success', prereleaseSeal)
+    ]
+    expect(() =>
+      assertPrereleaseChecksGate(cancelledStatus, prereleaseRequiredIdentities, prereleaseSeal)
+    ).toThrow(/status check .* conclusion cancelled is not success/)
+    const missingStatus = [checksFileEntry('release/governance', 'success', prereleaseSeal)]
+    expect(() =>
+      assertPrereleaseChecksGate(missingStatus, prereleaseRequiredIdentities, prereleaseSeal)
+    ).toThrow(/status check .* missing required check/)
+    const staleSeal = bothGreen.map((check) => ({ ...check, sha: staleSha }))
+    expect(() =>
+      assertPrereleaseChecksGate(staleSeal, prereleaseRequiredIdentities, prereleaseSeal)
+    ).toThrow(/recorded at d{40} instead of the seal/)
+    const ambiguousStatus = [
+      checksFileEntry('status check', 'success', prereleaseSeal),
+      checksFileEntry('status check', 'success', prereleaseSeal),
+      checksFileEntry('release/governance', 'success', prereleaseSeal)
+    ]
+    expect(() =>
+      assertPrereleaseChecksGate(ambiguousStatus, prereleaseRequiredIdentities, prereleaseSeal)
+    ).toThrow(/status check .* ambiguous identity, 2 live matches/)
+  })
+
+  it('resolves a superseded rerun attempt to the latest through the stable collection shape', () => {
+    // The sort-by-started-time, group-by-name-and-app, keep-last shape is
+    // what makes a flaky red re-run harmless: an older red attempt is
+    // superseded by a later success at the same seal, and the inverse (an
+    // older green superseded by a later red) still fails closed.
+    const supersededRerun = [
+      {
+        check_runs: [
+          checkRunAttempt('status check', 'failure', prereleaseSeal, '2026-11-21T09:00:00Z'),
+          checkRunAttempt('release/governance', 'success', prereleaseSeal, '2026-11-21T09:00:30Z')
+        ]
+      },
+      {
+        check_runs: [
+          checkRunAttempt('status check', 'success', prereleaseSeal, '2026-11-21T09:05:00Z')
+        ]
+      }
+    ]
+    const resolved = resolveLatestAttempts(supersededRerun)
+    expect(resolved.find((check) => check.name === 'status check')).toEqual({
+      name: 'status check',
+      app: 'GitHub Actions',
+      sha: prereleaseSeal,
+      conclusion: 'success'
+    })
+    expect(() =>
+      assertPrereleaseChecksGate(resolved, prereleaseRequiredIdentities, prereleaseSeal)
+    ).not.toThrow()
+    const inverseRerun = [
+      {
+        check_runs: [
+          checkRunAttempt('status check', 'success', prereleaseSeal, '2026-11-21T09:00:00Z'),
+          checkRunAttempt('release/governance', 'success', prereleaseSeal, '2026-11-21T09:00:30Z')
+        ]
+      },
+      {
+        check_runs: [
+          checkRunAttempt('status check', 'failure', prereleaseSeal, '2026-11-21T09:05:00Z')
+        ]
+      }
+    ]
+    expect(() =>
+      assertPrereleaseChecksGate(
+        resolveLatestAttempts(inverseRerun),
+        prereleaseRequiredIdentities,
+        prereleaseSeal
+      )
+    ).toThrow(/conclusion failure is not success/)
+  })
+
+  it('rejects in-memory workflow mutations that remove the pinned list, the gate or its prerelease-only condition', () => {
+    // Red controls mutate only the checked-in workflow source string in
+    // memory: no tracked-file edits, no network.
+    expect(() => assertPrereleaseGateWiring(releaseWorkflow)).not.toThrow()
+
+    // Removing the PRERELEASE_REQUIRED_CHECKS env from the gate step is
+    // rejected as a missing pinned list.
+    const withoutPinnedList = releaseWorkflow.replace(
+      /^ {10}PRERELEASE_REQUIRED_CHECKS:.*\r?\n/m,
+      ''
+    )
+    expect(() => assertPrereleaseGateWiring(withoutPinnedList)).toThrow(
+      /pinned required-checks list missing/
+    )
+
+    // Removing the gate step is rejected as a missing gate.
+    const withoutGate = releaseWorkflow.replace(
+      /- name: gate prerelease required checks[\s\S]*?(?=- name: read exact payload check runs)/,
+      ''
+    )
+    expect(() => assertPrereleaseGateWiring(withoutGate)).toThrow(/gate step is missing/)
+
+    // Stripping the gate's condition, or flipping it to != 'true', is
+    // rejected as a gate that is not prerelease-only.
+    const [beforeGate, gateAndRest] = releaseWorkflow.split(/- name: gate prerelease required checks/)
+    const strippedGate =
+      beforeGate +
+      '- name: gate prerelease required checks' +
+      gateAndRest.replace(/^ {8}if: steps\.identity\.outputs\.prerelease == 'true'\r?\n/m, '')
+    expect(() => assertPrereleaseGateWiring(strippedGate)).toThrow(
+      /not gated to prereleases only/
+    )
+    const flippedGate =
+      beforeGate +
+      '- name: gate prerelease required checks' +
+      gateAndRest.replace(
+        "if: steps.identity.outputs.prerelease == 'true'",
+        "if: steps.identity.outputs.prerelease != 'true'"
+      )
+    expect(() => assertPrereleaseGateWiring(flippedGate)).toThrow(
+      /not gated to prereleases only/
     )
   })
 })
