@@ -204,10 +204,12 @@ function makeSandbox({ livePids = [], curlCode = '', curlSequence = '', lsofLine
     // real curl answers 000, kill probes miss). Use the separator the
     // TARGET shell expects: if the ambient PATH already looks msys-style
     // (':' present), join with ':' regardless of the host OS.
-    // On win32 the git-bash target accepts forward-slash drive paths best —
-    // backslash entries in a ':'-joined PATH are the remaining lookup
-    // failure on the runner.
-    PATH: `${sandbox.bin.replace(/\\/g, '/')}${process.env.PATH?.includes(':') && !process.env.PATH?.includes(';') ? ':' : delimiter}${process.env.PATH ?? ''}`,
+    // Windows/git-bash: MSYS bash converts a NATIVE (';'-separated) PATH at
+    // startup — each entry, including a forward-slashed drive path, becomes
+    // a POSIX entry it can resolve. A ':'-joined hand-made PATH breaks that
+    // conversion (drive letters contain ':' and split the entries), which
+    // is why no shim was ever found there. Keep the ambient separator.
+    PATH: `${sandbox.bin.replace(/\\/g, '/')}${process.env.PATH?.includes(';') ? ';' : ':'}${process.env.PATH ?? ''}`,
   }
   return sandbox
 }
