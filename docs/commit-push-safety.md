@@ -62,6 +62,16 @@ pass locally and records the offload state in the private receipt. The power
 state of the offload host is the offload switch; the Windows machine is
 required only for Windows-version testing, which is outside this gate.
 
+The review lanes take POSIX-only flock locks, so the supported review hosts
+are macOS and Linux; stock Windows Python cannot run this review. A
+Windows-authored candidate is reviewed by carrying it to a supported POSIX
+review host with its exact candidate identity preserved — identical staged
+bytes and a manifest resolving to the identical identity — and with its
+receipt carried across, so the review and any override stay bound to the
+same candidate. The gate's behavior is unchanged on every host; this handoff
+is documentation only, and no Windows lock implementation exists or is
+planned by this change.
+
 Every chunk must pass its pass: a malformed verdict, a different loaded model,
 a redirect or an unreachable resolved executor stops the commit or push. A
 failing verdict is never re-rolled on identical candidate bytes — fix the
