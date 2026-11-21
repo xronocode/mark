@@ -149,6 +149,21 @@ describe('ExtensionGallery – extended coverage', () => {
     expect(wrapper.find('.gallery-error').exists()).toBe(true)
   })
 
+  it('surfaces the re-approval instruction when enable exceeds the pairing grant', async () => {
+    const disabled = { ...SAMPLE_EXT, enabled: false }
+    const wrapper = await mountComponent([disabled])
+    // C-SEC-EXT-GRANT-BOUND: mt_ext_enable refuses into explicit
+    // re-approval and the gallery error surface carries the instruction.
+    invokeMock.mockRejectedValueOnce('ext_enable_reapproval_required')
+    invokeMock.mockResolvedValueOnce([disabled])
+    await wrapper.find('input[type="checkbox"]').setValue(true)
+    await flushPromises()
+    expect(invokeMock).toHaveBeenCalledWith('mt_ext_enable', { id: 'com.example.hello' })
+    const error = wrapper.find('.gallery-error')
+    expect(error.exists()).toBe(true)
+    expect(error.text()).toContain('pair again')
+  })
+
   // ── Template branch coverage ─────────────────────────────────
 
   it('shows offline badge and install link for unhealthy ext with install_url', async () => {
