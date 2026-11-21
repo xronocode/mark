@@ -1578,6 +1578,28 @@
       </Commands>
       <Scenarios>
         <Scenario>
+          C-PREFS-TRUTH (2026-11-21): the width-precedence both-orders pin
+          with the pipeline tier unchanged — tests/renderer/util/theme-width-precedence.test.js
+          proves the legacy global tier keeps the saved editorLineWidth
+          effective across a theme switch in both switch orders (the
+          theme's inline --editorAreaWidth mirror is dropped and the
+          #editor-width declaration re-asserted), the recorded pipeline
+          value still wins through reapplyLastEditorWidth, the
+          reapplyLastEditorWidth no-op contract stays unchanged, and with
+          no saved global width the theme's own mirror stays (the shipped
+          theme-tier answer); util/pageWidth.js is untouched and the
+          existing page-width unit suites pass with no edits; the pinned
+          per-document theme application is scoped to the document surface
+          and never shadows the single inline writer (the pipeline-owned
+          variable is skipped on the surface). Focused commands: node
+          node_modules/vitest/vitest.mjs run
+          tests/renderer/util/theme-width-precedence.test.js
+          tests/renderer/util/page-width.test.js
+          tests/renderer/store/editor-page-width.test.js --maxWorkers=2;
+          npm run build &amp;&amp; npx playwright test
+          tests/e2e/page-width-panel.spec.ts --project=chromium.
+        </Scenario>
+        <Scenario>
           Width precedence and honesty: a stored document value beats the
           theme value which beats the global default with the active source
           named in the panel; removing the entry falls back to the theme

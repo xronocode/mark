@@ -110,7 +110,7 @@
         <cur-select
           v-if="!isOsx"
           :description="t('preferences.appearance.window.titleBarStyle')"
-          :help="t('preferences.appearance.window.titleBarStyleHelp')"
+          :help="titleBarStyleHelp"
           :value="titleBarStyle"
           :options="getTitleBarStyleOptions()"
           :on-change="(value) => onSelectChange('titleBarStyle', value)"
@@ -123,7 +123,7 @@
 
 <script setup>
 // FILE: src/renderer/src/prefComponents/tabs/appearance/index.vue
-// VERSION: 2.1.0
+// VERSION: 2.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Appearance tab of the C-38 Settings window — Theme group (Auto/Light/Dark segmented control + the compact 8-per-row family swatch grid), Text group (font, size, line spacing, writing-area width) and Window-and-panels group per the N2 IA §3.2 and the approved mockup.
 //   SCOPE: Row composition; title-bar-identical theme mode semantics; family picking that sets both mode members; swatch colours read from the shipped theme CSS variables.
@@ -140,10 +140,18 @@
 //   activeFamilyId - the family owning the currently applied theme.
 //   onSelectFamily - C-41 T-002 family pick: persist both members, apply the member for the current mode, never leave Auto.
 //   halfStyle - inline background/colour for a tile half.
-//   getTitleBarStyleOptions - Custom/System pop-up (shown on Windows and Linux only per IA §5 bug 10).
+//   getTitleBarStyleOptions - Custom/System pop-up (shown on Windows and Linux only per IA §5 bug 10); the System option renders disabled on Windows where the shipped custom frame is forced (C-PREFS-TRUTH F-010).
+//   titleBarStyleHelp - the row help line; on Windows it explains why System is disabled.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-21 v2.3.0: C-PREFS-TRUTH (F-010) — the Appearance tab stops
+//     offering the no-op System frame choice on Windows: decorations:false
+//     (tauri.windows.conf.json) and the title bar's forced 'custom'
+//     effectiveTitleBarStyle mean a stored 'native' was silently ignored,
+//     so the System option renders disabled there with an explicit
+//     why-this-is-disabled help line (titleBarStyleWindowsHelp, all ten
+//     locales); Linux and macOS rows are exactly as before.
 //   - 2026-10-16 v2.2.0: C-51 T-007 — the Docs and macOS families join
 //     THEME_FAMILIES (16 tiles); the swatch grid becomes 8 columns so the
 //     family set fills exactly two rows.
@@ -168,7 +176,7 @@ import Segmented from '@/prefComponents/common/segmented/index.vue'
 import { THEME_FAMILIES, themeFamilyOf } from '@/util/themeFamilies'
 import { familyMemberForMode } from '@/util/autoTheme'
 import { familySwatchColors } from '@/util/themeSwatchColors'
-import { isOsx } from '@/util'
+import { isOsx, isWindows } from '@/util'
 
 const { t } = useI18n()
 const preferenceStore = usePreferencesStore()
@@ -266,13 +274,31 @@ const onSelectFamily = (family) => {
 }
 // END_BLOCK_FAMILY_TILES
 
-const getTitleBarStyleOptions = () => [{
-  label: t('preferences.appearance.window.titleBarStyleCustom'),
-  value: 'custom'
-}, {
-  label: t('preferences.appearance.window.titleBarStyleNative'),
-  value: 'native'
-}]
+const getTitleBarStyleOptions = () => {
+  const options = [{
+    label: t('preferences.appearance.window.titleBarStyleCustom'),
+    value: 'custom'
+  }, {
+    label: t('preferences.appearance.window.titleBarStyleNative'),
+    value: 'native'
+  }]
+  // C-PREFS-TRUTH (F-010): Windows ships decorations:false
+  // (tauri.windows.conf.json) and the title bar's effectiveTitleBarStyle
+  // forces 'custom' on Windows (components/titleBar START_BLOCK_…), so the
+  // System frame choice is a silent no-op there — it renders DISABLED with
+  // an explicit why-this-is-disabled help line instead of pretending to
+  // work. Linux and macOS rows are unchanged (both options offered and
+  // honored; macOS hides the row entirely as before).
+  if (isWindows) {
+    options[1].disabled = true
+  }
+  return options
+}
+
+// C-PREFS-TRUTH (F-010): the Windows branch names the no-op honestly.
+const titleBarStyleHelp = computed(() => (isWindows
+  ? t('preferences.appearance.window.titleBarStyleWindowsHelp')
+  : t('preferences.appearance.window.titleBarStyleHelp')))
 </script>
 
 <style>

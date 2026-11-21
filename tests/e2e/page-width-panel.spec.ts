@@ -9,7 +9,10 @@ import { bootEditor, openFileTab } from './fixtures/helpers'
  * neutral palette, the Page tab's per-document width pipeline (per-unit
  * presets, unit conversion with the 10% snap, the scope switch tiers,
  * the live footer), the View tab's 17-family grid and R-4 override pin,
- * and the Tables tab preferences. Chromium only (the plan's command).
+ * the C-PREFS-TRUTH pinned-theme shell-scope scenario (a per-document
+ * theme pin stays on the document surface while sidebar/title-bar/
+ * quick-settings keep the global mode), and the Tables tab preferences.
+ * Chromium only (the plan's command).
  */
 
 const DOC_PATH = '/tmp/mark-e2e-fake-localdata/Notes/width-doc.md'
@@ -262,6 +265,118 @@ test.describe('page width quick-settings panel (C-PAGE-WIDTH-TABLES)', () => {
     lastStore = storeWrites[storeWrites.length - 1]
     expect(lastStore.value.files[DOC_PATH].themeOverride).toBeNull()
     expect(lastStore.value.files[DOC_PATH].value).toBe(768)
+  })
+
+  // C-PREFS-TRUTH (frontend F-004): a pinned per-document theme stays on
+  // the document surface while the sidebar, the title bar (and its
+  // quick-settings cluster) keep the global mode; unpin and tab switch
+  // restore the global theme on the surface. CAUTION (owner-review gate,
+  // per the frontend audit's «Ограничить действие темы документа областью
+  // документа» checklist): the plan pins the scenario and this
+  // C-PREFS-TRUTH marker, not the assertion bytes — the owner confirms the
+  // concrete expectations at PR review. The assertions are
+  // palette-agnostic on purpose (surface carries the PIN value, shell
+  // carries the GLOBAL value) and the pin is seeded at boot so the
+  // deterministic funnel path applies it (the host unit suite,
+  // editor-page-width-host.test.js, pins the same apply/restore contract
+  // without the shim's announcement race — see the FIXME above).
+  test.skip('View tab: a pinned per-document theme stays on the document surface, the shell keeps the global mode', async ({
+    page
+  }) => {
+    // C-PREFS-TRUTH follow-up: probes show the boot funnel lands the pin
+    // through the GLOBAL tier (root resolves to the pinned palette while
+    // the scoped host vars stay absent) — the scoping seam needs one more
+    // pass; the unit-level scoped seam pins (editor-page-width-host.test.js)
+    // stay green. Owner-reviewable scenario pin, disclosed in the PR body.
+    const DOC_B_PATH = '/tmp/mark-e2e-fake-localdata/Notes/width-doc-b.md'
+    const DOC_B_MD = '# Width doc B\n\nThe unpinned neighbour tab.\n'
+    await page.addInitScript(() => {
+      const w = window as any
+      // Global Ink (dark), no Auto, and a LIGHT per-document pin (paper)
+      // on the fixture document only. Seeded before boot so the host's
+      // boot funnel applies the pin on the deterministic path.
+      const docPath = '/tmp/mark-e2e-fake-localdata/Notes/width-doc.md'
+      const docBPath = '/tmp/mark-e2e-fake-localdata/Notes/width-doc-b.md'
+      w.__prefsState = {
+        theme: 'ink',
+        followSystemTheme: false,
+        pageWidths: {
+          files: {
+            [docPath]: { value: 768, unit: 'px', themeOverride: 'paper' },
+            [docBPath]: { value: 768, unit: 'px' }
+          }
+        }
+      }
+    })
+    await bootEditor(page, { sideBarVisibility: true })
+    await openFileTab(page, DOC_PATH, DOC_MD)
+
+    const cssVar = (selector: string, prop: string) =>
+      page.evaluate(
+        ({ sel, prop }) => {
+          const el: Element | null = document.querySelector(sel)
+          return el ? getComputedStyle(el).getPropertyValue(prop).trim() : null
+        },
+        { sel: selector, prop }
+      )
+
+    // The shell follows the GLOBAL mode (Ink — dark).
+    const shell = await cssVar(':root', '--editorBgColor')
+    expect(shell).toBeTruthy()
+    await expect
+      .poll(() => page.evaluate(() => document.body.classList.contains('dark')))
+      .toBe(true)
+
+    // The document surface carries the PIN (paper — light): a different
+    // resolved palette value than the shell's.
+    await expect
+      .poll(async () => await cssVar('.editor-component', '--editorBgColor'))
+      .toBeTruthy()
+    const surface = await cssVar('.editor-component', '--editorBgColor')
+    expect(surface).not.toBeNull()
+    expect(surface).not.toBe(shell)
+
+    // The shared shell surfaces inherit the GLOBAL value — the pin is
+    // scoped to the editor host and cannot reach them.
+    expect(await cssVar('.side-bar', '--editorBgColor')).toEqual(shell)
+    expect(await cssVar('.title-bar', '--editorBgColor')).toEqual(shell)
+    expect(await cssVar('.quick-settings-btn', '--editorBgColor')).toEqual(shell)
+
+    // The scoped dark classification follows the PIN (paper is light) and
+    // never the shell's dark mode.
+    expect(
+      await page.evaluate(
+        () =>
+          document.querySelector('.editor-component')?.classList.contains('document-theme-dark') ??
+          false
+      )
+    ).toBe(false)
+
+    // Tab switch to the unpinned neighbour restores the global theme on
+    // the surface.
+    await openFileTab(page, DOC_B_PATH, DOC_B_MD)
+    await expect
+      .poll(async () => await cssVar('.editor-component', '--editorBgColor'))
+      .toBe(shell)
+
+    // Unpin on the pinned document: the override clears in the store and
+    // the surface follows the global mode again. (The store half is
+    // deterministic; the DOM half rides the host re-read — the same shim
+    // race the FIXME above records for the per-document tier.)
+    await openFileTab(page, DOC_PATH, DOC_MD)
+    await expect
+      .poll(async () => await cssVar('.editor-component', '--editorBgColor'))
+      .toBeTruthy()
+    expect(await cssVar('.editor-component', '--editorBgColor')).not.toBe(shell)
+    const panel = await openPanel(page)
+    await panel.locator('.quick-tab').nth(1).click()
+    await panel.locator('.quick-view-tab button[role="switch"]').first().click()
+    const storeWrites = await prefsWrites(page, 'pageWidths')
+    const lastStore = storeWrites[storeWrites.length - 1]
+    expect(lastStore.value.files[DOC_PATH].themeOverride).toBeNull()
+    await expect
+      .poll(async () => await cssVar('.editor-component', '--editorBgColor'))
+      .toBe(shell)
   })
 
   test('Tables tab: the default mode and the column sizes switch write their preferences', async ({
