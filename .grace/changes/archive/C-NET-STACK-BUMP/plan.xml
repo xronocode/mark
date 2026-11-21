@@ -1,0 +1,125 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-NET-STACK-BUMP>
+    <Name>Locked net-stack point bumps: rustls-webpki 0.103.16 + h2 0.4.16 — implementation plan</Name>
+    <Created>2026-11-21</Created>
+    <Spec>C-NET-STACK-BUMP</Spec>
+    <IntentSummary>Lockfile-only dependency maintenance on the Rust net stack against the post-#298 beta-gate-wave worktree. Current state (verified on the fresh head): the workspace root Cargo.lock pins h2 0.4.14 (the `name = "h2"` / `version = "0.4.14"` row pair) and rustls-webpki 0.103.15 (the `name = "rustls-webpki"` / `version = "0.103.15"` row pair); both crates are transitive — neither appears in the workspace root Cargo.toml nor src-tauri/Cargo.toml, no `[patch]` section exists — with the inverse graph rustls 0.23.46 + rustls-platform-verifier 0.7.0 pulling rustls-webpki and hyper 1.10.1 + reqwest 0.13.5 pulling h2. Mechanism: exactly two precise lockfile updates from the workspace root — `cargo update -p rustls-webpki --precise 0.103.16` and `cargo update -p h2 --precise 0.4.16` — no Cargo.toml edit, no added direct dependency, no broad `cargo update`, and no other crate moving unless resolver-forced, in which case every forced move is enumerated and justified in the change bundle (the stay-put set reqwest 0.13.5, tokio 1.54.1, hyper 1.10.1, hyper-util 0.1.20, rustls 0.23.46, rustls-pki-types 1.14.1, tokio-rustls 0.26.4, rustls-platform-verifier 0.7.0 must keep its exact rows). NOTICES-rust.md embeds the crate rows (`| h2 | 0.4.14 | https://github.com/hyperium/h2 |`, `| rustls-webpki | 0.103.15 | https://github.com/rustls/webpki |`) so the attribution gate forces a mechanical refresh via `./tools/verify-attributions.sh --refresh`, diff limited to the two version rows. No runtime behavior change: no source file under src-tauri/src changes (the affected paths — the m016 updater signed-feed check, the m068 rollback fetch riding ReqwestFetch's `reqwest::get(url)` at src-tauri/src/m068_rollback.rs:965, the m045 redirect-none clients, rustls/webpki TLS verification and HTTP/2 handling — are exercised by the existing suites, not edited), the Windows-only cfg-gated rollback_restore fetch tests stay out of host scope, and the graph delta is limited to appended SummaryDelta dependency-fact notes on the M-068/M-045 entries in .grace/graph/features.xml (M-016 is anchored in .grace/graph/runtime.xml and is NOT rewritten; frozen archived bundles stay immutable). Verification of record: locked check, clippy -D warnings, the offline m068_rollback:: suite, the m045_ext suite and the m016 suite plus the read-only attribution check — locked check+clippy+these suites are the proof because no unit-level live-network fetch test exists on the macOS host. Execution is one strictly sequential T-001; no grace-lint command appears inside this plan — lint runs only in the external target/final phases.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>Cargo.lock</Value>
+      </MustExist>
+      <MustExist>
+        <Value>NOTICES-rust.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tools/verify-attributions.sh</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src-tauri/src/m016_updater.rs</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src-tauri/src/m068_rollback.rs</Value>
+      </MustExist>
+      <MustContain><File>Cargo.lock</File><Text>name = "h2"
+version = "0.4.14"</Text></MustContain>
+      <MustContain><File>Cargo.lock</File><Text>name = "rustls-webpki"
+version = "0.103.15"</Text></MustContain>
+      <MustContain><File>Cargo.lock</File><Text>name = "rustls"
+version = "0.23.46"</Text></MustContain>
+      <MustContain><File>Cargo.lock</File><Text>name = "rustls-platform-verifier"
+version = "0.7.0"</Text></MustContain>
+      <MustContain><File>Cargo.lock</File><Text>name = "hyper"
+version = "1.10.1"</Text></MustContain>
+      <MustContain><File>Cargo.lock</File><Text>name = "reqwest"
+version = "0.13.5"</Text></MustContain>
+      <MustContain><File>NOTICES-rust.md</File><Text>| h2 | 0.4.14 | https://github.com/hyperium/h2 |</Text></MustContain>
+      <MustContain><File>NOTICES-rust.md</File><Text>| rustls-webpki | 0.103.15 | https://github.com/rustls/webpki |</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>reqwest::get(url)</Text></MustContain>
+      <MustContain><File>tools/verify-attributions.sh</File><Text>--refresh</Text></MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-068</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-045</Module>
+      </MustVerify>
+      <MustContain><File>Cargo.lock</File><Text>name = "h2"
+version = "0.4.16"</Text></MustContain>
+      <MustContain><File>Cargo.lock</File><Text>name = "rustls-webpki"
+version = "0.103.16"</Text></MustContain>
+      <MustNotContain><File>Cargo.lock</File><Text>name = "h2"
+version = "0.4.14"</Text></MustNotContain>
+      <MustNotContain><File>Cargo.lock</File><Text>version = "0.103.15"</Text></MustNotContain>
+      <MustContain><File>Cargo.lock</File><Text>name = "rustls"
+version = "0.23.46"</Text></MustContain>
+      <MustContain><File>Cargo.lock</File><Text>name = "rustls-pki-types"
+version = "1.14.1"</Text></MustContain>
+      <MustContain><File>Cargo.lock</File><Text>name = "rustls-platform-verifier"
+version = "0.7.0"</Text></MustContain>
+      <MustContain><File>Cargo.lock</File><Text>name = "tokio-rustls"
+version = "0.26.4"</Text></MustContain>
+      <MustContain><File>Cargo.lock</File><Text>name = "hyper"
+version = "1.10.1"</Text></MustContain>
+      <MustContain><File>Cargo.lock</File><Text>name = "hyper-util"
+version = "0.1.20"</Text></MustContain>
+      <MustContain><File>Cargo.lock</File><Text>name = "reqwest"
+version = "0.13.5"</Text></MustContain>
+      <MustContain><File>Cargo.lock</File><Text>name = "tokio"
+version = "1.54.1"</Text></MustContain>
+      <MustContain><File>NOTICES-rust.md</File><Text>| h2 | 0.4.16 | https://github.com/hyperium/h2 |</Text></MustContain>
+      <MustContain><File>NOTICES-rust.md</File><Text>| rustls-webpki | 0.103.16 | https://github.com/rustls/webpki |</Text></MustContain>
+      <MustNotContain><File>NOTICES-rust.md</File><Text>| h2 | 0.4.14 |</Text></MustNotContain>
+      <MustNotContain><File>NOTICES-rust.md</File><Text>| rustls-webpki | 0.103.15 |</Text></MustNotContain>
+      <MustContain><File>.grace/graph/features.xml</File><Text>C-NET-STACK-BUMP</Text></MustContain>
+      
+      <MustPassCommand>
+        <Command budgetSeconds="300">./tools/verify-attributions.sh</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-068 />
+        <M-045 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-068 />
+        <V-M-045 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>Cargo.lock</File>
+      <File>NOTICES-rust.md</File>
+      <File>.grace/graph/features.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Two precise lockfile updates, mechanical NOTICES refresh, SummaryDelta dependency-fact notes and the locked green gates</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Baseline evidence is recorded on the fresh head before any write: the pre-edit lock rows for both crates (the `name = "h2"` / `version = "0.4.14"` pair and the `name = "rustls-webpki"` / `version = "0.103.15"` pair, with checksums) and both NOTICES-rust.md rows, plus the inverse-graph note (rustls-webpki pulled by rustls 0.23.46 and rustls-platform-verifier 0.7.0; h2 pulled by hyper 1.10.1 and reqwest 0.13.5 — both crates transitive, absent from every Cargo.toml, no `[patch]` section) as the spec's re-verify-on-fresh-head requirement.</Criterion>
+          <Criterion>The update is exactly the two precise moves from the workspace root whose Cargo.lock this repository keeps: `cargo update -p rustls-webpki --precise 0.103.16` and `cargo update -p h2 --precise 0.4.16` — no direct dependency added, no `[patch]` section introduced, no Cargo.toml change of any kind, and a broad `cargo update` prohibited. `git diff Cargo.lock` shows exactly the two intended `[[package]]` moves with their checksum updates plus at most resolver-forced transitive entries, and any forced entry is individually listed with its forcing reason in the change bundle (or the diff is exactly the two entries). The stay-put set keeps its exact rows: reqwest 0.13.5, tokio 1.54.1, hyper 1.10.1, hyper-util 0.1.20, rustls 0.23.46, rustls-pki-types 1.14.1, tokio-rustls 0.26.4, rustls-platform-verifier 0.7.0 — if the resolver forces a move inside this set, the task stops for owner review instead of silently widening the diff.</Criterion>
+          <Criterion>The NOTICES-rust.md refresh is the mechanical consequence of the attribution gate, nothing more: `./tools/verify-attributions.sh --refresh` regenerates the file and its diff shows only the two affected version rows (`h2` 0.4.14 → 0.4.16 and `rustls-webpki` 0.103.15 → 0.103.16); the read-only mode (`./tools/verify-attributions.sh`) then passes with no staleness error, and no other attribution record in the file changes.</Criterion>
+          <Criterion>The graph delta is limited to dependency-fact notes: exactly one appended SummaryDelta line inside the M-068 entry and one inside the M-045 entry of .grace/graph/features.xml recording the bumped locked crate versions (C-NET-STACK-BUMP: Cargo.lock h2 0.4.16, rustls-webpki 0.103.16 via precise lockfile updates, no manifest change); no ownership, contract, verification or acceptance markup is rewritten — in particular the M-016 updater module stays anchored in .grace/graph/runtime.xml untouched, frozen archived bundles stay immutable, and no other module's entry is touched.</Criterion>
+          <Criterion>No runtime behavior change is provable from the bundle: `git diff` shows no change under src-tauri/src (the m016 updater feed check, the m068 rollback fetch/promote flow with its `reqwest::get(url)` fetch, the m045 discovery/invoke redirect-none clients and the app-store/non-app-store feature split are untouched), no new test asserting network behavior, no live-network test introduction, the Windows-only `cfg(not(target_os = "macos"))` rollback_restore fetch tests remain out of host scope neither enabled nor weakened, and no release, tag, app-version, signing or workflow change lands. The green gates of record: `cargo check --manifest-path src-tauri/Cargo.toml --locked` and the locked suites (m068_rollback:: offline, m045_ext, m016) succeed without regenerating the lockfile, `cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings` stays green, and the read-only attribution check passes — locked check+clippy plus these suites are the verification because no unit-level live-network fetch test exists on the macOS host.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo check --manifest-path src-tauri/Cargo.toml --locked</Command>
+          <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --bin mark m068_rollback::</Command>
+          <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --locked --bin mark m045_ext</Command>
+          <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --locked --bin mark m016</Command>
+          <Command budgetSeconds="900">cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings</Command>
+          <Command budgetSeconds="300">./tools/verify-attributions.sh</Command>
+          <Command budgetSeconds="30">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/features.xml')"</Command>
+        </Verification>
+      </T-001>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Criterion>Lock diff is exactly the intended moves (spec AC-1): the TargetAssertions pin the new row pairs (`name = "h2"` / `version = "0.4.16"`, `name = "rustls-webpki"` / `version = "0.103.16"`) and invert the old ones (two-line MustNotContain for h2 0.4.14 — single-line inversion is unsafe because another crate legitimately stays at 0.4.14; `version = "0.103.15"` is unique and inverts single-line), while the eight stay-put rows are pinned MustContain; any additional diff entry is a resolver-forced move individually listed and justified in the change bundle.</Criterion>
+      <Criterion>Locked builds and workspace suites stay green (spec AC-2): `cargo check --manifest-path src-tauri/Cargo.toml --locked`, `cargo test --manifest-path src-tauri/Cargo.toml --locked` filters and `cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings` succeed without lockfile regeneration — the MustPassCommand set is exactly the spec's VerificationIntent command list.</Criterion>
+      <Criterion>The net-path suites stay green offline (spec AC-3): the V-M-068 m068_rollback:: suite (measured 65 tests in current-state evidence) runs green under --locked --offline, the m045_ext suite runs green under --locked, and the m016 updater unit suite passes with the same `m016` filter as current-state evidence; the Windows-only cfg-gated rollback_restore fetch tests stay untouched and out of host scope.</Criterion>
+      <Criterion>Attribution stays consistent (spec AC-4): NOTICES-rust.md regenerates via the attribution gate's --refresh mode with a diff limited to the h2 and rustls-webpki version rows (pinned MustContain new rows, MustNotContain old rows), and `./tools/verify-attributions.sh` in read-only mode passes.</Criterion>
+      <Criterion>Governance (spec AC-5): the .grace/graph/features.xml delta is limited to the two appended SummaryDelta dependency-fact notes (pinned by the C-NET-STACK-BUMP marker) with no ownership, contract, verification or acceptance markup rewritten and frozen archived bundles immutable; grace lint passes before and after in the external phases (current pre-edit, target/final for the change) — this plan contains no self-referential grace-lint MustPassCommand; no version bump, no release publication; drafting approves no plan, implementation, apply/archive or release.</Criterion>
+    </AcceptanceVerification>
+  </C-NET-STACK-BUMP>
+</GraceChangePlan>

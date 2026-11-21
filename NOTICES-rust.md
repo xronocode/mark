@@ -409,7 +409,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | gtk | 0.18.2 | https://github.com/gtk-rs/gtk3-rs |
 | gtk-sys | 0.18.2 | https://github.com/gtk-rs/gtk3-rs |
 | gtk3-macros | 0.18.2 | https://github.com/gtk-rs/gtk3-rs |
-| h2 | 0.4.14 | https://github.com/hyperium/h2 |
+| h2 | 0.4.16 | https://github.com/hyperium/h2 |
 | http-body | 1.0.1 | https://github.com/hyperium/http-body |
 | http-body-util | 0.1.3 | https://github.com/hyperium/http-body |
 | hyper | 1.10.1 | https://github.com/hyperium/hyper |
@@ -676,7 +676,7 @@ node tools/build-notices-rust.mjs /tmp/rust-licenses.json > NOTICES-rust.md
 | inotify-sys | 0.1.5 | https://github.com/hannobraun/inotify-sys |
 | libloading | 0.7.4 | https://github.com/nagisa/rust_libloading/ |
 | libloading | 0.8.9 | https://github.com/nagisa/rust_libloading/ |
-| rustls-webpki | 0.103.15 | https://github.com/rustls/webpki |
+| rustls-webpki | 0.103.16 | https://github.com/rustls/webpki |
 | untrusted | 0.9.0 | https://github.com/briansmith/untrusted |
 
 ## MIT OR Apache-2.0 OR Zlib (6)
