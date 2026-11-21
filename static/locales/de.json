@@ -83,7 +83,15 @@
       "error": "Export-Fehler",
       "imagesEmbeddedMessage": "{embedded} von {total} Bildern eingebettet — große oder fehlende Bilder behalten ihre ursprünglichen Verweise",
       "errorExporting": "Fehler beim Exportieren der {type}-Datei",
-      "settingsAction": "Exporteinstellungen"
+      "settingsAction": "Exporteinstellungen",
+      "embedConsentTitle": "Bilder außerhalb des Dokumentordners einbetten?",
+      "embedConsentMessage": "{count} Bilddatei(en) außerhalb des Dokumentverzeichnisses ({dir}) würden gelesen und eingebettet: {paths}",
+      "embedConsentConfirm": "Diese Dateien einbetten",
+      "embedConsentCancel": "Überspringen",
+      "plantumlConsentTitle": "PlantUML-Diagramme werden von plantuml.com gerendert",
+      "plantumlConsentMessage": "{count} PlantUML-Diagramm(e) würden zum Rendern an {address} gesendet — der Diagramm-Quelltext verlässt diese Maschine",
+      "plantumlConsentConfirm": "Zu plantuml.com senden",
+      "plantumlConsentCancel": "Quelle lokal behalten"
     },
     "resizeTable": "Tabellengröße ändern",
     "vega-lite-start": "Vega-Lite Start",

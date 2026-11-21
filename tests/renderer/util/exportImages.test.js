@@ -19,9 +19,24 @@ vi.mock('@/util/index', () => ({
   isWindows: (...args) => isWindowsMock(...args)
 }))
 
+// START_MODULE_CONTRACT
+//   PURPOSE: Pins for the export image-embedding scope gate (C-EXPORT-BOUNDARIES).
+//   SCOPE: isInDocumentScope classification, the two-phase consent pass and
+//          declined-by-default accounting in util/exportImages.js.
+//   DEPENDS: util/exportImages.js.
+//   LINKS: .grace/graph/features.xml M-065; V-M-065.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+//   (suite-local fixtures only - no exports)
+// END_MODULE_MAP
+//
+
 import { ipcFs } from '@/ipc/runtime'
 import {
   embedLocalImages,
+  isInDocumentScope,
   EMBED_CAP_BYTES,
   IMAGE_MIME_BY_EXT
 } from '@/util/exportImages'
@@ -58,25 +73,28 @@ describe('embedLocalImages — embedding (corners C-1, C-2)', () => {
     expect(result).toMatchObject({ embedded: 1, total: 1, skipped: 0 })
   })
 
-  it('embeds an absolute POSIX path and leaves no absolute path in the output (C-2)', async () => {
-    vi.mocked(ipcFs.stat).mockResolvedValue(statFile(PNG_BYTES.length))
-    vi.mocked(ipcFs.readBinary).mockResolvedValue(PNG_BYTES)
-
+  it('re-pinned to consent semantics (C-2): an out-of-scope absolute path keeps its src with no consent callback', async () => {
     const result = await embedLocalImages(
       img('/var/tmp/marktest/Pictures/shot.png'),
       '/irrelevant/base'
     )
 
-    expect(ipcFs.stat).toHaveBeenCalledWith('/var/tmp/marktest/Pictures/shot.png')
-    expect(result.html).not.toContain('/var/tmp/marktest/Pictures/shot.png')
-    expect(result.embedded).toBe(1)
+    expect(ipcFs.stat).not.toHaveBeenCalled()
+    expect(ipcFs.readBinary).not.toHaveBeenCalled()
+    expect(result.html).toContain('/var/tmp/marktest/Pictures/shot.png')
+    expect(result).toMatchObject({ embedded: 0, total: 1, skipped: 1 })
   })
 
   it('strips file:/// URLs and embeds the referenced file', async () => {
     vi.mocked(ipcFs.stat).mockResolvedValue(statFile(PNG_BYTES.length))
     vi.mocked(ipcFs.readBinary).mockResolvedValue(PNG_BYTES)
 
-    await embedLocalImages(img('file:///var/tmp/marktest/shot.png'), null)
+    // C-EXPORT-BOUNDARIES: the absolute target is out-of-scope against
+    // the null base by design — this pin exists to pin resolution, so
+    // the only change is the call shape granting the single candidate.
+    await embedLocalImages(img('file:///var/tmp/marktest/shot.png'), null, {
+      requestScopeConsent: async (paths) => [paths[0]]
+    })
 
     expect(ipcFs.stat).toHaveBeenCalledWith('/var/tmp/marktest/shot.png')
   })
@@ -229,7 +247,12 @@ describe('embedLocalImages — Windows normalization (corner C-3)', () => {
     vi.mocked(ipcFs.stat).mockResolvedValue(statFile(PNG_BYTES.length))
     vi.mocked(ipcFs.readBinary).mockResolvedValue(PNG_BYTES)
 
-    await embedLocalImages(img('C:\\marktest\\shot.png'), null)
+    // C-EXPORT-BOUNDARIES: call-only update — assertions unchanged; the
+    // normalized absolute target is out-of-scope against the null base,
+    // so the consent callback grants the single candidate.
+    await embedLocalImages(img('C:\\marktest\\shot.png'), null, {
+      requestScopeConsent: async (paths) => [paths[0]]
+    })
 
     expect(ipcFs.stat).toHaveBeenCalledWith('C:/marktest/shot.png')
   })
@@ -238,7 +261,10 @@ describe('embedLocalImages — Windows normalization (corner C-3)', () => {
     vi.mocked(ipcFs.stat).mockResolvedValue(statFile(PNG_BYTES.length))
     vi.mocked(ipcFs.readBinary).mockResolvedValue(PNG_BYTES)
 
-    await embedLocalImages(img('\\\\?\\C:\\marktest\\shot.png'), null)
+    // C-EXPORT-BOUNDARIES: call-only update, as above.
+    await embedLocalImages(img('\\\\?\\C:\\marktest\\shot.png'), null, {
+      requestScopeConsent: async (paths) => [paths[0]]
+    })
 
     expect(ipcFs.stat).toHaveBeenCalledWith('C:/marktest/shot.png')
   })
@@ -267,3 +293,145 @@ describe('embedLocalImages — markup integrity', () => {
     expect(result.html).toBe(html)
   })
 })
+
+// ──────────────────────────────────────────────────────────────────────
+// START_BLOCK_SCOPE_GATE_PINS
+// C-EXPORT-BOUNDARIES red-first pins: the out-of-scope gate, the granted
+// subset, consent-list integrity, the unchanged cap/MIME gates under a
+// grant and declined accounting. These fail on pre-fix code, which
+// embedded '/irrelevant/base' absolute paths unconditionally.
+// ──────────────────────────────────────────────────────────────────────
+describe('embedLocalImages — embed scope consent gate (C-EXPORT-BOUNDARIES)', () => {
+  it('not embed an out-of-scope absolute path without consent', async () => {
+    const result = await embedLocalImages(
+      img('/var/tmp/marktest/Pictures/shot.png'),
+      '/irrelevant/base'
+    )
+
+    // Out-of-scope refused: no I/O at all, the src survives and the
+    // reference counts skipped.
+    expect(ipcFs.stat).not.toHaveBeenCalled()
+    expect(ipcFs.readBinary).not.toHaveBeenCalled()
+    expect(result.html).toContain('/var/tmp/marktest/Pictures/shot.png')
+    expect(result).toMatchObject({ embedded: 0, total: 1, skipped: 1 })
+  })
+
+  it('isInDocumentScope keeps segment boundaries, trailing slashes and Windows case-folding', () => {
+    // Segment-boundary prefix: '/docs' never claims '/docsfiles/x.png'.
+    expect(isInDocumentScope('/docsfiles/x.png', '/docs')).toBe(false)
+    expect(isInDocumentScope('/docs/img/x.png', '/docs')).toBe(true)
+    expect(isInDocumentScope('/docs', '/docs')).toBe(true)
+    // Trailing slashes on either side are tolerated.
+    expect(isInDocumentScope('/docs/img/x.png', '/docs/')).toBe(true)
+    expect(isInDocumentScope('/docs/img/', '/docs')).toBe(true)
+    // Falsy baseDir is never in scope.
+    expect(isInDocumentScope('/docs/img/x.png', null)).toBe(false)
+    expect(isInDocumentScope('/docs/img/x.png', '')).toBe(false)
+  })
+
+  it('isInDocumentScope folds case only under isWindows()', async () => {
+    isWindowsMock.mockReturnValue(true)
+    expect(isInDocumentScope('/Docs/Img/x.png', '/docs')).toBe(true)
+    isWindowsMock.mockReturnValue(false)
+    expect(isInDocumentScope('/Docs/Img/x.png', '/docs')).toBe(false)
+  })
+
+  it('still embeds an in-scope sibling image (C-1 unchanged)', async () => {
+    vi.mocked(ipcFs.stat).mockResolvedValue(statFile(PNG_BYTES.length))
+    vi.mocked(ipcFs.readBinary).mockResolvedValue(PNG_BYTES)
+
+    // An out-of-scope sibling next to an in-scope reference: the
+    // in-scope embed must be byte-identical to the C-1 behavior even
+    // when the consent callback declines everything.
+    const result = await embedLocalImages(
+      `${img('/var/tmp/elsewhere/Pictures/shot.png')}${img('img/shot.png')}`,
+      '/var/tmp/marktest/docs',
+      { requestScopeConsent: async () => [] }
+    )
+
+    expect(ipcFs.stat).toHaveBeenCalledTimes(1)
+    expect(ipcFs.stat).toHaveBeenCalledWith('/var/tmp/marktest/docs/img/shot.png')
+    expect(result.html).toContain(PNG_DATA_URL)
+    expect(result.html).toContain('/var/tmp/elsewhere/Pictures/shot.png')
+    expect(result).toMatchObject({ embedded: 1, total: 2, skipped: 1 })
+  })
+
+  it('embeds exactly the granted subset of the consented list', async () => {
+    vi.mocked(ipcFs.stat).mockResolvedValue(statFile(PNG_BYTES.length))
+    vi.mocked(ipcFs.readBinary).mockResolvedValue(PNG_BYTES)
+
+    const result = await embedLocalImages(
+      `${img('/var/tmp/marktest/Pictures/one.png')}${img('/var/tmp/marktest/Pictures/two.png')}`,
+      '/irrelevant/base',
+      { requestScopeConsent: async (paths) => [paths[0]] }
+    )
+
+    expect(ipcFs.stat).toHaveBeenCalledTimes(1)
+    expect(ipcFs.stat).toHaveBeenCalledWith('/var/tmp/marktest/Pictures/one.png')
+    expect(result.html).toContain(PNG_DATA_URL)
+    expect(result.html).toContain('/var/tmp/marktest/Pictures/two.png')
+    expect(result.html).not.toContain('/var/tmp/marktest/Pictures/one.png')
+    expect(result).toMatchObject({ embedded: 1, total: 2, skipped: 1 })
+  })
+
+  it('deduplicates the consent list by resolved path across two spellings plus a file:// form', async () => {
+    vi.mocked(ipcFs.stat).mockResolvedValue(statFile(PNG_BYTES.length))
+    vi.mocked(ipcFs.readBinary).mockResolvedValue(PNG_BYTES)
+
+    const seenLists = []
+    const result = await embedLocalImages(
+      `${img('/var/tmp/marktest/docs/img/same.png')}` +
+        `${img(' /var/tmp/marktest/docs/img/same.png ')}` +
+        `${img('file:///var/tmp/marktest/docs/img/same.png')}`,
+      '/irrelevant/base',
+      {
+        requestScopeConsent: async (paths) => {
+          seenLists.push([...paths])
+          return [paths[0]]
+        }
+      }
+    )
+
+    // One callback, one entry — the three spellings resolve to the same
+    // path and the granted file embeds for all three references.
+    expect(seenLists).toHaveLength(1)
+    expect(seenLists[0]).toEqual(['/var/tmp/marktest/docs/img/same.png'])
+    expect(ipcFs.stat).toHaveBeenCalledTimes(1)
+    expect(ipcFs.readBinary).toHaveBeenCalledTimes(1)
+    expect(result).toMatchObject({ embedded: 3, total: 3, skipped: 0 })
+  })
+
+  it('grants embed through the unchanged cap and MIME gates', async () => {
+    vi.mocked(ipcFs.stat).mockResolvedValue(statFile(EMBED_CAP_BYTES))
+    vi.mocked(ipcFs.readBinary).mockResolvedValue(PNG_BYTES)
+
+    const result = await embedLocalImages(
+      `${img('/var/tmp/marktest/Pictures/huge.png')}${img('/var/tmp/marktest/Pictures/diagram.tiff')}`,
+      '/irrelevant/base',
+      { requestScopeConsent: async (paths) => paths }
+    )
+
+    // Cap: granted, but at EMBED_CAP_BYTES it still skips without a read.
+    expect(ipcFs.readBinary).not.toHaveBeenCalled()
+    expect(result.html).toContain('huge.png')
+    // MIME: an unknown extension is never even a consent candidate.
+    expect(ipcFs.stat).toHaveBeenCalledTimes(1)
+    expect(ipcFs.stat).toHaveBeenCalledWith('/var/tmp/marktest/Pictures/huge.png')
+    expect(result.html).toContain('diagram.tiff')
+    expect(result).toMatchObject({ embedded: 0, total: 2, skipped: 2 })
+  })
+
+  it('counts declined references as skipped, never as embedded', async () => {
+    const result = await embedLocalImages(
+      `${img('/var/tmp/marktest/Pictures/one.png')}${img('/var/tmp/marktest/Pictures/one.png')}${img('/var/tmp/marktest/Pictures/two.png')}`,
+      '/irrelevant/base'
+    )
+
+    // Declined-by-default: zero I/O, every declined reference stays in
+    // total/skipped and never reaches embedded.
+    expect(ipcFs.stat).not.toHaveBeenCalled()
+    expect(ipcFs.readBinary).not.toHaveBeenCalled()
+    expect(result).toMatchObject({ embedded: 0, total: 3, skipped: 3 })
+  })
+})
+// END_BLOCK_SCOPE_GATE_PINS

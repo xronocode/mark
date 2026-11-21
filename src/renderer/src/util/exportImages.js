@@ -12,10 +12,22 @@
 // START_MODULE_MAP
 //   IMAGE_MIME_BY_EXT - lowercase extension → MIME for the extensions we embed; anything else is a counted skip.
 //   EMBED_CAP_BYTES - per-image raw-size cap (8 MiB); at or above it the image keeps its src.
-//   embedLocalImages - html + document directory → { html, embedded, total, skipped }; mutates only img src values in a detached container.
+//   isInDocumentScope - pure scope classifier: segment-boundary prefix match of a resolved path against the document directory (Windows case-insensitive, trailing-slash tolerant).
+//   embedLocalImages - html + document directory + optional requestScopeConsent → { html, embedded, total, skipped }; two-phase consent pass, mutates only img src values in a detached container.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-21 C-EXPORT-BOUNDARIES: the embed scope gate. The pure
+//     isInDocumentScope classifier (segment-boundary prefix on
+//     forward-slash-normalized paths, trailing-slash tolerant,
+//     case-insensitive only under isWindows()) decides which resolved
+//     paths the pass may read; embedLocalImages is now a two-phase
+//     consent pass — classify first, then ONE awaited requestScopeConsent
+//     callback receiving the deduplicated resolved out-of-scope candidates
+//     strictly before any out-of-scope stat/read (declined-by-default with
+//     no callback, consent never persisted). Un-granted references keep
+//     their src and count skipped; the markers BLOCK_EMBED_SCOPE_CONSENT
+//     and BLOCK_EMBED_SCOPE_DECLINED carry counts only.
 //   - 2026-10-21 v1.0.0 C-SELF-CONTAINED-HTML-EXPORT: initial pass. Reads
 //     go through ipcFs.readBinary (mt::fs::read_binary, lossless bytes) —
 //     window.fileUtils.readFile returns UTF-8 text and corrupts binary
@@ -119,6 +131,27 @@ const resolveImageSrc = (rawSrc, baseDir) => {
 }
 // END_BLOCK_RESOLVE_SRC
 
+// ──────────────────────────────────────────────────────────────────────
+// START_BLOCK_SCOPE_GATE
+// C-EXPORT-BOUNDARIES: pure scope classifier — is a resolved absolute
+// path inside the exporting document's directory? Segment-boundary
+// prefix match on forward-slash-normalized, trailing-slash-stripped
+// paths ('/docs' never claims '/docsfiles/x.png'), case-insensitive
+// only under isWindows(). Reads no DOM, performs no I/O.
+// ──────────────────────────────────────────────────────────────────────
+export const isInDocumentScope = (resolvedPath, baseDir) => {
+  if (!baseDir || !resolvedPath) return false
+  const normalize = (p) => String(p).replace(/\\/g, '/').replace(/\/+$/, '')
+  const base = normalize(baseDir)
+  if (!base) return false
+  const resolved = normalize(resolvedPath)
+  const fold = (p) => (isWindows() ? p.toLowerCase() : p)
+  const scopedBase = fold(base)
+  const scopedResolved = fold(resolved)
+  return scopedResolved === scopedBase || scopedResolved.startsWith(`${scopedBase}/`)
+}
+// END_BLOCK_SCOPE_GATE
+
 const extensionOf = (path) => {
   const base = path.replace(/[\\/][^\\/]*$/, '')
   const name = path.slice(base.length ? base.length + 1 : 0)
@@ -131,8 +164,17 @@ const extensionOf = (path) => {
 // The export pass: DOM-walk the imgs, classify each src, dedupe reads
 // by resolved path, and rewrite src to data-URLs. Accounting counts
 // references (what the reader sees), not reads.
+// C-EXPORT-BOUNDARIES: two phases. Phase 1 classifies every resolvable
+// local src with a known MIME and collects the out-of-scope candidates
+// deduplicated by resolved path — nothing is read yet. The single
+// awaited requestScopeConsent callback (declined-by-default when absent)
+// sits strictly between classification and the first out-of-scope I/O,
+// so the dialog lists exactly the files the pass is about to read. The
+// granted subset embeds through the unchanged stat → cap → readBinary
+// path; every declined reference keeps its src and counts skipped with
+// zero I/O. Consent is requested per export and never persisted.
 // ──────────────────────────────────────────────────────────────────────
-export async function embedLocalImages(html, baseDir) {
+export async function embedLocalImages(html, baseDir, { requestScopeConsent } = {}) {
   const container = document.createElement('div')
   container.innerHTML = html
 
@@ -143,6 +185,12 @@ export async function embedLocalImages(html, baseDir) {
   let embedded = 0
   let skipped = 0
 
+  // ── Phase 1: classify. In-scope references queue for the unchanged
+  // embed path; out-of-scope references collect their deduplicated
+  // resolved paths.
+  const plan = []
+  const candidatePaths = []
+  const seenCandidates = new Set()
   for (const image of images) {
     const rawSrc = image.getAttribute('src')
     const resolved = resolveImageSrc(rawSrc, baseDir)
@@ -151,6 +199,42 @@ export async function embedLocalImages(html, baseDir) {
     const mime = IMAGE_MIME_BY_EXT[extensionOf(resolved)]
     if (!mime) {
       // Local candidate we deliberately do not embed.
+      skipped += 1
+      continue
+    }
+
+    if (!isInDocumentScope(resolved, baseDir)) {
+      if (!seenCandidates.has(resolved)) {
+        seenCandidates.add(resolved)
+        candidatePaths.push(resolved)
+      }
+      plan.push({ image, resolved, mime, inScope: false })
+      continue
+    }
+    plan.push({ image, resolved, mime, inScope: true })
+  }
+
+  // ── Consent: exactly one callback per export, before any out-of-scope
+  // I/O. The candidate list is exactly what phase 2 may read; no callback
+  // means declined (the empty grant).
+  let grantedPaths = null
+  if (candidatePaths.length > 0) {
+    // eslint-disable-next-line no-console
+    console.debug(`[export][embed-images][BLOCK_EMBED_SCOPE_CONSENT outOfScope=${candidatePaths.length}]`)
+    grantedPaths = new Set(
+      typeof requestScopeConsent === 'function'
+        ? await requestScopeConsent(candidatePaths)
+        : []
+    )
+  }
+
+  // ── Phase 2: the unchanged per-path outcome path for in-scope
+  // references and granted out-of-scope references alike.
+  let declined = 0
+  for (const { image, resolved, mime, inScope } of plan) {
+    if (!inScope && !grantedPaths.has(resolved)) {
+      // Declined: the img keeps its src, counts skipped, zero I/O.
+      declined += 1
       skipped += 1
       continue
     }
@@ -182,6 +266,11 @@ export async function embedLocalImages(html, baseDir) {
     } else {
       skipped += 1
     }
+  }
+
+  if (declined > 0) {
+    // eslint-disable-next-line no-console
+    console.debug(`[export][embed-images][BLOCK_EMBED_SCOPE_DECLINED declined=${declined}]`)
   }
 
   return {

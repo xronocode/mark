@@ -109,6 +109,8 @@
 //   imageAction - Applies configured local/upload image insertion behavior; with the relative preference on a saved document it writes straight into the relative folder (C-24).
 //   handleDropImage - Inserts an image dropped from Finder (mt::drop-image) at the cursor through imageAction (C-24 R-4).
 //   handleExport - Routes supported export formats to renderer services; C-61 splits print (direct native panel, remembered options) from pdf (settings → save dialog → mt_export_pdf, container cleared on every outcome); C-SELF-CONTAINED-HTML-EXPORT runs the M-065 embedLocalImages pass (local images → data-URLs, skipped-count warning) on the styledHtml branch only.
+//   requestScopeConsent - C-EXPORT-BOUNDARIES embed consent card (dedupKey 'export-embed-consent'): sticky dedupKey singleton through notice.notify listing the deduplicated resolved out-of-scope image paths with their count and the document directory; Confirm grants exactly the listed files, Cancel/dismiss grants none; never persisted.
+//   requestPlantUMLExportConsent - C-EXPORT-BOUNDARIES PlantUML consent card (dedupKey 'export-plantuml-consent'): names https://www.plantuml.com/plantuml and the per-diagram count (what leaves: the diagram source text); Confirm/Cancel resolve the decision into plantumlRemoteConsent for exportStyledHTML in the styledHtml and docx branches; BLOCK_PLANTUML_EXPORT_CONSENT/_DECLINED markers carry counts only.
 //   handleCopyAsHtml - Copies selection (or whole document) to the clipboard as rich text/html (C-3).
 //   copyRenderedAsPlainText - Shared C-12/C-32 render → convert → single text/plain write pipeline.
 //   diffGuarded - M-031: document-mutating bus handlers become no-ops while the diff view replaces the editing surface.
@@ -146,6 +148,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   2026-11-21 C-EXPORT-BOUNDARIES: both export consent gates ride the notice.notify facade into the shared notification stack (components/rollbackConfirm pattern re-expressed inline: sticky entry, dedupKey singleton, Confirm/Cancel actions resolving a local Promise, DISMISS on decision) — 'export-embed-consent' lists the deduplicated resolved out-of-scope image paths, their count and the document directory for the T-001 requestScopeConsent seam, 'export-plantuml-consent' names exactly https://www.plantuml.com/plantuml plus the per-diagram count before exportStyledHTML carries the opaque plantumlRemoteConsent key in both the styledHtml and docx branches (count 0 skips the dialog and passes false); markers BLOCK_PLANTUML_EXPORT_CONSENT/_DECLINED stay count-only, decisions are never persisted, the declined PlantUML artifact is muya's pre.ag-plantuml-export-source placeholder, and pdf/print never run either gate.
 //   2026-11-20 C-SEC-EDIT-TARGETING: the ext insert/transform/undo handlers run extBindingMatchesRendered (renderedTabId + renderedDocumentOwner.documentToken) as their FIRST statement and log BLOCK_EXT_TARGETING_MISMATCH, returning before any mutation — insertParagraph, replace and the whole-document setMarkdown fallback included; unbound events (documentId undefined, e.g. /ext/text-insert or the text_ops.rs commands) never match, fail-closed. handleExtContextRequest adds document_id (renderedTabId) + document_generation (renderedDocumentOwner.documentToken) — explicit nulls when there is no rendered identity — to the context response. Typing between context and apply never invalidates a matched apply: the generation is the instance token, not a content revision.
 //   2026-11-19 C-TABLE-DIALOG-CREATION-VERIFICATION T-001: the insert-table dialog's initial row-input focus moves from a pre-trap nextTick claim (overwritten by the Element Plus FocusTrap's opening container focus) to a claim that runs immediately AFTER that container focus — the @open-auto-focus handler chains two nextTicks (the trap registers its container focus on the first), guarded by dialog visibility and trap-default focus, with @opened re-running the same guarded claim as fallback; no timers, no retries, no trap interference, no focus theft after a deliberate user focus move.
 //   EXPORT: 2026-11-12 C-EXPORT-SETTINGS-SECTION: pass the captured Word operation through pageOptions to conversion.
@@ -386,7 +389,11 @@ import { buildTableSvg, resolveTableExportTable, TABLE_EXPORT_FIGURE_SELECTOR } 
 // Markdown) for the right-click Copy Image item.
 import { getImageInfo as getDomImageInfo } from 'muya/lib/utils/getImageInfo'
 import { getCssForOptions, getHtmlToc } from '@/util/pdf'
+// C-EXPORT-BOUNDARIES: the embed pass (M-065) and the pure PlantUML
+// fence counter that decides whether the export-plantuml-consent card
+// is raised. The consent decision rides exportStyledHTML's options bag.
 import { embedLocalImages } from '@/util/exportImages'
+import { countPlantUMLFences } from 'muya/lib/utils/exportHtml'
 import { loadTableLayoutsFor, saveTableLayoutsFor } from '@/util/tableLayoutStore'
 import { addCommonStyle, addThemeStyle, setEditorWidth, setWrapCodeBlocks } from '@/util/theme'
 // C-PAGE-WIDTH-TABLES (host wiring): the resolution pipeline (pure maths +
@@ -405,6 +412,9 @@ import { usePreferencesStore } from '@/store/preferences'
 import { useEditorStore } from '@/store/editor'
 import { useProjectStore } from '@/store/project'
 import { useLayoutStore } from '@/store/layout'
+// C-EXPORT-BOUNDARIES: consent cards are raised through the notice
+// facade; the store is used only to DISMISS the entry on decision.
+import { useNotificationsStore } from '@/store/notifications'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 
@@ -447,6 +457,7 @@ const preferencesStore = usePreferencesStore()
 const editorStore = useEditorStore()
 const projectStore = useProjectStore()
 const layoutStore = useLayoutStore()
+const notificationsStore = useNotificationsStore()
 
 // Use storeToRefs to extract reactive properties from the stores
 const {
@@ -2256,6 +2267,106 @@ const handleFindAction = (action) => {
   scrollToHighlight()
 }
 
+// ──────────────────────────────────────────────────────────────────────
+// START_BLOCK_EXPORT_CONSENT_GATES
+// C-EXPORT-BOUNDARIES: per-export consent cards for the two outbound
+// export boundaries, raised through the notice.notify facade into the
+// shared notification stack (the components/rollbackConfirm pattern
+// re-expressed inline: sticky entry, dedupKey singleton, Confirm/Cancel
+// actions resolving a local Promise, DISMISS on decision). Decisions are
+// never persisted — no settings entry, no remembered consent. Console
+// markers stay count-only per the V-M-065 privacy convention: resolved
+// paths appear solely inside the card message the user approves.
+// ──────────────────────────────────────────────────────────────────────
+const PLANTUML_EXPORT_ADDRESS = 'https://www.plantuml.com/plantuml'
+
+const dismissConsentCard = (dedupKey) => {
+  const entry = notificationsStore.stack.find((e) => e.dedupKey === dedupKey)
+  if (entry) notificationsStore.DISMISS(entry.id)
+}
+
+// Image embed scope (M-065 T-001 seam): the callback receives the
+// deduplicated resolved out-of-scope paths and resolves with the granted
+// subset — Confirm grants exactly the listed files, Cancel/dismiss none.
+const requestScopeConsent = (candidatePaths) => {
+  return new Promise((resolve) => {
+    const { pathname } = editorStore.currentFile || {}
+    const documentDir = pathname ? window.path.dirname(pathname) : null
+    notice.notify({
+      title: t('editor.export.embedConsentTitle'),
+      message: t('editor.export.embedConsentMessage', {
+        count: candidatePaths.length,
+        dir: documentDir || '—',
+        paths: candidatePaths.join('\n')
+      }),
+      type: 'warning',
+      sticky: true,
+      dedupKey: 'export-embed-consent',
+      actions: [
+        {
+          label: t('editor.export.embedConsentConfirm'),
+          style: 'primary',
+          handler: () => {
+            dismissConsentCard('export-embed-consent')
+            resolve(candidatePaths)
+          }
+        },
+        {
+          label: t('editor.export.embedConsentCancel'),
+          handler: () => {
+            dismissConsentCard('export-embed-consent')
+            resolve([])
+          }
+        }
+      ]
+    })
+  })
+}
+
+// PlantUML remote render: count 0 skips the dialog entirely and the
+// export proceeds declined; a positive count raises the card naming the
+// exact remote address and what leaves the machine (the diagram source
+// text). The decision becomes the opaque plantumlRemoteConsent options
+// key for exportStyledHTML.
+const requestPlantUMLExportConsent = async (diagramCount) => {
+  if (!diagramCount) return false
+  return new Promise((resolve) => {
+    notice.notify({
+      title: t('editor.export.plantumlConsentTitle'),
+      message: t('editor.export.plantumlConsentMessage', {
+        count: diagramCount,
+        address: PLANTUML_EXPORT_ADDRESS
+      }),
+      type: 'warning',
+      sticky: true,
+      dedupKey: 'export-plantuml-consent',
+      actions: [
+        {
+          label: t('editor.export.plantumlConsentConfirm'),
+          style: 'primary',
+          handler: () => {
+            // Counts only — never diagram text (console-privacy).
+            // eslint-disable-next-line no-console
+            console.debug(`[export][plantuml][BLOCK_PLANTUML_EXPORT_CONSENT diagrams=${diagramCount}]`)
+            dismissConsentCard('export-plantuml-consent')
+            resolve(true)
+          }
+        },
+        {
+          label: t('editor.export.plantumlConsentCancel'),
+          handler: () => {
+            // eslint-disable-next-line no-console
+            console.debug(`[export][plantuml][BLOCK_PLANTUML_EXPORT_DECLINED diagrams=${diagramCount}]`)
+            dismissConsentCard('export-plantuml-consent')
+            resolve(false)
+          }
+        }
+      ]
+    })
+  })
+}
+// END_BLOCK_EXPORT_CONSENT_GATES
+
 const handleExport = async (options) => {
   flushSplit()
   const { type, header, footer, headerFooterStyled, htmlTitle } = options
@@ -2270,20 +2381,31 @@ const handleExport = async (options) => {
   switch (type) {
     case 'styledHtml': {
       try {
+        // C-EXPORT-BOUNDARIES: the PlantUML consent decision rides the
+        // opaque plantumlRemoteConsent options key into the muya export
+        // (count 0 → no dialog, declined); muya renders the remote
+        // plantuml.com img on consent, the pinned source placeholder on
+        // decline. This branch only — pdf/print never run either gate.
+        const plantumlRemoteConsent = await requestPlantUMLExportConsent(
+          countPlantUMLFences(editor.value.getMarkdown())
+        )
         const rawHtml = await editor.value.exportStyledHTML({
           title: htmlTitle || '',
           printOptimization: false,
           extraCss,
-          toc: htmlToc
+          toc: htmlToc,
+          plantumlRemoteConsent
         })
         // C-SELF-CONTAINED-HTML-EXPORT R-1..R-5: embed locally readable
         // images as data-URLs so the single .html carries them; remote
-        // and already-embedded sources stay untouched. Only this branch
-        // runs the pass — pdf/print containers resolve src at print
-        // time (corner C-12 in the design context).
+        // and already-embedded sources stay untouched. C-EXPORT-BOUNDARIES:
+        // out-of-scope references are consent-gated here through
+        // requestScopeConsent (declined refs keep their src and count
+        // skipped). Only this branch and docx run the pass — pdf/print
+        // containers resolve src at print time (corner C-12).
         const { pathname } = editorStore.currentFile || {}
         const documentDir = pathname ? window.path.dirname(pathname) : null
-        const { html, embedded, total, skipped } = await embedLocalImages(rawHtml, documentDir)
+        const { html, embedded, total, skipped } = await embedLocalImages(rawHtml, documentDir, { requestScopeConsent })
         // Counts only, never paths (console-privacy convention).
         // eslint-disable-next-line no-console
         console.debug(`[export][embed-images][BLOCK_EMBED_IMAGES] embedded=${embedded} total=${total} skipped=${skipped}`)
@@ -2310,16 +2432,22 @@ const handleExport = async (options) => {
       // HTML export (muya render + M-065 embed pass) feeds the store's
       // modal-less Word branch (save dialog → lazy docx conversion →
       // binary write). No settings dialog, no print container (both
-      // pinned in export-office.spec.ts).
+      // pinned in export-office.spec.ts). C-EXPORT-BOUNDARIES: the same
+      // two consent gates run here — the converter consumes the
+      // post-consent HTML with no gate of its own (M-066 unchanged).
       try {
+        const plantumlRemoteConsent = await requestPlantUMLExportConsent(
+          countPlantUMLFences(editor.value.getMarkdown())
+        )
         const rawHtml = await editor.value.exportStyledHTML({
           title: htmlTitle || '',
           printOptimization: false,
-          extraCss
+          extraCss,
+          plantumlRemoteConsent
         })
         const { pathname } = editorStore.currentFile || {}
         const documentDir = pathname ? window.path.dirname(pathname) : null
-        const { html, embedded, total, skipped } = await embedLocalImages(rawHtml, documentDir)
+        const { html, embedded, total, skipped } = await embedLocalImages(rawHtml, documentDir, { requestScopeConsent })
         // eslint-disable-next-line no-console
         console.debug(`[export][embed-images][BLOCK_EMBED_IMAGES] embedded=${embedded} total=${total} skipped=${skipped}`)
         if (skipped > 0) {
