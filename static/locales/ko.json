@@ -544,6 +544,7 @@
         "statusBar": "상태 표시줄 보기",
         "wordWrapInToc": "목차에서 긴 제목 줄바꿈",
         "titleBarStyleHelp": "사용자 정의는 탭이 있는 Mark 고유의 제목 표시줄을 그립니다. 재시작이 필요합니다.",
+        "titleBarStyleWindowsHelp": "Windows에서는 '사용자 정의'만 실제로 동작합니다. Mark 창은 시스템 테두리 없이(장식 없이) 배포됩니다.",
         "hideScrollbar": "스크롤바 숨기기"
       },
       "text": {
