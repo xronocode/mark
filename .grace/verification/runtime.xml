@@ -3340,6 +3340,8 @@
     <V-M-011>
       <Priority>critical</Priority>
       <Commands>
+        <Command>node node_modules/vitest/vitest.mjs run tests/renderer/prefComponents/tabsBar.test.js tests/renderer/pages/common/sheet.test.js</Command>
+        <Command>npx playwright test tests/e2e/compact-windows-fit.spec.ts tests/e2e/page-width-panel.spec.ts tests/e2e/settings-shell.spec.ts --project=chromium</Command>
         <Command>node node_modules/vitest/vitest.mjs run tests/renderer/bookmark-persistence-warning.test.js tests/renderer/bootstrap-ipc.test.ts tests/renderer/store/bootstrap-ipc-coverage.test.js --maxWorkers=2</Command>
         <Command>node node_modules/vitest/vitest.mjs run tests/renderer/components/projectSearch/index.test.js tests/renderer/chrome/chrome-platform.test.js tests/renderer/store/search.test.ts tests/renderer/store/search-coverage.test.js --maxWorkers=2</Command>
         <Command>node node_modules/vitest/vitest.mjs run tests/renderer/util/extension-theme-tokens.test.js tests/renderer/components/extensionGallery.test.js tests/renderer/components/extensionGallery/index.test.js tests/renderer/components/liveViewer.test.js tests/renderer/components/liveViewer/index.test.js tests/renderer/store/live-stream-ownership.test.js</Command>
@@ -3548,6 +3550,25 @@
         <Command>npx --no-install vitest run tests/renderer/prefComponents/keybindings-deep.test.js tests/renderer/pages/keybindings.test.js tests/renderer/pages/keybindingConfigurator.test.js tests/renderer/pages/shortcut-dialog.test.js</Command>
       </Commands>
       <Scenarios>
+        <Scenario>
+          C-COMPACT-WINDOWS-FIT: at the fixed 640x620 Settings window the
+          overflow walker covers .pref-toolbar and .pref-toolbar * beside
+          .pref-body * — every .pref-tab rect stays inside the viewport
+          and the toolbar reports no horizontal overflow, including the
+          de-locale stress run (language: 'de', the longest shipped tab
+          label "Erscheinungsbild") in both parity runs, with the mac
+          76px floor kept, the base min-width: 0 allowance and the shared
+          label ellipsis pinned by tabsBar.test.js; real Tab reaches the
+          settings toolbar tab and the open Advanced sheet's Close button
+          showing the canon 2px var(--prefAccent) outline at 1px offset;
+          the shared sheet traps focus via the element-plus ElFocusTrap
+          deep import — initial focus inside the panel, Tab/Shift+Tab
+          wrap in both directions never reaching the dimmed page behind,
+          focus restored to the invoking control on both close paths
+          (Escape and the Close button) — pinned by the new
+          tests/renderer/pages/common/sheet.test.js and the
+          compact-windows-fit sheet groups.
+        </Scenario>
         <scenario-bookmark-durability-v-m-011>C-BOOKMARK-PERSISTENCE-DURABILITY: boot and live wakeups drain in serialized order; secondary windows cannot consume global warnings. Tests cover cold recovery, no pending state, invoke rejection, overlapping wakeups and actual sticky notification-store deduplication.</scenario-bookmark-durability-v-m-011>
         <scenario-settings-keyboard-focus>C-SETTINGS-KEYBOARD-FOCUS: real Tab or explicitly recorded WebKit Option-Tab reaches the shared switch, native select and segment controls in Paper and Ink; a two-pixel preference-accent outline with one-pixel offset identifies focus separately from on/selected/nearest-preset state and disappears on Tab away. The existing Chromium and webkit-settings settings-shell command covers actual Settings and Quick Settings consumers, textbox and pointer-first controls, unchanged values/geometry/aria-checked and zero additional preference writes after observed fixture bootstrap persistence. Runtime templates/scripts and all other component styles remain unchanged. Native application observations and owner/platform verdicts remain separate from renderer-shim evidence.</scenario-settings-keyboard-focus>
         <scenario-project-search-chrome-accent>Project-search active option text and borders follow the existing scenario-56 chrome accent contract, matching document-search active controls. Built-renderer comparison in Paper/Ink covers all three options, inactive/active/hover states and a narrow desktop viewport while preserving search behavior and document theme colors. Browser evidence does not replace native owner/platform acceptance.</scenario-project-search-chrome-accent>

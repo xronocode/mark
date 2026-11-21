@@ -33,7 +33,7 @@
 // VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: The C-38 T-003 Settings toolbar — icon tabs (the 5 mockup tabs plus the C-LARGE-DOC-WAVE-A Experimental tab; centred macOS-style on macOS, underline tabs on Windows/Linux) that drive the /preference router-view, plus the ⌘F/Ctrl+F settings-search panel.
-//   SCOPE: Tab rendering and routing, active-tab tracking from the route, search-panel open/close on Cmd/Ctrl+F.
+//   SCOPE: Tab rendering and routing, active-tab tracking from the route, search-panel open/close on Cmd/Ctrl+F. C-COMPACT-WINDOWS-FIT: the base tab shrinks (min-width: 0; the mac variant keeps its 76px floor) and labels ellipsize on both style variants, so the seven tabs stay inside the fixed 640x620 window; keyboard focus carries the C-SETTINGS-KEYBOARD-FOCUS outline.
 //   DEPENDS: prefComponents/tabsBar/config (TABS), tabsBar/icons (TAB_ICONS), tabsBar/searchPanel, vue-router, vue-i18n, util (isOsx).
 //   LINKS: .grace/changes/archive/C-38 T-003; .grace/changes/archive/C-LARGE-DOC-WAVE-A (T-004 experimental tab); .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
@@ -45,9 +45,17 @@
 //   activeTabId - route.name when it is one of the tab ids (redirects resolve before this renders).
 //   pick - router.push to the tab path (no re-push when already active).
 //   onKeydown - ⌘F/Ctrl+F toggles the search panel (the mockup toolbar has no search field; see searchPanel.vue).
+//   toolbar fit (C-COMPACT-WINDOWS-FIT) - base .pref-tab min-width: 0 with the mac 76px floor kept; .pref-tab-label ellipsizes (nowrap + hidden + ellipsis) on both variants; .pref-tab:focus-visible carries the canon 2px accent outline at 1px offset.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-21 C-COMPACT-WINDOWS-FIT: the base .pref-tab gains
+//     min-width: 0 (shrink allowance; the mac variant keeps its 76px
+//     floor) and the shared .pref-tab-label ellipsizes (overflow hidden,
+//     nowrap, ellipsis) on both style variants, so the seven tabs stay
+//     inside the fixed 640x620 Settings window with the longest shipped
+//     labels (de "Erscheinungsbild"); the tab gains the canon
+//     :focus-visible accent outline. Template/JS untouched.
 //   - 2026-11-02 v1.2.0: C-LARGE-DOC-WAVE-A T-004 — the toolbar renders
 //     the Experimental tab that TABS/TAB_ICONS now carry (no logic change
 //     here: tabs already map over the catalog).
@@ -150,6 +158,28 @@ onUnmounted(() => {
   cursor: default;
   display: flex;
   box-sizing: border-box;
+  /* C-COMPACT-WINDOWS-FIT: shrink allowance — a tab may go below its
+     content width so the toolbar never pushes past the fixed 640px
+     window. The macOS variant keeps its 76px floor below (7×76px +
+     24px padding + gaps always fit 640px, so the floor never itself
+     overflows). */
+  min-width: 0;
+}
+
+/* C-COMPACT-WINDOWS-FIT: the shared label rule for BOTH style variants
+   (mac column tabs, Win/Linux row tabs). The label is a flex child, so
+   it is blockified and overflow paints: labels ellipsize instead of
+   pushing tabs past the window edge. */
+.pref-toolbar .pref-tab-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* C-SETTINGS-KEYBOARD-FOCUS canon: keyboard-visible outline only. */
+.pref-toolbar .pref-tab:focus-visible {
+  outline: 2px solid var(--prefAccent);
+  outline-offset: 1px;
 }
 
 .pref-toolbar--mac .pref-tab {

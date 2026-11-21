@@ -80,9 +80,14 @@
 //   onOverrideChange - pin: snapshot the current effective theme (and width, when the entry is new) into the document entry; unpin: clear themeOverride, keep the width.
 //   overrideHelp / activeThemeLine - the scope naming: what the switch does and which family governs ("family — this file" vs "family · all documents").
 //   load - per-open document entry load (the shell mounts this tab fresh on every open).
+//   focus (C-COMPACT-WINDOWS-FIT R-3) - .theme-family-tile:focus-visible carries the canon 2px accent outline at 1px offset; the selection ring is untouched.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   LAST_CHANGE: 2026-11-21 C-COMPACT-WINDOWS-FIT R-3: the family tile
+//   carries the canon :focus-visible outline (2px solid var(--prefAccent),
+//   1px offset) beside its chrome; selection state and grid metrics are
+//   unchanged.
 //   LAST_CHANGE: v1.1.0 - 2026-11-03 C-PAGE-WIDTH-TABLES host wiring
 //   wave: saveEntry announces the saved entry on the renderer bus
 //   (mt::document-page-state-changed) so the editor host applies a fresh
@@ -307,6 +312,13 @@ onMounted(() => {
   gap: 4px;
   text-align: center;
   min-width: 0;
+}
+
+/* C-SETTINGS-KEYBOARD-FOCUS canon: visible only for keyboard focus;
+   the is-selected ring stays the distinct selection state. */
+.quick-view-tab .theme-family-tile:focus-visible {
+  outline: 2px solid var(--prefAccent);
+  outline-offset: 1px;
 }
 
 .quick-view-tab .theme-family-tile .family-halves {
