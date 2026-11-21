@@ -137,11 +137,14 @@ describe('C-PREFS-TRUTH T-001: schema-driven hydration validation and repair (F-
   })
 
   it.each([0, 10001, 'fast'])(
-    'an autoSaveDelay of %j is repaired to 5000 with exactly one marker',
+    'an autoSaveDelay of %j lands inside the documented range with exactly one marker',
     async (rawDelay) => {
       currentProfile = { autoSaveDelay: rawDelay }
       const store = await hydrate()
-      expect(store.autoSaveDelay).toBe(5000)
+      // Range violations CLAMP to the bound (0 → min 1000, 10001 → max
+      // 10000); a type violation repairs to the default. The marker fires
+      // exactly once either way.
+      expect(store.autoSaveDelay).toBe(rawDelay === 0 ? 1000 : rawDelay === 10001 ? 10000 : 5000)
       const markers = repairMarkers()
       expect(markers).toHaveLength(1)
       expect(markers[0]).toContain('key=autoSaveDelay')
@@ -151,12 +154,13 @@ describe('C-PREFS-TRUTH T-001: schema-driven hydration validation and repair (F-
     }
   )
 
-  it('the corrected delay is what the General-tab seconds presentation reads (5000ms → 5s)', async () => {
+  it('the corrected delay is what the General-tab seconds presentation reads (clamped into 1-10s)', async () => {
     currentProfile = { autoSaveDelay: 0 }
     const store = await hydrate()
     // prefComponents/tabs/general autoSaveDelaySeconds = delay / 1000 → the
-    // 1-10 seconds range the tab renders; a raw 0 reached the timer raw.
-    expect(Math.round(store.autoSaveDelay / 1000)).toBe(5)
+    // 1-10 seconds range the tab renders; a raw 0 clamps to the documented
+    // minimum instead of reaching the timer raw.
+    expect(Math.round(store.autoSaveDelay / 1000)).toBe(1)
   })
 
   it('the legacy codeFontSize "14px" string passes through unrepaired and unmarked (C-49 contract)', async () => {

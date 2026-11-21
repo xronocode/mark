@@ -534,7 +534,11 @@ export const RESETTABLE_PREFERENCE_KEYS = Object.freeze([
 const SCHEMA_VALIDATION_SKIP_KEYS = new Set([
   // codeFontSize: schema declares number, the C-49 consumer contract also
   // accepts the legacy '14px' string form — consumer contract wins.
-  'codeFontSize'
+  'codeFontSize',
+  // zoom: RETIRED (C-49) — the one-time legacy migration owns its own
+  // clamp into fontSize and resets to 1; nothing reads it afterwards, so
+  // hydration validation must not touch it.
+  'zoom'
 ])
 
 // Returns the violation reason (type|enum|min|max|pattern) or null when the
@@ -567,6 +571,18 @@ const repairedPreferenceValue = (key) => {
   const entry = preferenceSchema[key]
   if (entry && typeof entry.default !== 'undefined') return entry.default
   return preferenceDefaults()[key]
+}
+
+// C-PREFS-TRUTH: a numeric value beyond its documented bound clamps to the
+// bound itself (min/max), preserving the C-49 clamp semantics instead of a
+// default reset.
+const clampedPreferenceValue = (key, value, reason) => {
+  const entry = preferenceSchema[key]
+  if (entry && entry.type === 'number' && typeof value === 'number' && Number.isFinite(value)) {
+    if (reason === 'min' && typeof entry.minimum === 'number') return entry.minimum
+    if (reason === 'max' && typeof entry.maximum === 'number') return entry.maximum
+  }
+  return repairedPreferenceValue(key)
 }
 // END_BLOCK_HYDRATION_VALIDATION
 
@@ -613,7 +629,14 @@ export const usePreferencesStore = defineStore('preferences', {
           // loud marker; valid values, undocumented keys and legacy
           // consumer forms keep the byte-for-byte pass-through.
           const reason = preferenceViolation(key, preference[key])
-          if (reason) {
+          if (reason === 'min' || reason === 'max') {
+            // Range violations CLAMP to the documented bound — the C-49
+            // zoom contract (fontSize 400 → 36, never a default reset).
+            this[key] = clampedPreferenceValue(key, preference[key], reason)
+            console.log(
+              `[PREFERENCES][BLOCK_PREFERENCES_REPAIR] key=${key} raw=${JSON.stringify(preference[key])} reason=${reason}`
+            )
+          } else if (reason) {
             this[key] = repairedPreferenceValue(key)
             console.log(
               `[PREFERENCES][BLOCK_PREFERENCES_REPAIR] key=${key} raw=${JSON.stringify(preference[key])} reason=${reason}`
