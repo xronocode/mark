@@ -1572,11 +1572,29 @@
       <Priority>high</Priority>
       <Commands>
         <Command>npx vitest run tests/renderer/util/page-width.test.js tests/renderer/util/page-width-store.test.js tests/renderer/muya/table-fit.test.js tests/renderer/util/table-layout-ratios.test.js tests/renderer/components/quick-settings.test.js</Command>
+        <Command>node node_modules/vitest/vitest.mjs run tests/renderer/components/quick-settings.test.js tests/renderer/pages/common/sheet.test.js</Command>
+        <Command>npx playwright test tests/e2e/compact-windows-fit.spec.ts tests/e2e/page-width-panel.spec.ts --project=chromium</Command>
         <Command>npx vitest run tests/renderer/store/editor-page-width.test.js tests/renderer/components/editor-page-width-host.test.js</Command>
         <Command>npx vitest run tests/renderer/util/theme-contrast.test.js tests/renderer/commands/menu-consistency.test.js tests/renderer/release-materials.test.js</Command>
         <Command>npx playwright test tests/e2e/page-width-panel.spec.ts tests/e2e/table-modes.spec.ts --project=chromium</Command>
       </Commands>
       <Scenarios>
+        <Scenario>
+          C-COMPACT-WINDOWS-FIT: at the 600x400 editor minimum the open
+          quick-settings panel on all three tabs is fully inside the
+          viewport below the title bar (every descendant rect, the
+          ±0.5px overflow tolerances) with the toolbar and Open Settings
+          footer visible and pinned while the body scrolls to every row
+          alone — the body is the single scroll region; at 640x620 and
+          1440x900 the approved metrics (428px width, 12px radius, the
+          settings shadow, calc(100vh - 64px) as the only height cap)
+          hold and the cap never binds below the natural content height;
+          the «Aa» button activates on Space keydown with the default
+          prevented (exactly the Enter path's effect) and shows the canon
+          2px var(--prefAccent) focus outline at 1px offset under real
+          Tab, as do the View-tab family tile and the Page-tab Reset row
+          (compact-windows-fit.spec.ts, quick-settings.test.js).
+        </Scenario>
         <Scenario>
           Width precedence and honesty: a stored document value beats the
           theme value which beats the global default with the active source
