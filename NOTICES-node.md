@@ -13,7 +13,7 @@ Each entry lists the package name, version, declared or detected license, and up
 
 | License | Package count |
 |---|---:|
-| MIT | 275 |
+| MIT | 276 |
 | BSD-3-Clause | 40 |
 | ISC | 35 |
 | Apache-2.0 | 7 |
@@ -24,10 +24,9 @@ Each entry lists the package name, version, declared or detected license, and up
 | Apache-2.0 OR MIT | 1 |
 | Apache* | 1 |
 | Unlicense | 1 |
-| UNLICENSED | 1 |
 | WTFPL | 1 |
 
-## MIT (275)
+## MIT (276)
 
 | Package | Version | Repository |
 |---|---|---|
@@ -166,6 +165,7 @@ Each entry lists the package name, version, declared or detected license, and up
 | fast-json-patch | 3.1.1 | https://github.com/Starcounter-Jack/JSON-Patch |
 | fdir | 6.5.0 | https://github.com/thecodrr/fdir |
 | fflate | 0.8.3 | https://github.com/101arrowz/fflate |
+| file-icons | 2.1.47 | https://github.com/file-icons/atom |
 | fill-range | 7.1.1 | https://github.com/jonschlinkert/fill-range |
 | flowchart.js | 1.18.1 | https://github.com/adrai/flowchart.js |
 | follow-redirects | 1.16.3 | https://github.com/follow-redirects/follow-redirects |
@@ -450,12 +450,6 @@ Each entry lists the package name, version, declared or detected license, and up
 | Package | Version | Repository |
 |---|---|---|
 | robust-predicates | 3.0.3 | https://github.com/mourner/robust-predicates |
-
-## UNLICENSED (1)
-
-| Package | Version | Repository |
-|---|---|---|
-| file-icons | 2.1.47 | https://github.com/file-icons/atom |
 
 ## WTFPL (1)
 
