@@ -7,8 +7,12 @@
 //            versioning.
 //   SCOPE:   single JSON store at mt_paths::cache_root()/preferences.json.
 //            Atomic write (temp+rename) so disk-full mid-write doesn't
-//            corrupt the existing file. Corrupt file → empty defaults +
-//            stable MT_PREFS_CORRUPT marker.
+//            corrupt the existing file. mt_prefs_set_many applies a whole
+//            key/value batch (the renderer session profile) as one
+//            transaction: one mutex acquisition, one save, one broadcast.
+//            Corrupt file → quarantine to a preferences.json.corrupt
+//            sibling (BLOCK_PREFS_QUARANTINED / BLOCK_PREFS_QUARANTINE_FAILED)
+//            then empty defaults + stable MT_PREFS_CORRUPT marker.
 //   DEPENDS: serde_json (Map<String, Value>), m013b::SecurityCtx
 //            (sandbox setter), mt_paths (cache_root resolution).
 //   LINKS:   docs/development-plan.xml Phase-B3 step-1;
@@ -28,9 +32,23 @@
 //     replace_from_snapshot (store-mutex quiescence anchor for the GUI
 //     restore path) and the free replace_prefs_from_snapshot (headless
 //     CLI path); both write through the same atomic save machinery.
+//   - 2026-11-21 C-SESSION-WRITE-ATOMICITY T-001: add the batch
+//     transaction — the PrefsEntry { key, value } wire shape and
+//     PrefsState::set_many (one mutex acquisition, every insert, exactly
+//     one atomic save) behind the new mt_prefs_set_many command with ONE
+//     mt::user-preference broadcast per batch; PrefsStore::save()
+//     delegates to save_with_rename (the m068 injected-rename seam) so
+//     tests can fail the final rename without touching production.
+//   - 2026-11-21 C-SESSION-WRITE-ATOMICITY T-002: quarantine-on-load —
+//     every corrupt branch moves the unreadable preferences.json aside to
+//     the stable preferences.json.corrupt sibling before the
+//     empty-defaults fallback (BLOCK_PREFS_QUARANTINED on success,
+//     BLOCK_PREFS_QUARANTINE_FAILED otherwise), preserving the evidence
+//     bytes instead of letting the next save silently overwrite them.
 
 use crate::m013b::SecurityCtx;
 use crate::mt_paths;
+use serde::Deserialize;
 use serde_json::{Map, Value};
 use std::fs;
 use std::io::Write;
@@ -61,6 +79,15 @@ pub const MIGRATION_SCHEMA_VERSION_ALPHA: u32 = 1;
 #[allow(dead_code)]
 pub const KEY_APP_VERSION_CHANNEL: &str = "app_version";
 
+/// C-SESSION-WRITE-ATOMICITY: one key/value pair of the mt_prefs_set_many
+/// wire payload — the batched session profile (lastSessionTabs,
+/// lastSessionActive, lastSessionFolders, lastSessionFormats).
+#[derive(Deserialize)]
+pub struct PrefsEntry {
+    pub key: String,
+    pub value: Value,
+}
+
 /// Loose-typed prefs store. Schema validation is the renderer's job
 /// — backend persists arbitrary JSON value-typed keys. Atomic writes
 /// guarantee no half-written file even on disk-full.
@@ -76,8 +103,10 @@ impl PrefsStore {
         mt_paths::cache_root().map(|root| root.join(PREFS_FILENAME))
     }
 
-    /// Load from disk. Missing file → empty store (first launch).
-    /// Corrupt JSON → empty store + BLOCK_PREFS_CORRUPT marker (matches
+    /// Load from disk. Missing file → empty store (first launch, no
+    /// quarantine). Corrupt JSON → quarantine the unreadable file to the
+    /// stable preferences.json.corrupt sibling first (C-SESSION-WRITE-
+    /// ATOMICITY), then empty store + BLOCK_PREFS_CORRUPT marker (matches
     /// V-M-005 scenario-3: "Corrupt prefs file falls back to defaults
     /// and logs a loud marker").
     pub fn load_from(path: PathBuf) -> Self {
@@ -96,11 +125,11 @@ impl PrefsStore {
                             Value::Object(_) => unreachable!(),
                         }
                     );
-                    Map::new()
+                    Self::quarantine_and_defaults(&path)
                 }
                 Err(e) => {
                     safe_eprintln!("[Prefs][load][BLOCK_PREFS_CORRUPT reason=parse_failed err={e}]");
-                    Map::new()
+                    Self::quarantine_and_defaults(&path)
                 }
             },
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
@@ -109,16 +138,51 @@ impl PrefsStore {
             }
             Err(e) => {
                 safe_eprintln!("[Prefs][load][BLOCK_PREFS_CORRUPT reason=io err={e}]");
-                Map::new()
+                Self::quarantine_and_defaults(&path)
             }
         };
         Self { path, data }
     }
 
-    /// Atomic write: write to .tmp sibling, fsync, rename over the
-    /// canonical name. ENOSPC mid-write → original file untouched,
-    /// .tmp orphaned (cleaned up on next save attempt by overwrite).
-    pub fn save(&self) -> Result<(), std::io::Error> {
+    /// C-SESSION-WRITE-ATOMICITY T-002: move the unreadable store aside to
+    /// the stable preferences.json.corrupt sibling — same directory, name
+    /// derived from the file name only (never from store data) — so the
+    /// corrupt bytes survive for diagnosis instead of being silently
+    /// overwritten by the next save (m068 move-aside precedent). Quarantine
+    /// failure is logged and never blocks boot; every path falls back to
+    /// the empty defaults. Markers name the sibling by file name only.
+    fn quarantine_and_defaults(path: &Path) -> Map<String, Value> {
+        match path.file_name() {
+            Some(name) => {
+                let quarantine = path.with_file_name(format!("{}.corrupt", name.to_string_lossy()));
+                match fs::rename(path, &quarantine) {
+                    Ok(()) => safe_eprintln!(
+                        "[Prefs][load][BLOCK_PREFS_QUARANTINED quarantine={}.corrupt]",
+                        name.to_string_lossy()
+                    ),
+                    Err(e) => safe_eprintln!(
+                        "[Prefs][load][BLOCK_PREFS_QUARANTINE_FAILED quarantine={}.corrupt err={e}]",
+                        name.to_string_lossy()
+                    ),
+                }
+            }
+            None => {
+                safe_eprintln!(
+                    "[Prefs][load][BLOCK_PREFS_QUARANTINE_FAILED reason=no-file-name]"
+                );
+            }
+        }
+        Map::new()
+    }
+
+    /// C-SESSION-WRITE-ATOMICITY T-001: the rename step is injected (the
+    /// m068 promote_staging_over_live seam) so tests can fail the final
+    /// promote without touching the production path; save() delegates
+    /// with the real fs::rename.
+    fn save_with_rename(
+        &self,
+        rename: &dyn Fn(&Path, &Path) -> std::io::Result<()>,
+    ) -> Result<(), std::io::Error> {
         if let Some(parent) = self.path.parent() {
             fs::create_dir_all(parent)?;
         }
@@ -129,13 +193,20 @@ impl PrefsStore {
         f.write_all(&serialized)?;
         f.sync_all()?;
         drop(f);
-        fs::rename(&tmp, &self.path)?;
+        rename(&tmp, &self.path)?;
         safe_eprintln!(
             "[Prefs][save][BLOCK_PERSISTED bytes={} keys={}]",
             serialized.len(),
             self.data.len()
         );
         Ok(())
+    }
+
+    /// Atomic write: write to .tmp sibling, fsync, rename over the
+    /// canonical name. ENOSPC mid-write → original file untouched,
+    /// .tmp orphaned (cleaned up on next save attempt by overwrite).
+    pub fn save(&self) -> Result<(), std::io::Error> {
+        self.save_with_rename(&|from, to| fs::rename(from, to))
     }
 
     pub fn get(&self, key: &str) -> Option<&Value> {
@@ -239,6 +310,36 @@ impl PrefsState {
         guard.save()
     }
 
+    /// C-SESSION-WRITE-ATOMICITY: apply a whole preference batch (the
+    /// renderer session profile) as ONE transaction — the store mutex is
+    /// taken exactly once, every entry is inserted under that lock, and
+    /// save() runs exactly once (no intermediate flush, no per-key
+    /// transaction, no lock release between inserts), so the whole
+    /// profile lands as one temp+sync_all+rename generation.
+    pub fn set_many(&self, entries: Vec<PrefsEntry>) -> Result<(), std::io::Error> {
+        let mut guard = self.inner.lock().expect("PrefsState mutex poisoned");
+        for entry in entries {
+            guard.set(entry.key, entry.value);
+        }
+        guard.save()
+    }
+
+    /// C-SESSION-WRITE-ATOMICITY: test-only mirror of set_many with the
+    /// final rename injected (the m068 promote_staging_over_live seam) so
+    /// pins can fail the promote without touching the production path.
+    #[cfg(test)]
+    fn set_many_with_rename(
+        &self,
+        entries: Vec<PrefsEntry>,
+        rename: &dyn Fn(&Path, &Path) -> std::io::Result<()>,
+    ) -> Result<(), std::io::Error> {
+        let mut guard = self.inner.lock().expect("PrefsState mutex poisoned");
+        for entry in entries {
+            guard.set(entry.key, entry.value);
+        }
+        guard.save_with_rename(rename)
+    }
+
     pub fn all(&self) -> Map<String, Value> {
         self.inner
             .lock()
@@ -326,6 +427,33 @@ pub async fn mt_prefs_set(
     }
     safe_eprintln!(
         "[Prefs][broadcast][BLOCK_FANOUT count={} key={key}]",
+        app.webview_windows().len()
+    );
+    Ok(())
+}
+
+/// C-SESSION-WRITE-ATOMICITY: write a whole preference batch (the
+/// renderer session profile) as ONE transaction — one mutex acquisition,
+/// one atomic save, one broadcast — so the on-disk profile is always one
+/// complete generation, never a torn mix of two. mt_prefs_get,
+/// mt_prefs_set and mt_prefs_get_all keep their exact semantics;
+/// mt_prefs_set stays the canonical single-key surface.
+#[tauri::command]
+pub async fn mt_prefs_set_many(
+    entries: Vec<PrefsEntry>,
+    app: tauri::AppHandle,
+    prefs: State<'_, PrefsState>,
+) -> Result<(), String> {
+    prefs.set_many(entries).map_err(|e| e.to_string())?;
+    let snapshot = prefs.all();
+    // Same broadcast semantics as mt_prefs_set, once per batch (not once
+    // per key): the full snapshot on mt::user-preference to every
+    // webview so cross-window listeners stay in sync.
+    if let Err(e) = app.emit("mt::user-preference", &Value::Object(snapshot)) {
+        safe_eprintln!("[Prefs][broadcast][BLOCK_EMIT_FAILED key=set_many err={e}]");
+    }
+    safe_eprintln!(
+        "[Prefs][broadcast][BLOCK_FANOUT count={} key=set_many]",
         app.webview_windows().len()
     );
     Ok(())
@@ -464,11 +592,20 @@ mod tests {
     fn corrupt_json_falls_back_to_empty() {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("preferences.json");
-        std::fs::write(&path, "{ this is not valid JSON").unwrap();
+        let garbage = "{ this is not valid JSON";
+        std::fs::write(&path, garbage).unwrap();
+        let corrupt_sibling = dir.path().join("preferences.json.corrupt");
         let state = PrefsState::from_path(path.clone());
-        // Corrupt → empty defaults; subsequent set works (overwrites
-        // the bad file with a valid one).
+        // C-SESSION-WRITE-ATOMICITY T-002: corrupt → empty defaults AND
+        // the original bytes are quarantined aside to the .corrupt
+        // sibling; a subsequent set works (overwrites the canonical path
+        // with a valid store).
         assert!(state.all().is_empty());
+        assert_eq!(
+            std::fs::read_to_string(&corrupt_sibling).unwrap(),
+            garbage,
+            "the corrupt bytes are preserved at the quarantine sibling"
+        );
         state
             .set("recovery".to_string(), Value::Bool(true))
             .unwrap();
@@ -482,8 +619,191 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("preferences.json");
         std::fs::write(&path, "[1, 2, 3]").unwrap();
-        let state = PrefsState::from_path(path);
+        let state = PrefsState::from_path(path.clone());
         assert!(state.all().is_empty());
+        // C-SESSION-WRITE-ATOMICITY T-002: the non-object-root bytes are
+        // quarantined aside too, intact at the .corrupt sibling.
+        let sibling = dir.path().join("preferences.json.corrupt");
+        assert_eq!(std::fs::read_to_string(&sibling).unwrap(), "[1, 2, 3]");
+        assert!(!path.exists(), "the unreadable file was renamed away");
+    }
+
+    #[test]
+    fn set_many_writes_session_profile_in_one_transaction() {
+        // C-SESSION-WRITE-ATOMICITY T-001: the whole session profile lands
+        // as ONE temp+sync_all+rename transaction — exactly one rename
+        // invocation for the whole batch, a complete new generation on
+        // disk, and every key readable by a fresh store.
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("preferences.json");
+        let state = PrefsState::from_path(path.clone());
+        // Previous generation: a non-session key plus distinct
+        // lastSession* values.
+        state
+            .set("theme".to_string(), Value::String("dark".to_string()))
+            .unwrap();
+        state
+            .set("lastSessionTabs".to_string(), json!(["/old/a.md"]))
+            .unwrap();
+        let previous_bytes = std::fs::read(&path).unwrap();
+
+        let renames = std::cell::RefCell::new(0usize);
+        let entries = vec![
+            PrefsEntry {
+                key: "lastSessionTabs".to_string(),
+                value: json!(["/new/a.md", "/new/b.md"]),
+            },
+            PrefsEntry {
+                key: "lastSessionActive".to_string(),
+                value: json!("/new/b.md"),
+            },
+            PrefsEntry {
+                key: "lastSessionFolders".to_string(),
+                value: json!(["/new"]),
+            },
+            PrefsEntry {
+                key: "lastSessionFormats".to_string(),
+                value: json!([{
+                    "pathname": "/new/a.md",
+                    "format": {
+                        "encoding": "utf8",
+                        "isBom": false,
+                        "lineEnding": "lf",
+                        "finalNewline": 3
+                    },
+                    "dirty": false
+                }]),
+            },
+        ];
+        state
+            .set_many_with_rename(entries, &|from, to| {
+                *renames.borrow_mut() += 1;
+                fs::rename(from, to)
+            })
+            .unwrap();
+        assert_eq!(
+            *renames.borrow(),
+            1,
+            "exactly ONE rename for the whole batch"
+        );
+
+        // The on-disk file holds the complete new generation.
+        let bytes = std::fs::read(&path).unwrap();
+        assert_ne!(bytes, previous_bytes, "the on-disk generation advanced");
+        let content = std::fs::read_to_string(&path).unwrap();
+        assert!(content.contains("lastSessionTabs"));
+        assert!(content.contains("lastSessionActive"));
+        assert!(content.contains("lastSessionFolders"));
+        assert!(content.contains("lastSessionFormats"));
+        assert!(content.contains("/new/b.md"));
+        assert!(!content.contains("/old/a.md"), "previous values replaced");
+
+        // A fresh PrefsState reads every key back.
+        let fresh = PrefsState::from_path(path);
+        assert_eq!(
+            fresh.get("lastSessionTabs"),
+            Some(json!(["/new/a.md", "/new/b.md"]))
+        );
+        assert_eq!(fresh.get("lastSessionActive"), Some(json!("/new/b.md")));
+        assert_eq!(fresh.get("lastSessionFolders"), Some(json!(["/new"])));
+        assert!(fresh.get("lastSessionFormats").is_some());
+        assert_eq!(
+            fresh.get("theme"),
+            Some(Value::String("dark".to_string()))
+        );
+    }
+
+    #[test]
+    fn set_many_failure_keeps_previous_generation_and_never_promotes_tmp() {
+        // C-SESSION-WRITE-ATOMICITY T-001: a failed final rename returns
+        // the error and leaves the live file at exactly the previous
+        // generation — no partial or mixed content, and the .tmp sibling
+        // never became the live file.
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("preferences.json");
+        let tmp = dir.path().join("preferences.json.tmp");
+        let state = PrefsState::from_path(path.clone());
+        state
+            .set("theme".to_string(), Value::String("dark".to_string()))
+            .unwrap();
+        state
+            .set("lastSessionTabs".to_string(), json!(["/old/a.md"]))
+            .unwrap();
+        let previous_bytes = std::fs::read(&path).unwrap();
+
+        let entries = vec![PrefsEntry {
+            key: "lastSessionTabs".to_string(),
+            value: json!(["/new/a.md"]),
+        }];
+        let err = state
+            .set_many_with_rename(entries, &|_from, _to| {
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    "injected rename failure",
+                ))
+            })
+            .unwrap_err();
+        assert!(
+            err.to_string().contains("injected rename failure"),
+            "the error reaches the caller: {err}"
+        );
+
+        // The live file still holds exactly the previous generation.
+        let bytes = std::fs::read(&path).unwrap();
+        assert_eq!(bytes, previous_bytes, "previous generation survives");
+        let content = std::fs::read_to_string(&path).unwrap();
+        assert!(content.contains("/old/a.md"));
+        assert!(
+            !content.contains("/new/a.md"),
+            "no partial or mixed content"
+        );
+        // The .tmp sibling (if still present mid-transaction) never
+        // became the live file — proven by the byte equality above.
+        assert!(!tmp.is_dir());
+    }
+
+    #[test]
+    fn corrupt_store_file_is_quarantined_aside_not_overwritten() {
+        // C-SESSION-WRITE-ATOMICITY T-002: the corrupt store's bytes move
+        // to the stable preferences.json.corrupt sibling and survive a
+        // subsequent save untouched; a missing store file (first launch)
+        // quarantines nothing.
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("preferences.json");
+        let garbage = "{ this is not valid JSON";
+        std::fs::write(&path, garbage).unwrap();
+        let sibling = dir.path().join("preferences.json.corrupt");
+
+        let state = PrefsState::from_path(path.clone());
+
+        // Corrupt → empty defaults AND the evidence moved aside intact.
+        assert!(state.all().is_empty());
+        assert!(!path.exists(), "the corrupt file was renamed away");
+        assert_eq!(std::fs::read_to_string(&sibling).unwrap(), garbage);
+
+        // A missing store file produces no .corrupt sibling — first
+        // launch is not a quarantine.
+        let dir2 = TempDir::new().unwrap();
+        let path2 = dir2.path().join("preferences.json");
+        let fresh = PrefsState::from_path(path2);
+        assert!(fresh.all().is_empty());
+        assert!(
+            !dir2.path().join("preferences.json.corrupt").exists(),
+            "first launch performs no quarantine"
+        );
+
+        // A subsequent save writes a fresh store at the canonical path;
+        // the quarantined evidence bytes stay untouched.
+        state
+            .set("recovery".to_string(), Value::Bool(true))
+            .unwrap();
+        let canonical = std::fs::read_to_string(&path).unwrap();
+        assert!(canonical.contains("recovery"));
+        assert_eq!(
+            std::fs::read_to_string(&sibling).unwrap(),
+            garbage,
+            "the quarantined evidence is never rewritten"
+        );
     }
 
     #[test]

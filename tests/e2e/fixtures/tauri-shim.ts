@@ -208,6 +208,18 @@ export async function installTauriShim(page: Page): Promise<void> {
         // name is appended in call order (invoke-order assertions).
         ;(window as any).__invokeLog?.push(cmd)
         const overrides = (window as any).__mockInvoke || {}
+        // C-SESSION-WRITE-ATOMICITY: the session profile writes through one
+        // batch command now. Specs that override mt_prefs_set (e.g. the
+        // session-restore sessionStorage store) keep working unchanged — a
+        // set_many without its own override fans each entry through the
+        // resolved mt_prefs_set handler.
+        if (cmd === 'mt_prefs_set_many' && !overrides[cmd]) {
+          const perKey = overrides['mt_prefs_set'] || defaults['mt_prefs_set']
+          if (!perKey) return null // no per-key double installed — quiet no-op success
+          const entries: Array<{ key: string; value: unknown }> = args?.entries ?? []
+          for (const entry of entries) await Promise.resolve(perKey({ key: entry.key, value: entry.value }))
+          return null
+        }
         const handler = overrides[cmd] || defaults[cmd]
         if (!handler) {
           // Unknown command — log + resolve undefined so the renderer

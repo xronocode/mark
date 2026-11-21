@@ -1,7 +1,7 @@
 /**
  * Tests for src/renderer/src/ipc/runtime/prefs.ts
  *
- * Covers: ipcPrefs.get, set, getAll, ipcWorkspace.set.
+ * Covers: ipcPrefs.get, set, setMany, getAll, ipcWorkspace.set.
  */
 
 import { invoke as tauriInvoke } from '@tauri-apps/api/core'
@@ -62,6 +62,32 @@ describe('ipcPrefs', () => {
         key: 'editor',
         value: { tabSize: 4, wordWrap: true }
       })
+    })
+  })
+
+  describe('setMany', () => {
+    // C-SESSION-WRITE-ATOMICITY: the batch wrapper dispatches the raw
+    // Tauri invoke ('mt_prefs_set_many') with the { entries } argument
+    // shape, mirroring the existing mt_prefs_set pin style.
+    it('calls the raw transport with mt_prefs_set_many and the { entries } argument shape', async () => {
+      ;(tauriInvoke as any).mockResolvedValueOnce(undefined)
+
+      const entries = [
+        { key: 'lastSessionTabs', value: ['/a.md', '/b.md'] },
+        { key: 'lastSessionActive', value: '/b.md' },
+        { key: 'lastSessionFolders', value: ['/proj'] },
+        { key: 'lastSessionFormats', value: [{ pathname: '/a.md', format: {}, dirty: false }] }
+      ]
+      await ipcPrefs.setMany(entries)
+
+      expect(tauriInvoke).toHaveBeenCalledWith('mt_prefs_set_many', { entries })
+    })
+
+    it('propagates transport errors', async () => {
+      ;(tauriInvoke as any).mockRejectedValueOnce(new Error('mt_prefs_set_many failed'))
+      await expect(
+        ipcPrefs.setMany([{ key: 'lastSessionTabs', value: [] }])
+      ).rejects.toThrow('mt_prefs_set_many failed')
     })
   })
 
