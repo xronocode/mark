@@ -96,7 +96,10 @@ the `release-authorize` approval then mints the Release Bot annotated tag at
 current main HEAD (no Ready seal), and the synchronous `release` Environment
 approval publishes. The tag run rides the prerelease lane: no Ready seal,
 no strict readiness, no materials or preflight gates, and a generated body
-with the tester notice instead of reviewed notes. Publication exposes a
+with the tester notice instead of reviewed notes. The run still verifies its
+commit's pinned required checks at the exact tag commit and fails closed until main CI is green at the tagged commit — promoting before the commit's
+main CI is green is rejected until a re-run re-collects fresh evidence and
+passes. Publication exposes a
 GitHub **prerelease** that never becomes `releases/latest`: the in-app updater
 feed stays on the previous stable tag and the Homebrew cask handoff is
 skipped. Testers install from the direct asset links over their existing
