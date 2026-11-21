@@ -150,7 +150,8 @@ report_port_owner() {
   local listener command_name
   listener=$(lsof -nP -iTCP:"$DEV_PORT" -sTCP:LISTEN 2>/dev/null | awk 'NR>1 {print $2; exit}')
   if [ -n "${listener:-}" ]; then
-    command_name=$(ps -p "$listener" -o command= 2>/dev/null || echo "unknown")
+    command_name=$(ps -p "$listener" -o command= 2>/dev/null | head -n 1)
+    command_name="${command_name:-unknown}"
     red "Dev port $DEV_PORT is owned by an untracked process (PID ${listener:-unknown}, command: ${command_name:-unknown})"
   else
     red "Dev port $DEV_PORT has no identifiable listener (lsof/ps found no owner)"
