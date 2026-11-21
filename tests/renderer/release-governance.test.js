@@ -453,8 +453,9 @@ describe('release governance', () => {
     expect(authorizeTagJob).toContain('name: release-identity')
     // No new job: exactly the six pre-existing top-level job keys (the
     // extraction starts at the jobs: block so on:-block triggers like
-    // push: can never leak into the job list).
-    expect(releaseWorkflow.split(/^jobs:/m)[1].match(/^  [a-z][a-z0-9-]*:\r?$/gm)).toEqual([
+    // push: can never leak into the job list; \r is stripped before the
+    // match so CRLF checkouts compare clean).
+    expect(releaseWorkflow.split(/^jobs:/m)[1].replace(/\r/g, '').match(/^  [a-z][a-z0-9-]*:$/gm)).toEqual([
       '  authorize-tag:',
       '  manual-build:',
       '  build:',
