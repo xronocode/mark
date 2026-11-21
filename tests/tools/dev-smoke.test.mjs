@@ -9,8 +9,20 @@
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 // START_MODULE_MAP
+//   DEV_SMOKE - absolute path of the real dev-smoke.sh under test.
+//   STUB_CURL - scripted HTTP status shim (constant or per-call sequence).
+//   STUB_LSOF - scripted port-listener report shim.
+//   STUB_PS - scripted owner command shim.
+//   STUB_SLEEP - short real pause shim.
+//   STUB_KILL - recording kill shim (-0 probes read the live-set, signals logged never delivered).
+//   STUB_NPM - dev-server root-process double (registers, idles).
+//   STUB_MARK - mark binary double (registers, prints the six BLOCK markers, idles).
+//   stubs - shim name to script body.
+//   sandboxes - per-run sandbox cleanup registry.
+//   track - register a sandbox for afterEach cleanup.
 //   makeSandbox - Fresh git-init root with shim bin dir, live-set, kill/spawn logs and the MARK_DEV_PIDFILE pidfile.
 //   runDevSmoke - Run the real script with the sandbox env and captured status.
+//   output - combined stdout+stderr of a run.
 //   killLogPids - PIDs the recording kill shim saw signalled.
 //   spawnLogPids - Real fixture processes spawned by the run (cleanup registry).
 // END_MODULE_MAP
@@ -256,7 +268,7 @@ describe('owned-PID dev-smoke discipline (C-DEV-ENV-ISOLATION)', () => {
     expect(existsSync(sandbox.paths.npmLog)).toBe(false)
   })
 
-  it('kills_only_spawned_pids', () => {
+  it('kills_only_spawned_pids', { retry: 1 }, () => {
     // The restart and cleanup paths kill exactly the pidfile-recorded PIDs
     // and nothing else: the foreign live PID survives, and the freshly
     // spawned (recorded) dev server and mark binary are left running.

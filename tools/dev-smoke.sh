@@ -41,8 +41,14 @@ enable -n kill || true
 cd "$(git rev-parse --show-toplevel)"
 
 MODE="${1:-full}"
-DEV_LOG="/tmp/mark-vite-dev.log"
-STDERR_LOG="/tmp/mark-stderr.log"
+# C-DEV-ENV-ISOLATION: run-scoped log directory derived from the pidfile
+# location — parallel runs (or the fixture matrix) never truncate each
+# other's logs, and a stale /tmp file from an earlier run cannot leak into
+# a later run's BLOCK-marker verification.
+RUN_LOG_DIR="$(dirname "${MARK_DEV_PIDFILE:-/tmp/mark-dev-smoke.pids}")/mark-dev-smoke-logs"
+mkdir -p "$RUN_LOG_DIR"
+DEV_LOG="$RUN_LOG_DIR/vite-dev.log"
+STDERR_LOG="$RUN_LOG_DIR/mark-stderr.log"
 DEV_URL="http://localhost:1420"
 DEV_PORT="1420"
 BINARY="./target/debug/mark"
@@ -210,13 +216,12 @@ launch_mark() {
   # C-DEV-ENV-ISOLATION: bounded launch grace — probe with retries instead
   # of one blind pause, so a slow fork under load is not misread as a crash
   # (and a genuinely dead binary still fails within the same budget).
+  # Startup is proven by FIRST OUTPUT (the binary's stderr). Bare liveness
+  # at t=0 proves nothing — a freshly forked child has not registered
+  # anywhere yet, so an early liveness probe reads as a false crash. The
+  # dead-check runs only after first output arrives (or the budget ends).
   local waited=0
-  while [ "$waited" -lt 5 ]; do
-    # Startup is proven by FIRST OUTPUT (the binary's stderr), not bare
-    # liveness — a just-forked child that has not exec'd yet is "alive"
-    # but proves nothing, and hosts may reclaim slow orphans.
-    if [ -s "$STDERR_LOG" ]; then break; fi
-    if ! kill -0 "$pid" 2>/dev/null; then break; fi
+  while [ "$waited" -lt 5 ] && [ ! -s "$STDERR_LOG" ]; do
     sleep 1
     waited=$((waited + 1))
   done
