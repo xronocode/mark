@@ -10,6 +10,7 @@
     :aria-expanded="open ? 'true' : 'false'"
     @click.stop="toggle"
     @keydown.enter.prevent="toggle"
+    @keydown.space.prevent="toggle"
   >
     <!-- The «Aa» affordance is a SYSTEM-FONT text glyph, not a drawn
          icon: letterforms hand-drawn on the icon grid failed twice
@@ -67,7 +68,7 @@
 // VERSION: 1.3.1
 // START_MODULE_CONTRACT
 //   PURPOSE: C-PAGE-WIDTH-TABLES T-003 (M-061) the titlebar quick-settings shell — the «Aa» button (a system-font text glyph) beside the theme button and the popover panel (Page / View / Tables live tabs) built exclusively from the C-38 component set in the neutral settings palette. The panel is NOT tinted by the editor theme: it follows the theme mode light/dark member (data-darkmode attribute over the verbatim --pref* palette) and every inner interaction keeps it open — only an outside click or Escape closes it; the footer opens the real Settings window.
-//   SCOPE: Shell only — open/close (window capture-phase mousedown closer, the doc-info-popover precedent; T-010 adds the quick-settings:open bus entry point the View › Page Width › Custom… menu row and its palette command use), tab switching, dark-member parity, palette/row-anatomy CSS for its subtree and the Settings hand-off. The tab bodies (quickSettings/pageTab.vue, viewTab.vue, tablesTab.vue) own their domain state; this file holds no width or theme logic of its own. The dark active-segment contrast fix lives in the shared segmented component, never here.
+//   SCOPE: Shell only — open/close (window capture-phase mousedown closer, the doc-info-popover precedent; T-010 adds the quick-settings:open bus entry point the View › Page Width › Custom… menu row and its palette command use), tab switching, dark-member parity, palette/row-anatomy CSS for its subtree and the Settings hand-off. The tab bodies (quickSettings/pageTab.vue, viewTab.vue, tablesTab.vue) own their domain state; this file holds no width or theme logic of its own. The dark active-segment contrast fix lives in the shared segmented component, never here. C-COMPACT-WINDOWS-FIT: the panel is viewport-bound (max-height calc(100vh - 64px), toolbar/footer pinned, .quick-body the single scroll region — the 62vh body cap is gone) and the «Aa» button is Space-operable beside Enter and carries the canon :focus-visible outline.
 //   DEPENDS: vue, vue-i18n, @/bus (the quick-settings:open entry point), @/store/preferences (theme member for the data-darkmode parity), @/store/project (OPEN_SETTING_WINDOW — the same Settings entry the gear and palette use), the three tab components.
 //   LINKS: .grace/changes/archive/C-STABILIZE-PRODUCT-REPAIRS; .grace/changes/archive/C-PAGE-WIDTH-TABLES (plan T-003, corner C-4; plan T-010 — the Custom… bus entry); .grace/graph/performance.xml M-061; components/titleBar/index.vue (the mount point beside the theme button); prefComponents/common/* (the C-38 controls); pages/preference.vue (the palette source these verbatim values mirror); the approved real-app mock artifacts (boot.js section 1 glyph, approved.html structure, approved.css metrics).
 //   ROLE: RUNTIME
@@ -84,9 +85,18 @@
 //   openPanel - the shared open path with an explicit tab (the button opens 'page'; the quick-settings:open bus event opens the requested tab).
 //   openSettings - projectStore.OPEN_SETTING_WINDOW (the real Settings window, footer row).
 //   onDocMouseDown/onDocKeydown - outside-click (window capture phase, ahead of Tauri drag.js) and Escape closers; inner interactions never close (the closer excludes the panel and this button).
+//   panel fit (C-COMPACT-WINDOWS-FIT) - the panel caps at calc(100vh - 64px); .quick-toolbar/.quick-openall are pinned (flex-shrink: 0) and .quick-body is the single scroll region (flex: 1 1 auto; min-height: 0).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   LAST_CHANGE: 2026-11-21 C-COMPACT-WINDOWS-FIT: viewport-bound panel —
+//   max-height calc(100vh - 64px) on the popover (428px metrics verbatim),
+//   the toolbar/footer pinned (flex-shrink: 0), the body the single
+//   scroll region (flex: 1 1 auto; min-height: 0; the 62vh double-cap
+//   removed); the «Aa» button gains @keydown.space.prevent (the
+//   recent/index.vue enter+space precedent) and the canon :focus-visible
+//   outline (with the --prefAccent alias — the button lives outside the
+//   palette-bearing panel).
 //   LAST_CHANGE: 2026-11-09 C-STABILIZE-PRODUCT-REPAIRS: accepted owner smoke repairs integrated; lifecycle, sizing and accessible controls verified by focused gates.
 //   PREV: v1.3.1 - 2026-11-09 the alien-button fix: the parent's
 //   scoped .titlebar-nav-btn styles never reach this fragment-rooted
@@ -283,13 +293,20 @@ onBeforeUnmount(() => {
 /* START_BLOCK_QUICK_PANEL_METRICS */
 /* Panel shell metrics from the approved mock (approved.css .prefwin):
    fixed width 428px, 12px radius, hairline border, the settings shadow.
-   Anchored under the title-bar like the doc-info popover. */
+   Anchored under the title-bar like the doc-info popover. C-COMPACT-
+   WINDOWS-FIT: the panel is VIEWPORT-BOUND — max-height reserves the
+   title-bar strip plus the 6px gap on all platforms (macOS strip 30px
+   per the tabsBar C-51 rule, Win/Linux frameless cells 46px), the
+   toolbar and the Open Settings footer are pinned above/below it, and
+   .quick-body is the single scroll region (the old 62vh body cap is
+   gone — it double-limited against the remaining viewport). */
 .quick-settings-popover {
   position: absolute;
   top: calc(100% + 6px);
   right: 8px;
   width: 428px;
   max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 64px);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -307,7 +324,7 @@ onBeforeUnmount(() => {
 
 /* Toolbar: the tabsBar mac column-tab anatomy verbatim (no fake traffic
    lights — the real title bar is right above; decorative chrome is
-   forbidden, the v5 lesson). */
+   forbidden, the v5 lesson). Pinned: never squeezed by the body. */
 .quick-settings-popover .quick-toolbar {
   display: flex;
   justify-content: center;
@@ -317,6 +334,7 @@ onBeforeUnmount(() => {
   background: var(--prefBar);
   border-bottom: 0.5px solid var(--prefLine);
   user-select: none;
+  flex-shrink: 0;
 }
 
 .quick-settings-popover .quick-tab {
@@ -359,13 +377,18 @@ onBeforeUnmount(() => {
   outline-offset: 1px;
 }
 
-/* Body: 16/18px padding, scroll only vertically (approved.css). */
+/* Body: 16/18px padding, scroll only vertically (approved.css). The
+   SINGLE scroll region of the panel: it flexes into the space left
+   between the pinned toolbar and footer (min-height: 0 lets it shrink,
+   no max-height cap of its own — the panel's viewport binding above
+   is the only height limit). */
 .quick-settings-popover .quick-body {
   padding: 16px 18px 12px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: 62vh;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -376,7 +399,8 @@ onBeforeUnmount(() => {
   background: transparent;
 }
 
-/* Footer: the "Open Settings…" row (approved.css .pref-openall). */
+/* Footer: the "Open Settings…" row (approved.css .pref-openall).
+   Pinned: never squeezed or scrolled away by the body. */
 .quick-settings-popover .quick-openall {
   all: unset;
   cursor: pointer;
@@ -389,6 +413,7 @@ onBeforeUnmount(() => {
   font-size: 13px;
   color: var(--prefAccent);
   border-top: 0.5px solid var(--prefLine);
+  flex-shrink: 0;
 }
 
 .quick-settings-popover .quick-openall:hover {
@@ -473,10 +498,21 @@ onBeforeUnmount(() => {
   cursor: default;
   color: var(--editorColor80);
   transition: background-color 0.15s ease, color 0.15s ease;
+  /* The button sits in the title bar, OUTSIDE the panel that defines
+     the --pref* palette: alias the accent so the canon keyboard-focus
+     outline below resolves to the same accent the panel paints. */
+  --prefAccent: var(--chromeAccent);
 }
 
 .quick-settings-btn:hover {
   background-color: var(--floatHoverColor, rgba(0, 0, 0, 0.06));
+}
+
+/* C-SETTINGS-KEYBOARD-FOCUS canon: visible only for keyboard focus;
+   pointer activation stays outline-free. */
+.quick-settings-btn:focus-visible {
+  outline: 2px solid var(--prefAccent);
+  outline-offset: 1px;
 }
 
 /* The «Aa» affordance: a text glyph in the inherited bar font — the

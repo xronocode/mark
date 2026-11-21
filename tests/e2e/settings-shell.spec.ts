@@ -19,6 +19,7 @@ import { writeFile } from 'node:fs/promises'
 //   checkKeyboardFocus - Prove visible focus and unchanged control semantics from actual keyboard input.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   LAST_CHANGE: C-COMPACT-WINDOWS-FIT: the overflow walker now covers .pref-toolbar and .pref-toolbar * beside .pref-body * (toolbar scrollWidth at most innerWidth) and the harness gained the settings-toolbar-tab focus group (anchored on .pref-toolbar instead of a .pref-row).
 //   LAST_CHANGE: Add source-bound keyboard presentation regressions for actual Settings/Quick Settings consumers.
 // END_CHANGE_SUMMARY
 
@@ -67,9 +68,9 @@ async function focusThroughKeyboard(page: Page, target: Locator, info: TestInfo,
   expect(reached, `No real keyboard route to ${label}`).toBe(true)
 }
 
-async function focusState(target: Locator) {
-  return target.evaluate(el => {
-    const row = el.closest('.pref-row')!
+async function focusState(target: Locator, anchorSel = '.pref-row') {
+  return target.evaluate((el, anchorSel) => {
+    const row = el.closest(anchorSel)!
     const style = getComputedStyle(el)
     const probe = document.createElement('span')
     probe.style.cssText = 'position:absolute;color:var(--prefAccent)'
@@ -93,19 +94,22 @@ async function focusState(target: Locator) {
         writes: (window as any).__focusPreferenceWrites.length
       }
     }
-  })
+  }, anchorSel)
 }
 
-async function checkKeyboardFocus(page: Page, target: Locator, info: TestInfo, label: string, textbox = false) {
+async function checkKeyboardFocus(page: Page, target: Locator, info: TestInfo, label: string, textbox = false, anchorSel = '.pref-row') {
   await target.scrollIntoViewIfNeeded()
   await page.mouse.move(1, 1)
-  const before = await focusState(target)
+  const before = await focusState(target, anchorSel)
   expect(before.focused, `${label}: setup must start outside the target`).toBe(false)
-  const row = target.locator('xpath=ancestor::section[contains(@class,"pref-row")]')
+  // First (nearest) matching ancestor only — the pref-row-control also
+  // carries pref-row classes for some control shapes, and strict mode
+  // rejects the pair.
+  const row = target.locator(`xpath=ancestor::*[contains(@class,"${anchorSel.slice(1)}")][1]`)
   const beforePath = info.outputPath(`${label}-before.png`)
   const beforeImage = await row.screenshot({ path: beforePath, animations: 'disabled', caret: 'hide' })
   await focusThroughKeyboard(page, target, info, label)
-  const after = await focusState(target)
+  const after = await focusState(target, anchorSel)
   const statePath = info.outputPath(`${label}-state.json`)
   await writeFile(statePath, JSON.stringify({ before, after, keyboardRoutes: info.annotations.filter(item => item.type === 'keyboard-route'), writes: await page.evaluate(() => (window as any).__focusPreferenceWrites) }, null, 2))
   await info.attach(`${label}-state`, { path: statePath, contentType: 'application/json' })
@@ -119,7 +123,7 @@ async function checkKeyboardFocus(page: Page, target: Locator, info: TestInfo, l
   else expect.soft(after.outline, label).toEqual({ style: 'solid', width: '2px', offset: '1px', color: after.accent })
   expect.soft(focusedImage.equals(beforeImage), `${label}: the painted row must visibly distinguish focus`).toBe(false)
   await page.keyboard.press('Tab')
-  const away = await focusState(target)
+  const away = await focusState(target, anchorSel)
   expect(away.focused).toBe(false)
   if (!textbox) expect.soft(away.outline.style, label).not.toBe('solid')
 }
@@ -177,6 +181,20 @@ for (const theme of ['paper', 'ink']) {
       if (state.focusVisible) expect(state.outline).toEqual({ style: 'solid', width: '2px', offset: '1px', color: state.accent })
       else expect(state.outline.style).not.toBe('solid')
     } finally { await pointerContext.close() }
+  })
+
+  test(`shows keyboard focus on the settings toolbar tab in ${theme}`, async ({ page }, info) => {
+    await installFocusPreferences(page, theme)
+    await page.goto('/?type=settings&wid=0&udp=/tmp/mark-focus-settings&debug=0')
+    await page.locator('.pref-container').waitFor({ state: 'visible', timeout: 15_000 })
+    if (theme === 'ink') await expect(page.locator('body')).toHaveClass(/dark/)
+    else await expect(page.locator('body')).not.toHaveClass(/dark/)
+    // The toolbar anchors the state probe (no .pref-row exists here);
+    // everything else follows the same real-Tab canon.
+    await checkKeyboardFocus(
+      page, page.locator('.pref-toolbar [data-tab="markdown"]'), info,
+      `${theme}-settings-toolbar-tab`, false, '.pref-toolbar'
+    )
   })
 
   test(`shows keyboard focus on shared Quick Settings controls in ${theme}`, async ({ page }, info) => {
@@ -247,11 +265,14 @@ test.describe('settings shell', () => {
       )
 
       // No horizontal overflow at 640 px: neither the document nor any
-      // element inside the scrollable body may reach past the viewport.
+      // element inside the scrollable body — nor the toolbar itself —
+      // may reach past the viewport (C-COMPACT-WINDOWS-FIT: the walker
+      // covers .pref-toolbar and .pref-toolbar * beside .pref-body *,
+      // so a tab pushed out by its label can never hide here).
       const overflow = await page.evaluate(() => {
         const vw = window.innerWidth
         let worst: null | { tag: string; cls: string; left: number; right: number } = null
-        for (const el of Array.from(document.querySelectorAll('.pref-body *'))) {
+        for (const el of Array.from(document.querySelectorAll('.pref-body *, .pref-toolbar, .pref-toolbar *'))) {
           const rect = (el as HTMLElement).getBoundingClientRect()
           if (rect.width === 0 && rect.height === 0) continue
           if (rect.right > vw + 0.5 || rect.left < -0.5) {
@@ -264,14 +285,17 @@ test.describe('settings shell', () => {
             break
           }
         }
+        const toolbar = document.querySelector('.pref-toolbar') as HTMLElement | null
         return {
           vw,
           worst,
-          scrollWidth: (document.scrollingElement as HTMLElement).scrollWidth
+          scrollWidth: (document.scrollingElement as HTMLElement).scrollWidth,
+          toolbarScrollWidth: toolbar ? toolbar.scrollWidth : 0
         }
       })
       expect(overflow.worst, `${id}: overflowing element ${JSON.stringify(overflow.worst)}`).toBeNull()
       expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.vw)
+      expect(overflow.toolbarScrollWidth, `${id}: the toolbar must not overflow horizontally`).toBeLessThanOrEqual(overflow.vw)
     }
   })
 

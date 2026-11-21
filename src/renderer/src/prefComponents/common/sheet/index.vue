@@ -7,27 +7,35 @@
     aria-modal="true"
     :aria-label="title"
   >
-    <div class="pref-sheet" :style="sheetStyle">
-      <div class="pref-sheet-head">
-        <span class="pref-sheet-title">{{ title }}</span>
-        <button
-          type="button"
-          class="pref-sheet-close"
-          :aria-label="t('preferences.advanced.sheets.close')"
-          @click="close"
-        >
-          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-            <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" stroke-width="1.4" />
-          </svg>
-        </button>
+    <!-- C-COMPACT-WINDOWS-FIT: the panel is keyboard-modal. ElFocusTrap
+         (the element-plus deep per-component import, the el-dialog
+         precedent in editor.vue's insert-table dialog) claims initial
+         focus inside the panel, cycles Tab/Shift+Tab within it in both
+         directions and restores focus to the invoking control on
+         release. The Esc capture handler below stays byte-identical. -->
+    <el-focus-trap :trapped="open" loop :focus-trap-el="sheetEl">
+      <div ref="sheetEl" class="pref-sheet" :style="sheetStyle">
+        <div class="pref-sheet-head">
+          <span class="pref-sheet-title">{{ title }}</span>
+          <button
+            type="button"
+            class="pref-sheet-close"
+            :aria-label="t('preferences.advanced.sheets.close')"
+            @click="close"
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+              <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" stroke-width="1.4" />
+            </svg>
+          </button>
+        </div>
+        <div class="pref-sheet-body">
+          <slot></slot>
+        </div>
+        <div v-if="hasFoot" class="pref-sheet-foot">
+          <slot name="foot"></slot>
+        </div>
       </div>
-      <div class="pref-sheet-body">
-        <slot></slot>
-      </div>
-      <div v-if="hasFoot" class="pref-sheet-foot">
-        <slot name="foot"></slot>
-      </div>
-    </div>
+    </el-focus-trap>
   </div>
   <!-- END_BLOCK_SHEET_OVERLAY -->
 </template>
@@ -38,7 +46,7 @@
 // START_MODULE_CONTRACT
 //   PURPOSE: Modal sheet over the Settings window (C-38 T-004) — a centred 560px panel with a title, Close button and Esc handling that hosts the Advanced-tab pop-ups (keyboard shortcuts, extensions gallery, custom CSS).
 //   SCOPE: Overlay/panel rendering, Esc key handling, close emission; content comes from the default slot and optional actions from the foot slot.
-//   DEPENDS: vue-i18n (sheet close label).
+//   DEPENDS: vue-i18n (sheet close label); element-plus/es/components/focus-trap (ElFocusTrap — the keyboard modality trap, C-COMPACT-WINDOWS-FIT).
 //   LINKS: .grace/changes/archive/C-38 T-004; prefComponents/tabs/advanced; .grace/graph/runtime.xml M-011; .grace/verification/runtime.xml V-M-011.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
@@ -50,14 +58,27 @@
 //   sheetStyle - panel width override from the width prop (default 560px).
 //   close - emits 'close' (Close button and Esc).
 //   onKeydown - window Escape listener bound while the sheet is open.
+//   sheetEl - the panel element bound to ElFocusTrap (C-COMPACT-WINDOWS-FIT): opening claims initial focus inside the panel, Tab/Shift+Tab cycle in both directions, release restores the invoking control's focus.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   LAST_CHANGE: 2026-11-21 C-COMPACT-WINDOWS-FIT: the panel is wrapped
+//   in ElFocusTrap (element-plus/es/components/focus-trap deep import,
+//   trapped bound to open, loop enabled) — initial focus inside the
+//   panel, both-direction Tab wrap, focus restored to the invoking
+//   control on release; the capture-phase Escape handler, 560px metrics
+//   and slot flows are unchanged; .pref-sheet-close carries the canon
+//   :focus-visible outline.
 //   LAST_CHANGE: [v1.0.0 - 2026-10-15 C-38 T-004: initial control — the macOS-sheet-styled modal panel the approved mockup specifies for the Advanced-tab pop-ups.]
 // END_CHANGE_SUMMARY
 
-import { onMounted, onUnmounted, useSlots } from 'vue'
+import { ref, onMounted, onUnmounted, useSlots } from 'vue'
 import { useI18n } from 'vue-i18n'
+// C-COMPACT-WINDOWS-FIT: the verified deep per-component import (the
+// repo convention — main.js imports ElDialog the same way); the pinned
+// ^2.14.8 build exports ElFocusTrap with the loop/trapped/focusStartEl
+// props.
+import { ElFocusTrap } from 'element-plus/es/components/focus-trap/index.mjs'
 
 const props = defineProps({
   open: {
@@ -78,6 +99,12 @@ const emit = defineEmits(['close'])
 
 const { t } = useI18n()
 const slots = useSlots()
+
+// The trap container: the panel element feeds ElFocusTrap's focusTrapEl
+// (the el-dialog/drawer wiring) — the ref resolves once the overlay
+// mounts, and the trap claims focus, cycles Tab both ways inside the
+// panel and restores the invoking control's focus when released.
+const sheetEl = ref(null)
 
 const hasFoot = Boolean(slots.foot)
 const sheetStyle = props.width !== 560 ? { width: `${props.width}px` } : undefined
@@ -173,6 +200,14 @@ const close = () => {
 .pref-sheet-overlay .pref-sheet-close:hover {
   background: var(--prefTabOn, rgba(0, 0, 0, 0.07));
   color: var(--prefText, #1d1d1f);
+}
+
+/* C-SETTINGS-KEYBOARD-FOCUS canon: visible only for keyboard focus —
+   the 22px button must not clip the 2px ring (outline paints outside
+   the border box and the 24px head padding gives it room). */
+.pref-sheet-overlay .pref-sheet-close:focus-visible {
+  outline: 2px solid var(--prefAccent);
+  outline-offset: 1px;
 }
 
 .pref-sheet-overlay .pref-sheet-body {
