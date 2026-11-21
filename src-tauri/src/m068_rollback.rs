@@ -2328,6 +2328,9 @@ pub fn run_cli_rollback(yes: bool) -> i32 {
 #[cfg(not(feature = "app-store"))]
 enum RestoreMenuEnd {
     Relaunch,
+    /// Constructed only by the Windows restore branch; on other targets the
+    /// menu path always relaunches, so silence the non-Windows dead-code pass.
+    #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
     HandoffExit,
 }
 
