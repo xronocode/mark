@@ -480,6 +480,7 @@ fn test_b5b_load_smoke_30min_synthetic() {
             ("key_points".to_string(), String::new()),
             ("transcript".to_string(), "## Transcript\n\n".to_string()),
         ],
+        budget: super::live_server::StreamBudget::at_burst(Instant::now()),
         active: true,
         last_heartbeat: Instant::now(),
     };
@@ -689,6 +690,7 @@ fn v2_open_same_session_id_replaces_for_resync() {
         revision: 99,
         document_md: "stale".to_string(),
         sections: vec![],
+        budget: super::live_server::StreamBudget::at_burst(std::time::Instant::now()),
         active: true,
         last_heartbeat: std::time::Instant::now(),
     };
@@ -708,6 +710,7 @@ fn v2_open_different_active_session_conflicts() {
         revision: 1,
         document_md: String::new(),
         sections: vec![],
+        budget: super::live_server::StreamBudget::at_burst(std::time::Instant::now()),
         active: true,
         last_heartbeat: std::time::Instant::now(),
     };
@@ -725,6 +728,7 @@ fn v2_open_after_close_or_without_session_is_fresh() {
         revision: 1,
         document_md: String::new(),
         sections: vec![],
+        budget: super::live_server::StreamBudget::at_burst(std::time::Instant::now()),
         active: true,
         last_heartbeat: std::time::Instant::now(),
     };
@@ -1984,3 +1988,415 @@ async fn stream_events_keep_ordered_identity_and_disable_only_closes_its_owner()
     }
 }
 // END_BLOCK_STREAM_SECURITY_TESTS
+
+// START_BLOCK_STREAM_BUDGET_TESTS
+// C-STREAM-BUDGET: per-session stream budgets — cumulative bytes (the
+// authoritative document_md at open plus the GROSS content bytes of
+// every accepted patch), the post-dedup section count at open, and the
+// token-bucket patch rate. Red-first family: against the baseline tree
+// every refusal scenario instead succeeds (over-cap opens create
+// sessions, over-rate patches apply) and the budget/rate pins do not
+// compile — recorded as the change bundle's failure evidence. Every
+// refusal pins 413/413/429 through the existing {"error": ...} shape
+// with the budget and cap named, the last valid revision intact, zero
+// new live events and the session still active; exact-cap boundaries
+// pass; duplicates, resync answers, heartbeat and close stay
+// budget-free. The rate family never sleeps: buckets are drained and
+// charged through the fixture session mutex and the pure
+// decide_rate_admission core is driven with synthetic Instants.
+use super::live_server::{
+    decide_rate_admission, RateDecision, STREAM_BUDGET_MAX_SECTIONS,
+    STREAM_BUDGET_RATE_BURST, STREAM_BUDGET_TOTAL_BYTES,
+};
+
+async fn budget_open(f: &IncomingFixture, sid: &str, initial_md: &str) -> axum::response::Response {
+    let request = serde_json::from_value(serde_json::json!({
+        "extension_id": f.id.clone(), "session_id": sid, "title": "Budget stream", "initial_md": initial_md,
+    })).unwrap();
+    super::live_server::handle_doc_open(State(f.state.clone()), bearer_headers(Some(&f.token)), Json(request))
+        .await.into_response()
+}
+
+async fn budget_open_sections(f: &IncomingFixture, sid: &str, sections: Vec<serde_json::Value>) -> axum::response::Response {
+    let request = serde_json::from_value(serde_json::json!({
+        "extension_id": f.id.clone(), "session_id": sid, "title": "Budget stream", "sections": sections,
+    })).unwrap();
+    super::live_server::handle_doc_open(State(f.state.clone()), bearer_headers(Some(&f.token)), Json(request))
+        .await.into_response()
+}
+
+async fn budget_patch(f: &IncomingFixture, sid: &str, seq: u64, base_revision: u64, content: &str) -> axum::response::Response {
+    let request = serde_json::from_value(serde_json::json!({
+        "session_id": sid, "seq": seq, "base_revision": base_revision,
+        "op": "replace", "section": "body", "content": content,
+    })).unwrap();
+    super::live_server::handle_doc_patch(State(f.state.clone()), bearer_headers(Some(&f.token)), Json(request))
+        .await.into_response()
+}
+
+async fn budget_heartbeat(f: &IncomingFixture, sid: &str) -> axum::response::Response {
+    let request = serde_json::from_value(serde_json::json!({"session_id": sid})).unwrap();
+    super::live_server::handle_heartbeat(State(f.state.clone()), bearer_headers(Some(&f.token)), Json(request))
+        .await.into_response()
+}
+
+async fn budget_close(f: &IncomingFixture, sid: &str) -> axum::response::Response {
+    let request = serde_json::from_value(serde_json::json!({"session_id": sid, "seq": 99})).unwrap();
+    super::live_server::handle_doc_close(State(f.state.clone()), bearer_headers(Some(&f.token)), Json(request))
+        .await.into_response()
+}
+
+async fn budget_body(response: axum::response::Response) -> serde_json::Value {
+    let bytes = axum::body::to_bytes(response.into_body(), 65536).await.unwrap();
+    serde_json::from_slice(&bytes).unwrap()
+}
+
+#[tokio::test]
+async fn stream_budget_open_refuses_over_total_bytes() {
+    let f = incoming_fixture_caps(true, &["stream.document"]);
+    // No sections -> the authoritative document_md is initial_md; one
+    // byte past the 64 MiB cap must be refused before any session
+    // exists.
+    let over = "x".repeat(STREAM_BUDGET_TOTAL_BYTES as usize + 1);
+    let response = budget_open(&f, "session-budget-bytes", &over).await;
+    assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
+    let body = budget_body(response).await;
+    let error = body["error"].as_str().unwrap().to_string();
+    assert!(error.contains("STREAM_BUDGET_TOTAL_BYTES"), "error must name the budget: {error}");
+    assert!(error.contains("67108864"), "error must name the cap: {error}");
+    assert!(f.state.session.lock().await.is_none(), "no session may be created");
+    assert!(f.live_events.lock().unwrap().is_empty(), "zero live events on refusal");
+}
+
+#[tokio::test]
+async fn stream_budget_open_refuses_over_section_count() {
+    let f = incoming_fixture_caps(true, &["stream.document"]);
+    // 4097 distinct sections — one past the post-dedup cap.
+    let sections = (0..=STREAM_BUDGET_MAX_SECTIONS)
+        .map(|i| serde_json::json!({"name": format!("s-{i}"), "content": "x"}))
+        .collect::<Vec<_>>();
+    assert_eq!(sections.len(), STREAM_BUDGET_MAX_SECTIONS + 1);
+    let response = budget_open_sections(&f, "session-budget-sections", sections).await;
+    assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
+    let body = budget_body(response).await;
+    let error = body["error"].as_str().unwrap().to_string();
+    assert!(error.contains("STREAM_BUDGET_MAX_SECTIONS"), "error must name the budget: {error}");
+    assert!(error.contains("4096"), "error must name the 4096 cap: {error}");
+    assert!(f.state.session.lock().await.is_none(), "no session may be created");
+    assert!(f.live_events.lock().unwrap().is_empty(), "zero live events on refusal");
+}
+
+#[tokio::test]
+async fn stream_budget_patch_refuses_over_cumulative_bytes() {
+    let f = incoming_fixture_caps(true, &["stream.document"]);
+    let response = budget_open_sections(&f, "session-budget-cumulative", vec![
+        serde_json::json!({"name": "body", "content": "original"}),
+    ]).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(budget_body(response).await["revision"], 1);
+    let events_before = f.live_events.lock().unwrap().len();
+    assert_eq!(events_before, 1, "doc_open emitted");
+
+    // Open charged 8 bytes; 8 + 67108857 = 67108865 — one byte past.
+    let patch = "x".repeat(STREAM_BUDGET_TOTAL_BYTES as usize - "original".len() + 1);
+    let response = budget_patch(&f, "session-budget-cumulative", 1, 1, &patch).await;
+    assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
+    let body = budget_body(response).await;
+    let error = body["error"].as_str().unwrap().to_string();
+    assert!(error.contains("STREAM_BUDGET_TOTAL_BYTES"), "error must name the budget: {error}");
+    assert!(error.contains("67108864"), "error must name the cap: {error}");
+
+    // Nothing applied: the last valid revision survives untouched with
+    // zero new events and the session still active.
+    let guard = f.state.session.lock().await;
+    let session = guard.as_ref().unwrap();
+    assert_eq!(session.revision, 1);
+    assert_eq!(session.last_seq, 0);
+    assert_eq!(session.document_md, "original");
+    assert_eq!(session.sections, vec![("body".to_string(), "original".to_string())]);
+    assert_eq!(session.budget.cumulative_bytes, "original".len() as u64);
+    assert!(session.active);
+    drop(guard);
+    assert_eq!(f.live_events.lock().unwrap().len(), events_before);
+}
+
+#[tokio::test]
+async fn stream_budget_patch_refuses_over_rate() {
+    let f = incoming_fixture_caps(true, &["stream.document"]);
+    let response = budget_open_sections(&f, "session-budget-rate", vec![
+        serde_json::json!({"name": "body", "content": "original"}),
+    ]).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    // Apply seq 1 so a later retransmit of the SAME seq is a true
+    // duplicate after the bucket drains.
+    let response = budget_patch(&f, "session-budget-rate", 1, 1, "delta-1").await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = budget_body(response).await;
+    assert_eq!(body["applied_revision"], 2);
+    assert_eq!(body["duplicate"], false);
+    assert_eq!(body["needs_resync"], false);
+
+    // Drain the bucket below one token with last_refill at now, via
+    // the fixture session mutex — no real-time waits.
+    let (drained_credit, drained_refill) = {
+        let mut guard = f.state.session.lock().await;
+        let session = guard.as_mut().unwrap();
+        session.budget.credit = 0.5;
+        session.budget.last_refill = std::time::Instant::now();
+        (session.budget.credit, session.budget.last_refill)
+    };
+    let events_before = f.live_events.lock().unwrap().len();
+
+    // A new-seq patch on the current base revision hits the exhausted
+    // bucket: 429 with the rate budget named.
+    let response = budget_patch(&f, "session-budget-rate", 2, 2, "delta-2").await;
+    assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+    let body = budget_body(response).await;
+    let error = body["error"].as_str().unwrap().to_string();
+    assert!(error.contains("STREAM_BUDGET_RATE_PER_MINUTE"), "error must name the rate budget: {error}");
+
+    // Zero mutation: bucket not debited, revision/last_seq/document
+    // untouched, no event emitted, session stays active.
+    {
+        let guard = f.state.session.lock().await;
+        let session = guard.as_ref().unwrap();
+        assert_eq!(session.revision, 2);
+        assert_eq!(session.last_seq, 1);
+        assert_eq!(session.document_md, "delta-1");
+        assert_eq!(session.budget.credit, drained_credit);
+        assert_eq!(session.budget.last_refill, drained_refill);
+        assert!(session.active);
+    }
+    assert_eq!(f.live_events.lock().unwrap().len(), events_before);
+
+    // An immediate retransmit of the APPLIED seq stays a duplicate and
+    // consumes nothing: 200 duplicate:true with the bucket unchanged.
+    let response = budget_patch(&f, "session-budget-rate", 1, 2, "delta-1").await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = budget_body(response).await;
+    assert_eq!(body["applied_revision"], 2);
+    assert_eq!(body["duplicate"], true);
+    assert_eq!(body["needs_resync"], false);
+    {
+        let guard = f.state.session.lock().await;
+        let session = guard.as_ref().unwrap();
+        assert_eq!(session.budget.credit, drained_credit, "duplicate must not debit");
+        assert_eq!(session.budget.last_refill, drained_refill);
+        assert_eq!(session.document_md, "delta-1", "duplicate must not apply");
+    }
+}
+
+#[tokio::test]
+async fn stream_budget_rejection_keeps_last_valid_revision() {
+    let f = incoming_fixture_caps(true, &["stream.document"]);
+    let response = budget_open_sections(&f, "session-budget-reject", vec![
+        serde_json::json!({"name": "body", "content": "original"}),
+    ]).await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Byte-class refusal: one byte past the cumulative cap.
+    let patch = "x".repeat(STREAM_BUDGET_TOTAL_BYTES as usize - "original".len() + 1);
+    let response = budget_patch(&f, "session-budget-reject", 1, 1, &patch).await;
+    assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
+
+    // Heartbeat still reports the previous revision; session active.
+    let response = budget_heartbeat(&f, "session-budget-reject").await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = budget_body(response).await;
+    assert_eq!(body["alive"], true);
+    assert_eq!(body["revision"], 1);
+
+    // Rate-class refusal: drain below one token (no real-time waits).
+    {
+        let mut guard = f.state.session.lock().await;
+        let session = guard.as_mut().unwrap();
+        session.budget.credit = 0.25;
+        session.budget.last_refill = std::time::Instant::now();
+    }
+    let response = budget_patch(&f, "session-budget-reject", 1, 1, "still-refused").await;
+    assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+    let response = budget_heartbeat(&f, "session-budget-reject").await;
+    let body = budget_body(response).await;
+    assert_eq!(body["revision"], 1);
+    assert!(f.state.session.lock().await.as_ref().unwrap().active);
+
+    // The next valid in-budget patch on the SAME base_revision applies
+    // normally: no needs_resync, no reset, revision advances 1 -> 2.
+    {
+        let mut guard = f.state.session.lock().await;
+        let session = guard.as_mut().unwrap();
+        session.budget.credit = STREAM_BUDGET_RATE_BURST as f64;
+        session.budget.last_refill = std::time::Instant::now();
+    }
+    let response = budget_patch(&f, "session-budget-reject", 1, 1, "valid-after-refusal").await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = budget_body(response).await;
+    assert_eq!(body["applied_revision"], 2);
+    assert_eq!(body["duplicate"], false);
+    assert_eq!(body["needs_resync"], false);
+    {
+        let guard = f.state.session.lock().await;
+        let session = guard.as_ref().unwrap();
+        assert_eq!(session.revision, 2);
+        assert_eq!(session.document_md, "valid-after-refusal");
+        assert_eq!(
+            session.budget.cumulative_bytes,
+            ("original".len() + "valid-after-refusal".len()) as u64,
+        );
+    }
+}
+
+#[tokio::test]
+async fn stream_budget_boundaries_at_exact_cap_pass() {
+    // Exact byte cap: an authoritative document of exactly 67108864
+    // bytes opens (refusal is strictly past the cap) and the open
+    // charges those bytes into the cumulative budget with the rate
+    // bucket initialized at burst.
+    let f = incoming_fixture_caps(true, &["stream.document"]);
+    let exact = "x".repeat(STREAM_BUDGET_TOTAL_BYTES as usize);
+    let response = budget_open(&f, "session-budget-exact-bytes", &exact).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    {
+        let guard = f.state.session.lock().await;
+        let session = guard.as_ref().unwrap();
+        assert_eq!(session.revision, 1);
+        assert_eq!(session.budget.cumulative_bytes, STREAM_BUDGET_TOTAL_BYTES);
+        assert_eq!(session.budget.credit, STREAM_BUDGET_RATE_BURST as f64);
+    }
+
+    // Exact section cap: exactly 4096 post-dedup sections open.
+    let f = incoming_fixture_caps(true, &["stream.document"]);
+    let sections = (0..STREAM_BUDGET_MAX_SECTIONS)
+        .map(|i| serde_json::json!({"name": format!("s-{i}"), "content": "x"}))
+        .collect::<Vec<_>>();
+    assert_eq!(sections.len(), STREAM_BUDGET_MAX_SECTIONS);
+    let response = budget_open_sections(&f, "session-budget-exact-sections", sections).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert!(f.state.session.lock().await.as_ref().unwrap().active);
+
+    // Exact cumulative cap: 8 (open) + 67108856 (patch) == 67108864.
+    let f = incoming_fixture_caps(true, &["stream.document"]);
+    let response = budget_open_sections(&f, "session-budget-exact-cumulative", vec![
+        serde_json::json!({"name": "body", "content": "original"}),
+    ]).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let patch = "y".repeat(STREAM_BUDGET_TOTAL_BYTES as usize - "original".len());
+    let response = budget_patch(&f, "session-budget-exact-cumulative", 1, 1, &patch).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = budget_body(response).await;
+    assert_eq!(body["applied_revision"], 2);
+    assert_eq!(f.state.session.lock().await.as_ref().unwrap().budget.cumulative_bytes, STREAM_BUDGET_TOTAL_BYTES);
+
+    // Rate boundary — pure core with synthetic Instants, no sleeps:
+    // exactly 1.0 token with no refill time admits and debits to 0.0.
+    let now = std::time::Instant::now();
+    assert_eq!(
+        decide_rate_admission(1.0, now, now),
+        RateDecision::Admit { credit: 0.0, last_refill: now },
+    );
+    // Less than one token with no refill time is exhausted.
+    assert_eq!(
+        decide_rate_admission(0.999, now, now),
+        RateDecision::Exhausted,
+    );
+    // One token per 2 s refill: 0 tokens 2 s later admits at exactly
+    // 1.0 (then debits to 0.0).
+    let past = now - std::time::Duration::from_secs(2);
+    assert_eq!(
+        decide_rate_admission(0.0, past, now),
+        RateDecision::Admit { credit: 0.0, last_refill: now },
+    );
+    // Half the refill window is not enough.
+    let past = now - std::time::Duration::from_secs(1);
+    assert_eq!(
+        decide_rate_admission(0.0, past, now),
+        RateDecision::Exhausted,
+    );
+    // Refill caps at the burst (60) no matter how long the gap.
+    let past = now - std::time::Duration::from_secs(200);
+    assert_eq!(
+        decide_rate_admission(0.0, past, now),
+        RateDecision::Admit { credit: 59.0, last_refill: now },
+    );
+
+    // Handler-level rate boundary: a patch at exactly 1.0 bucket token
+    // is admitted and the debit leaves the bucket unable to admit the
+    // next immediate patch (refill within microseconds stays below a
+    // full token).
+    let f = incoming_fixture_caps(true, &["stream.document"]);
+    let response = budget_open_sections(&f, "session-budget-exact-rate", vec![
+        serde_json::json!({"name": "body", "content": "original"}),
+    ]).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    {
+        let mut guard = f.state.session.lock().await;
+        let session = guard.as_mut().unwrap();
+        session.budget.credit = 1.0;
+        session.budget.last_refill = std::time::Instant::now();
+    }
+    let response = budget_patch(&f, "session-budget-exact-rate", 1, 1, "boundary").await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(budget_body(response).await["applied_revision"], 2);
+    {
+        let guard = f.state.session.lock().await;
+        let session = guard.as_ref().unwrap();
+        assert!(session.budget.credit < 1.0, "boundary token debited: {}", session.budget.credit);
+    }
+    let response = budget_patch(&f, "session-budget-exact-rate", 2, 2, "second").await;
+    assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+}
+
+#[tokio::test]
+async fn stream_budget_under_budget_traffic_unchanged() {
+    let f = incoming_fixture_caps(true, &["stream.document"]);
+    // open -> 200 accepted at revision 1.
+    let response = budget_open_sections(&f, "session-budget-normal", vec![
+        serde_json::json!({"name": "body", "content": "original"}),
+    ]).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = budget_body(response).await;
+    assert_eq!(body["accepted"], true);
+    assert_eq!(body["revision"], 1);
+
+    // patch -> 200, revision 1 -> 2, no duplicate, no resync.
+    let response = budget_patch(&f, "session-budget-normal", 1, 1, "delta-1").await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = budget_body(response).await;
+    assert_eq!(body["applied_revision"], 2);
+    assert_eq!(body["duplicate"], false);
+    assert_eq!(body["needs_resync"], false);
+
+    // duplicate retransmit of the applied seq -> 200 duplicate:true.
+    let response = budget_patch(&f, "session-budget-normal", 1, 2, "delta-1").await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = budget_body(response).await;
+    assert_eq!(body["applied_revision"], 2);
+    assert_eq!(body["duplicate"], true);
+    assert_eq!(body["needs_resync"], false);
+
+    // heartbeat -> 200 alive at revision 2.
+    let response = budget_heartbeat(&f, "session-budget-normal").await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = budget_body(response).await;
+    assert_eq!(body["alive"], true);
+    assert_eq!(body["revision"], 2);
+
+    // close -> 200 closed with the final revision.
+    let response = budget_close(&f, "session-budget-normal").await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = budget_body(response).await;
+    assert_eq!(body["closed"], true);
+    assert_eq!(body["final_revision"], 2);
+
+    // Emitted mt::live::update sequence unchanged: exactly one
+    // doc_open, one doc_patch (revision 2), one doc_close.
+    let events = f.live_events.lock().unwrap();
+    assert_eq!(
+        events.iter().map(|e| e["update_type"].as_str().unwrap()).collect::<Vec<_>>(),
+        vec!["doc_open", "doc_patch", "doc_close"],
+    );
+    assert_eq!(events[1]["payload"]["revision"], 2);
+    assert_eq!(events[1]["payload"]["full_content"], "delta-1");
+    assert_eq!(events[2]["payload"]["final_revision"], 2);
+}
+// END_BLOCK_STREAM_BUDGET_TESTS
