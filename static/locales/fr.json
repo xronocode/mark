@@ -544,6 +544,7 @@
         "statusBar": "Afficher la barre d'état",
         "wordWrapInToc": "Renvoyer à la ligne les titres longs dans le plan",
         "titleBarStyleHelp": "Personnalisée affiche la barre de titre propre à Mark avec les onglets. Redémarrage requis.",
+        "titleBarStyleWindowsHelp": "Sous Windows, « Personnalisée » est le seul choix fonctionnel : la fenêtre de Mark est livrée sans le cadre système (sans décorations).",
         "hideScrollbar": "Masquer les barres de défilement"
       },
       "text": {

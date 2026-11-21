@@ -544,6 +544,7 @@
         "statusBar": "顯示狀態列",
         "wordWrapInToc": "在目錄中換行過長標題",
         "titleBarStyleHelp": "自訂會繪製帶分頁的 Mark 專屬標題欄。需要重新啟動。",
+        "titleBarStyleWindowsHelp": "在 Windows 上只有「自訂」真正可用：Mark 的視窗不帶系統邊框（無裝飾）發佈。",
         "hideScrollbar": "隱藏捲軸"
       },
       "text": {

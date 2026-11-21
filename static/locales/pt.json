@@ -544,6 +544,7 @@
         "statusBar": "Mostrar a barra de status",
         "wordWrapInToc": "Quebrar títulos longos no índice",
         "titleBarStyleHelp": "Personalizada desenha a própria barra de título do Mark com abas. Requer reinicialização.",
+        "titleBarStyleWindowsHelp": "No Windows, «Personalizada» é a única escolha funcional: a janela do Mark é distribuída sem a moldura do sistema (sem decorações).",
         "hideScrollbar": "Ocultar barras de rolagem"
       },
       "text": {

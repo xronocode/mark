@@ -544,6 +544,7 @@
         "statusBar": "Statusleiste anzeigen",
         "wordWrapInToc": "Lange Überschriften in der Gliederung umbrechen",
         "titleBarStyleHelp": "„Eigenständig“ zeichnet Marks eigene Titelleiste mit Tabs. Erfordert einen Neustart.",
+        "titleBarStyleWindowsHelp": "Unter Windows ist „Eigenständig“ die einzige funktionierende Wahl: Marks Fenster kommt ohne Systemrahmen (ohne Dekorationen) daher.",
         "hideScrollbar": "Scrollbalken ausblenden"
       },
       "text": {

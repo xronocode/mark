@@ -1,5 +1,5 @@
 // FILE: tests/renderer/components/editor-page-width-host.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-PAGE-WIDTH-TABLES host wiring in editorWithTabs/editor.vue — the open/tab-switch funnel that resolves the active document's pageWidths entry through the width pipeline onto the single inline --editorAreaWidth property, the entry-less/untitled clear back to the global tier, the canvas-change re-applies (window resize from the cache with one property write + one trailing re-read; sidebar show/drag commits), the R-4 pinned themeOverride application to the document surface (apply, restore on switch/unmount, global cycle re-assert), the panel's mt::document-page-state-changed announcement, the editorLineWidth re-read, and the mirror-pane opt-out.
 //   SCOPE: editor.vue START_BLOCK_PAGE_WIDTH_HOST only (the pipeline/store maths are pinned in page-width.test.js / page-width-store.test.js, the rename move in store/editor-page-width.test.js).
@@ -14,7 +14,9 @@
 //   HOST_FRESHEN_DELAY - the host's trailing re-read delay (mirrors editor.vue HOST_WIDTH_FRESHEN_DELAY_MS).
 //   MockMuya - mocked Muya class (editor-coverage pattern) with the progressive surface editor.vue touches.
 //   addCommonStyleMock - GRACE 4 synchronized symbol
-//   addThemeStyleMock - the pinned-theme application spy (GRACE 4 synchronized symbol).
+//   addThemeStyleMock - the GLOBAL theme application spy (restore path; GRACE 4 synchronized symbol).
+//   addDocumentThemeStyleMock - C-PREFS-TRUTH (F-004): the document-scoped pinned-theme spy (GRACE 4 synchronized symbol).
+//   removeDocumentThemeStyleMock - C-PREFS-TRUTH (F-004): the scoped-pin clear spy (GRACE 4 synchronized symbol).
 //   animatedScrollToMock - GRACE 4 synchronized symbol
 //   appliedWidth - reads the inline --editorAreaWidth custom property off the document root.
 //   busMock - GRACE 4 synchronized symbol
@@ -47,7 +49,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-11-03 C-PAGE-WIDTH-TABLES host wiring: new —
+//   2026-11-21 C-PREFS-TRUTH (F-004): the R-4 pin assertions follow the
+//   scoped seam — the pin applies through addDocumentThemeStyle(theme,
+//   host) (document surface only) and restore/unmount ride
+//   removeDocumentThemeStyle + the global addThemeStyle, so the pin no
+//   longer asserts the whole-shell repaint the change removes.
+//   LAST_CHANGE: v1.1.0 - 2026-11-03 C-PAGE-WIDTH-TABLES host wiring: new —
 //   the editor.vue page-width host block (open/switch funnel, clear
 //   semantics, canvas re-applies, pinned theme application/restore/
 //   re-assert, panel announcement, mirror opt-out).
@@ -73,6 +80,11 @@ const setEditorWidthMock = vi.hoisted(() => vi.fn())
 const setWrapCodeBlocksMock = vi.hoisted(() => vi.fn())
 const addCommonStyleMock = vi.hoisted(() => vi.fn())
 const addThemeStyleMock = vi.hoisted(() => vi.fn())
+// C-PREFS-TRUTH (F-004): the pinned theme applies scoped to the document
+// surface (editor host) — the pin no longer rides the global addThemeStyle
+// shell path.
+const addDocumentThemeStyleMock = vi.hoisted(() => vi.fn())
+const removeDocumentThemeStyleMock = vi.hoisted(() => vi.fn())
 const loadPageWidthForMock = vi.hoisted(() => vi.fn(async () => null))
 const loadTableLayoutsForMock = vi.hoisted(() => vi.fn(async () => ({})))
 const saveTableLayoutsForMock = vi.hoisted(() => vi.fn(async () => true))
@@ -254,6 +266,8 @@ vi.mock('@/util/pdf', () => ({
 vi.mock('@/util/theme', () => ({
   addCommonStyle: addCommonStyleMock,
   addThemeStyle: addThemeStyleMock,
+  addDocumentThemeStyle: addDocumentThemeStyleMock,
+  removeDocumentThemeStyle: removeDocumentThemeStyleMock,
   setEditorWidth: setEditorWidthMock,
   setWrapCodeBlocks: setWrapCodeBlocksMock
 }))
@@ -403,6 +417,8 @@ describe('editor.vue — C-PAGE-WIDTH-TABLES host wiring', () => {
     busMock.off.mockReset()
     busMock.emit.mockReset()
     addThemeStyleMock.mockReset()
+    addDocumentThemeStyleMock.mockReset()
+    removeDocumentThemeStyleMock.mockReset()
     setEditorWidthMock.mockReset()
     setWrapCodeBlocksMock.mockReset()
     addCommonStyleMock.mockReset()
@@ -552,7 +568,7 @@ describe('editor.vue — C-PAGE-WIDTH-TABLES host wiring', () => {
 
   /* ── R-4 pinned per-document theme ────────────────────────────── */
 
-  it('a pinned themeOverride applies to the surface on open; switching to an unpinned document restores the global theme', async () => {
+  it('a pinned themeOverride applies SCOPED to the document surface on open; switching to an unpinned document restores the global theme', async () => {
     preferencesStore.followSystemTheme = false
     preferencesStore.theme = 'paper'
     loadPageWidthForMock.mockImplementation(async (pathname) => {
@@ -564,7 +580,10 @@ describe('editor.vue — C-PAGE-WIDTH-TABLES host wiring', () => {
     editorStore.currentFile = makeTab({ id: 'tab-p', pathname: '/tmp/pinned.md' })
     editorStore.tabs = [editorStore.currentFile]
     await mountEditor({ markdown: '# Pinned' })
-    expect(addThemeStyleMock).toHaveBeenCalledWith('graphite-dark')
+    // C-PREFS-TRUTH (F-004): the pin applies through the document-scoped
+    // path (theme id + the editor host element), NOT the global shell path.
+    expect(addDocumentThemeStyleMock).toHaveBeenCalledWith('graphite-dark', expect.anything())
+    expect(addThemeStyleMock).not.toHaveBeenCalled()
     // The muya diagram classification mirrors the shipped watch(theme)
     // branch (/dark/i) for the applied surface theme.
     expect(mockEditorInstance.setOptions).toHaveBeenCalledWith(
@@ -575,22 +594,26 @@ describe('editor.vue — C-PAGE-WIDTH-TABLES host wiring', () => {
     editorStore.tabs.push(editorStore.currentFile)
     await flushPromises()
     await nextTick()
+    // The scoped pin is cleared before the global theme re-applies.
+    expect(removeDocumentThemeStyleMock).toHaveBeenCalled()
     expect(addThemeStyleMock).toHaveBeenLastCalledWith('paper')
   })
 
-  it('a global theme cycle while pinned re-asserts the pin and never re-reads the store', async () => {
+  it('a global theme cycle while pinned re-asserts the SCOPED pin and never re-reads the store', async () => {
     preferencesStore.followSystemTheme = false
     preferencesStore.theme = 'paper'
     loadPageWidthForMock.mockResolvedValue({ value: 80, unit: 'ch', themeOverride: 'ink', savedAt: 1 })
     await mountEditor()
-    expect(addThemeStyleMock).toHaveBeenLastCalledWith('ink')
+    expect(addDocumentThemeStyleMock).toHaveBeenLastCalledWith('ink', expect.anything())
     const readsAfterOpen = loadPageWidthForMock.mock.calls.length
+    addThemeStyleMock.mockClear()
     // The title bar cycle / Auto resolution / cross-window echo moves the
     // global theme — the pinned document's surface must not follow.
     preferencesStore.theme = 'graphite'
     await flushPromises()
     await nextTick()
-    expect(addThemeStyleMock).toHaveBeenLastCalledWith('ink')
+    expect(addDocumentThemeStyleMock).toHaveBeenLastCalledWith('ink', expect.anything())
+    expect(addThemeStyleMock).not.toHaveBeenCalled()
     expect(loadPageWidthForMock.mock.calls.length).toBe(readsAfterOpen)
   })
 
@@ -608,7 +631,7 @@ describe('editor.vue — C-PAGE-WIDTH-TABLES host wiring', () => {
     await flushPromises()
     await nextTick()
     expect(appliedWidth()).toBe('850px')
-    expect(addThemeStyleMock).toHaveBeenCalledWith('ink')
+    expect(addDocumentThemeStyleMock).toHaveBeenCalledWith('ink', expect.anything())
   })
 
   it('an announcement for another document is ignored', async () => {
@@ -628,10 +651,11 @@ describe('editor.vue — C-PAGE-WIDTH-TABLES host wiring', () => {
     loadPageWidthForMock.mockResolvedValue({ value: 80, unit: 'ch', themeOverride: 'ink', savedAt: 1 })
     await mountEditor()
     expect(appliedWidth()).toBe('850px')
-    expect(addThemeStyleMock).toHaveBeenCalledWith('ink')
+    expect(addDocumentThemeStyleMock).toHaveBeenCalledWith('ink', expect.anything())
     wrapper.unmount()
     wrapper = null
     expect(appliedWidth()).toBe('')
+    expect(removeDocumentThemeStyleMock).toHaveBeenCalled()
     expect(addThemeStyleMock).toHaveBeenLastCalledWith('paper')
     expect(getLastAppliedEditorWidth()).toBeNull()
   })
@@ -649,7 +673,7 @@ describe('editor.vue — C-PAGE-WIDTH-TABLES host wiring', () => {
     loadPageWidthForMock.mockResolvedValue({ value: 80, unit: 'ch', themeOverride: 'ink', savedAt: 2 })
     await flushPromises()
     await nextTick()
-    expect(addThemeStyleMock).toHaveBeenCalledWith('ink')
+    expect(addDocumentThemeStyleMock).toHaveBeenCalledWith('ink', expect.anything())
     wrapper.unmount()
     wrapper = null
     // Auto is on and jsdom is light: the light member is restored.
@@ -664,6 +688,7 @@ describe('editor.vue — C-PAGE-WIDTH-TABLES host wiring', () => {
     expect(loadPageWidthForMock).not.toHaveBeenCalled()
     expect(appliedWidth()).toBe('')
     expect(addThemeStyleMock).not.toHaveBeenCalled()
+    expect(addDocumentThemeStyleMock).not.toHaveBeenCalled()
     layoutStore.showSideBar = true
     layoutStore.sideBarWidth = 280
     await flushPromises()
