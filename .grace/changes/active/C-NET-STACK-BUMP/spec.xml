@@ -1,0 +1,61 @@
+<GraceChangeSpec graceVersion="4.0" status="approved">
+  <C-NET-STACK-BUMP>
+    <Summary>Move the locked Rust net stack two transitive crates forward — rustls-webpki 0.103.15 → 0.103.16 and h2 0.4.14 → 0.4.16 — through lockfile-only precise updates, with --locked check/test green, a lock diff containing exactly the intended moves (plus any resolver-forced transitive adjustments, listed and justified), a mechanical NOTICES-rust.md refresh and no reqwest/tokio or manifest change.</Summary>
+    <Problem>The dependency audit flags the locked net stack as lagging: the workspace Cargo.lock pins rustls-webpki 0.103.15 and h2 0.4.14. Both crates are transitive — neither appears in the workspace root Cargo.toml (which contains only the `[workspace]` table with member src-tauri) nor in src-tauri/Cargo.toml, and no `[patch]` section exists in either manifest. The inverse graph: rustls-webpki is pulled by rustls 0.23.46 and rustls-platform-verifier 0.7.0; h2 is pulled by hyper 1.10.1 and reqwest 0.13.5 (reqwest is the direct dep `reqwest = { version = "0.13", features = ["json"] }`). The affected runtime paths are the m016 updater signed-feed check (via tauri-plugin-updater's reqwest client), the m068 rollback update fetch (`reqwest::get`, src-tauri/src/m068_rollback.rs:965), the m045 extension discovery/invoke HTTP clients (reqwest with `redirect::Policy::none`), TLS certificate verification through rustls/webpki (notably the Linux TLS path) and HTTP/2 handling on every request those paths make. No vulnerability is claimed by this specification; it is a targeted maintenance bump of two point releases.</Problem>
+    <Relationship>Dependency maintenance on the existing net modules; it changes no behavior, contract or policy decision of C-UPDATER-ROLLBACK (M-068), C-SEC-AUDIT-FIXES or the m045 extension boundary and does not reopen any of them. Composed against the current beta-gate-wave worktree; the plan must re-verify lock versions on the fresh head before approval.</Relationship>
+    <Goals>
+      <Goal>Cargo.lock pins rustls-webpki 0.103.16 (with its checksum updated accordingly) and h2 0.4.16, achieved by precise lockfile updates of these two packages only.</Goal>
+      <Goal>Offline locked builds and the existing Rust test suites stay green: cargo check/test with --locked succeed without regenerating the lockfile.</Goal>
+      <Goal>The lock diff contains exactly the two intended package moves plus any resolver-forced transitive adjustments; every forced move is enumerated and justified in the change bundle, or the diff is exactly two entries.</Goal>
+      <Goal>Attribution records stay consistent: NOTICES-rust.md is regenerated so its h2 and rustls-webpki rows name the new versions, keeping tools/verify-attributions.sh green.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Lockfile-only mechanism: `cargo update -p rustls-webpki --precise 0.103.16` and `cargo update -p h2 --precise 0.4.16` (run from the workspace root whose Cargo.lock this repository keeps; the suites use `--manifest-path src-tauri/Cargo.toml`). No direct dependency is added, no `[patch]` section is introduced and no Cargo.toml changes: both crates are transitive semver-compatible point releases inside the existing caret requirements of rustls 0.23.46 / rustls-platform-verifier 0.7.0 and hyper 1.10.1 / reqwest 0.13.5, so a manifest edit is neither necessary nor allowed by this change.</Constraint>
+      <Constraint>No other crate moves unless forced by the resolver. reqwest 0.13.5, tokio 1.54.1, hyper 1.10.1, hyper-util 0.1.20, rustls 0.23.46, rustls-pki-types 1.14.1 and tokio-rustls 0.26.4 stay at their current pinned versions; a broad `cargo update` is prohibited. If 0.103.16/0.4.16 force a transitive move (for example a shared dependency like bytes or rustls-pki-types), the forced entries are listed individually with the forcing reason in the change bundle.</Constraint>
+      <Constraint>No runtime behavior change: the m016 updater feed check, the m068 rollback fetch/promote flow, the m045 extension discovery/invoke redirect-none clients and the app-store/non-app-store feature split are untouched; no source file under src-tauri/src changes.</Constraint>
+      <Constraint>The NOTICES-rust.md refresh is a mechanical consequence of the attribution gate (the generator output embeds crate versions, and the current file names h2 0.4.14 and rustls-webpki 0.103.15); it is refreshed via tools/verify-attributions.sh --refresh and its diff may contain only the affected version rows.</Constraint>
+      <Constraint>Graph markup changes only where it states dependency facts: a SummaryDelta on the owning net modules in .grace/graph/features.xml may record the bumped versions; no ownership, contract, verification or acceptance markup is rewritten, and frozen archived bundles stay immutable.</Constraint>
+      <Constraint>No release, tag, app-version, signing or workflow change is authorized by this change. The Windows-only `cfg(not(target_os = "macos"))` rollback_restore fetch tests remain out of host scope and are neither enabled nor weakened.</Constraint>
+    </Constraints>
+    <ObservedWriteScope>
+      <File>Cargo.lock</File>
+      <File>NOTICES-rust.md</File>
+      <File>.grace/graph/features.xml</File>
+    </ObservedWriteScope>
+    <NonGoals>
+      <NonGoal>No reqwest, tokio, hyper, rustls, rustls-pki-types or tauri-plugin-updater upgrade; the two target crates move to their pinned point releases and nothing else rides along.</NonGoal>
+      <NonGoal>No manifest restructuring: no direct dependency addition for rustls-webpki or h2, no `[patch]` section, no workspace Cargo.toml change, no feature flag change.</NonGoal>
+      <NonGoal>No updater, rollback or extension behavior change: no retry/timeout/protocol adjustments, no new tests asserting network behavior, no live-network test introduction.</NonGoal>
+      <NonGoal>No renderer, npm-side or QuickLook dependency change; no release or version change.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>The lock diff contains exactly the two intended moves — the `[[package]]` entries for rustls-webpki (0.103.15 → 0.103.16) and h2 (0.4.14 → 0.4.16) with their checksums — plus only resolver-forced entries, each individually listed and justified; otherwise the diff is exactly these two entries.</Criterion>
+      <Criterion>`cargo check --manifest-path src-tauri/Cargo.toml --locked` and `cargo test --manifest-path src-tauri/Cargo.toml --locked` (workspace suites) succeed without lockfile regeneration; `cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings` stays green.</Criterion>
+      <Criterion>The net-path suites stay green offline: `cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --bin mark m068_rollback::` (the V-M-068 65-test suite as measured in verification evidence) and `cargo test --manifest-path src-tauri/Cargo.toml --locked --bin mark m045_ext` pass unchanged, and the m016 updater unit suite passes with the same filter as current-state evidence.</Criterion>
+      <Criterion>NOTICES-rust.md regenerates clean: its diff shows only the h2 and rustls-webpki version rows, and ./tools/verify-attributions.sh (read-only diff mode) passes.</Criterion>
+      <Criterion>The .grace/graph/features.xml delta is limited to the declared SummaryDelta dependency-fact notes; grace lint passes before and after (current assertions pre-edit, target/final for the change).</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-068 />
+      <M-045 />
+      <M-016 />
+      <File>Cargo.lock</File>
+      <File>NOTICES-rust.md</File>
+      <File>.grace/graph/features.xml</File>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>cargo check --manifest-path src-tauri/Cargo.toml --locked</ExpectedCommand>
+      <ExpectedCommand>cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --bin mark m068_rollback::</ExpectedCommand>
+      <ExpectedCommand>cargo test --manifest-path src-tauri/Cargo.toml --locked --bin mark m045_ext</ExpectedCommand>
+      <ExpectedCommand>cargo test --manifest-path src-tauri/Cargo.toml --locked --bin mark m016</ExpectedCommand>
+      <ExpectedCommand>cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings</ExpectedCommand>
+      <ExpectedCommand>./tools/verify-attributions.sh</ExpectedCommand>
+      <ExpectedEvidence>The plan records the pre-edit lock rows (rustls-webpki 0.103.15, h2 0.4.14), the post-edit `git diff Cargo.lock` showing exactly the intended moves (+justified forced entries), the green locked check/clippy/test output for the net suites, and the verify-attributions diff limited to the two version rows. No unit-level live-network fetch test exists for the macOS host (the three rollback_restore fetch tests are cfg-gated to non-macOS); locked check+clippy plus the m068_rollback/m045_ext/m016 suites are therefore the verification of record. A plan binds these before approval.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>rustls-webpki 0.103.16 and h2 0.4.16 are semver-compatible point releases satisfying the existing requirements of their parents in the lock, so precise lock updates need no manifest change; if the resolver proves otherwise, the spec's constraint requires the forced moves to be listed and justified rather than silently widened.</Assumption>
+      <Assumption>The crates are correctly identified as transitive (verified against both manifests and the lock's inverse references); the proportionally small scope — lockfile, notices, one graph note — reflects that finding.</Assumption>
+      <Assumption>Writing this draft approves no plan, implementation, apply/archive or release.</Assumption>
+    </Assumptions>
+  </C-NET-STACK-BUMP>
+</GraceChangeSpec>
