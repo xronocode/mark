@@ -204,7 +204,10 @@ function makeSandbox({ livePids = [], curlCode = '', curlSequence = '', lsofLine
     // real curl answers 000, kill probes miss). Use the separator the
     // TARGET shell expects: if the ambient PATH already looks msys-style
     // (':' present), join with ':' regardless of the host OS.
-    PATH: `${sandbox.bin}${process.env.PATH?.includes(':') && !process.env.PATH?.includes(';') ? ':' : delimiter}${process.env.PATH ?? ''}`,
+    // On win32 the git-bash target accepts forward-slash drive paths best —
+    // backslash entries in a ':'-joined PATH are the remaining lookup
+    // failure on the runner.
+    PATH: `${sandbox.bin.replace(/\\/g, '/')}${process.env.PATH?.includes(':') && !process.env.PATH?.includes(';') ? ':' : delimiter}${process.env.PATH ?? ''}`,
   }
   return sandbox
 }
