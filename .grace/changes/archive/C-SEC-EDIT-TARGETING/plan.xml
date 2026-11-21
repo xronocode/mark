@@ -1,0 +1,260 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-SEC-EDIT-TARGETING>
+    <ChangeRef>C-SEC-EDIT-TARGETING</ChangeRef>
+    <Created>2026-11-20</Created>
+    <IntentSummary>Bind the /ext/context to /ext/apply round trip to the exact document instance it observed: the context response gains the active document's instance id and generation (the editor's own tab id plus its documentToken), /ext/apply must carry that binding and the server refuses a missing binding with 400 and a stale, never-issued or null binding with 409 before any mt::text::op is emitted, while the editor drops insert/transform/undo events whose binding does not match the currently rendered document instance — including the whole-document setMarkdown fallback — before any mutation; proven by a new binding-matrix in the Rust m045_ext suite, binding-passthrough units in both textOps renderer suites, and editor-level targeting-rejection cases in the existing editor-coverage harness, with the C-SEC-STREAM-SCOPE capability gates still running first and a matched apply behaving exactly like today.</IntentSummary>
+    <ReferenceState>SpecSha256 = 474e9a2c034d356d7a8a3c4c02f1092e0b650226eadf2be90a2f3805ccf79d1a (the orchestrator computes and replaces this placeholder from the approved spec bytes). Authored 2026-11-20 against the current read-only state of the canary-beta-wave worktree: src-tauri/src/m045_ext/live_server.rs defines ExtContextResponse (START_BLOCK_REQUEST_TYPES lines 193-199: { markdown: String, cursor: Option&lt;CursorCoords&gt;, selection: Option&lt;SelectionInfo&gt;, file_path: Option&lt;String&gt; }) and ExtApplyRequest (lines 221-227: { extension_id, operations: Vec&lt;EditOperation&gt;, undo_label: Option&lt;String&gt; }) with no document binding; handle_ext_context (lines 1174-1246) authenticates through authenticate_incoming(..., Some(RouteCapability::ContextRead)) — the C-SEC-STREAM-SCOPE capability gate runs before any content moves — then emits the context request via live_bridge and resolves the pending oneshot from the frontend's mt::ext::context_response (listener in START_BLOCK_SERVER_BOOT lines 1469-1484); handle_ext_apply (lines 1252-1326) authenticates with Some(&amp;req.extension_id), Some(RouteCapability::TextEdit) at line 1257 and then unconditionally emits one mt::text::op per operation (transform/insert/undo payloads built at lines 1268-1292 as TextOpEvent { op_type, payload, extension_id }) and answers ExtApplyResponse { applied: true, operations_count } — nothing binds the apply to the document the context was read from; the existing static CONTEXT_REQUEST_COUNTER (line 186) is the in-file precedent for process-global server state; src-tauri/src/m045_ext/text_ops.rs emits unbound mt::text::op events from the mt_ext_text_insert/mt_ext_text_transform commands and stays byte-identical in this change; src/renderer/src/components/extensionGallery/textOps.js relays mt::text::op to the bus events ext-text-insert (line 87), ext-text-transform (line 109), ext-undo (line 123) and mt::ext::context_request to ext-context-request (line 143) without any binding; src/renderer/src/components/editorWithTabs/editor.vue already owns rendered-document identity — renderedTabId (line 515) and renderedDocumentOwner = documentOwner(currentFile.value) (lines 847, 2986, 3068; documentOwner imported at line 352 from src/renderer/src/util/documentSnapshot.js line 26 returning { id, documentToken }, tokens minted once per document lifetime by createDocumentToken (documentSnapshot.js line 25) inside the store/help.js tab factories getBlankFileState (lines 126-167), getSingleFileState (lines 169-193) and createDocumentState (lines 202-229), each assigning id = getUniqueId() and documentToken: createDocumentToken()) — a token is minted exactly when a document state is created (new document, file open, reload) and never changes on keystrokes or tab switches, which is precisely the spec's instance-generation semantics; the ext handlers are handleExtTextInsert (lines 3206-3217), handleExtTextTransform (lines 3227-3249, whole-document setMarkdown fallback at line 3241), handleExtUndo (lines 3255-3265) — all registered through the diffGuarded wrapper (lines 3436-3458, wiring lines 3629-3631 and 3886-3888) — and handleExtContextRequest (lines 3366-3395) is registered unguarded (line 3632) emitting context: { markdown, cursor, selection, file_path: filePath } (line 3386); src-tauri/src/m045_ext/tests.rs builds the LiveServerState literal (lines 954-959), its context responder answers from the mt::ext::context_request listener (lines 967-976), context_fixture/apply_fixture (lines 1123-1135) construct ExtApplyRequest/ExtContextRequest literals, and the C-SEC-STREAM-SCOPE pins live in apply_requires_text_edit_capability (lines 1059-1076), enabled_extension_passes_only_declared_capability_routes (line 1194) and fresh_pairing_restores_access (line 1396); tests/e2e/perf/characterization-ime-seeded.spec.ts line 1164 emits ext-text-transform with no binding and expects the document to be replaced. Design decisions locked by this plan: the binding fields are document_id and document_generation, both String-valued on the wire, Option&lt;String&gt; in Rust with the mandatory-at-policy check performed in handle_ext_apply (not serde-required) so a legacy client receives a distinct logged 400 with BLOCK_EXT_APPLY_MISSING_BINDING instead of an extractor rejection; the server remembers the last context binding per extension_id in a process-global static EXT_DOCUMENT_BINDINGS: std::sync::Mutex&lt;HashMap&lt;String, DocumentBinding&gt;&gt; modeled on CONTEXT_REQUEST_COUNTER, deliberately NOT a LiveServerState field, so the LiveServerState struct literal in src-tauri/src/main.rs line 799 stays untouched and main.rs remains outside the write scope; a match requires both fields Some and equal to the remembered binding — null identity never matches (the spec's absent-identity criterion) — and a generation is the rendered tab's documentToken, changing on rendered-instance replacement, close, new document and file reload, never on keystrokes, so typing between context and apply cannot invalidate a matched apply; the binding travels to the editor inside the existing TextOpEvent payload object (insert/transform/undo payloads gain document_id/document_generation), keeping text_ops.rs unmodified; unbound events — /ext/text-insert route events and mt_ext_text_insert/mt_ext_text_transform command events — are rejected editor-side fail-closed as a declared consequence, with their re-binding named a follow-up in the spec; the e2e characterization named above sits outside this plan's verification set and write scope and is flagged for a follow-up update rather than silently broken. Deviation note: the brief's ObservedWriteScope parenthetical names live_server.rs, tests.rs, textOps.js, editor.vue handlers and graph xml; this plan additionally writes tests/renderer/components/textOps.test.js and tests/renderer/components/extensionGallery/textOps.test.js (both named in the mandated vitest MustPassCommand and required by the spec's renderer regression criterion), tests/renderer/components/editor-coverage.test.js (the existing M-011 editor-handler harness, required by the spec's VerificationIntent evidence "at the renderer editor-handler level"), and the two verification xml files (executed evidence for DurableScope V-M-045/V-M-011, canon in C-SEC-STREAM-SCOPE) — no other additions. Per the drafting instruction this plan carries no self-referential grace-lint MustPassCommand; the orchestrator runs current/target/final lifecycle assertions itself. Writing this draft approves neither the execution plan nor code implementation, apply/archive, commits, departure into main, manual-acceptance exceptions or release.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-045</Value>
+        <Value>M-011</Value>
+        <Value>src-tauri/src/m045_ext/live_server.rs</Value>
+        <Value>src-tauri/src/m045_ext/tests.rs</Value>
+        <Value>src/renderer/src/components/extensionGallery/textOps.js</Value>
+        <Value>src/renderer/src/components/editorWithTabs/editor.vue</Value>
+        <Value>src/renderer/src/util/documentSnapshot.js</Value>
+        <Value>tests/renderer/components/textOps.test.js</Value>
+        <Value>tests/renderer/components/extensionGallery/textOps.test.js</Value>
+        <Value>tests/renderer/components/editor-coverage.test.js</Value>
+        <Value>.grace/graph/features.xml</Value>
+        <Value>.grace/graph/runtime.xml</Value>
+        <Value>.grace/verification/features.xml</Value>
+        <Value>.grace/verification/runtime.xml</Value>
+      </MustExist>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>pub struct ExtContextResponse</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>pub markdown: String</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>pub file_path: Option&lt;String&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>pub struct ExtApplyRequest</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>pub operations: Vec&lt;EditOperation&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>Some(&amp;req.extension_id), Some(RouteCapability::TextEdit)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>authenticate_incoming</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>const handleExtTextInsert = ({ text }) =&gt; {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>const handleExtTextTransform = ({ text }) =&gt; {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>const handleExtUndo = ({ extensionId }) =&gt; {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>const handleExtContextRequest = async ({ requestId }) =&gt; {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>context: { markdown, cursor, selection, file_path: filePath }</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>editor.value.setMarkdown(text)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>bus.on('ext-text-insert', diffGuarded.handleExtTextInsert)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>documentOwner(currentFile.value)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/extensionGallery/textOps.js</File>
+        <Text>bus.emit('ext-text-insert', { text, position, extensionId: extId })</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/extensionGallery/textOps.js</File>
+        <Text>bus.emit('ext-text-transform', { text, extensionId: extId })</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/extensionGallery/textOps.js</File>
+        <Text>bus.emit('ext-undo', { extensionId: extId })</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/documentSnapshot.js</File>
+        <Text>createDocumentToken</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-045</Module>
+        <Module>M-011</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>struct DocumentBinding</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>static EXT_DOCUMENT_BINDINGS</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>pub document_id: Option&lt;String&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>pub document_generation: Option&lt;String&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_EXT_APPLY_MISSING_BINDING</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_EXT_APPLY_BINDING_MISMATCH</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>"document_generation": req.document_generation</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>extBindingMatchesRendered</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>BLOCK_EXT_TARGETING_MISMATCH</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>renderedDocumentOwner.documentToken</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>document_generation: documentGeneration</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/extensionGallery/textOps.js</File>
+        <Text>documentId: payload.document_id</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/extensionGallery/textOps.js</File>
+        <Text>documentGeneration: payload.document_generation</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>apply_requires_binding_fields</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>apply_requires_matching_context_binding</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>apply_stale_instance_binding_refused</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/features.xml</File>
+        <Text>C-SEC-EDIT-TARGETING</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/runtime.xml</File>
+        <Text>C-SEC-EDIT-TARGETING</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">npx vitest run tests/renderer/components/textOps.test.js tests/renderer/components/extensionGallery/textOps.test.js</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-045 />
+        <M-011 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-045 />
+        <V-M-011 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src-tauri/src/m045_ext/live_server.rs</File>
+      <File>src-tauri/src/m045_ext/tests.rs</File>
+      <File>src/renderer/src/components/extensionGallery/textOps.js</File>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <File>tests/renderer/components/textOps.test.js</File>
+      <File>tests/renderer/components/extensionGallery/textOps.test.js</File>
+      <File>tests/renderer/components/editor-coverage.test.js</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/features.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Bind /ext/context and /ext/apply to the document instance on the server: record the context binding, require it on apply, refuse missing (400) and stale (409) before any mt::text::op</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>In src-tauri/src/m045_ext/live_server.rs START_BLOCK_REQUEST_TYPES add pub struct DocumentBinding { pub document_id: Option&lt;String&gt;, pub document_generation: Option&lt;String&gt; } (Debug, Clone, PartialEq, Eq) next to the E1a ext types; extend ExtContextResponse with pub document_id: Option&lt;String&gt; and pub document_generation: Option&lt;String&gt; (serde deserializes the absent field as None, so an older renderer callback payload stays valid and yields a binding that can never match) and extend ExtApplyRequest with the same two Option&lt;String&gt; fields — the fields are mandatory by policy, enforced in the handler (criterion below), not by serde, so the omission rejection is a distinct logged 400; next to the existing static CONTEXT_REQUEST_COUNTER add the process-global static EXT_DOCUMENT_BINDINGS: std::sync::Mutex&lt;HashMap&lt;String, DocumentBinding&gt;&gt; keyed by extension_id — deliberately not a LiveServerState field, so the LiveServerState struct literal in src-tauri/src/main.rs (line 799) stays untouched and main.rs remains outside the write scope.</Criterion>
+          <Criterion>handle_ext_context keeps authenticate_incoming(..., Some(&amp;req.extension_id), Some(RouteCapability::ContextRead)) first (the capability gate still runs first), keeps the request-id minting, live_bridge emit, 5s timeout and every cleanup arm unchanged, and in the success arm (Ok(Ok(context))) records EXT_DOCUMENT_BINDINGS.insert(req.extension_id.clone(), DocumentBinding { document_id: context.document_id.clone(), document_generation: context.document_generation.clone() }) before answering 200 — recording also a (None, None) binding when the renderer reported no rendered identity, which refuses every apply for that extension until a later context read carries identity; a timed-out or channel-closed request records nothing.</Criterion>
+          <Criterion>handle_ext_apply keeps authenticate_incoming(..., Some(&amp;req.extension_id), Some(RouteCapability::TextEdit)) first; after authentication and before the operation loop it enforces the binding fence: when req.document_id or req.document_generation is None it logs BLOCK_EXT_APPLY_MISSING_BINDING and answers 400 BAD_REQUEST with Json({"error": "missing document binding: document_id and document_generation are required"}); otherwise it loads the remembered binding for req.extension_id and, when there is no remembered binding, the remembered binding has a None field, or any field differs, it logs BLOCK_EXT_APPLY_BINDING_MISMATCH and answers 409 CONFLICT with Json({"error": "document binding mismatch; re-read context"}); both rejections happen before any mt::text::op event is emitted and never produce an ExtApplyResponse with applied: true; the success path is otherwise byte-identical (same op_type mapping, same payloads plus the binding, same ExtApplyResponse { applied: true, operations_count }).</Criterion>
+          <Criterion>In the operation loop the emitted payload objects gain the binding so it travels to the editor inside the existing TextOpEvent payload object: "document_id": req.document_id.clone() and "document_generation": req.document_generation.clone() are added to the transform payload, the insert_at_cursor payload (alongside text and position) and the undo payload (previously {}); text_ops.rs, the /ext/text-insert route, handle_text_insert and all auth/pairing/stream code stay byte-identical.</Criterion>
+          <Criterion>Module hygiene: live_server.rs CHANGE_SUMMARY gains a dated 2026-11-20 C-SEC-EDIT-TARGETING entry and the SCOPE line names the document-bound context/apply round trip; every START_BLOCK_/END_BLOCK_ marker stays paired and unique; the existing log anchors (BLOCK_EXT_CONTEXT_*, BLOCK_EXT_APPLY apart from the two new markers, BLOCK_AUTH_FAILED_INCOMING) are unchanged; no Cargo.toml, dependency, main.rs, text_ops.rs, registry or renderer change in this task.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">cargo check --locked --offline --manifest-path src-tauri/Cargo.toml</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Thread the binding through the renderer: textOps relays documentId/documentGeneration, the editor rejects mismatch before any mutation including the setMarkdown fallback, and the context response names the rendered instance</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>In src/renderer/src/components/extensionGallery/textOps.js handleTextOp passes the whole wire payload to the undo branch (handleUndo(payload, extId)); handleInsert, handleTransform and handleUndo forward the binding onto their bus payloads — documentId: payload.document_id and documentGeneration: payload.document_generation are added to the ext-text-insert, ext-text-transform and ext-undo emit objects next to the existing text/position/extensionId fields — so a wire payload without binding fields forwards undefined (textOps stays a pure relay; rejection is editor-side); handleContextRequest is unchanged; the module contract CHANGE_SUMMARY gains the dated entry and the SCOPE line names the binding relay.</Criterion>
+          <Criterion>In src/renderer/src/components/editorWithTabs/editor.vue START_BLOCK_EXT_TEXT_OPS add the helper extBindingMatchesRendered({ documentId, documentGeneration }) returning !!renderedTabId &amp;&amp; !!renderedDocumentOwner &amp;&amp; renderedTabId === documentId &amp;&amp; renderedDocumentOwner.documentToken === documentGeneration, built on the existing rendered-identity locals that are set only on successful render; handleExtTextInsert, handleExtTextTransform and handleExtUndo destructure the two new fields and their FIRST statement is the guard — when extBindingMatchesRendered returns false (mismatched, stale, null or absent binding, including undefined from unbound events such as /ext/text-insert or the text_ops.rs commands) the handler logs the content-free marker console.warn('[Editor][BLOCK_EXT_TARGETING_MISMATCH op=insert|transform|undo]') and returns before routeSource, before any mutation — editor.value.insertParagraph, editor.value.replace, and the whole-document editor.value.setMarkdown(text) fallback included — and before the try/catch success logs; the diffGuarded wrapper, its guardDiff ordering (diff/read-only still drops first) and the bus wiring bytes (ext-text-insert/ext-text-transform/ext-undo through diffGuarded, ext-context-request unguarded) are unchanged.</Criterion>
+          <Criterion>handleExtContextRequest keeps flushSplit and its markdown/cursor/selection/file_path gathering and derives the binding from the rendered identity: document_id = renderedTabId when renderedTabId &amp;&amp; renderedDocumentOwner &amp;&amp; renderedTabId === currentFile.value?.id, else null; document_generation = documentId ? renderedDocumentOwner.documentToken : null; the emitted context object becomes context: { markdown, cursor, selection, file_path: filePath, document_id: documentId, document_generation: documentGeneration } — absent identity is represented explicitly as nulls and can never match an apply; the editor.vue CHANGE_SUMMARY/MODULE_MAP gain the dated entry naming extBindingMatchesRendered and the binding fields.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">npx vitest run tests/renderer/components/textOps.test.js tests/renderer/components/extensionGallery/textOps.test.js tests/renderer/components/editor-coverage.test.js</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Prove the fence: Rust binding matrix with red-first flip, renderer passthrough and editor-targeting regressions, graph and verification deltas</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>In src-tauri/src/m045_ext/tests.rs update the IncomingFixture context responder (lines 967-976) to answer each mt::ext::context_request with ExtContextResponse carrying document_id: Some(format!("tab-{}", f.id)) and document_generation: Some(format!("document-gen-{}", n)) where n is a fixture-local counter incremented per request — each context round trip hands a fresh generation, modeling an instance replacement — and record the last handed pair on the fixture for assertions; update the ExtApplyRequest literal in apply_fixture (lines 1129-1135) to carry explicit binding arguments. Add the binding matrix in START_BLOCK_INCOMING_DATA_TESTS: context_response_carries_document_binding (parse the 200 body: document_id == tab-{id}, first call document-gen-1, second call document-gen-2), apply_requires_binding_fields (context then apply with document_id None → 400 with zero mt::text::op events; the generation-None variant likewise), apply_requires_matching_context_binding (fresh fixture: apply before any context → 409 with zero events; after context, apply with the exact handed pair → 200 with exactly one insert event whose payload.document_id and payload.document_generation equal the binding), and apply_stale_instance_binding_refused (context hands gen-1, matching apply 200; a second context hands gen-2, after which the gen-1 apply answers 409 with zero events and an apply naming a wrong document_id answers 409, while the gen-2 apply answers 200).</Criterion>
+          <Criterion>Reconcile the C-SEC-STREAM-SCOPE family with the fence without weakening any security expectation: apply_requires_text_edit_capability moves its happy path to a dual-capability fixture (context.read and text.edit registered together) that performs the context read before the successful apply, while a text.edit-only fixture now expects apply → 409 CONFLICT (capability passed, binding fence refused) with zero events; enabled_extension_passes_only_declared_capability_routes and fresh_pairing_restores_access reconcile the same way (a dual-capability fixture wherever an apply 200 is expected, single-capability refusals updated to the fence statuses); assert_old_token_fenced keeps 401/401/401 unchanged because authentication still precedes the binding fence; the stream security family, disable family, pairing/rebind family and text_insert_* family keep their expectations; no existing expectation is deleted or weakened.</Criterion>
+          <Criterion>Renderer regressions: tests/renderer/components/textOps.test.js and tests/renderer/components/extensionGallery/textOps.test.js gain binding-passthrough cases — a wire payload carrying document_id/document_generation forwards documentId/documentGeneration onto the ext-text-insert/ext-text-transform/ext-undo bus objects (assert the exact emit object), and a wire payload without them forwards undefined documentId/documentGeneration (the existing exact-match expectations stay valid because undefined keys compare equal to absent keys, and the extended cases state the undefined fields explicitly); tests/renderer/components/editor-coverage.test.js gains an editor_ext_targeting describe that invokes the captured bus handlers directly on a normally rendered document: ext-text-transform with a foreign documentId/documentGeneration calls neither mockEditorInstance.setMarkdown nor replace nor insertParagraph and logs BLOCK_EXT_TARGETING_MISMATCH, ext-text-insert with a stale generation inserts nothing, ext-undo with no binding undoes nothing; the matched-passthrough cases read the real rendered identity from the store tab (currentFile.id plus documentOwner(tab).documentToken through the real util) and prove transform applies exactly once (selection branch via replace, no-selection branch via the setMarkdown fallback), insert inserts and undo undoes; a diff-mode case proves the diff guard still drops events before the binding check.</Criterion>
+          <Criterion>Red-first proof recorded in the task evidence: with the new tests authored, temporarily bypass the fence (handle_ext_apply skipping the binding check) and the editor guard (extBindingMatchesRendered returning true unconditionally) and observe the new binding matrix, the passthrough and the editor_ext_targeting cases fail on the exact rejected-vs-silently-applied expectations, then restore both and observe them pass; the auth/capability suites stay green throughout; no commit.</Criterion>
+          <Criterion>Graph deltas: in .grace/graph/features.xml append a dated C-SEC-EDIT-TARGETING paragraph to M-045's Summary after the C-SEC-STREAM-SCOPE text recording that the /ext/context response names the active document instance (document_id) and its instance generation (document_generation — the rendered tab's documentToken, instance replacement/reload, not keystrokes), that /ext/apply requires both fields and the server refuses a missing binding with 400 and a stale, never-issued or null binding with 409 before any mt::text::op, that the emitted op payloads carry the binding to the editor, and that /ext/text-insert and the mt_ext_text_insert/mt_ext_text_transform commands stay unbound by declared follow-up with their events rejected editor-side fail-closed; in .grace/graph/runtime.xml append the M-011 paragraph that the editor ext handlers drop insert/transform/undo events whose document binding does not match the rendered tab identity (id plus documentToken from util/documentSnapshot) before any mutation including the whole-document setMarkdown fallback, and that the context response carries the rendered document's identity or explicit nulls; preserve every existing Summary sentence, LegacySource and annotation byte-identical.</Criterion>
+          <Criterion>Verification deltas: in .grace/verification/features.xml V-M-045 add one scenario-security-ext-edit-targeting scenario naming the four new Rust tests and the reconciled matrix pins with their expected per-route statuses, and update the native-suite Commands entry to the executed form; in .grace/verification/runtime.xml V-M-011 record the editor_ext_targeting cases against the executed editor-coverage command; keep every existing scenario, Marker, TraceAssertion and LegacyMatrixEvidence block verbatim; claim no pass evidence for surfaces the suites do not exercise (real rfd pairing dialog, real multi-window rendering, the e2e ime characterization).</Criterion>
+          <Criterion>No durable artifact outside the ObservedWriteScope changes; no release publication, version change or lane action is authorized by this task.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+          <Command budgetSeconds="600">npx vitest run tests/renderer/components/textOps.test.js tests/renderer/components/extensionGallery/textOps.test.js tests/renderer/components/editor-coverage.test.js</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+      <Command budgetSeconds="600">npx vitest run tests/renderer/components/textOps.test.js tests/renderer/components/extensionGallery/textOps.test.js</Command>
+      <Command budgetSeconds="600">npx vitest run tests/renderer/components/editor-coverage.test.js</Command>
+      <Environment>Baseline is the current canary-beta-wave worktree: the Rust toolchain runs with --locked --offline against the committed Cargo.lock, and the three renderer suite files exist (verified). Tasks run strictly sequentially T-001 then T-002 then T-003; T-001's cargo check passes alone while the pre-T-003 native suite is knowingly non-compiling (the tests.rs ExtContextResponse/ExtApplyRequest literals gain the new fields only in T-003), the renderer suites are green already at T-002 (undefined binding keys compare equal to absent keys), and everything is green at T-003. The binding fence is proven in both directions inside T-003 by locally bypassing the server fence and the editor guard (red) and restoring them (green) with no commit. Ordering guarantees asserted by the tests: authenticate_incoming (capability gate) precedes the binding fence, so old-token refusals stay 401; both server rejections precede any mt::text::op emission and never answer applied: true; the editor guard precedes every mutation including the setMarkdown fallback and runs after the unchanged diff/read-only guard. The generation is the rendered tab's documentToken: it changes on rendered-instance replacement, close, new document and reload, never on keystrokes — a matched apply survives ordinary typing between context and apply. text_ops.rs, the /ext/text-insert route, src-tauri/src/main.rs, stores, bus, Muya and routes stay byte-identical; unbound events are rejected editor-side fail-closed by design, which the tests/e2e/perf/characterization-ime-seeded.spec.ts extension-rewrite case (emits ext-text-transform without a binding, line 1164) will observe — that suite is outside this plan's verification set and write scope and is flagged for a follow-up update, not silently broken. Every START_BLOCK_/END_BLOCK_ marker stays paired and unique after each task. This plan deliberately carries no self-referential grace-lint MustPassCommand; the orchestrator runs grace lint --assertions current/target/final and the archived current-state integrity itself. Owned cargo/vitest processes are cleaned up after runs; no apply/archive, commit/push, lane admission, departure into main, version/tag or release is authorized by this plan.</Environment>
+    </AcceptanceVerification>
+  </C-SEC-EDIT-TARGETING>
+</GraceChangePlan>

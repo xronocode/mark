@@ -1,0 +1,43 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-SEC-EDIT-TARGETING>
+    <Summary>Bind extension context reads and edit applies to the exact document instance and generation they observed, and reject stale applies before any text changes.</Summary>
+    <Problem>POST /ext/context returns {markdown, cursor, selection, file_path} and POST /ext/apply carries only {extension_id, operations}: nothing binds the apply to the document the context was read from. Between the two calls the user can switch tabs, close the tab, or replace the document, and the edit then lands in whatever happens to be active: handleExtTextTransform falls back to a whole-document setMarkdown, handleExtTextInsert inserts at the new document's cursor, and handleExtUndo undoes there. The stream routes already fence base_revision against a session generation; the data routes have no equivalent document-instance binding (verified finding evidence in security run be2f52f880bc: edit-path trace editor.vue ext handlers, textOps.js bus forwarding; apply/context pipeline has no instance or revision field).</Problem>
+    <Relationship>Lineage: C-SEC-STREAM-SCOPE (same smart-review run be2f52f880bc) gated the data routes by manifest capability before any content moves; this change adds the missing document-instance/revision binding for the context-to-apply round trip, mirroring the base_revision/needs_resync fencing the stream routes received under C-SEC-STREAM-TABS and C-SEC-STREAM-AUTH. The editor-side rejection is the authoritative gate; the server-side check is the early fence. Sibling draft: C-SEC-PAIR-REBIND. Binding for the /ext/text-insert route is a separate follow-up.</Relationship>
+    <Goals>
+      <Goal>The context response names the document instance (the active tab's identity) and that instance's generation at read time.</Goal>
+      <Goal>The apply request must carry that instance id and generation; a request that omits them, or names a pair that no longer matches, is rejected before any edit event is emitted.</Goal>
+      <Goal>The editor rejects on mismatch before any edit: insert, transform (including the whole-document setMarkdown path) and undo mutate nothing when the rendered instance/generation differs from the event binding.</Goal>
+      <Goal>A matched apply behaves exactly as today — same op semantics, single undo step, read-only and diff guards preserved — and the wire change is additive.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Exact write scope: src-tauri/src/m045_ext/live_server.rs, src-tauri/src/m045_ext/tests.rs, src/renderer/src/components/extensionGallery/textOps.js, and the editor.vue extension handlers the finding names (handleExtTextInsert, handleExtTextTransform, handleExtUndo, handleExtContextRequest and their diffGuarded wiring). No store, bus, Muya, route or text_ops.rs changes beyond these.</Constraint>
+      <Constraint>Security boundaries: the binding is checked at both ends — the server rejects incomplete or stale bindings before emitting mt::text::op, and the editor performs the authoritative rejection immediately before mutation. The binding values originate from the editor's own active-document identity, never from client-claimed content. RouteCapability gating from C-SEC-STREAM-SCOPE still runs first on both routes.</Constraint>
+      <Constraint>Keep the wire additive: existing ExtContextResponse and ExtApplyRequest fields keep their names and meaning; new binding fields are added. The apply binding fields are required — a legacy client that omits them receives a distinct rejection, never a silently mis-targeted edit. The binding travels to the editor inside the existing TextOpEvent payload object; text_ops.rs stays unmodified.</Constraint>
+      <Constraint>The generation identifies the document instance, not keystrokes: it changes when the instance is replaced, reloaded or re-created (tab switch, close, new document, file reload), so an ordinary user edit between context and apply must not invalidate a matched apply.</Constraint>
+      <Constraint>C-SEC-STREAM-SCOPE lineage: stream session fencing, capability names, grant wording and doc_patch revision semantics are untouched; the context/apply binding reuses the revision concept, not the stream session state.</Constraint>
+      <Constraint>No version change, release or publication is authorized by this specification.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Binding /ext/text-insert or outbound mt_ext_invoke calls to a document instance (separate follow-up change).</NonGoal>
+      <NonGoal>Rejecting applies whose target document merely changed content since the read (same instance, same generation) — this change protects against cross-document mis-targeting, not concurrent user typing.</NonGoal>
+      <NonGoal>Queuing, merging or replaying stale applies for later delivery; a rejected client must re-read context.</NonGoal>
+      <NonGoal>Undo-depth redesign, tab-model refactors or cross-window document graphs.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>The /ext/context response carries a document instance id and generation that change when the active document instance is switched, closed, replaced or reloaded; absent identity (no rendered tab) is represented explicitly and can never match an apply.</Criterion>
+      <Criterion>An /ext/apply request without the instance binding, or naming an instance/generation that no longer matches the active document, is rejected before any mt::text::op event is emitted, and the response does not claim applied success for rejected operations.</Criterion>
+      <Criterion>The editor drops insert, transform and undo events whose binding mismatches the rendered document before any mutation — including the setMarkdown whole-document fallback and the diff/read-only guarded surfaces — and logs a content-free rejection marker.</Criterion>
+      <Criterion>A context-to-apply round trip with a matching binding applies exactly as today; existing renderer behavior tests keep passing in meaning.</Criterion>
+      <Criterion>Renderer suites cover stale-instance rejection and matched passthrough; Rust tests cover route-level acceptance and rejection of the apply binding; regressions fail before the fix and pass after it.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-045/>
+      <M-011/>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</ExpectedCommand>
+      <ExpectedCommand>npx vitest run tests/renderer/components/textOps.test.js tests/renderer/components/extensionGallery/textOps.test.js</ExpectedCommand>
+      <ExpectedEvidence>New binding regressions fail before the fix and pass after it on both the Rust route level and the renderer editor-handler level; existing capability-gating and textOps suites still pass; final GRACE assertions and current-state integrity pass before archiving.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-SEC-EDIT-TARGETING>
+</GraceChangeSpec>

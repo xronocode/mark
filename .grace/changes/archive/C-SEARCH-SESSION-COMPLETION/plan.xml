@@ -1,0 +1,90 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-SEARCH-SESSION-COMPLETION>
+    <ChangeRef>C-SEARCH-SESSION-COMPLETION</ChangeRef>
+    <Created>2026-11-20</Created>
+    <IntentSummary>Move event ordering and finalization for one backend search session into a single session coordinator in src-tauri/src/m013b/search.rs: every validated root and both engine adapters (embedded walker and rg shellout) stream match batches through the coordinator, which owns a strictly increasing session-wide seq and emits exactly one terminal (complete, cancelled or error) with zero post-terminal events. The renderer consumer contract in src/renderer/src/ipc/runtime/search.ts stays untouched and read-only; its existing settle-once thenable/cancel behavior becomes the acceptance oracle for wire compatibility instead of gaining a workaround for premature backend terminals.</IntentSummary>
+    <ReferenceState>SpecSha256 = cba20031663f2989841f266e523119b7de9c68b7e586d307b561ed93e88e17e5 (pinned over the approved spec.xml at admission). Authored 2026-11-20 against the current read-only state of the canary-beta-wave inspection tree: src-tauri/src/m013b/search.rs, where the mt_search_spawn worker thread iterates validated_roots, the embedded run_search emits a per-root terminal event and restarts seq per root, and the outer thread then emits a second session terminal, while the renderer search.ts settles, unsubscribes and stops collecting on the first terminal — the SHA256-bound historical diagnostics were recorded against review checkout main 0a72917c. The search-input-composition worktree (C-SEARCH-INPUT-COMPOSITION-CONTRACT: exclusion-glob validation, size ingress, two extra ingress tests) is a divergent scope this plan neither depends on nor absorbs; the actual technical-debt lane baseline is revalidated before implementation, and if composition changes are ever combined, both scopes stay separate and the composition regressions are rerun on that baseline. Delivery is sequential through the repository technical-debt lane; lane departure into main and train accounting remain separate owner-controlled steps. Approval of the spec alone does not approve this plan, execution, apply/archive or release.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist><Value>M-004</Value></MustExist>
+      <MustExist><Value>M-013</Value></MustExist>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>kind: "cancelled".to_string(),</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>kind: "complete".to_string(),</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>let final_kind = if cancel.load(Ordering::SeqCst) {</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>kind: final_kind.to_string(),</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>let mut seq: u32 = 0;</Text></MustContain>
+      <MustContain><File>src/renderer/src/ipc/runtime/search.ts</File><Text>let settled = false</Text></MustContain>
+      <MustContain><File>src/renderer/src/ipc/runtime/search.ts</File><Text>if (settled) return</Text></MustContain>
+      <MustContain><File>src/renderer/src/ipc/runtime/search.ts</File><Text>case 'complete':</Text></MustContain>
+      <MustContain><File>src/renderer/src/ipc/runtime/search.ts</File><Text>case 'cancelled':</Text></MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify><Module>M-004</Module></MustVerify>
+      <MustNotContain><File>src-tauri/src/m013b/search.rs</File><Text>let final_kind = if cancel.load(Ordering::SeqCst) {</Text></MustNotContain>
+      <MustNotContain><File>src-tauri/src/m013b/search.rs</File><Text>kind: final_kind.to_string(),</Text></MustNotContain>
+      <MustNotContain><File>src-tauri/src/m013b/search.rs</File><Text>let mut seq: u32 = 0;</Text></MustNotContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>enum SearchTerminal</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>struct SearchSessionCoordinator</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>fn finalize(&amp;mut self, terminal: SearchTerminal, error: Option&lt;String&gt;) -&gt; bool</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>self.finished = true;</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>fn run_session(</Text></MustContain>
+      <MustPassCommand><Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="900">npx --no-install vitest run tests/renderer/node/ripgrepSearcher-deep.test.js tests/renderer/ipc/runtime-search.test.ts tests/renderer/store/search.test.ts</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors><M-004/><M-013/></GraphAnchors>
+      <VerificationAnchors><V-M-004/><V-M-013/></VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src-tauri/src/m013b/search.rs</File>
+      <File>tests/renderer/node/ripgrepSearcher-deep.test.js</File>
+      <File>tests/renderer/ipc/runtime-search.test.ts</File>
+      <File>tests/renderer/store/search.test.ts</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Introduce the session coordinator in search.rs and strip terminal ownership from both engine adapters</Title>
+        <DependsOn/>
+        <AcceptanceCriteria>
+          <Criterion>Add failing-first inline cfg(test) tests in src-tauri/src/m013b/search.rs that execute the production session path and fail against the current double-terminal tree: a two-root embedded trace collected to a quiet period (never truncated at the first terminal) shows both roots' matches before exactly one terminal, a strictly increasing session-wide seq with no restart at the root boundary and zero events after the terminal; the same invariants hold for one-root success, zero matches and batched results, for both engine adapters. Record the failing receipt before implementing.</Criterion>
+          <Criterion>Introduce SearchTerminal and SearchSessionCoordinator (session-wide strictly increasing seq starting at 1, one-shot finalize that cannot publish a second terminal and silences later matches) plus run_session as the single production finalization path used by the mt_search_spawn worker thread; run_search and run_ripgrep stop owning terminals and seq — they emit only match batches through the coordinator and return per-root results or errors, and all production roots pass through run_session. Keep command names, the mt::search-event channel, searchId, kind values, hits/error payload fields and wire types; keep M-010 root validation before registration, App Store and missing-rg engine selection, current options, batch/line bounds and ordinary root traversal order; keep query text, match contents and user paths out of any new diagnostic fields. Update the file-local MODULE_CONTRACT, MODULE_MAP and CHANGE_SUMMARY and bump the module version.</Criterion>
+          <Criterion>A returned engine error from either adapter finalizes exactly one error event, never starts the remaining roots and is never followed by complete or matches; pre-start cancellation, mid-root cancellation, cancellation between roots, repeated cancellation and cancellation after completion produce at most one terminal and never revive a session; the worker thread removes the registry entry on every path and run_ripgrep kills and waits only its own rg child. Error injection uses the existing invalid-executable and bad-pattern seams; tests do not mutate process-global PATH and do not weaken existing budgets, timeouts or retries.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Prove the two-root session through the actual renderer shim and searcher with renderer files read-only</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Extend tests/renderer/node/ripgrepSearcher-deep.test.js with the two-root embedded regression driven through the actual shim and the full renderer searcher over the new producer trace: both synthetic roots' files are collected, the thenable settles exactly once after the last root's results, unsubscribe happens once, and observable behavior matches the rg control; capture uses full-trace collection so a premature terminal cannot truncate the proof.</Criterion>
+          <Criterion>Keep every existing assertion in tests/renderer/ipc/runtime-search.test.ts and tests/renderer/store/search.test.ts unweakened and pin wire compatibility (searchId, kind values, hits/error/seq envelope) against the unchanged consumer in src/renderer/src/ipc/runtime/search.ts, which stays byte-for-byte read-only together with src/renderer/src/store/search.js and src/renderer/src/node/ripgrepSearcher.js; stale renderer generations still cannot overwrite results or running state and cancellation in one session cannot finish another.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">npx --no-install vitest run tests/renderer/node/ripgrepSearcher-deep.test.js tests/renderer/ipc/runtime-search.test.ts tests/renderer/store/search.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Synchronize graph and verification records and collect exact-candidate acceptance evidence</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Update .grace/graph/runtime.xml (M-004 summary, module map and file-local contracts for the coordinator, adapters and run_session) and .grace/verification/runtime.xml (V-M-004 session-trace scenarios and the error/cancel matrices; V-M-013 only if its contract text actually changes); keep unrelated XML content untouched.</Criterion>
+          <Criterion>Flag the stale .grace/graph/flows.xml SearchFolder flow (search_run invocation, grep-searcher, mt:search:batch, 50-per-batch) as out-of-date legacy bookkeeping; flows.xml is outside ObservedWriteScope, so fix it only as a trivial correction under a separate scope instruction, otherwise record the stale entry as an open note in the V-M-004 verification text.</Criterion>
+          <Criterion>Run target and final assertions on the actual lane baseline with both spec commands; keep the eight historical backend and eight frontend SHA256-bound diagnostic receipts as problem proof rather than post-fix evidence; record native transport, App Store and owner acceptance as explicitly open unless separately obtained; no apply/archive, commit/push or lane departure inside this plan.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command>
+          <Command budgetSeconds="900">npx --no-install vitest run tests/renderer/node/ripgrepSearcher-deep.test.js tests/renderer/ipc/runtime-search.test.ts tests/renderer/store/search.test.ts</Command>
+          <Command>grace lint --path . --change C-SEARCH-SESSION-COMPLETION --assertions final --run-commands</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command>
+      <Command budgetSeconds="900">npx --no-install vitest run tests/renderer/node/ripgrepSearcher-deep.test.js tests/renderer/ipc/runtime-search.test.ts tests/renderer/store/search.test.ts</Command>
+      <Environment>Baseline is the current main of the delivery tree, executed in the repository root of the actual technical-debt lane worktree with cargo and installed node_modules available. The composition worktree scope is explicitly separate: never run this gate on a tree that absorbed C-SEARCH-INPUT-COMPOSITION-CONTRACT changes; if that scope is ever combined, keep both scopes separate and rerun its tests/renderer/search-size-ingress.test.ts and tests/renderer/search-exclusions-ingress.test.ts regressions on that baseline before this gate. Both commands must pass with no skips, retries, budget increases or weakened assertions; hosted supported-host checks and native/manual acceptance records stay separate from these controlled diagnostics and remain open until separately obtained.</Environment>
+    </AcceptanceVerification>
+  </C-SEARCH-SESSION-COMPLETION>
+</GraceChangePlan>

@@ -1,0 +1,59 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-BOOKMARK-PERSISTENCE-DURABILITY>
+    <IntentSummary>Atomically commit bookmark snapshots before memory updates, then route consumed persistence failures to the existing main-renderer notification surface without blocking available work.</IntentSummary>
+    <ReferenceState>Main a504783a98b9aa8ff5b1b388689ba2f1af114b3c, clean isolated worktree. Current lint passed before planning. Original actual-function directory/parent faults and actual RLIMIT_FSIZE mid-write failure remain source-applicable; no implementation is inferred from those probes.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist><Value>M-047</Value></MustExist>
+      <MustContain><File>src-tauri/src/m047_bookmarks.rs</File><Text>fn persist(store: &amp;Store)</Text></MustContain>
+      <MustContain><File>src-tauri/src/m047_bookmarks.rs</File><Text>let _ = std::fs::write(p, json);</Text></MustContain>
+      <MustContain><File>src-tauri/src/m017_recent.rs</File><Text>crate::m047_bookmarks::remember(&amp;path);</Text></MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify><Module>M-047</Module></MustVerify>
+      <MustVerify><Module>M-001</Module></MustVerify>
+      <MustVerify><Module>M-011</Module></MustVerify>
+      <MustNotContain><File>src-tauri/src/m047_bookmarks.rs</File><Text>let _ = std::fs::write(p, json);</Text></MustNotContain>
+      <MustContain><File>src-tauri/src/m047_bookmarks.rs</File><Text>pub fn remember(path: &amp;str) -&gt; Result&lt;(), BookmarkError&gt;</Text></MustContain>
+      <MustContain><File>src-tauri/src/m047_bookmarks.rs</File><Text>file.sync_all()</Text></MustContain>
+      <MustContain><File>src/renderer/src/bootstrap-ipc.js</File><Text>mt::bookmark-persistence-warning</Text></MustContain>
+      <MustPassCommand><Command budgetSeconds="5">node --check src/renderer/src/util/bookmarkPersistenceWarning.js</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors><M-047/><M-001/><M-017/><M-011/><M-067/></GraphAnchors>
+      <VerificationAnchors><V-M-047/><V-M-001/><V-M-017/><V-M-011/><V-M-067/></VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src-tauri/src/m047_bookmarks.rs</File><File>src-tauri/src/main.rs</File><File>src-tauri/src/m017_recent.rs</File><File>src-tauri/src/m_v1_compat.rs</File>
+      <File>src/renderer/src/bootstrap-ipc.js</File><File>src/renderer/src/util/bookmarkPersistenceWarning.js</File>
+      <File>tests/renderer/bookmark-persistence-warning.test.js</File><File>tests/renderer/bootstrap-ipc.test.ts</File><File>tests/renderer/store/bootstrap-ipc-coverage.test.js</File>
+      <Glob>static/locales/*.json</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001><Title>Commit full bookmark snapshots before changing in-memory grants</Title><DependsOn/>
+        <AcceptanceCriteria>
+          <Criterion>Add failing-first tests for prior disk/memory preservation, update/reload, cap eviction, owned-temp cleanup and real filesystem failure classes. Existing source native fault receipts prove the old failure.</Criterion>
+          <Criterion>Implement BookmarkError and a production persistence transaction with a sibling create_new file (private Unix mode), checked serialization/write/sync/rename and cleanup guard. Clone Store before eviction/insertion and assign only after rename succeeds. Keep no-macOS no-op and existing paths/codec/ancestor behavior.</Criterion>
+          <Criterion>Tests inject precommit filesystem operation failures at the same transaction boundary and separately replay the actual child-only partial-write failure. Do not manipulate the parent process limit or owner profile.</Criterion>
+        </AcceptanceCriteria>
+        <Verification><Command>cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --bin mark m047_bookmarks::tests</Command></Verification>
+      </T-001>
+      <T-002><Title>Consume failures at all grant routes and deliver a queued deduplicated warning</Title><DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Each remember caller and stale refresh handles Err by a content-free pending warning queue, keeping existing operations active. Main setup installs an event notifier; a new atomic take-warning command supports pre-ready recovery. No path or bookmark blob enters warning payloads.</Criterion>
+          <Criterion>Main bootstrap registers mt::bookmark-persistence-warning before any triggering invoke. Drain after the existing pending-open call without delaying it, and on live events. Keep overlapping drains single-flight with a follow-up pass; consume only true pending results. Rejection is caught and the backend pending state is retained if command execution did not occur.</Criterion>
+          <Criterion>Use the current notification facade with sticky error severity and stable dedupKey; provide localized title and guidance in all existing locale tables. Unit tests exercise actual notification-store dedup, cold-start/live delivery, no-pending, overlapping drains and rejection.</Criterion>
+        </AcceptanceCriteria>
+        <Verification><Command>node node_modules/vitest/vitest.mjs run tests/renderer/bookmark-persistence-warning.test.js tests/renderer/bootstrap-ipc.test.ts tests/renderer/store/bootstrap-ipc-coverage.test.js --maxWorkers=2</Command><Command>cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --bin mark m017_recent::tests</Command></Verification>
+      </T-002>
+      <T-003><Title>Reconcile owned contracts and collect exact-candidate acceptance evidence</Title><DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Root integrator updates only declared graph/verification anchors, keeping unrelated XML content. Repair the broken V-M-047 nested-manifest command without reducing scope and record transaction/failure-notice scenarios and limits.</Criterion>
+          <Criterion>Run selected target and final outside leaf commands; obtain standards/spec review and exact-candidate safety gates before publication. Preserve recipes, source hashes, executable digests/PIDs and cleanup proofs. Ordinary hosted supported-platform checks remain required before integration.</Criterion>
+          <Criterion>Native sandbox reopen is mandatory acceptance and remains open if unavailable. Do not invent owner/platform acceptance or call browser-shim behavior native. No apply/archive or commit/push until root coordinates central review.</Criterion>
+        </AcceptanceCriteria>
+        <Verification><Command>git diff --check</Command><Command>node --check src/renderer/src/util/bookmarkPersistenceWarning.js</Command></Verification>
+      </T-003>
+    </ImplementationPlan>
+    <AcceptanceTier>Rust compilation and hosted substrate startup are acceptance tier rather than a short nested command gate. Root owns final GRACE and integration. Execute sequentially within this isolated bundle; shared XML apply remains centralized. Approval delegated by owner mandate dated 2026-11-15, recorded privately with immutable spec/plan hashes.</AcceptanceTier>
+  </C-BOOKMARK-PERSISTENCE-DURABILITY>
+</GraceChangePlan>

@@ -1,5 +1,5 @@
 // FILE: tools/check-quicklook.mjs
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Compile and run the actual QuickLook provider in an isolated, explicitly identified native fixture.
 //   SCOPE: Owned artifacts/loopback observer, complete native results, source binding and bounded child cleanup; no installation or release.
@@ -22,7 +22,7 @@
 //   main - Emit a success marker only after complete native proof.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-11-12 C-QUICKLOOK-CONTENT-BOUNDARY: source-bound actual-provider native verification.
+//   LAST_CHANGE: 2026-11-20 C-QUICKLOOK-SYNTAX-THEME: mandatory native theme cases in the fail-closed protocol.
 // END_CHANGE_SUMMARY
 
 import { createHash } from 'node:crypto'
@@ -39,7 +39,7 @@ export const REQUIRED_QUICKLOOK_CASES = Object.freeze([
   'svg-handler', 'iframe-srcdoc', 'object-embed', 'form', 'javascript-link',
   'data-svg', 'remote-image', 'fetch-beacon', 'external-navigation', 'new-window',
   'subframe', 'initial-load', 'missing-file', 'resource-integrity',
-  'file-resource-policy', 'repeat-preview'
+  'file-resource-policy', 'repeat-preview', 'theme-light', 'theme-dark'
 ])
 const RESOURCE_FILES = ['style.css', 'github-dark.css', 'markdown-it.min.js', 'highlight.min.js']
 

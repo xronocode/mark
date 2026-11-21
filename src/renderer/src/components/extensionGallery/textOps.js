@@ -4,9 +4,12 @@
 //            Listens for mt::text::op events from the Rust backend
 //            (emitted by text_ops.rs) and applies them to the active
 //            Muya editor instance via the application event bus.
-//   SCOPE:   Event registration/teardown. Insert and transform handlers.
-//            Does NOT own a Muya instance — routes through the bus so
-//            the active editor.vue picks up the operation.
+//   SCOPE:   Event registration/teardown. Insert, transform and undo
+//            handlers; the document binding relay (documentId/
+//            documentGeneration from payload.document_id/document_generation)
+//            rides every bus emit. Does NOT own a Muya instance — routes
+//            through the bus so the active editor.vue picks up the
+//            operation.
 //   DEPENDS: @tauri-apps/api/event (listen), bus (application event bus).
 //   LINKS:   .grace/graph/features.xml M-045;
 //            .grace/graph/features.xml M-045 (PhaseRef Phase-B4);
@@ -14,6 +17,12 @@
 //   STATUS:  Phase-B4 initial.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-20 C-SEC-EDIT-TARGETING: the mt::text::op relay forwards the
+//     document binding — documentId: payload.document_id and
+//     documentGeneration: payload.document_generation are added to the
+//     ext-text-insert, ext-text-transform and ext-undo emits (the undo
+//     branch now receives the full payload); a payload without the fields
+//     forwards undefined. Pure relay — rejection is editor-side.
 //   - 2026-06-08 B4: initial textOps listener creation.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
@@ -41,12 +50,20 @@ let unlistenContext = null
 /**
  * Handle mt::text::op events from the backend.
  *
- * Event payload shape (from text_ops.rs TextOpEvent):
+ * Event payload shape (from live_server.rs / text_ops.rs TextOpEvent):
  *   { op_type: string, payload: object, extension_id: string }
  *
  * op_type values:
- *   "insert"    — { text, position? }
- *   "transform" — { text }
+ *   "insert"    — { text, position?, document_id?, document_generation? }
+ *   "transform" — { text, document_id?, document_generation? }
+ *   "undo"      — { document_id?, document_generation? }
+ *
+ * C-SEC-EDIT-TARGETING: the document binding fields (document_id/
+ * document_generation, present on /ext/apply events) are relayed verbatim
+ * as camelCase documentId/documentGeneration. This module is a pure relay
+ * — the editor is the authoritative targeting gate; unbound events
+ * (text_ops.rs commands, /ext/text-insert) forward undefined and are
+ * rejected there.
  */
 function handleTextOp (event) {
   const data = event?.payload
@@ -60,7 +77,7 @@ function handleTextOp (event) {
   } else if (opType === 'transform') {
     handleTransform(payload, extId)
   } else if (opType === 'undo') {
-    handleUndo(extId)
+    handleUndo(payload, extId)
   } else {
     // eslint-disable-next-line no-console
     console.warn(`[TextOps][BLOCK_UNKNOWN_OP op_type=${opType}]`)
@@ -84,7 +101,13 @@ function handleInsert (payload, extId) {
     return
   }
 
-  bus.emit('ext-text-insert', { text, position, extensionId: extId })
+  bus.emit('ext-text-insert', {
+    text,
+    position,
+    extensionId: extId,
+    documentId: payload.document_id,
+    documentGeneration: payload.document_generation
+  })
 
   // eslint-disable-next-line no-console
   console.log(
@@ -106,7 +129,12 @@ function handleTransform (payload, extId) {
     return
   }
 
-  bus.emit('ext-text-transform', { text, extensionId: extId })
+  bus.emit('ext-text-transform', {
+    text,
+    extensionId: extId,
+    documentId: payload.document_id,
+    documentGeneration: payload.document_generation
+  })
 
   // eslint-disable-next-line no-console
   console.log(
@@ -118,9 +146,15 @@ function handleTransform (payload, extId) {
  * Undo the last editor operation. Emits a bus event that the editor.vue
  * handles by calling Muya's contentState.undo().
  * E1a: used by TokMo EditAgent for "Марк, отмена" voice command.
+ * C-SEC-EDIT-TARGETING: receives the full wire payload so the document
+ * binding rides the emit; the editor drops unbound/mismatched events.
  */
-function handleUndo (extId) {
-  bus.emit('ext-undo', { extensionId: extId })
+function handleUndo (payload, extId) {
+  bus.emit('ext-undo', {
+    extensionId: extId,
+    documentId: payload.document_id,
+    documentGeneration: payload.document_generation
+  })
 
   // eslint-disable-next-line no-console
   console.log(`[TextOps][BLOCK_UNDO_EMITTED ext=${extId}]`)

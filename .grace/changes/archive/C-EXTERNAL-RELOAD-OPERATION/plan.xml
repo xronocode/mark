@@ -1,0 +1,187 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-EXTERNAL-RELOAD-OPERATION>
+    <ChangeRef>C-EXTERNAL-RELOAD-OPERATION</ChangeRef>
+    <Created>2026-11-20</Created>
+    <IntentSummary>Make src/renderer/src/util/externalReload.js the single owner of external-file-change reload admission and asynchronous disk read/settle revalidation for the renderer store, converging the ready embedded-data and disk-read results of APPLY_FILE_CHANGE on one permission-aware admitted replacement decision (automatic attempts skip equal text without replacement or snapshot; explicitly confirmed attempts replace even on equal text while snapshotting only unequal content), building the replacement state once through an explicit manifest that uses the existing getSingleFileState builder via injection and preserves the exact tab identity, old id, notifications, non-unified history eligibility, cursor/scrollTop/muyaIndexCursor, splitSession retirement, stale-blocks drop, opened snapshot, mixed-line-ending notice, contentReloaded stamp and current-tab file-changed announcement, and rewriting the store entry points loadChange and APPLY_FILE_CHANGE as compatible thin adapters that keep the pathname/tab lookup, rename-echo suppression, generation bookkeeping, unlink handling and autoSave-timer cancellation in the store, all with the current timing, permission, identity, history and snapshot behavior preserved, proven by a new focused unit suite plus the two existing live-reload store suites and the existing Chromium scroll spec, delivered on integ/techdebt through the fresh td-N lane with separate admission and no change to the product current pointer.</IntentSummary>
+    <ReferenceState>SpecSha256 = a47e8bdd29510604ce63751bcf8c27410befda7724abf09d194da4c511df50b1 (pinned over the approved spec.xml at admission; the orchestrator computes and replaces this placeholder from the approved spec bytes). Authored 2026-11-20 against the current read-only state of the canary-beta-wave worktree: src/renderer/src/store/editor.js hosts the whole external-reload path — APPLY_FILE_CHANGE(type, change) at line 2331 with the store prologue (pathname guard, isSamePathSync tab lookup, renameEchoUntil echo suppression, liveReloadGenerations generation bump, the isCurrentReload closure binding generation + this.tabs.includes(tab) + tab.pathname, the reloadMarkdown/reloadRevision localContentChanged closure), the clean-tab permission gate (autoSave || liveReload || tab.previewMode || tab.watchMode plus autoSaveTimers cancellation), the automatic isSaved branch with its embedded-data path (equal skip, START_BLOCK_SNAPSHOT_BEFORE_RELOAD_DATA) and its 100ms setTimeout disk path (revalidate before and after await ipcFs.read(pathname), hash-skip with BLOCK_RELOAD_SKIPPED, START_BLOCK_SNAPSHOT_BEFORE_RELOAD_DISK), and the dirty-tab conflict branch (tab.isSaved=false, BLOCK_RELOAD_CONFLICT, one-shot reloadConfirmed action with START_BLOCK_SNAPSHOT_BEFORE_RELOAD_CONFIRM_DATA and the confirmedMarkdown/confirmedRevision-guarded 100ms disk path with START_BLOCK_SNAPSHOT_BEFORE_RELOAD_CONFIRM_DISK, both ending in loadChange) — and loadChange(change) at line 318 performing the same-path tab lookup, the getSingleFileState fresh-state construction at line 347, the oldHistory capture/pop for eligible non-unified history, cursor/scrollTop/muyaIndexCursor backup and restore, Object.assign replacement, splitSession deletion, tab.blocks=undefined, START_BLOCK_RECORD_OPENED_SNAPSHOT_RELOAD, the isMixedLineEndings notice, the tab.contentReloaded stamp and the current-file bus emit with contentReloaded: true; the four pre-reload snapshot sites (lines 2390/2431/2466/2497) and the four loadChange call sites (lines 2398/2439/2471/2505) are the duplication this change consolidates; src/renderer/src/store/help.js exports getSingleFileState at line 169 (deepClone(defaultFileState) + initializeCheckpoint + fresh documentToken + lastSavedHistoryId: -1); src/renderer/src/util/externalReload.js does not exist; tests/renderer/store/live-reload.test.js and tests/renderer/store/live-reload-snapshots.test.js hold the prior 49-test proof (sibling stores stubbed, bus/i18n/commands/notification/element-plus mocked, ipcFs mocked at @/ipc/runtime); tests/e2e/live-reload-scroll.spec.ts holds the two Chromium clamp scenarios (active shrink, background activation) with position/visibility assertions but no exact-resulting-text pin; node_modules/vitest/vitest.mjs and node_modules/@playwright/test/cli.js exist and playwright.config.ts has the chromium project; the td-1 lane is merged and never reused and the td-2 ledger is claimed by the archived clipboard change's lane bootstrap, so the expected fresh ledger here is td-3, confirmed by the orchestrator on integ/techdebt immediately before bootstrap. Deviation note: none — every path and line anchor above was verified against this tree. Per the drafting instruction this plan carries no self-referential grace-lint MustPassCommand; the orchestrator runs current/target/final lifecycle assertions itself. Writing this draft approves neither the execution plan nor code implementation, apply/archive, lane admission commits, lane departure into main, manual-acceptance exceptions or release.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-011</Value>
+        <Value>M-032</Value>
+        <Value>M-046</Value>
+        <Value>src/renderer/src/store/editor.js</Value>
+        <Value>src/renderer/src/store/help.js</Value>
+        <Value>tests/renderer/store/live-reload.test.js</Value>
+        <Value>tests/renderer/store/live-reload-snapshots.test.js</Value>
+        <Value>tests/e2e/live-reload-scroll.spec.ts</Value>
+      </MustExist>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>APPLY_FILE_CHANGE(type, change) {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>loadChange(change) {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>const newFileState = getSingleFileState({ markdown, filename, pathname, options })</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>const isCurrentReload = () =&gt; liveReloadGenerations.get(pathname) === generation &amp;&amp;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>const markdown = await ipcFs.read(pathname)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>// START_BLOCK_SNAPSHOT_BEFORE_RELOAD_DATA</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>// START_BLOCK_SNAPSHOT_BEFORE_RELOAD_DISK</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>// START_BLOCK_SNAPSHOT_BEFORE_RELOAD_CONFIRM_DATA</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>// START_BLOCK_SNAPSHOT_BEFORE_RELOAD_CONFIRM_DISK</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/help.js</File>
+        <Text>export const getSingleFileState = ({</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-011</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src/renderer/src/util/externalReload.js</File>
+        <Text>export const RELOAD_PERMISSIONS = Object.freeze({ AUTOMATIC: 'automatic', CONFIRMED: 'confirmed' })</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/externalReload.js</File>
+        <Text>export const SETTLE_DELAY_MS = 100</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/externalReload.js</File>
+        <Text>export function decideAdmission({ permission, currentText, incomingText, hasPathname }) {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/externalReload.js</File>
+        <Text>export function buildReplacementManifest({ tab, pathname, data, buildSingleFileState }) {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/externalReload.js</File>
+        <Text>export function commitReplacement(manifest, { store, deps }) {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/externalReload.js</File>
+        <Text>export async function readWithSettle({ pathname, attempt, deps }) {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/externalReload.js</File>
+        <Text>export function createExternalReloadController(deps) {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>import { createExternalReloadController, SETTLE_DELAY_MS } from '../util/externalReload'</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>const externalReload = createExternalReloadController({</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>APPLY_FILE_CHANGE(type, change) {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>return externalReload.handleFileChange({ type, change, tab, store: this, attempt })</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>loadChange(change) {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>return externalReload.applyLoadedChange({ change, store: this })</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="900">node node_modules/vitest/vitest.mjs run tests/renderer/util/external-reload.test.js tests/renderer/store/live-reload.test.js tests/renderer/store/live-reload-snapshots.test.js</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="1200">node node_modules/@playwright/test/cli.js test tests/e2e/live-reload-scroll.spec.ts --project=chromium</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-011 />
+        <M-032 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-011 />
+        <V-M-032 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/renderer/src/util/externalReload.js</File>
+      <File>src/renderer/src/store/editor.js</File>
+      <File>tests/renderer/util/external-reload.test.js</File>
+      <File>tests/renderer/store/live-reload.test.js</File>
+      <File>tests/renderer/store/live-reload-snapshots.test.js</File>
+      <File>tests/e2e/live-reload-scroll.spec.ts</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+      <File>.grace/verification/features.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Add the externalReload admission owner and rewrite the store entry points as thin adapters</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Add src/renderer/src/util/externalReload.js with zero new dependencies and no store or component imports — every external effect is injected: read (ipcFs.read), schedule (timer placer receiving SETTLE_DELAY_MS), log, bus, isSamePath, buildSingleFileState (the existing getSingleFileState from store/help.js via injection from editor.js), recordPreReloadSnapshot and recordOpenedSnapshot (store/diffSnapshots.js recordSnapshot/recordOpenedSnapshot via injection). The module exports exactly the six locked anchors: RELOAD_PERMISSIONS ({ AUTOMATIC, CONFIRMED }), SETTLE_DELAY_MS = 100, decideAdmission({ permission, currentText, incomingText, hasPathname }) implementing the policy matrix in one boundary — AUTOMATIC plus equal text returns { action: 'skip' } with no replacement, no snapshot and no announcement, every other combination returns { action: 'replace', snapshot: hasPathname &amp;&amp; currentText !== incomingText } so confirmed attempts replace even on equal text while no attempt ever adds an unequal-content snapshot beyond the single pre-reload record; buildReplacementManifest({ tab, pathname, data, buildSingleFileState }) producing the one explicit replacement manifest (fresh state from the injected builder with its new documentToken and fresh defaults, preserved filename/format metadata from ready data, incomingMarkdown, preReloadMarkdown, oldId, oldNotifications, the eligible non-unified oldHistory capture { stack: [current], index: 0 } or null, savedCursor/savedScrollTop/savedMuyaIndexCursor, splitSession retirement, blocks drop, mixedLineEndings flag, snapshotRequired); commitReplacement(manifest, { store, deps }) as the strictly synchronous commit stage in the exact current loadChange order — pre-reload snapshot when snapshotRequired, oldHistory pop, Object.assign of the fresh state, oldId/oldNotifications/cursor/scrollTop/muyaIndexCursor restoration, splitSession delete and tab.blocks = undefined, recordOpenedSnapshot, history restore, mixed-line-ending tab notification, tab.contentReloaded = true, and the current-tab announcement (store.currentFile = tab; bus emit file-changed with id/markdown/muyaIndexCursor/cursor/renderCursor: true/history/scrollTop/contentReloaded: true and no blocks field); readWithSettle({ pathname, attempt, deps }) as the one read/settle mechanism — one schedule(SETTLE_DELAY_MS) settle, attempt.isLive() revalidation before the await and after the read, returning markdown or null on staleness/failure with no retries and no queue; and createExternalReloadController(deps) returning handleFileChange({ type, change, tab, store, attempt }), applyLoadedChange({ change, store }) and the conflict-notification factory whose action is truthy-status, generation-bound through attempt.isLive() and consumed exactly once (a declined or stale call never consumes it). handleFileChange carries the permission kind (AUTOMATIC only when the tab isSaved clean tab passed the store's autoSave/liveReload/previewMode/watchMode gate, CONFIRMED only through the notification action), revalidates liveness before and after every await, re-enters the current conflict resolution through store.APPLY_FILE_CHANGE(type, change) when local markdown/revision drift is found during settle or read (automatic: !tab.isSaved || attempt.localContentChanged(); confirmed: drift against the markdown/revision captured at the choice), preserves the exact log markers BLOCK_LIVE_RELOAD (source=data|disk), BLOCK_RELOAD_SKIPPED (reason=hash-match, disk path only), BLOCK_RELOAD_CONFLICT (reason=dirty-tab) and BLOCK_READ_FAILED, applies nothing on read failure (no replacement, no snapshot, no automatic retry), and never lets an await split the final admission decision from the synchronous commitReplacement call. The module carries file-local START_MODULE_CONTRACT/END_MODULE_CONTRACT and START_MODULE_MAP/END_MODULE_MAP blocks in the editor.js convention.</Criterion>
+          <Criterion>Rewrite src/renderer/src/store/editor.js without moving it: keep APPLY_FILE_CHANGE(type, change) and loadChange(change) signatures and store prologues — pathname guard, isSamePathSync tab lookup with the current console.error texts, renameEchoUntil suppression, liveReloadGenerations bump and the isCurrentReload/localContentChanged closures, autoSaveTimers cancellation at its current boundary, the unlink branch (isSaved=false + fileRemovedOnDisk exclusive notification) and the invalid-type default — and replace the add/change clean-tab body (embedded-data branch, 100ms settle branch) and the dirty-tab conflict body (notification + one-shot action + settle/read) with thin delegation: the automatic gate selects the permission, builds the attempt context { generation, pathname, isLive, localContentChanged } and calls return externalReload.handleFileChange({ type, change, tab, store: this, attempt }); loadChange collapses to return externalReload.applyLoadedChange({ change, store: this }); wire the controller once at module scope with const externalReload = createExternalReloadController({ ... }) injecting the current ipcFs.read, setTimeout with the imported SETTLE_DELAY_MS, window.fileUtils.isSamePathSync, getSingleFileState, recordSnapshot, recordOpenedSnapshot, bus and console. Remove the four START_BLOCK_SNAPSHOT_BEFORE_RELOAD_*/END_BLOCK pairs and the START_BLOCK_RECORD_OPENED_SNAPSHOT_RELOAD pair from editor.js and replace them with the paired, unique owner-side equivalents in externalReload.js (one START_BLOCK_PRE_RELOAD_SNAPSHOT/END_BLOCK_PRE_RELOAD_SNAPSHOT around the manifest snapshot stage and one START_BLOCK_RECORD_OPENED_SNAPSHOT_RELOAD/END_BLOCK_RECORD_OPENED_SNAPSHOT_RELOAD pair), so no START_/END_BLOCK_ marker is left unpaired or duplicated. Preserve every observable behavior: the clean-automatic equal-text skip, confirmed replacement on equal text, one snapshot per admitted unequal replacement, ready-data metadata retention, disk-read tab-field construction with isMixedLineEndings: false, notification exclusivity and texts, cursor/scroll/muya history behavior, read-error markers, and store/help.js, util/documentFormat.js, util/documentSnapshot.js, store/diffSnapshots.js, store/project.js, preferences and the backend watcher/IPC byte-identical. Update editor.js file-local MODULE_CONTRACT (DEPENDS/LINKS add util/externalReload), MODULE_MAP, CHANGE_SUMMARY EXPORT/CURRENT/LAST_CHANGE rotation with a dated C-EXTERNAL-RELOAD-OPERATION entry and the file-history commentary block.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">node node_modules/vitest/vitest.mjs run tests/renderer/store/live-reload.test.js tests/renderer/store/live-reload-snapshots.test.js</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Characterize the owner with the focused unit suite and keep both existing store suites green</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Add tests/renderer/util/external-reload.test.js exercising the owner module directly through injected fakes (manual flush scheduler, controlled read promise, plain-object store/tab, spies for snapshot/opened/notify/announce/log) with independently stated expectations, not mocks merely proving a helper was called: pin decideAdmission across the full automatic/confirmed x equal/unequal x hasPathname matrix; characterize ready-data and disk inputs independently including the current synchronous embedded-data behavior, the 100ms settle, metadata retention and the disk field construction; and cover the deterministic race/identity/lifecycle families from the spec — a newer event arriving before an older read completes, generation reuse after close/reopen, a same-id new lifetime replacing the tab object, rename/path replacement, dirty flags at admission, edits during the settle window, edits during the in-flight read, edit-and-save during the read, edits made after the confirmation was consumed, repeated confirm invocation, declined confirmation, stale-generation confirmation and read failure — with mutation controls proving stale, declined and skipped attempts leave the tab byte-identical (no replacement, no snapshot, no announce) and that exactly one latest conflict choice remains actionable while every older one is dead. Pin commitReplacement exhaustively: exact tab-object identity, old id and notifications, fresh documentToken once per replacement, checkpoint/defaults truthfulness of save state, cursor/scrollTop/muyaIndexCursor restoration, eligible non-unified single-entry history restore versus unified reset, splitSession retirement and blocks drop, opened snapshot once per admitted replacement, mixed-ending notice, contentReloaded stamp, and the current-tab announce payload without stale blocks versus the background-tab silence.</Criterion>
+          <Criterion>Keep tests/renderer/store/live-reload.test.js and tests/renderer/store/live-reload-snapshots.test.js green and unweakened through the adapter rewrite — the historical 49 tests are reused evidence of preserved behavior, not new verification; only additive marker or delegation assertions are permitted, and any adjustment must keep every existing expectation intact while stating the expected behavior independently (for example that a same-content disk event still produces no loadChange, and a declined conflict still records no snapshot).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">node node_modules/vitest/vitest.mjs run tests/renderer/util/external-reload.test.js tests/renderer/store/live-reload.test.js tests/renderer/store/live-reload-snapshots.test.js</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Extend the Chromium scroll spec with exact-content assertions and record the graph and verification deltas</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Extend tests/e2e/live-reload-scroll.spec.ts only for the gaps this plan identifies in the two existing scenarios — neither currently pins the exact resulting document text — keeping the existing chromium project and playwright.config.ts byte-identical and the existing assertions intact: after the active-tab shrink reload, assert the rendered editor text equals the SHORT_DOC rendering exactly (no stale tall-document fragment anywhere in the editor container) in addition to the existing clamp/visibility gate; after the background-tab activation reload, assert the same exact resulting text; keep inspecting the clamped scrollTop (state.scrollTop &lt;= state.maxScroll) and the empty padding exactly as today, and add no new retries, timeouts beyond the existing settle waits, CI or config changes. The headless macOS run continues to prove only the browser/renderer realm; native/platform/owner acceptance remains distinct and open.</Criterion>
+          <Criterion>Record the durable graph deltas: in .grace/graph/features.xml update M-032's Contract Purpose to name src/renderer/src/util/externalReload.js as the single reload-admission/replacement owner and editor.js as the thin-adapter entry, add the util path to PlannedPath and KnowledgeGraphPath, and append a dated SummaryDelta for C-EXTERNAL-RELOAD-OPERATION while preserving every legacy annotation, LegacyKnowledgeDetail and legacy attribute; in .grace/graph/runtime.xml append a dated SummaryDelta to M-011 recording the owned boundary and the thin adapters in its editor.js realm file, and append a dated SummaryDelta to M-046 recording only the lane-admission bookkeeping; in .grace/verification/features.xml populate the V-M-032 Commands and Scenarios with exactly the executed vitest trio and chromium runs and the executed scenario inventory (policy matrix, race/identity families, replacement/commit pins, store-suite reuse, e2e exact-text and clamp gates), preserving the legacy base verbatim; in .grace/verification/runtime.xml make the corresponding V-M-011 evidence rows — recording no pass claims for anything not executed and leaving the mandatory native/owner/platform verdicts explicitly open.</Criterion>
+          <Criterion>Lane bookkeeping happens outside these product files: on integ/techdebt the orchestrator bootstraps the fresh collecting lane ledger as the next unused td-N (expected td-3 given merged td-1 and the clipboard change's claimed td-2 — confirmed immediately before bootstrap, never td-1, never a reuse), and admission is the separate chore(train) commit under the lane protocol; the product current pointer, merged lane bundles and any carrier departure into main remain untouched, the latter requiring a separate explicit owner instruction.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="1200">node node_modules/@playwright/test/cli.js test tests/e2e/live-reload-scroll.spec.ts --project=chromium</Command>
+          <Command budgetSeconds="900">node node_modules/vitest/vitest.mjs run tests/renderer/util/external-reload.test.js tests/renderer/store/live-reload.test.js tests/renderer/store/live-reload-snapshots.test.js</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Command budgetSeconds="900">node node_modules/vitest/vitest.mjs run tests/renderer/util/external-reload.test.js tests/renderer/store/live-reload.test.js tests/renderer/store/live-reload-snapshots.test.js</Command>
+      <Command budgetSeconds="1200">node node_modules/@playwright/test/cli.js test tests/e2e/live-reload-scroll.spec.ts --project=chromium</Command>
+      <Environment>Baseline is the current canary-beta-wave worktree with node_modules installed (verified: node_modules/vitest/vitest.mjs and node_modules/@playwright/test/cli.js exist, playwright.config.ts has the chromium project, and the baseline anchors above are present at editor.js lines 318/2331 and help.js line 169). Tasks run strictly sequentially T-001 then T-002 then T-003; T-001's verification runs only the two existing store suites, the trio command becomes valid once T-002 lands tests/renderer/util/external-reload.test.js, and the chromium command is meaningful after T-003's spec extension (it already passes on the pre-extension spec from T-002 onward). The e2e run inherits the committed playwright.config.ts webServer (npm run preview on port 4173, reuseExistingServer off CI), so a built renderer or an already-running preview server must exist; this is the existing config behavior for every e2e run and not a new requirement. Both gated commands must pass with no skips, retries, floor reductions or budget increases. store/help.js, util/documentFormat.js, util/documentSnapshot.js, store/diffSnapshots.js, store/project.js, the preferences store, the backend watcher/IPC surface and playwright.config.ts stay byte-identical throughout; no dependency/package/lock change, no CI change, no new timer/retry/queue, no owner documents/profiles access and no signing/C-50, version/tag, workflow dispatch or publication occurs. Every START_BLOCK_/END_BLOCK_ marker touched by the rewrite stays paired and unique across the codebase after each task. Lane admission on integ/techdebt is the separate chore(train) commit with the next unused td-N ledger bootstrap (expected td-3, never td-1), resolved and confirmed by the orchestrator immediately before bootstrap; departure into main, apply/archive of this change and any release remain separate explicit owner decisions and are not authorized by this plan. Owned test processes and browser instances are cleaned up after runs and no owner files, shared caches or documents are touched by automated checks.</Environment>
+    </AcceptanceVerification>
+  </C-EXTERNAL-RELOAD-OPERATION>
+</GraceChangePlan>

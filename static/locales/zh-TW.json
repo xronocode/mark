@@ -1248,6 +1248,8 @@
     "copyright": "Copyright © Jocs 2017+, tkaixiang 2024+, xronocode 2026+"
   },
   "workspace": {
+    "bookmarkPersistenceFailedTitle": "無法儲存檔案存取權限",
+    "bookmarkPersistenceFailedMessage": "您可以繼續工作。重新啟動 Mark 後，可能需要再次選取此檔案或資料夾。請檢查可用磁碟空間和寫入權限，然後重新選取以儲存存取權限。",
     "chooser": {
       "title": "加入或取代資料夾？",
       "message": "「{folder}」——加入目前開啟的資料夾旁，還是取代它們？取代會關閉其他資料夾及其分頁。",

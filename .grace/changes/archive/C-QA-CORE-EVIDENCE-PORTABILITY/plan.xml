@@ -1,0 +1,105 @@
+<GraceChangePlan graceVersion="4.0" status="superseded">
+  <C-QA-CORE-EVIDENCE-PORTABILITY>
+    <ReplacementChange>C-CI-NATIVE-EVIDENCE-COMPATIBILITY</ReplacementChange>
+    <IntentSummary>PRIVATE proposed plan; activate only after separate approval of the matching successor spec. Correct test/CI metadata portability and independent cleanup; no production changes.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-046</Value>
+      </MustExist>
+      <MustExist>
+        <Value>V-M-046</Value>
+      </MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-046</Module>
+      </MustVerify>
+      <MustPassCommand>
+        <Command budgetSeconds="60">node node_modules/vitest/vitest.mjs run tests/tools/qa-launch-gate.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/prepare-qa-artifacts.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js tests/tools/ci-rust-receipt-retention.test.mjs tests/tools/cargo-workspace-cache.test.mjs --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="30">npm run release:governance</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="10">node --check tests/tools/qa-launch-gate.test.mjs</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="10">node --check tests/tools/ci-rust-receipt-retention.test.mjs</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="10">actionlint .github/workflows/test.yml</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="10">git diff --check</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-046 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-046 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>tests/tools/qa-launch-gate.test.mjs</File>
+      <File>.github/workflows/test.yml</File>
+      <File>tests/tools/ci-rust-receipt-retention.test.mjs</File>
+    </ObservedWriteScope>
+    <ReferenceState>
+      <SourceBaseline>e5abd81ccb19a4753ab8457dd290fc006fdab1a3a4de019c43444a0c8aa17db8</SourceBaseline>
+      <DurableProjection>acd9e885213e2abd5e2a05f470b580044e135795a6c49ed21e595b620d82fa4e</DurableProjection>
+      <SpecDraftSha256>d553568de5cb4ceb2e299e3dca17e540254923497062957d5f0c8e765078a733</SpecDraftSha256>
+    </ReferenceState>
+    <ExecutionProtocol>
+      <ApprovalSequence>Root imports spec only, runs current, separately approves exact spec; then imports/reviews/approves exact plan and runs selected baseline before source writes. No concurrent draft plan in active state. Fresh baseline hashes are mandatory if main/worktree advances; approved bodies immutable.</ApprovalSequence>
+      <BudgetEvidence>Affected7-suite60s is proposed from prior261/5 core target26.779s plus small existing structural/cache suites, not measured new green. Governance30s prior0.162s; syntax/actionlint/diff10s existing leaves under0.1s. Mandatory full configured coverage300s is a separate exact-candidate acceptance tier to avoid duplicating a full suite and its file subset in each selected gate; hosted failure232.88s is timing-only evidence.</BudgetEvidence>
+    </ExecutionProtocol>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Prove actual callback failure, then make external evidence portable and teardown independent</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Read approved pair/current/selected baseline and verify all3 preimages/4 helper/archives before writes. Snapshot exact old callback and63 test bodies.</Criterion>
+          <Criterion>Under owned inert temporary controls, extract/evaluate the exact old afterEach callback with injected external failure; prove desired root cleanup fails for the original control-flow reason. Use the retained actual hosted unconfigured suite failures as authoritative old red; do not rerun the entire old gate file locally. Keep exact callback and Windows-assertion controls with explicitly owned inert roots and outer-finally child/PID/root cleanup. No import/API manufactured red.</Criterion>
+          <Criterion>Add lazy default root and strict explicit-root behavior in the actual external writer; keep restrictive fsynced receipt barrier. Refactor lifecycle helpers to collect/report faults after independent safe cleanup and retain per-root live/unknown ownership. Add focused root/fault/cleanup controls without changing the other62 bodies; strengthen only the platform case erroneous API-presence assertion.</Criterion>
+          <Criterion>Record old/new source/raw logs, owned exact Node/Python tool source/digest/PID before barrier release; preserve metadata outside teardown and verify all stopped fixture roots gone. No native calls or toolchain copies.</Criterion>
+          <Criterion>Bind the actual Windows/Linux logs. Preserve a pre-fix control using the exact original OS/API-presence assertion under a win32/callable-execve fixture, not an unavailable API. Replace only that erroneous assertion with actual gateMain/capabilityMain injected-win32 refusal before I/O/mutation; preserve the case other statements and all other62 expanded bodies. No runtime change or Node downgrade.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node node_modules/vitest/vitest.mjs run tests/tools/qa-launch-gate.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/prepare-qa-artifacts.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js tests/tools/ci-rust-receipt-retention.test.mjs tests/tools/cargo-workspace-cache.test.mjs --maxWorkers=2</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Retain renderer receipts with exact workflow inverse</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Add only renderer job evidence env plus final always pinned one-day top-level JSON/JSONL collector; if-no-files-found error, unique job/OS/run/attempt name.</Criterion>
+          <Criterion>Extend existing structural test normalizer: positively validate exact QA additions then remove them to retain original whole-workflow digest assertions. Add negative missing/changed env/collector, pin/retention/always/name/path/missing-file controls and safe selection sentinels. Old Rust tests and all production controls preserved.</Criterion>
+          <Criterion>Run affected7-suite leaf, governance, syntax, actionlint and diff. Record actual counts/timings; do not label prior261 or estimated count as fresh until observed.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node node_modules/vitest/vitest.mjs run tests/tools/qa-launch-gate.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/prepare-qa-artifacts.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js tests/tools/ci-rust-receipt-retention.test.mjs tests/tools/cargo-workspace-cache.test.mjs --maxWorkers=2</Command>
+          <Command>actionlint .github/workflows/test.yml</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Verify complete ordinary configured coverage and hand off bounded root apply</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Run mandatory full configured coverage once on the exact final source: npm run test:coverage in a child environment with MARK_QA_CORE_EVIDENCE_ROOT removed, no test filters or config change;300s budget. Save actual env-name absence, sources/tool PID/results/coverage thresholds and receipts in private output before deleting disposable output. Do not inject a private evidence env to make it pass.</Criterion>
+          <Criterion>Prove all other62 old case bodies and exact platform-case assertion delta and4 production helper files exact; all outside3 observed paths and archives unchanged. Bind6 command results, mandatory coverage and3-op proposed inverse/outside owner projection. Root independent review required.</Criterion>
+          <Criterion>Root alone applies3 bounded additions, selected target/final with declared leaves, archive/current/status and integration. No postwrite current before archive; no new Mark/Cargo/build/native/model operation. If current baseline advances before integration, refresh all preimage/owner/fullfile/inverse/outside proofs rather than transplant stale XML.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>npm run test:coverage</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Command budgetSeconds="300">npm run test:coverage</Command>
+      <Environment>Remove MARK_QA_CORE_EVIDENCE_ROOT from the child only; record absence. No private evidence root required; mandatory writer allocates its own external metadata root. Full configured coverage is mandatory once per exact candidate, separate from repeated target/final subset leaves.</Environment>
+      <NativeEvidenceBridge>All4 production helpers and all other native/runtime inputs byte exact to417; preserve existing actual Mark proof, no new native acceptance claim or retry.</NativeEvidenceBridge>
+    </AcceptanceVerification>
+  </C-QA-CORE-EVIDENCE-PORTABILITY>
+</GraceChangePlan>

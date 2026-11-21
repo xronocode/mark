@@ -1,0 +1,96 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-CI-NATIVE-FIXTURE-ATTRIBUTION>
+    <IntentSummary>Private proposed recovery plan: after fresh approvals, make only exact generic wait carrier selection and one cancellation selected-digest/payload-attribution exception; preserve all other source and native execution protocol.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-046</Value>
+      </MustExist>
+      <MustExist>
+        <Value>V-M-046</Value>
+      </MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-046</Module>
+      </MustVerify>
+      <MustPassCommand>
+        <Command budgetSeconds="60">node node_modules/vitest/vitest.mjs run tests/tools/qa-launch-gate.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/prepare-qa-artifacts.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js tests/tools/ci-rust-receipt-retention.test.mjs tests/tools/cargo-workspace-cache.test.mjs tests/tools/ci-rust-test-lifecycle.test.mjs tests/tools/run-rust-tests.test.mjs tests/renderer/release-governance.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="30">npm run release:governance</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="10">node --check tools/run-rust-tests.mjs</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="10">actionlint .github/workflows/test.yml</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="10">git diff --check</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-046 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-046 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>tests/tools/qa-launch-gate.test.mjs</File>
+      <File>.github/workflows/test.yml</File>
+      <File>tests/tools/ci-rust-receipt-retention.test.mjs</File>
+      <File>tests/tools/ci-rust-test-lifecycle.test.mjs</File>
+      <File>tools/run-rust-tests.mjs</File>
+      <File>tests/tools/run-rust-tests.test.mjs</File>
+    </ObservedWriteScope>
+    <ReferenceState>
+      <SourceBaseline>1ea0d7c3e99059373a1f949acb2d0363be4a48ed29dcd5d8621d0f6cfd0ab5f3</SourceBaseline>
+      <MechanicalProposal>b810d523501131c841994d95f8002e9f0b686fc06cde641ac4f4e22b4b5288b5</MechanicalProposal>
+      <DurableProjection>d69695c2306b4373da6ff208e5805eec0aa6559b99b7ba99e14d4db1169d2dcb</DurableProjection>
+      <SpecDraftSha256>991b05f92af5dd91ce86c6362ada00e9cb5e5e6e6e9b076c7b5662651e6ad4c9</SpecDraftSha256>
+    </ReferenceState>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Apply only the enumerated fixture attribution correction</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Root retires parent-not-applied preserving approved bytes, imports/approves spec then plan, runs current and selected actual recovery baseline before new observed writes. Verify six preimages/five frozen/C/native protocol/old currentXML/archives.</Criterion>
+          <Criterion>Apply exact private mechanical proposal: remove common modewait direct exemption; replace only selected-image SHA expected operand in cancellation pair, retain fresh original Node branch on noncarrier hosts; add explicit stronger final boundNode/script/PID/selected-artifact/argv/cwd/env/DYLD proof. No other old body or native protocol change.</Criterion>
+          <Criterion>Prove byte inverse/delta, five source files/all other old case bodies/manualcopies/sentinel/newdirectNodepositive/C88b7/SDK/group/cleanup code exact. Root renews native authority only after sourcebinding/nativeprep updated and reviewed; no lookup/build before it.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node node_modules/vitest/vitest.mjs run tests/tools/qa-launch-gate.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/prepare-qa-artifacts.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js tests/tools/ci-rust-receipt-retention.test.mjs tests/tools/cargo-workspace-cache.test.mjs tests/tools/ci-rust-test-lifecycle.test.mjs tests/tools/run-rust-tests.test.mjs tests/renderer/release-governance.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Verify exact primary and conditional complete coverage with fresh owned carrier</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Run one affected10suite60s and existing other four leaves under same Node22/current physical dependencies. Fresh active-suite C build uses unchanged held/source/digest/PID/SDK/compiler protocol. Retain raw payload rows and exact positive directNode/carrier attribution/cancellation proofs; every owned native/tool/template/copy stops and is removed.</Criterion>
+          <Criterion>Only after all primary leaves pass, native attribution+cleanup safe and all input hashes unchanged, run full configured no-QA-env coverage300s once with unchanged timers/config/floors2skip3todo. A failure stops authority; no reroll/old result substitution.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node node_modules/vitest/vitest.mjs run tests/tools/qa-launch-gate.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/prepare-qa-artifacts.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js tests/tools/ci-rust-receipt-retention.test.mjs tests/tools/cargo-workspace-cache.test.mjs tests/tools/ci-rust-test-lifecycle.test.mjs tests/tools/run-rust-tests.test.mjs tests/renderer/release-governance.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Hand off source evidence and bounded root final</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Bind exact source+approveddocs, actual raw primary/full native/compiler/payload/cleanup results, one-case exception and all preserved source/archive/outside bytes. Refresh exact three-op private M046/VM046 projection against original83fe/7684, complete owner/fullfile/inverse/outside proof.</Criterion>
+          <Criterion>Root alone durable apply, selected target/final leaf commands, independent review/archive/current/status/Git; preserve separate packaging/nativeMark/publication holds.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>git diff --check</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Command budgetSeconds="300">npm run test:coverage</Command>
+      <Environment>Same officialNode22/physical deps/canonical two-worker config; remove QA evidence key from child, keep existing RUST external sink. All old timers/floors/skips/todos fixed.</Environment>
+      <NativeAuthority>Reviewed C88b7/SDK/compiler/gating/cleanup exact, fresh sourcebinding authority before execution. Historial D328 template is deleted; each active suite builds/records/reaps/deletes a fresh owned template/copies. No app/product action.</NativeAuthority>
+    </AcceptanceVerification>
+  </C-CI-NATIVE-FIXTURE-ATTRIBUTION>
+</GraceChangePlan>

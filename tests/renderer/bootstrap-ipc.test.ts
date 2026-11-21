@@ -135,14 +135,15 @@ describe('bootstrap-ipc / setupIpcListeners', () => {
     // and matches the Wave-1 idiom.
   })
 
-  it('registers all 12 listeners and logs the BLOCK_ALL_LISTENERS marker', async () => {
+  it('registers all 13 listeners and logs the BLOCK_ALL_LISTENERS marker', async () => {
     const { setupIpcListeners, handlers } = await freshBootstrap()
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
     await setupIpcListeners()
-    expect(handlers.size).toBe(12)
+    expect(handlers.size).toBe(13)
     const channels = Array.from(handlers.keys()).sort()
     expect(channels).toEqual(
       [
+        'mt::bookmark-persistence-warning',
         'mt::user-preference',
         'mt::current-language',
         'mt::update-object-tree',
@@ -159,6 +160,38 @@ describe('bootstrap-ipc / setupIpcListeners', () => {
     )
     expect(log).toHaveBeenCalledWith('[boot][ipc][BLOCK_ALL_LISTENERS_REGISTERED]')
     log.mockRestore()
+  })
+
+  it('recovers queued bookmark failures after pending opens and consumes live wakeups', async () => {
+    const { invoke } = await import('@tauri-apps/api/core')
+    invoke.mockImplementation(async (command: string) => command === 'mt_take_bookmark_persistence_warning' ? true : [])
+    const { setupIpcListeners, handlers } = await freshBootstrap()
+    const notification = (await import('@/services/notification')).default
+    const notify = vi.spyOn(notification, 'notify').mockImplementation(() => {})
+    await setupIpcListeners()
+    expect(notify).toHaveBeenCalledTimes(1)
+    expect(notify).toHaveBeenCalledWith(expect.objectContaining({ dedupKey: 'bookmark-persistence-failure', sticky: true }))
+    const commands = invoke.mock.calls.map((call: unknown[]) => call[0])
+    expect(commands.indexOf('mt_drain_pending_opens')).toBeLessThan(commands.indexOf('mt_take_bookmark_persistence_warning'))
+    await handlers.get('mt::bookmark-persistence-warning')!({ payload: null })
+    expect(notify).toHaveBeenCalledTimes(2)
+    notify.mockRestore()
+    invoke.mockReset()
+  })
+
+  it('Settings boot cannot register or consume the main-window permission warning', async () => {
+    const { getCurrentWindow } = await import('@tauri-apps/api/window')
+    const { invoke } = await import('@tauri-apps/api/core')
+    const mainWindow = getCurrentWindow()
+    getCurrentWindow.mockReturnValue({ ...mainWindow, label: 'settings' })
+    try {
+      const { setupIpcListeners, handlers } = await freshBootstrap()
+      await setupIpcListeners()
+      expect(handlers.has('mt::bookmark-persistence-warning')).toBe(false)
+      expect(invoke.mock.calls.some((call: unknown[]) => call[0] === 'mt_take_bookmark_persistence_warning')).toBe(false)
+    } finally {
+      getCurrentWindow.mockReturnValue(mainWindow)
+    }
   })
 
   it('reports strict native decode refusal without creating a tab', async () => {

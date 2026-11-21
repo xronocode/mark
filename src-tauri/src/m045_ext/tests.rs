@@ -18,6 +18,8 @@
 // END_MODULE_MAP
 
 // START_CHANGE_SUMMARY
+//   - 2026-11-20 C-SEC-EDIT-TARGETING: document-bound context/apply matrix — the fixture context responder hands tab-{id} plus a fresh per-request document-gen-N generation and records the last handed pair on the fixture, the apply request literals gain explicit binding arguments (apply_bound beside the unbound apply_fixture), four new pins (context_response_carries_document_binding, apply_requires_binding_fields 400, apply_requires_matching_context_binding 409/200 with the binding inside the op payload, apply_stale_instance_binding_refused), and the C-SEC-STREAM-SCOPE family reconciled without weakening: apply_requires_text_edit_capability and fresh_pairing_restores_access move every apply-200 expectation onto dual-capability (context.read + text.edit) fixtures that read context first, single-capability text.edit applies pin the fence statuses (400/409, zero events), and every auth/capability 401 keeps its status.
+//   - 2026-11-20 C-SEC-STREAM-SCOPE: capability-scoped incoming routes — flipped the over-grant pin to per-route denial, added the context/apply permission matrix, the pairing-grant-description unit pin and capability-scoped fresh-pairing restoral.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES: named handler, revocation and recipient/redirect regressions.
 // END_CHANGE_SUMMARY
 
@@ -927,9 +929,16 @@ struct IncomingFixture {
     token: String,
     credential: Arc<DummyCredential>,
     live_events: Arc<Mutex<Vec<serde_json::Value>>>,
+    // C-SEC-EDIT-TARGETING: the last (document_id, document_generation)
+    // pair the context responder handed, recorded for apply-side assertions.
+    last_binding: Arc<Mutex<Option<(String, String)>>>,
 }
 
 fn incoming_fixture(enabled: bool, capability: &str) -> IncomingFixture {
+    incoming_fixture_caps(enabled, &[capability])
+}
+
+fn incoming_fixture_caps(enabled: bool, capabilities: &[&str]) -> IncomingFixture {
     static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
     let id = format!("fixture-ext-{}", NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed));
     let token = format!("dummy-token-{id}");
@@ -937,7 +946,9 @@ fn incoming_fixture(enabled: bool, capability: &str) -> IncomingFixture {
     app.manage(ExtRegistry::new());
     let registry = app.state::<ExtRegistry>();
     let mut manifest = test_manifest(&id);
-    manifest.capabilities = vec![Capability { name: capability.to_string(), version: 1 }];
+    manifest.capabilities = capabilities.iter()
+        .map(|name| Capability { name: (*name).to_string(), version: 1 })
+        .collect();
     registry.register(manifest, true).unwrap();
     if enabled { registry.enable(&id).unwrap(); }
     super::auth::inject_test_secret(&id, &token);
@@ -961,18 +972,35 @@ fn incoming_fixture(enabled: bool, capability: &str) -> IncomingFixture {
     app.listen("mt::live::update", move |event| {
         seen_live.lock().unwrap().push(serde_json::from_str(event.payload()).unwrap());
     });
+    let last_binding = Arc::new(Mutex::new(None));
     let weak_state = Arc::downgrade(&state);
+    // C-SEC-EDIT-TARGETING: each context round trip hands a fresh generation
+    // (a per-request counter), modeling an instance replacement between two
+    // reads; the fixture records the last handed pair for assertions.
+    let handed_seq = Arc::new(std::sync::atomic::AtomicU64::new(0));
+    let fixture_id = id.clone();
+    let seq = handed_seq.clone();
+    let handed = last_binding.clone();
     app.listen("mt::ext::context_request", move |event| {
         let payload: serde_json::Value = serde_json::from_str(event.payload()).unwrap();
         let state = weak_state.upgrade().unwrap();
         let tx = state.pending_context.lock().unwrap().remove(payload["request_id"].as_str().unwrap());
         if let Some(tx) = tx {
-            tx.send(super::live_server::ExtContextResponse {
+            let n = seq.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+            let response = super::live_server::ExtContextResponse {
                 markdown: "dummy context".to_string(), cursor: None, selection: None, file_path: None,
-            }).unwrap();
+                document_id: Some(format!("tab-{fixture_id}")),
+                document_generation: Some(format!("document-gen-{n}")),
+            };
+            *handed.lock().unwrap() = Some((response.document_id.clone().unwrap(), response.document_generation.clone().unwrap()));
+            tx.send(response).unwrap();
         }
     });
-    IncomingFixture { app, state, events, id, token, credential, live_events }
+    IncomingFixture { app, state, events, id, token, credential, live_events, last_binding }
+}
+
+fn handed_binding(f: &IncomingFixture) -> (String, String) {
+    f.last_binding.lock().unwrap().clone().expect("fixture context responder handed a binding")
 }
 
 fn bearer_headers(token: Option<&str>) -> HeaderMap {
@@ -1040,6 +1068,132 @@ async fn text_insert_authorized_old_shape_body_emits() {
     assert_eq!(status, StatusCode::OK);
     assert_eq!(f.events.lock().unwrap()[0]["payload"]["text"], "old body");
 }
+
+#[tokio::test]
+async fn context_requires_context_read_capability() {
+    let f = incoming_fixture(true, "context.read");
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    assert_eq!(apply_fixture(&f, &f.token).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::UNAUTHORIZED);
+    assert!(f.events.lock().unwrap().is_empty());
+    // A sibling class does not grant context either.
+    let edit_only = incoming_fixture(true, "text.edit");
+    assert_eq!(context_fixture(&edit_only, &edit_only.token).await, StatusCode::UNAUTHORIZED);
+    assert!(edit_only.events.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn apply_requires_text_edit_capability() {
+    // Happy path moved to a dual-capability fixture: the context read
+    // precedes the successful apply and the fence lets the echoed binding
+    // through.
+    let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    let (document_id, document_generation) = handed_binding(&f);
+    assert_eq!(apply_bound(&f, &f.token, Some(document_id), Some(document_generation)).await, StatusCode::OK);
+    {
+        let events = f.events.lock().unwrap();
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0]["op_type"], "insert");
+        assert_eq!(events[0]["extension_id"], f.id);
+        assert_eq!(events[0]["payload"]["text"], "fixture edit");
+    }
+    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::UNAUTHORIZED);
+    // A sibling class does not grant apply either, and emits nothing.
+    let read_only = incoming_fixture(true, "context.read");
+    assert_eq!(apply_fixture(&read_only, &read_only.token).await, StatusCode::UNAUTHORIZED);
+    assert!(read_only.events.lock().unwrap().is_empty());
+    // A text.edit-only fixture still cannot read context.
+    let edit_only = incoming_fixture(true, "text.edit");
+    assert_eq!(context_fixture(&edit_only, &edit_only.token).await, StatusCode::UNAUTHORIZED);
+    assert!(edit_only.events.lock().unwrap().is_empty());
+    // Its apply now passes the capability gate but the binding fence refuses
+    // before any event: a never-issued binding answers 409 CONFLICT, the
+    // unbound legacy shape answers 400 BAD_REQUEST.
+    assert_eq!(apply_bound(&edit_only, &edit_only.token, Some("tab-never-handed".to_string()), Some("document-gen-never-handed".to_string())).await, StatusCode::CONFLICT);
+    assert_eq!(apply_fixture(&edit_only, &edit_only.token).await, StatusCode::BAD_REQUEST);
+    assert!(edit_only.events.lock().unwrap().is_empty());
+}
+
+// C-SEC-EDIT-TARGETING binding matrix: the /ext/context response names the
+// observed document instance, /ext/apply must echo that binding, and both
+// rejection classes precede any mt::text::op emission and never answer
+// applied: true.
+
+#[tokio::test]
+async fn context_response_carries_document_binding() {
+    let f = incoming_fixture(true, "context.read");
+    let response = super::live_server::handle_ext_context(State(f.state.clone()), bearer_headers(Some(&f.token)),
+        Json(super::live_server::ExtContextRequest { extension_id: f.id.clone() }))
+        .await.into_response();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), 8192).await.unwrap();
+    let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(body["document_id"], format!("tab-{}", f.id));
+    assert_eq!(body["document_generation"], "document-gen-1");
+    assert_eq!(handed_binding(&f), (format!("tab-{}", f.id), "document-gen-1".to_string()));
+    // A second context read hands a fresh generation — an instance
+    // replacement invalidates the pair the first read handed.
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    assert_eq!(handed_binding(&f), (format!("tab-{}", f.id), "document-gen-2".to_string()));
+    assert!(f.events.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn apply_requires_binding_fields() {
+    let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    let (document_id, document_generation) = handed_binding(&f);
+    // A legacy client omitting a binding field receives the distinct logged
+    // 400 — not an extractor rejection and not a 409 — before any event.
+    assert_eq!(apply_bound(&f, &f.token, None, Some(document_generation.clone())).await, StatusCode::BAD_REQUEST);
+    assert_eq!(apply_bound(&f, &f.token, Some(document_id.clone()), None).await, StatusCode::BAD_REQUEST);
+    assert_eq!(apply_bound(&f, &f.token, None, None).await, StatusCode::BAD_REQUEST);
+    assert!(f.events.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn apply_requires_matching_context_binding() {
+    let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    // Apply before any context read: a well-formed but never-issued binding
+    // has nothing to match — 409 with zero events.
+    assert_eq!(apply_bound(&f, &f.token, Some(format!("tab-{}", f.id)), Some("document-gen-1".to_string())).await, StatusCode::CONFLICT);
+    assert!(f.events.lock().unwrap().is_empty());
+    // After the context read the exact handed pair is accepted, and the
+    // binding travels inside the emitted op payload.
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    let (document_id, document_generation) = handed_binding(&f);
+    assert_eq!(apply_bound(&f, &f.token, Some(document_id.clone()), Some(document_generation.clone())).await, StatusCode::OK);
+    let events = f.events.lock().unwrap();
+    assert_eq!(events.len(), 1);
+    assert_eq!(events[0]["op_type"], "insert");
+    assert_eq!(events[0]["extension_id"], f.id);
+    assert_eq!(events[0]["payload"]["document_id"], document_id);
+    assert_eq!(events[0]["payload"]["document_generation"], document_generation);
+}
+
+#[tokio::test]
+async fn apply_stale_instance_binding_refused() {
+    let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    // First instance: gen-1 is handed and the matching apply is applied.
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    let (document_id, generation_1) = handed_binding(&f);
+    assert_eq!(generation_1, "document-gen-1");
+    assert_eq!(apply_bound(&f, &f.token, Some(document_id.clone()), Some(generation_1.clone())).await, StatusCode::OK);
+    assert_eq!(f.events.lock().unwrap().len(), 1);
+    // A second context read models an instance replacement (gen-2).
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    let (_, generation_2) = handed_binding(&f);
+    assert_eq!(generation_2, "document-gen-2");
+    // The stale gen-1 apply is refused with zero new events ...
+    assert_eq!(apply_bound(&f, &f.token, Some(document_id.clone()), Some(generation_1)).await, StatusCode::CONFLICT);
+    // ... and so is an apply naming a wrong document_id.
+    assert_eq!(apply_bound(&f, &f.token, Some("tab-somewhere-else".to_string()), Some(generation_2.clone())).await, StatusCode::CONFLICT);
+    assert_eq!(f.events.lock().unwrap().len(), 1);
+    // The current instance still applies.
+    assert_eq!(apply_bound(&f, &f.token, Some(document_id), Some(generation_2)).await, StatusCode::OK);
+    assert_eq!(f.events.lock().unwrap().len(), 2);
+}
 // END_BLOCK_INCOMING_DATA_TESTS
 
 impl Drop for IncomingFixture {
@@ -1092,10 +1246,25 @@ async fn context_fixture(f: &IncomingFixture, token: &str) -> StatusCode {
         .await.into_response().status()
 }
 
+/// The unbound legacy apply shape (no binding fields) — every pre-fence
+/// refusal pin (401) keeps using it.
 async fn apply_fixture(f: &IncomingFixture, token: &str) -> StatusCode {
+    apply_bound(f, token, None, None).await
+}
+
+/// C-SEC-EDIT-TARGETING: an apply carrying explicit binding arguments — the
+/// fence classification (400 missing / 409 mismatch / 200 matched) depends
+/// on this pair and the remembered /ext/context binding.
+async fn apply_bound(
+    f: &IncomingFixture,
+    token: &str,
+    document_id: Option<String>,
+    document_generation: Option<String>,
+) -> StatusCode {
     super::live_server::handle_ext_apply(State(f.state.clone()), bearer_headers(Some(token)),
         Json(super::live_server::ExtApplyRequest {
             extension_id: f.id.clone(), undo_label: None,
+            document_id, document_generation,
             operations: vec![super::live_server::EditOperation { op_type: "insert_at_cursor".to_string(), content: Some("fixture edit".to_string()) }],
         })).await.into_response().status()
 }
@@ -1157,38 +1326,118 @@ async fn disable_refuses_unverified_revocation() {
 }
 
 #[tokio::test]
-async fn enabled_extension_passes_all_three_routes() {
+async fn enabled_extension_passes_only_declared_capability_routes() {
     let f = incoming_fixture(true, "text.insert");
-    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
-    assert_eq!(apply_fixture(&f, &f.token).await, StatusCode::OK);
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(apply_fixture(&f, &f.token).await, StatusCode::UNAUTHORIZED);
     assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::OK);
-    assert_eq!(f.events.lock().unwrap().len(), 2);
+    assert_eq!(f.events.lock().unwrap().len(), 1);
     let other = incoming_fixture(true, "stream.document");
-    assert_eq!(context_fixture(&other, &other.token).await, StatusCode::OK);
-    assert_eq!(apply_fixture(&other, &other.token).await, StatusCode::OK);
+    assert_eq!(context_fixture(&other, &other.token).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(apply_fixture(&other, &other.token).await, StatusCode::UNAUTHORIZED);
+    assert!(other.events.lock().unwrap().is_empty());
     assert_eq!(insert_fixture(&other, Some(&other.token)).await, StatusCode::UNAUTHORIZED);
+    // The owned stream route keeps working under C-SEC-STREAM-AUTH fencing.
+    assert_eq!(stream_open_fixture(&other, &other.id, &other.token, "session-a").await.status(), StatusCode::OK);
 }
 
-#[tokio::test]
-async fn fresh_pairing_restores_access() {
-    let f = incoming_fixture(true, "text.insert");
-    super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap();
-    assert_old_token_fenced(&f).await;
-    // Enabling never makes the old token usable; a real fresh pair supplies it.
-    super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap();
-    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::UNAUTHORIZED);
+#[test]
+fn pairing_grant_description_names_only_declared_capabilities() {
+    let stream_only = super::live_server::pairing_grant_description(
+        "TokMo", "tokmo", &["stream.document".to_string()]);
+    assert!(stream_only.contains("send streamed documents to Mark"), "{stream_only}");
+    assert!(!stream_only.contains("read the current text of the active tab"), "{stream_only}");
+    assert!(!stream_only.contains("edit the current text of the active tab"), "{stream_only}");
+
+    // Declared in reverse all() order to pin the fixed dialog listing order.
+    let read_edit = super::live_server::pairing_grant_description(
+        "Editor", "editor", &["text.edit".to_string(), "context.read".to_string()]);
+    let read_pos = read_edit.find("read the current text of the active tab");
+    let edit_pos = read_edit.find("edit the current text of the active tab");
+    assert!(read_pos.is_some() && edit_pos.is_some(), "{read_edit}");
+    assert!(read_pos.unwrap() < edit_pos.unwrap(), "{read_edit}");
+    assert!(!read_edit.contains("send streamed documents to Mark"), "{read_edit}");
+    assert!(!read_edit.contains("insert text at the active tab cursor"), "{read_edit}");
+
+    for declared in [Vec::new(), vec!["text.transform".to_string()]] {
+        let fallback = super::live_server::pairing_grant_description("Bare", "bare", &declared);
+        assert!(fallback.contains("declares no incoming data routes"), "{fallback}");
+        assert!(!fallback.contains("read the current text of the active tab"), "{fallback}");
+        assert!(!fallback.contains("edit the current text of the active tab"), "{fallback}");
+    }
+}
+
+async fn fresh_pair_secret(f: &IncomingFixture) -> String {
     let response = super::live_server::handle_pair(State(f.state.clone()), Json(super::live_server::PairRequest {
         extension_id: f.id.clone(), extension_name: "Dummy paired fixture".to_string(), protocol_version: 1,
+        prior_secret: None,
     })).await.into_response();
     assert_eq!(response.status(), StatusCode::OK);
     let body = axum::body::to_bytes(response.into_body(), 8192).await.unwrap();
     let paired: serde_json::Value = serde_json::from_slice(&body).unwrap();
     let fresh = paired["shared_secret"].as_str().unwrap();
     assert_ne!(fresh, f.token);
-    assert_eq!(context_fixture(&f, fresh).await, StatusCode::OK);
-    assert_eq!(apply_fixture(&f, fresh).await, StatusCode::OK);
-    assert_eq!(insert_fixture(&f, Some(fresh)).await, StatusCode::OK);
-    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::UNAUTHORIZED);
+    fresh.to_string()
+}
+
+#[tokio::test]
+async fn fresh_pairing_restores_access() {
+    // A text.edit pairing restores exactly the apply route: the fresh token
+    // passes the capability gate — the old apply 200 becomes a binding-fence
+    // refusal (400 for the unbound legacy shape, 409 for a never-issued
+    // binding) — while context/insert stay capability-refused.
+    let f = incoming_fixture(true, "text.edit");
+    super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap();
+    assert_old_token_fenced(&f).await;
+    // Pair inside the verified-empty trust-reset window (enable would re-key
+    // an empty store and turn the pair into a refused rebind); enabling a
+    // paired id does not re-key it.
+    let fresh = fresh_pair_secret(&f).await;
+    super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap();
+    assert_eq!(apply_fixture(&f, &f.token).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(apply_fixture(&f, &fresh).await, StatusCode::BAD_REQUEST);
+    assert_eq!(apply_bound(&f, &fresh, Some("tab-never-handed".to_string()), Some("document-gen-never-handed".to_string())).await, StatusCode::CONFLICT);
+    assert!(f.events.lock().unwrap().is_empty());
+    assert_eq!(context_fixture(&f, &fresh).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(insert_fixture(&f, Some(&fresh)).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(apply_fixture(&f, &f.token).await, StatusCode::UNAUTHORIZED);
+
+    // C-SEC-EDIT-TARGETING: the apply 200 lives behind the dual-capability
+    // pairing — the context read hands the binding the apply echoes.
+    let editor = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    super::mt_ext_disable(editor.id.clone(), editor.app.state(), editor.app.handle().clone()).await.unwrap();
+    assert_old_token_fenced(&editor).await;
+    let fresh_edit = fresh_pair_secret(&editor).await;
+    super::mt_ext_enable(editor.id.clone(), editor.app.state()).await.unwrap();
+    assert_eq!(apply_fixture(&editor, &editor.token).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(context_fixture(&editor, &fresh_edit).await, StatusCode::OK);
+    let (document_id, document_generation) = handed_binding(&editor);
+    assert_eq!(apply_bound(&editor, &fresh_edit, Some(document_id), Some(document_generation)).await, StatusCode::OK);
+    assert_eq!(editor.events.lock().unwrap().len(), 1);
+    assert_eq!(insert_fixture(&editor, Some(&fresh_edit)).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(apply_fixture(&editor, &editor.token).await, StatusCode::UNAUTHORIZED);
+
+    // A context.read pairing restores exactly the context route.
+    let reader = incoming_fixture(true, "context.read");
+    super::mt_ext_disable(reader.id.clone(), reader.app.state(), reader.app.handle().clone()).await.unwrap();
+    assert_old_token_fenced(&reader).await;
+    let fresh_read = fresh_pair_secret(&reader).await;
+    super::mt_ext_enable(reader.id.clone(), reader.app.state()).await.unwrap();
+    assert_eq!(context_fixture(&reader, &fresh_read).await, StatusCode::OK);
+    assert_eq!(apply_fixture(&reader, &fresh_read).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(insert_fixture(&reader, Some(&fresh_read)).await, StatusCode::UNAUTHORIZED);
+
+    // A text.insert pairing restores exactly the insert route.
+    let inserter = incoming_fixture(true, "text.insert");
+    super::mt_ext_disable(inserter.id.clone(), inserter.app.state(), inserter.app.handle().clone()).await.unwrap();
+    assert_old_token_fenced(&inserter).await;
+    let fresh_insert = fresh_pair_secret(&inserter).await;
+    super::mt_ext_enable(inserter.id.clone(), inserter.app.state()).await.unwrap();
+    assert_eq!(insert_fixture(&inserter, Some(&fresh_insert)).await, StatusCode::OK);
+    assert_eq!(inserter.events.lock().unwrap().len(), 1);
+    assert_eq!(context_fixture(&inserter, &fresh_insert).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(apply_fixture(&inserter, &fresh_insert).await, StatusCode::UNAUTHORIZED);
+    assert_eq!(insert_fixture(&inserter, Some(&inserter.token)).await, StatusCode::UNAUTHORIZED);
 }
 // END_BLOCK_DISABLE_AUTH_TESTS
 

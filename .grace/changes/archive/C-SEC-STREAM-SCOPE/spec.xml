@@ -1,0 +1,42 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-SEC-STREAM-SCOPE>
+    <Summary>Enforce the declared extension capability on every incoming data route — stream display, context read and text edit become separate grants — and make the pairing dialog state exactly what the user is approving.</Summary>
+    <Problem>Smart-review security finding F-001 (extension-document-access-ignores-capabilities, severity high, confidence high, commit be2f52f880bc): a paired streaming-display extension can read and modify the unsaved text of the active tab beyond what the pairing dialog describes. handle_ext_context (live_server.rs:1039) and handle_ext_apply (live_server.rs:1117) authenticate with capability None, so the manifest capability check inside authenticate_incoming (live_server.rs:451) never applies to those routes. The regression test enabled_extension_passes_all_three_routes (tests.rs:1166-1169) pins the over-grant: a fixture declaring only stream.document receives 200 OK for both context and apply. The release pairing dialog (live_server.rs:501) asks only to "send documents and data to Mark", so the user never consents to reading or editing the active tab. In a normal desktop build an enabled local extension holding a valid token can read the unsaved tab text or change it without separate consent; the Mac App Store build runs no extension HTTP server.</Problem>
+    <Relationship>Extends the extension-host hardening line: C-SEC-AUDIT-FIXES added bearer authentication to the three incoming routes; C-SEC-STREAM-AUTH and C-SEC-STREAM-TABS fenced stream mutations by enabled identity, authorization generation and session owner/epoch. Those changes left /ext/context and /ext/apply capability-agnostic; this change closes that gap. The sibling findings from the same 2026-11 smart-review run (dev run sharing the installed profile; smoke script stopping foreign processes) are triaged separately and are out of scope here.</Relationship>
+    <Goals>
+      <Goal>Reading context, editing text and streaming display are separate permission classes: every incoming route checks the exact required capability against the paired manifest before returning content or emitting an edit event.</Goal>
+      <Goal>/ext/context requires a context-read capability and /ext/apply requires a text-edit capability; an extension whose manifest lacks the matching class is refused with an authentication/authorization error.</Goal>
+      <Goal>The release pairing dialog describes exactly what is granted, naming the approved capabilities instead of the generic "send documents and data to Mark" wording.</Goal>
+      <Goal>tests.rs asserts the fenced behavior: a stream-only extension is refused on context and apply while its stream route keeps working, and access to each operation class appears only with the matching capability declaration.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Exact ObservedWriteScope: src-tauri/src/m045_ext/live_server.rs and its test module src-tauri/src/m045_ext/tests.rs only.</Constraint>
+      <ObservedWriteScope>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+      </ObservedWriteScope>
+      <Constraint>Token issuance, keychain storage, the pairing approval flow, disable/revocation semantics and the stream-route owner/epoch fencing from C-SEC-STREAM-AUTH stay unchanged.</Constraint>
+      <Constraint>Manifests declaring today's capability names keep working; no manifest-format change and no discovery, registry or gallery behavior change.</Constraint>
+      <Constraint>Keep repository artifacts English and synchronize contracts, graph and verification; no release publication.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Debug-build auto-approval of pairing (security run F-006) and the stream session byte budget (security run F-008) — separate findings, separate changes.</NonGoal>
+      <NonGoal>New user-facing UI beyond the pairing dialog wording; extension gallery, manifest schema and renderer text-op handling stay untouched.</NonGoal>
+      <NonGoal>Mac App Store capability changes and release publication.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>After normal pairing of an extension that declares only stream.document, /ext/context and /ext/apply refuse the request while /stream/open keeps working for the same token.</Criterion>
+      <Criterion>Access to each operation class appears only after the manifest declares the matching capability, and the route checks it before returning content or emitting any mt::text::op event.</Criterion>
+      <Criterion>The pairing dialog names the exact granted capabilities; for a stream-only extension it does not claim read or edit access to the active tab.</Criterion>
+      <Criterion>The stream-only over-grant regression fails before the fix and passes after it: refusals on context/apply, continued success on the owned stream route.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-045/>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</ExpectedCommand>
+      <ExpectedCommand>npx vitest run tests/renderer/components/extensionGallery/index.test.js tests/renderer/components/extensionGallery/textOps.test.js tests/renderer/components/textOps.test.js tests/renderer/bootstrap-ipc.test.ts</ExpectedCommand>
+      <ExpectedEvidence>The stream-only over-grant regression fails before the fix and passes after it; the renderer extension suites stay green; final GRACE assertions and current integrity pass.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-SEC-STREAM-SCOPE>
+</GraceChangeSpec>

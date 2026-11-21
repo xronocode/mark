@@ -15,6 +15,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-15 C-QA-INSTALLER-ARTIFACTS: require isolated named-test handoffs, exact smoke cleanup and evidence-only generic retention.
 //   - 2026-10-30 v2.24.0 (C-UPDATER-STATS T-004): the updater endpoints
 //     pin becomes the two-entry array — the counting gateway feed URL
 //     (from/os placeholders) first, the GitHub manifest as the fallback.
@@ -152,9 +153,10 @@ describe('unprivileged Tauri release dry-run workflow', () => {
     expect(buildStep).not.toContain('\n        env:')
     expect(dryRunWorkflow).toContain('uses: tauri-apps/tauri-action@')
     expect(dryRunWorkflow).toContain(
-      `--config '{"bundle":{"createUpdaterArtifacts":false}}'`
+      "--config '${{ steps.qa.outputs.config }}'"
     )
-    expect(dryRunWorkflow).toContain("DMG=$(find target -name '*.dmg'")
+    expect(dryRunWorkflow).toContain('node tools/qa-artifact-smoke.mjs --state')
+    expect(readFileSync(resolve(workspaceRoot, 'tools/prepare-qa-artifacts.mjs'), 'utf8')).toContain('createUpdaterArtifacts: false')
   })
 })
 // END_BLOCK_RELEASE_DRY_RUN_WORKFLOW_TESTS

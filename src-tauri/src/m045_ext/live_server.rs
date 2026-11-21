@@ -4,8 +4,12 @@
 //            stream.document messages from external apps (e.g. TokMo
 //            meeting mode) over HTTP POST on 127.0.0.1. Validates
 //            Bearer auth, session lifecycle, and sequence idempotency.
-//   SCOPE:   axum HTTP server with /ext/pair, /stream/*, and authenticated
-//            text-insert/context/apply data routes; runtime-generic events.
+//   SCOPE:   axum HTTP server with /ext/pair, /stream/*, and capability-
+//            scoped text-insert/context/apply data routes; the context/
+//            apply round trip is document-bound (C-SEC-EDIT-TARGETING);
+//            runtime-generic events.//   SCOPE:   axum HTTP server with /ext/pair (prior-secret rebind gate),
+//            /stream/*, and capability-scoped text-insert/context/apply
+//            data routes; runtime-generic events.
 //            Session state: open/patch/close/heartbeat lifecycle.
 //            Heartbeat timeout (15s) auto-closes stale sessions.
 //   DEPENDS: axum 0.8, tokio (net, rt, time, sync), serde/serde_json,
@@ -17,6 +21,16 @@
 //   STATUS:  Phase-B5b — handlers emit to frontend via live_bridge.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-20 C-SEC-EDIT-TARGETING: the /ext/context response names the
+//     active document instance (document_id + document_generation) and the
+//     server remembers it per extension_id in the process-global
+//     EXT_DOCUMENT_BINDINGS store; /ext/apply must echo the binding — a
+//     missing binding is a distinct logged 400
+//     (BLOCK_EXT_APPLY_MISSING_BINDING), a stale, never-issued or null
+//     binding a 409 (BLOCK_EXT_APPLY_BINDING_MISMATCH) — both refused
+//     after the capability gate and before any mt::text::op is emitted;
+//     the emitted op payloads carry the binding to the editor.//   - 2026-11-20 C-SEC-PAIR-REBIND: /ext/pair gains an additive prior_secret field; an id that already holds a stored credential pairs only on the prior secret matched constant-time, an unproven rebind is refused leaving the previous key valid, the dialog distinguishes key replacement from first pairing, and auto-approval is confined to the test harness.
+//   - 2026-11-20 C-SEC-STREAM-SCOPE: /ext/context requires context.read and /ext/apply requires text.edit, checked against the paired manifest before any response or event; the release pairing dialog names exactly the granted incoming capabilities.
 //   - 2026-11-11 C-SEC-STREAM-AUTH: validate enabled generation and session owner at serialized mutations; stamp ordered live events.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES T-003: authenticate text insertion by enabled capability and bearer identity; runtime-generic fixtures.
 //   - 2026-08-14 live-doc v2: DocPatchRequest gained `op` (append|replace,
@@ -92,6 +106,9 @@ pub struct PairRequest {
     pub extension_id: String,
     pub extension_name: String,
     pub protocol_version: u32,
+    /// The extension's current secret, presented to prove a rebind is
+    /// intentional. Additive wire field: missing deserializes as None.
+    pub prior_secret: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -179,6 +196,26 @@ pub struct TextInsertRequest {
 
 static CONTEXT_REQUEST_COUNTER: AtomicU64 = AtomicU64::new(0);
 
+/// C-SEC-EDIT-TARGETING: the document instance a /ext/context read
+/// observed — the rendered instance id plus that instance's generation.
+/// Remembered per extension_id when a context response resolves; an
+/// /ext/apply must echo the same pair. A None field never matches an
+/// apply (fail-closed).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DocumentBinding {
+    pub document_id: Option<String>,
+    pub document_generation: Option<String>,
+}
+
+/// C-SEC-EDIT-TARGETING: last recorded document binding per extension_id.
+/// Process-global like CONTEXT_REQUEST_COUNTER (deliberately NOT a
+/// LiveServerState field, so the struct literal in src-tauri/src/main.rs
+/// stays untouched). A (None, None) entry — recorded when the renderer
+/// reported no rendered identity — refuses every apply for that
+/// extension until a later context read carries identity.
+static EXT_DOCUMENT_BINDINGS: std::sync::LazyLock<std::sync::Mutex<HashMap<String, DocumentBinding>>> =
+    std::sync::LazyLock::new(|| std::sync::Mutex::new(HashMap::new()));
+
 #[derive(Debug, Deserialize)]
 pub struct ExtContextRequest {
     pub extension_id: String,
@@ -190,6 +227,14 @@ pub struct ExtContextResponse {
     pub cursor: Option<CursorCoords>,
     pub selection: Option<SelectionInfo>,
     pub file_path: Option<String>,
+    /// C-SEC-EDIT-TARGETING: rendered document instance id (None when the
+    /// renderer reported no rendered identity).
+    pub document_id: Option<String>,
+    /// C-SEC-EDIT-TARGETING: that instance's generation (the rendered
+    /// tab's documentToken). Absent on an older renderer callback payload
+    /// (serde deserializes the missing field as None), which can never
+    /// match an apply.
+    pub document_generation: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -218,6 +263,12 @@ pub struct ExtApplyRequest {
     pub operations: Vec<EditOperation>,
     #[allow(dead_code)]
     pub undo_label: Option<String>,
+    /// C-SEC-EDIT-TARGETING: the document binding from the /ext/context
+    /// read. Mandatory by policy — enforced in handle_ext_apply, not by
+    /// serde, so a legacy client receives a distinct logged 400 instead
+    /// of an extractor rejection.
+    pub document_id: Option<String>,
+    pub document_generation: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -426,21 +477,67 @@ async fn validate_bearer<R: tauri::Runtime>(
     authenticate_stream(headers, state, id, Some(epoch)).await
 }
 
+/// The incoming data-route permission classes. Every incoming route requires
+/// exactly one capability name declared by the paired extension's manifest;
+/// the check runs inside authenticate_incoming before any content is returned
+/// or any event is emitted. Stream routes keep their C-SEC-STREAM-AUTH
+/// identity/generation/epoch fencing and do not consult this enum's name()
+/// against manifests in this change; StreamDocument exists for the pairing
+/// grant description.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RouteCapability {
+    /// stream.document — extension sends streamed documents into Mark's live view.
+    StreamDocument,
+    /// context.read — read the active tab's markdown/cursor/selection (/ext/context).
+    ContextRead,
+    /// text.edit — insert/transform/undo the active tab's text (/ext/apply).
+    TextEdit,
+    /// text.insert — insert text at the active tab's cursor (/ext/text-insert).
+    TextInsert,
+}
+
+#[cfg_attr(debug_assertions, allow(dead_code))] // grant_phrase/all are read by pairing_grant_description, which is allow(dead_code) in test builds where the dialog decision arm is compiled out
+impl RouteCapability {
+    fn name(self) -> &'static str {
+        match self {
+            RouteCapability::StreamDocument => "stream.document",
+            RouteCapability::ContextRead => "context.read",
+            RouteCapability::TextEdit => "text.edit",
+            RouteCapability::TextInsert => "text.insert",
+        }
+    }
+    fn grant_phrase(self) -> &'static str {
+        match self {
+            RouteCapability::StreamDocument => "send streamed documents to Mark for display",
+            RouteCapability::ContextRead => "read the current text of the active tab",
+            RouteCapability::TextEdit => "edit the current text of the active tab",
+            RouteCapability::TextInsert => "insert text at the active tab cursor",
+        }
+    }
+    /// Fixed stable order for the pairing dialog grant list.
+    fn all() -> [RouteCapability; 4] {
+        [RouteCapability::StreamDocument, RouteCapability::ContextRead,
+         RouteCapability::TextEdit, RouteCapability::TextInsert]
+    }
+}
+
 /// Authenticate an incoming data request without holding the registry lock during
-/// native credential access. An identity-less request can select only enabled
-/// extensions advertising its required capability; no client-declared identity
-/// is accepted for text insertion.
+/// native credential access. Every incoming data route names the exact
+/// RouteCapability class it grants; an identity-less request can select only
+/// enabled extensions advertising that capability, and a client-declared
+/// identity is accepted only when its registered manifest declares the same
+/// capability.
 async fn authenticate_incoming<R: tauri::Runtime>(
     state: &LiveServerState<R>,
     headers: &HeaderMap,
     requested_id: Option<&str>,
-    capability: Option<&str>,
+    capability: Option<RouteCapability>,
 ) -> Result<String, (StatusCode, String)> {
     let token = extract_bearer(headers)?;
     let registry = state.app_handle.state::<super::registry::ExtRegistry>();
     let candidates = match requested_id {
         Some(id) => registry.get_manifest(id).map(|m| vec![m]).unwrap_or_default(),
-        None => capability.map(|cap| registry.get_enabled(cap)).unwrap_or_default(),
+        None => capability.map(|cap| registry.get_enabled(cap.name())).unwrap_or_default(),
     };
     let identity = tokio::task::spawn_blocking(move || {
         candidates.into_iter().find(|manifest| super::auth::validate_token(&manifest.id, &token))
@@ -448,7 +545,7 @@ async fn authenticate_incoming<R: tauri::Runtime>(
     }).await.ok().flatten();
     if let Some(id) = identity {
         if let Ok(manifest) = registry.get_manifest(&id) {
-            if capability.is_none_or(|cap| manifest.capabilities.iter().any(|c| c.name == cap)) {
+            if capability.is_none_or(|cap| manifest.capabilities.iter().any(|c| c.name == cap.name())) {
                 return Ok(id);
             }
         }
@@ -461,13 +558,60 @@ async fn authenticate_incoming<R: tauri::Runtime>(
 
 // START_BLOCK_HANDLERS
 
+/// Pure description of what a pairing approval grants, rendered for the
+/// release pairing dialog. Lists one grant line per RouteCapability the
+/// manifest actually declares, in RouteCapability::all() fixed order, and
+/// falls back to a single honest line when nothing incoming-route-relevant
+/// is declared (or no manifest is registered). It never claims tab read or
+/// edit access that the manifest does not state.
+#[cfg_attr(debug_assertions, allow(dead_code))]
+pub(super) fn pairing_grant_description(
+    extension_name: &str,
+    extension_id: &str,
+    declared: &[String],
+) -> String {
+    let lines: Vec<String> = RouteCapability::all()
+        .into_iter()
+        .filter(|cap| declared.iter().any(|name| name == cap.name()))
+        .map(|cap| format!("- {}", cap.grant_phrase()))
+        .collect();
+    let list = if lines.is_empty() {
+        "- pair with Mark (its manifest declares no incoming data routes yet)\n".to_string()
+    } else {
+        lines.into_iter().map(|l| format!("{l}\n")).collect()
+    };
+    format!(
+        "The extension \"{extension_name}\" ({extension_id}) wants to pair with Mark.\n\n\
+         If you allow pairing, it will be able to:\n{list}\
+         Anything not listed here is not granted to this extension."
+    )
+}
+
+/// Pure description of what a pairing approval does to an extension that
+/// already holds a live credential, rendered for the pairing dialog. It
+/// names the extension and states the key replacement; it deliberately
+/// lists no capability grants, because a rebind changes no grant set —
+/// the same manifest stays in force.
+#[cfg_attr(debug_assertions, allow(dead_code))]
+pub(super) fn pairing_rebind_description(extension_name: &str, extension_id: &str) -> String {
+    format!(
+        "The extension \"{extension_name}\" ({extension_id}) is already paired with Mark.\n\n\
+         Approving this request replaces its live key: the previous secret stops working \
+         immediately, and only the new secret will be accepted afterwards.\n\n\
+         Allow this only if you hold the extension's current secret and intend to re-key it."
+    )
+}
+
 /// POST /ext/pair — pairing initiation.
 /// Generates a shared secret, stores it in keychain, returns it to the
-/// caller. In production this would show a native dialog for user
-/// approval; for now auto-approves (TODO: wire native dialog via
-/// app_handle).
+/// caller. An id that already holds a stored credential (a rebind) is
+/// approved only when the request presents the prior secret, matched
+/// constant-time against the stored one; an unproven rebind is refused
+/// with the previous key left fully valid. Auto-approval exists only
+/// inside the Rust test harness; every ordinary build — debug or
+/// release — asks for a user decision through the native dialog.
 pub(super) async fn handle_pair<R: tauri::Runtime>(
-    State(_state): State<Arc<LiveServerState<R>>>,
+    State(state): State<Arc<LiveServerState<R>>>,
     Json(req): Json<PairRequest>,
 ) -> impl IntoResponse {
     safe_eprintln!(
@@ -477,30 +621,71 @@ pub(super) async fn handle_pair<R: tauri::Runtime>(
         req.protocol_version,
     );
 
-    // In debug builds, auto-approve pairing (rfd dialogs from axum's
-    // background threads don't reliably show on macOS).
-    // Release builds show a native confirmation dialog.
-    #[cfg(debug_assertions)]
+    // Rebind gate: an id that already holds a stored credential is paired
+    // only on constant-time proof of the prior secret. The gate runs
+    // before — and independently of — any approval decision, so approval
+    // can never confer the power to displace an unproven key. A refused
+    // rebind stores nothing and leaves the previous token fully valid.
+    let stored = match super::auth::get_secret(&req.extension_id) {
+        Ok(stored) => stored,
+        Err(e) => {
+            safe_eprintln!(
+                "[ExtHost][live_server][BLOCK_PAIR_CREDENTIAL_LOOKUP_FAILED ext_id={} reason={e}]",
+                req.extension_id,
+            );
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"error": "pairing state unavailable"})),
+            );
+        }
+    };
+    let is_rebind = stored.is_some();
+    let proof_ok = match (&stored, req.prior_secret.as_deref()) {
+        (Some(stored), Some(prior)) =>
+            super::auth::constant_time_eq(stored.as_bytes(), prior.as_bytes()),
+        _ => false,
+    };
+    if is_rebind && !proof_ok {
+        safe_eprintln!(
+            "[ExtHost][live_server][BLOCK_PAIR_REBIND_REFUSED ext_id={}]",
+            req.extension_id,
+        );
+        return (
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({"error":
+                "extension already paired; present the prior secret or disable the extension to reset trust"})),
+        );
+    }
+
+    // Auto-approval exists ONLY inside the Rust test harness. No ordinary
+    // build — debug or release — approves pairing without a user decision.
+    #[cfg(test)]
     let approved = {
         safe_eprintln!(
-            "[ExtHost][live_server][BLOCK_PAIR_AUTO_APPROVE ext_id={} (debug build)]",
+            "[ExtHost][live_server][BLOCK_PAIR_AUTO_APPROVE ext_id={} (test harness only)]",
             req.extension_id,
         );
         true
     };
-    #[cfg(not(debug_assertions))]
+    #[cfg(not(test))]
     let approved = {
-        let ext_name_for_dialog = req.extension_name.clone();
-        let ext_id_for_dialog = req.extension_id.clone();
+        let declared: Vec<String> = state
+            .app_handle
+            .state::<super::registry::ExtRegistry>()
+            .get_manifest(&req.extension_id)
+            .map(|m| m.capabilities.iter().map(|c| c.name.clone()).collect())
+            .unwrap_or_default();
+        let description = if is_rebind {
+            pairing_rebind_description(&req.extension_name, &req.extension_id)
+        } else {
+            pairing_grant_description(&req.extension_name, &req.extension_id, &declared)
+        };
         tokio::task::spawn_blocking(move || {
             use rfd::{MessageButtons, MessageDialog, MessageDialogResult, MessageLevel};
             let result = MessageDialog::new()
                 .set_level(MessageLevel::Info)
                 .set_title("Mark — Extension Pairing Request")
-                .set_description(&format!(
-                    "The extension \"{}\" ({}) wants to pair with Mark.\n\nAllow this extension to send documents and data to Mark?",
-                    ext_name_for_dialog, ext_id_for_dialog,
-                ))
+                .set_description(&description)
                 .set_buttons(MessageButtons::OkCancelCustom(
                     "Allow".to_string(),
                     "Deny".to_string(),
@@ -985,7 +1170,7 @@ pub(super) async fn handle_text_insert<R: tauri::Runtime>(
     headers: HeaderMap,
     Json(req): Json<TextInsertRequest>,
 ) -> impl IntoResponse {
-    let extension_id = match authenticate_incoming(&state, &headers, None, Some("text.insert")).await {
+    let extension_id = match authenticate_incoming(&state, &headers, None, Some(RouteCapability::TextInsert)).await {
         Ok(id) => id,
         Err((status, message)) => return (status, Json(serde_json::json!({"error": message}))),
     };
@@ -1036,7 +1221,7 @@ pub(super) async fn handle_ext_context<R: tauri::Runtime>(
     headers: HeaderMap,
     Json(req): Json<ExtContextRequest>,
 ) -> impl IntoResponse {
-    if let Err(e) = authenticate_incoming(&state, &headers, Some(&req.extension_id), None).await {
+    if let Err(e) = authenticate_incoming(&state, &headers, Some(&req.extension_id), Some(RouteCapability::ContextRead)).await {
         return (e.0, Json(serde_json::json!({"error": e.1})));
     }
 
@@ -1075,6 +1260,21 @@ pub(super) async fn handle_ext_context<R: tauri::Runtime>(
 
     match tokio::time::timeout(std::time::Duration::from_secs(5), rx).await {
         Ok(Ok(context)) => {
+            // C-SEC-EDIT-TARGETING: remember the binding this context read
+            // carried (a (None, None) pair too — it refuses every apply
+            // for this extension until a context read carries rendered
+            // identity). A timed-out or channel-closed request records
+            // nothing.
+            {
+                let mut bindings = EXT_DOCUMENT_BINDINGS.lock().unwrap();
+                bindings.insert(
+                    req.extension_id.clone(),
+                    DocumentBinding {
+                        document_id: context.document_id.clone(),
+                        document_generation: context.document_generation.clone(),
+                    },
+                );
+            }
             safe_eprintln!(
                 "[ExtHost][live_server][BLOCK_EXT_CONTEXT_OK ext_id={} md_len={}]",
                 req.extension_id,
@@ -1107,6 +1307,9 @@ pub(super) async fn handle_ext_context<R: tauri::Runtime>(
 
 /// POST /ext/apply — apply edit operations to the active editor.
 /// E1a: used by TokMo EditAgent to apply LLM-generated edits.
+/// C-SEC-EDIT-TARGETING: the request must echo the document binding
+/// (document_id + document_generation) recorded by the /ext/context read;
+/// the fence runs after the capability gate and before any event.
 /// Emits mt::text::op events for each operation; Muya's 1500ms debounce
 /// groups rapid operations as a single undo step.
 pub(super) async fn handle_ext_apply<R: tauri::Runtime>(
@@ -1114,8 +1317,49 @@ pub(super) async fn handle_ext_apply<R: tauri::Runtime>(
     headers: HeaderMap,
     Json(req): Json<ExtApplyRequest>,
 ) -> impl IntoResponse {
-    if let Err(e) = authenticate_incoming(&state, &headers, Some(&req.extension_id), None).await {
+    if let Err(e) = authenticate_incoming(&state, &headers, Some(&req.extension_id), Some(RouteCapability::TextEdit)).await {
         return (e.0, Json(serde_json::json!({"error": e.1})));
+    }
+
+    // C-SEC-EDIT-TARGETING: binding fence. The capability gate above still
+    // runs first. The apply must name the exact document instance and
+    // generation an earlier /ext/context read recorded for this extension.
+    // Missing binding -> distinct logged 400 (legacy clients fail
+    // closed); no remembered binding, a remembered None field, or any
+    // differing field -> 409. Both rejections happen before any
+    // mt::text::op is emitted and never answer applied: true.
+    if req.document_id.is_none() || req.document_generation.is_none() {
+        safe_eprintln!(
+            "[ExtHost][live_server][BLOCK_EXT_APPLY_MISSING_BINDING ext_id={}]",
+            req.extension_id,
+        );
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"error": "missing document binding: document_id and document_generation are required"})),
+        );
+    }
+
+    {
+        let bindings = EXT_DOCUMENT_BINDINGS.lock().unwrap();
+        let claimed = DocumentBinding {
+            document_id: req.document_id.clone(),
+            document_generation: req.document_generation.clone(),
+        };
+        match bindings.get(&req.extension_id) {
+            // Must be present, fully Some, and equal — a remembered None
+            // field never equals the fully-Some claimed pair.
+            Some(bound) if *bound == claimed => {}
+            _ => {
+                safe_eprintln!(
+                    "[ExtHost][live_server][BLOCK_EXT_APPLY_BINDING_MISMATCH ext_id={}]",
+                    req.extension_id,
+                );
+                return (
+                    StatusCode::CONFLICT,
+                    Json(serde_json::json!({"error": "document binding mismatch; re-read context"})),
+                );
+            }
+        }
     }
 
     safe_eprintln!(
@@ -1130,6 +1374,8 @@ pub(super) async fn handle_ext_apply<R: tauri::Runtime>(
                 "transform",
                 serde_json::json!({
                     "text": op.content.clone().unwrap_or_default(),
+                    "document_id": req.document_id.clone(),
+                    "document_generation": req.document_generation.clone(),
                 }),
             ),
             "insert_at_cursor" => (
@@ -1137,11 +1383,16 @@ pub(super) async fn handle_ext_apply<R: tauri::Runtime>(
                 serde_json::json!({
                     "text": op.content.clone().unwrap_or_default(),
                     "position": null,
+                    "document_id": req.document_id.clone(),
+                    "document_generation": req.document_generation.clone(),
                 }),
             ),
             "undo" => (
                 "undo",
-                serde_json::json!({}),
+                serde_json::json!({
+                    "document_id": req.document_id.clone(),
+                    "document_generation": req.document_generation.clone(),
+                }),
             ),
             other => {
                 safe_eprintln!(

@@ -1732,7 +1732,8 @@
         </Attribute>
       </LegacyAttributes>
       <LegacySource>docs/knowledge-graph.xml: M-044; docs/development-plan.xml: M-044</LegacySource>
-    </M-044>
+          <SummaryDelta>C-CLIPBOARD-CAPTURE-SINGLE-SOURCE: tools/generate-clipboard-capture.mjs deterministically regenerates capture-core.browser.js from the ESM capture-core via vite transformWithEsbuild (IIFE, fixed options, LF-normalized, comment-projected); --check gates freshness; the five window keys keep their exact order and bytes.</SummaryDelta>
+</M-044>
     <M-045>
       <SummaryDelta>C-STABILIZE-NATIVE-PROFILE-CLOSEOUT: configured immutable application identity routes native credential services, default-handler targeting and extension endpoint/discovery. Canonical release identity and macOS profile paths remain unchanged; only the canonical identifier retains the legacy extension scan. Focused pure/injected namespace tests exercise release and QA separation without host credentials or LaunchServices mutation.</SummaryDelta>
       <Name>ExtensionHost</Name>
@@ -2367,8 +2368,18 @@
         </Attribute>
       </LegacyAttributes>
       <LegacySource>docs/knowledge-graph.xml: M-045; docs/development-plan.xml: M-045</LegacySource>
-    </M-045>
+          <SummaryDelta>C-SEC-STREAM-SCOPE: incoming data routes are capability-scoped — context requires context.read, apply requires text.edit, text-insert requires text.insert (stream routes keep their existing fencing); the pairing dialog names exactly the declared grants via a pure helper with an honest fallback.</SummaryDelta>
+      <SummaryDelta>C-SEC-EDIT-TARGETING: context reads return a document binding (tab id + documentToken generation) remembered per extension; apply must echo it — missing is a 400, stale or never-issued a 409, both before any text event; the editor re-checks the binding before any ext mutation including the setMarkdown fallback, so an edit prepared against one document can never land in another (typing never invalidates: generation is instance, not keystrokes).</SummaryDelta>      <SummaryDelta>C-SEC-PAIR-REBIND: re-pairing an id that already holds a live secret is a distinct gated operation — the prior secret must be proven with a constant-time compare (or trust reset through disable) before any new key is minted; the dialog distinguishes key replacement from first pairing; auto-approval exists only in the test harness.</SummaryDelta>
+</M-045>
     <M-046>
+      <SummaryDelta>C-QA-MACOS-LAUNCH-GATE holds the isolated installed macOS payload behind a physically copied, signed and capability-checked current Node runtime. Durable nonce/source/config/PID/kernel-birth records precede same-PID native exec; exact positive Node-aside and native-image observations distinguish the gate from the payload. Complete original bundle bytes, ordinary modes and signature are restored before release. One shared10s appearance bound starts before durable LS intent and includes request, gate, observation and receipt overhead, and normal Quit/10s stop remain independent of evidence and window errors. Fixed directory/guard protection survives missing metadata; fresh cleanup never releases or relaunches and supplies only a module-private file-deletion proof to native-query-free generic cleanup. Unknown process/tool/mount ownership retains exact paths. Inert protocol/CLI/Python-backend fixtures and workflow invariants are source evidence only; actual source-bound Mark, supported macOS15 and pristine-DMG acceptance remain open, and publication stays held.</SummaryDelta>
+      <SummaryDelta>C-QA-NATIVE-BRIDGE-MOUNT-CLEANUP completes the unpublished predecessor core correction: validated CFArray/CFString conversion, native count normalization and strict numeric window-owner PIDs; independent AppKit identity, exact normal Quit and ESRCH-only OS absence; sticky rejected-process uncertainty. Identity-bound persisted smoke protection now spans attach, first preflight query, open, verified detach, process-stop and fresh generic cleanup. Authoritative state is written after lifecycle evidence; failed clearing saves remain failure while an opaque same-invocation proof can clean independently completed copies. Unknown mounted installers and unresolved process copies remain protected across outer CLI reload/discovery. Workflows, original appearance/Quit limits, advisory size/warning posture, caches and signing/release boundaries are unchanged. Fixture proof is not native/LS/preexec or publication acceptance.</SummaryDelta>
+      <SummaryDelta>C-CI-RUST-PLATFORM-CANCELLATION-VERIFICATION: parent cancellation preserves statuses130/143 and exact owned-process/artifact absence on every platform. POSIX cooperative runners retain completed close/result evidence. Windows parent recovery classifies the actual completed or partial spawn receipt without inventing a missing result or requiring a race outcome. Direct production runExecutable controls prove complete cancellation results while the runner survives; actual runOwned escalation uses a controlled first exact SIGTERM no-op followed by real SIGKILL to that same owned child, leaving an unrelated sentinel alive until finally cleanup. Actual directory-at-receipt write failures cannot block real termination: observation errors are retained, shutdown delegates independently and finally rescue bypasses the evidence adapter. Production helper, workflows, caches and historical archives remain unchanged; fresh Windows renderer execution is separate hosted acceptance.</SummaryDelta>
+      <SummaryDelta>C-CI-RUST-RECEIPT-RETENTION: ordinary generic Cargo jobs retain only their existing state, result and native-runner JSON receipts through the pinned artifact action, including failure collection under always(), one-day retention and platform/job/run/attempt-specific names. Logs, executables and caches are excluded. The integration lane uses the same unchanged Cargo lifecycle helper and Node22 setup for its original unfiltered root test call; triggers, cache policy and remaining controls stay unchanged. Actual hosted artifact download, member/hash/source/PID and cleanup verification remains separate from local workflow invariants. Non-cooperative runner destruction is not a cleanup guarantee.</SummaryDelta>
+      <SummaryDelta>C-CI-ARTIFACT-CACHE-FAILURE-CLEANUP composes the approved root workspace-cache mapping, three original Cargo lifecycle wrappers and isolated QA app/package cleanup as one required first CI delivery. Production release jobs remain unchanged except the separately approved cache mapping, and manual test-case provenance never grants dispatch or retention authority. Follow-up actual permission/closed-pipe regressions correct earlier QA failure paths: only ENOENT is absence, stale deletion/completion claims are reset, independent safe cleanup continues, and asynchronous outer stderr failure stops/reaps the owned CLI child before finally cleanup; the CLI guards a queued later pipe error until exit. The17file union changes only its two QA helpers/two tests after the reviewed source composition;13otherpaths retain exact bytes. Original applied/archive evidence stays historical and does not imply these later failure paths were previously covered.</SummaryDelta>
+      <SummaryDelta>C-CI-RUST-TEST-ARTIFACT-LIFECYCLE-EXECVE adds the mandatory test-executable hygiene prerequisite for CI:F-003 workspace cache delivery, without adding an original finding or changing cache mappings. All three original Cargo test selections/cwds remain Cargo-orchestrated through the dedicated Node helper. Exact source/artifact digests and owned PIDs are recorded before POSIX same-PID execve or at Windows spawn before further input; completed owned executable artifacts are removed in finally. Node22.15+ POSIX execve availability fails closed before Cargo build. Dependency/build caches and unrelated preexisting outputs remain intact. Root centrally superseded the immutable predecessor shell-gate design because macOS SIP strips Cargo DYLD environment through a protected shell. Hosted platform/cache reuse evidence and all owner/release/signing gates remain separate.</SummaryDelta>
+      <SummaryDelta>C-CARGO-WORKSPACE-CACHE: the existing backend test, production release and unsigned candidate Cargo caches preserve root workspace target alongside registry/Git dependencies. The cargo-workspace-v1 namespace retains each OS/target and exact toolchain/Cargo.lock inputs while preventing legacy member-target fallback; all other workflow action identities, gates and signing/publication controls remain unchanged. Cache availability is an optional optimization, not correctness or release authorization.</SummaryDelta>
+      <SummaryDelta>C-QA-INSTALLER-ARTIFACTS and linked prerequisite N-QA-DRYRUN-ARTIFACT-HYGIENE: manual unsigned QA packages use a source/run/attempt/platform-bound product and profile, a required safe unfinished-test case reference, contained DMG/NSIS collection and installer-byte/ZIP digest receipts. The case reference does not establish owner request, dispatch authority or acceptance. Only a separately requested active unfinished test permits a one-day maximum remote handoff. Generic Tauri dry-runs retain logs/metadata only, preserve ad-hoc signing, installed-app ten-second startup, size and warnings gates, and normal-Quit/verify/clean exact app/PID/binary copies in finally including cooperative cancellation. Complete manual Rust bin-mark tests compile with the original options plus no-run/JSON metadata and run every harness without filters; onSpawn/logging failures await exact child shutdown and clean snapshot/metadata-owned outputs. Production jobs, pins, signing boundaries, check controls and Cargo mappings remain unchanged. Fixture/source checks do not establish real CI native or manual delivery acceptance.</SummaryDelta>
       <SummaryDelta>C-RELEASE-CANARY-PRERELEASE (tag creation): release/promote gains a workflow_dispatch prereleaseSuffix mode — the same release-authorize approval mints the Release Bot annotated vX.Y.Z-beta.N/canary.N tag at current main HEAD with base equal to the collecting train computedVersion, closing the loop the release workflow's prerelease lane consumes.</SummaryDelta>
       <SummaryDelta>C-RELEASE-CANARY-PRERELEASE: hyphenated owner tags (vX.Y.Z-beta.N / vX.Y.Z-canary.N, base equal to the collecting train computedVersion) ride a prerelease lane for external testers — authorize-tag derives the flag, keeps tagger/annotated-tag/seal checks and skips readiness, materials, preflight and the identity artifact; build skips the repeated admission gates; prepare-publication renders a generated tester body; publish exposes a GitHub prerelease asserted to never advance releases/latest; publish-cask is skipped. The stable path is unchanged for non-hyphenated tags.</SummaryDelta>
       <SummaryDelta>C-QA-LOCAL-TAURI-TOOL: the isolated unsigned QA builder validates manifest/root-lock declarations, locked version/integrity and installed CLI identity, resolves a contained regular JavaScript entry and invokes it through the current Node executable. An exact runtime/toolchain environment allowlist excludes unrelated credentials and execution hooks. Invalid tooling fails before config/build/recording; help, dry-runs, artifact identity, digest, smoke and registry semantics remain unchanged.</SummaryDelta>
@@ -2377,6 +2388,8 @@
       <SummaryDelta>C-HOSTED-VALIDATION-RECOVERY: the Linux test setup canonicalizes only the known Azure HTTP Ubuntu source URI to canonical HTTPS in ephemeral runner sources. Existing signed suites/components, packages, apt retries, timeouts and job gates are unchanged.</SummaryDelta>
       <SummaryDelta>C-STABILIZE-TRAIN-MIRROR: the optional Project mirror records explicit pending/rejected/needs-recheck or incomplete user-facing owner evidence as an empty Owner acceptance select value, never accepted/not-required. Known status is visible in newly projected draft bodies; explicit accepted and complete legacy accepted outputs remain unchanged. Existing reconciliation clears stale accepted values without field-option, API/apply, release authority or external-state changes. Existing generic draft bodies are not rewritten by this bounded projection repair.</SummaryDelta>
       <SummaryDelta>C-STABILIZE-TRAIN-ADMISSION: Collecting/Preparing/Frozen user-facing membership may carry pending or absent owner acceptance only with complete explicit testingProtocol automatic/manual/intentionallyUnverified sections. Empty performed-check sections require an explicit corresponding unverified reason; actual manual entries identify result/date/build/evidence. Legacy complete owner acceptance remains compatible. Ready/Released and every strict entry point require complete owner acceptance and reject pending/rejected/needs-recheck; accounting, identity, check, seal and authorization gates remain unchanged.</SummaryDelta>
+      <SummaryDelta>C-CI-NATIVE-FIXTURE-ATTRIBUTION preserves portable external proof, strict workflow inverses, validated FAT recognition and the reviewed owned universal C fixture build. Generic cancellation fixtures also select the carrier; the sole selected-artifact SHA expectation is explicitly attributed to carrier or direct Node while final bound Node/script/PID/argv/cwd/env/DYLD remain separately verified. Direct copied Node controls and all existing timers remain unchanged.</SummaryDelta>
+      <SummaryDelta>C-QA-ARCHIVE-LIFECYCLE records and removes newly created exact-QA macOS app archives and optional signature sidecars through existing protected cleanup. Preexisting current-identity artifacts are refused; unrelated outputs and dependency caches remain untouched. A distinct packaged-QA cache namespace avoids restoring legacy untracked archives while preserving the root target, platform/toolchain/lock identity, pins and other jobs.</SummaryDelta>
       <Name>ReleasePreflight</Name>
       <DisplayName>ReleasePreflight</DisplayName>
       <Type>UTILITY</Type>
@@ -2411,7 +2424,7 @@
         bookkeeping-only commits (each proven, merges judged against their first
         parent); promotion binds to a seal that is on main rather than main's
         exact tip; publication itself proves the releases/latest feed advanced.
-        Manual dispatch is unsigned build-only; Projects never
+        Manual dispatch is an unsigned named-test installer handoff with separate owner request/dispatch authorization and exact lifecycle evidence; Projects never
         becomes gate authority; secrets and admin apply are isolated by purpose.
         The pull-request Tauri dry-run also remains unprivileged: it disables
         updater artifacts through a narrow CLI config override while retaining
@@ -2526,7 +2539,7 @@
         docs/assets/readme/*.manifest.json, .github/release-governance.json,
         .github/workflows/{ci,lane,release,release-tauri,release-governance,
         promote-release,test}.yml
-      </PlannedPath>
+      ; tools/{prepare-qa-artifacts,qa-artifact-smoke,run-qa-rust-tests}.mjs; docs/acceptance/README.md</PlannedPath>
       <PublicationBoundary>
         C-PUBLIC-REPOSITORY-HYGIENE: reusable tools/release/ scripts remain public.
         Account-specific App Store submission records, one-off apply state and
@@ -2664,6 +2677,23 @@
         </Source>
         <KnowledgeGraphPath>tools/release-readiness.mjs, tools/release-github-controls.mjs, .github/workflows/release.yml</KnowledgeGraphPath>
         <Tests>tests/renderer/release-preflight.test.js, tests/renderer/release-governance.test.js, tests/renderer/action-ref-check.test.js, tests/renderer/release-readiness.test.js, tests/renderer/release-materials.test.js, tests/renderer/release-project-sync.test.js, tests/renderer/release-github-controls.test.js, tests/renderer/release-notes.test.js, tests/renderer/release-normalize.test.js, tests/renderer/release-train.test.js, tests/renderer/publication-privacy.test.js</Tests>
+        <Source>tools/prepare-qa-artifacts.mjs</Source>
+        <Source>tools/qa-artifact-smoke.mjs</Source>
+        <Source>tools/qa-launch-gate.mjs</Source>
+        <Source>tools/qa-pid-image.py</Source>
+        <Source>tools/run-qa-rust-tests.mjs</Source>
+        <Tests>tests/tools/prepare-qa-artifacts.test.mjs</Tests>
+        <Tests>tests/tools/qa-artifact-smoke.test.mjs</Tests>
+        <Tests>tests/tools/qa-launch-gate.test.mjs</Tests>
+        <Tests>tests/tools/run-qa-rust-tests.test.mjs</Tests>
+      <Tests>tests/tools/cargo-workspace-cache.test.mjs</Tests>
+      <Source>tools/run-rust-tests.mjs</Source>
+      <Source>.github/workflows/test.yml</Source>
+      <Source>.github/workflows/ci.yml</Source>
+      <Tests>tests/tools/run-rust-tests.test.mjs</Tests>
+      <Tests>tests/tools/ci-rust-test-lifecycle.test.mjs</Tests>
+            <Source>.github/workflows/lane.yml</Source>
+      <Tests>tests/tools/ci-rust-receipt-retention.test.mjs</Tests>
       </Sources>
       <Observability/>
       <LegacyKnowledgeDetail>
@@ -2810,7 +2840,8 @@
         </Attribute>
       </LegacyAttributes>
       <LegacySource>docs/knowledge-graph.xml: M-046; docs/development-plan.xml: M-046</LegacySource>
-    </M-046>
+          <SummaryDelta>C-SEC-GITLEAKS-CHECKSUM: the docs-security job downloads the pinned Gitleaks archive to a temp file and verifies a strict sha256 check against the committed GITLEAKS_SHA256 digest before any extraction or execution; the digest bumps together with the version pin and its derivation is recorded out-of-band.</SummaryDelta>
+</M-046>
     <M-054>
       <Name>WindowsReleaseLane</Name>
       <DisplayName>Windows release lane</DisplayName>
@@ -2978,6 +3009,7 @@
       <Sources><Source>src/renderer/src/util/exportDocx.js</Source><Tests>tests/renderer/util/export-docx-shapes.test.js</Tests><Tests>tests/renderer/util/export-docx.test.js</Tests><Tests>tests/renderer/store/export-docx-dispatch.test.js</Tests><Tests>tests/renderer/contextMenu/tabs-export.test.js</Tests><Tests>tests/e2e/export-office.spec.ts</Tests><Tests>scripts/check-export-chunk.mjs</Tests></Sources>
     </M-066>
     <M-067>
+      <SummaryDelta>C-BOOKMARK-PERSISTENCE-DURABILITY: the unchanged notification facade and stack consume sticky file-source bookmark-persistence guidance with one stable deduplication key; permission-store failures do not create a separate message surface.</SummaryDelta>
       <Name>NotificationCardSystem</Name><Type>RUNTIME</Type><Status>implemented</Status><Layer>RENDERER</Layer>
       <Summary>
         The unified notification system (C-NOTIFICATION-SYSTEM): one card renderer
@@ -3165,6 +3197,7 @@
         <Errors><Error><Code>read error</Code><Description>Return the selected-file read error to QuickLook; no successful missing-file completion.</Description></Error></Errors>
       </Contract>
       <Sources><Source>mark-quicklook/Sources/Shared/MarkdownRenderer.swift</Source><Source>mark-quicklook/Sources/PreviewExtension/PreviewProvider.swift</Source><Source>mark-quicklook/Sources/PreviewExtension/MarkPreview.entitlements</Source><Tests>tests/quicklook/PreviewBoundaryTests.swift</Tests><Tests>tests/renderer/quicklook-runner.test.js</Tests></Sources>
-    </M-073>
+          <SummaryDelta>C-QUICKLOOK-SYNTAX-THEME: append-only prefers-color-scheme light overrides in the packaged github-dark.css give QuickLook syntax tokens the existing light appearance with unrounded WCAG contrast at or above 4.5:1 across all 13 token groups / 41 selectors; dark values, layout and the security boundary are byte-unchanged.</SummaryDelta>
+</M-073>
   </GD-FEATURES>
 </GraceGraphDocument>

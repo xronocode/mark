@@ -1,0 +1,82 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-EXTERNAL-RELOAD-OPERATION>
+    <Summary>Consolidate external file replacement into one owned reload admission path and one explicit state replacement boundary, preserving the current permissions, timing, identity, history and snapshot behavior.</Summary>
+    <Problem>Structural complexity record COMPLEX:F-002. The APPLY_FILE_CHANGE action in src/renderer/src/store/editor.js contains two 100ms disk-read paths, four loadChange call sites and four pre-reload snapshot sites; loadChange separately reconstructs fresh defaults and restores selected metadata. Both declarations and the five supporting dependencies are semantically unchanged since the prior 49-test proof. Existing generation/tab/path/revision and dirty-confirmation protections work; no new user data-loss incident is claimed. The defect is that reload admission, read/settle sequencing and replacement-state construction are spread across the store instead of one owned boundary.</Problem>
+    <Relationship>Derived from backlog record COMPLEX:F-002. Delivery is structural: integ/techdebt lane, a fresh collecting lane or the next unused td-N ledger; the merged td-1 is never reused and main departure requires a separate explicit owner instruction; product current pointer, release accounting and C-50 are untouched. The change is deliberately not merged with the still-unapproved focused-operations owner (adjacent COMPLEX:F-001 work whose pending approach decision grants no authority here); if that owner lands first, both contracts are reconciled on a fresh baseline without silently changing either. Independent of C-CLIPBOARD-CAPTURE-SINGLE-SOURCE and C-PELE-HTML-POSTPROCESS; no shared product files or verification anchors overlap.</Relationship>
+    <Goals>
+      <Goal>Introduce src/renderer/src/util/externalReload.js as the single owner of reload admission and asynchronous read/revalidation, with injected read/timer/store callbacks. Ready embedded data and disk read results converge on one permission-aware admitted replacement function. Store APPLY_FILE_CHANGE and loadChange entry points remain compatible thin adapters.</Goal>
+      <Goal>Make replacement-state construction and metadata preservation explicit in one helper inside that module, using the existing getSingleFileState builder from store/help.js through injection. One synchronous commit stage records the pre-reload snapshot when appropriate, applies the state, records the opened snapshot and announces the current-tab reload.</Goal>
+      <Goal>Remove duplicated read, settle, snapshot and replacement sequencing rather than moving the existing large method. Preserve the entire current watcher/conflict/position/history contract and deliver through the technical-debt lane.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Keep the current automatic policy: clean tabs may reload only when autoSave, live export/preview or watch mode currently permits it, and those flags never authorize discarding dirty edits. With no automatic permission, retain the existing notification even for a previously clean tab. Preserve unlink handling and invalid-type/missing-target behavior.</Constraint>
+      <Constraint>Bind an attempt to its generation, exact live tab object and path, with the existing document lifetime identity carried in the operation context. Keep current same-path lookup and exact-path ownership semantics; no path canonicalization and no watcher protocol change. Closed/reopened or replaced lifetimes cannot receive an old result.</Constraint>
+      <Constraint>Use one disk-read implementation and one 100ms settle implementation for automatic and confirmed paths, with no added retries and no global queue. Revalidate liveness before/after awaits and local markdown/revision according to the permission. A changed local state re-enters current conflict resolution instead of applying a stale result. Preserve the clean check before starting an automatic disk read.</Constraint>
+      <Constraint>Confirmation is truthy, generation-bound and consumed once. Disk confirmation captures local markdown/revision at the choice; edits during its delay or the read require fresh resolution. Ready-data confirmation stays synchronous. Existing synchronous embedded-data entry/action behavior is not turned into a delayed Promise-only path.</Constraint>
+      <Constraint>Retain boundary-specific equal-text behavior: automatic ready/disk results skip equal text without replacement or snapshot; explicitly confirmed ready/disk results keep the current replacement/checkpoint behavior even for equal text, while adding no unequal-content snapshot. One common admission path carries the permission kind; a global hash-skip is not authorized.</Constraint>
+      <Constraint>Ready data retains supplied filename/format metadata. Disk reads retain the current completion-time tab filename/encoding/lineEnding/adjustLineEndingOnSave/trimTrailingNewline and isMixedLineEndings=false construction. No byte decoding, format re-detection, new defaults, persistence change or altered direct/async error propagation.</Constraint>
+      <Constraint>Preserve the same tab-object identity, old tab id, notification reference, cursor/scrollTop/muyaIndexCursor and the current eligible one-snapshot non-unified history behavior. Use existing fresh-state defaults, text/format/saved checkpoints and a new documentToken exactly once per replacement; retire splitSession and stale blocks; preserve unrelated fields the current merge does not overwrite.</Constraint>
+      <Constraint>Preserve pre-reload diff-ring and opened-snapshot semantics, the mixed-line-ending notice, the contentReloaded stamp, the current-only file-changed payload without stale blocks, and later background-tab activation/clamping. No await may split final admission from the owned synchronous replacement sequence; the manifest extraction must not silently change optional-field, history or error behavior.</Constraint>
+      <Constraint>Keep autosave cancellation at its current policy boundary, rename echo suppression and expiry, notification exclusivity, watcher disposal/generation cleanup and existing read-error markers. A failed read applies no replacement and starts no automatic retry.</Constraint>
+      <Constraint>Security boundary: permission-aware acceptance is enforced by the one admission path; automatic policy flags can never authorize dirty-edit loss, confirmations are single-use and generation-bound, and a failed or stale read can never mutate a tab. Browser/IPC-shim proof does not replace mandatory native/platform/owner acceptance or justify an exception.</Constraint>
+      <Constraint>store/help.js (getSingleFileState), util/documentFormat.js, util/documentSnapshot.js, store/diffSnapshots.js, store/project.js, the backend watcher/IPC and preferences stay byte-identical. Do not replace the canonical state builder or change save/close, source history, renderer panels, focused-operation routing, composition policy or COMPLEX:F-001 boundaries.</Constraint>
+      <Constraint>Implement sequentially on integ/techdebt with a fresh collecting or next unused td-N; exact ledger paths are bound by the approved plan. Never reuse merged td-1, never move the product current pointer, never mirror a lane. Full lane checks and a separate admission commit are required; departure into main remains a separate explicit owner decision.</Constraint>
+      <Constraint>No dependency/package/lock changes, no CI/Playwright configuration changes, no new retries/skips/floor changes, no owner documents/profiles access, no signing/C-50, release version/tag, workflow dispatch or publication.</Constraint>
+      <ObservedWriteScope>
+        <File>src/renderer/src/util/externalReload.js</File>
+        <File>src/renderer/src/store/editor.js</File>
+        <File>tests/renderer/util/external-reload.test.js</File>
+        <File>tests/renderer/store/live-reload.test.js</File>
+        <File>tests/renderer/store/live-reload-snapshots.test.js</File>
+        <File>tests/e2e/live-reload-scroll.spec.ts</File>
+        <File>.grace/graph/runtime.xml</File>
+        <File>.grace/graph/features.xml</File>
+        <File>.grace/verification/runtime.xml</File>
+        <File>.grace/verification/features.xml</File>
+        <Exclusivity>Two product files (the new externalReload controller and store/editor), one new focused test, the two existing unit suites, the existing browser suite if the approved plan extends it, and the current graph/verification M-011/M-032 artifacts. Help/format/snapshot modules, project, panels, backend, prefs, dependencies and CI/config stay unchanged. Lane ledger paths are resolved by the approved plan; any additional file must be declared and approved, never added silently.</Exclusivity>
+      </ObservedWriteScope>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>No new reload preference, watcher debounce, conflict UI or approval policy change, no equal-content policy unification, no source/format decoder and no general document model redesign.</NonGoal>
+      <NonGoal>No consolidation of interactive focused operations, table completion, save/close coordination or snapshot storage, and no claim that the current safeguarded branches hide a reproduced user data-loss defect.</NonGoal>
+      <NonGoal>No scope closure from a moved method, unexecuted design, local green tests or lane-only admission; mandatory main delivery and native/owner/platform acceptance remain required for closure.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>APPLY_FILE_CHANGE and loadChange are compatible thin store adapters. One external-reload owner contains one disk read/settle implementation and one admitted replacement sequence; ready and disk results use the same permission-aware acceptance boundary, and metadata restoration is defined once rather than reconstructed by callers.</Criterion>
+      <Criterion>Characterize automatic and confirmed ready/disk inputs independently, including current synchronous behavior, the 100ms settle, equal/unequal text and formats. Preserve automatic equality skip and confirmed equality replacement without pre-reload ring duplication; keep save/checkpoint results truthful.</Criterion>
+      <Criterion>Deterministic deferred-read/timer tests cover newer event before older read completion, generation reuse after close/reopen, same id/new lifetime, rename/path replacement, dirty flags, edits during settle and read, edit-and-save during read, edits after confirmation, repeated/declined/stale confirmation and read failure. One latest conflict remains actionable; stale attempts produce no replacement.</Criterion>
+      <Criterion>Actual store tests pin the same tab object, old id, fresh documentToken, checkpoints/defaults, notifications, cursor/scroll/muya caret, eligible old history versus unified reset, blocks retirement, mixed-ending notice and active/background behavior. Diff snapshots record unequal pre-reload text once and opened content once per admitted replacement; stale, skipped and declined attempts keep current behavior.</Criterion>
+      <Criterion>Keep and run the existing live-reload and live-reload-snapshots suites plus the focused module/store tests, with independently stated expected behavior and meaningful stale/permission mutation controls, not only mocks proving a helper was called. The historical 49 tests are reused evidence, not new implementation verification.</Criterion>
+      <Criterion>Run the existing actual-renderer live-reload-scroll Chromium scenarios and extend them only for missing active/background/reload content/position assertions identified by the approved plan, inspecting exact resulting text and clamped position. Required native/owner/platform verdicts remain distinct and open until actual evidence or an explicit exception.</Criterion>
+      <Criterion>Update current M-011/M-032 and V-M-011/V-M-032 ownership, source paths, replacement/admission contracts and executed evidence; preserve existing verification commands/scenarios, source-file contracts/maps and frozen legacy artifacts.</Criterion>
+      <Criterion>Current/target/final lifecycle commands, appropriate local/browser checks and full exact-head lane checks, review/commit/push gates pass without weakened assertions. Apply/archive follows fresh end-state evidence and its explicit decision; lane admission and later owner-authorized main departure remain traceable, with delivery-ledger accounting unchanged (18/77 delivery stays as recorded).</Criterion>
+      <Criterion>Owned test apps/processes/binaries are cleaned up and source/recipe/hash/log/output evidence retained. Owner applications, profiles, documents and shared caches remain intact; the original record stays open while mandatory delivery or acceptance is incomplete.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-011 />
+      <M-032 />
+      <M-046 />
+      <File>src/renderer/src/util/externalReload.js</File>
+      <File>src/renderer/src/store/editor.js</File>
+      <File>tests/renderer/util/external-reload.test.js</File>
+      <File>tests/renderer/store/live-reload.test.js</File>
+      <File>tests/renderer/store/live-reload-snapshots.test.js</File>
+      <File>tests/e2e/live-reload-scroll.spec.ts</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+      <File>.grace/verification/features.xml</File>
+      <LaneBookkeeping>The approved plan resolves exact fresh td-N.json/md bootstrap/admission paths on integ/techdebt if needed. Product current pointer, merged lane bundles and carrier departure remain unchanged.</LaneBookkeeping>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>node node_modules/vitest/vitest.mjs run tests/renderer/util/external-reload.test.js tests/renderer/store/live-reload.test.js tests/renderer/store/live-reload-snapshots.test.js</ExpectedCommand>
+      <ExpectedCommand>node node_modules/@playwright/test/cli.js test tests/e2e/live-reload-scroll.spec.ts --project=chromium</ExpectedCommand>
+      <ExpectedCommand>grace lint --path . --change C-EXTERNAL-RELOAD-OPERATION --assertions target</ExpectedCommand>
+      <ExpectedEvidence>A later approved sequential plan binds the exact permission matrix, race/identity tests, state manifest and snapshot assertions, current/target/final commands and full lane accounting. The source-only proof inventorying the current two reads/timers and four replacement/snapshot sites is structural evidence, not final runtime proof. Runner paths verified against the current repo layout: node_modules/vitest/vitest.mjs and node_modules/@playwright/test/cli.js exist, the chromium project exists in playwright.config.ts, both live-reload suites and live-reload-scroll.spec.ts exist, APPLY_FILE_CHANGE/loadChange/getSingleFileState anchors are present in store/editor.js and store/help.js.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>The owner approves this bounded one-reload-owner/state-manifest extraction with current policy intact. Moving reload into a future focused-operation owner or normalizing all permission semantics would expand the scope and is not included.</Assumption>
+      <Assumption>Writing this draft approves no execution plan, implementation, apply/archive, native/manual exception, lane departure or release. Adjacent approved document-operation work is reconciled on a fresh baseline without silently changing either contract.</Assumption>
+    </Assumptions>
+  </C-EXTERNAL-RELOAD-OPERATION>
+</GraceChangeSpec>

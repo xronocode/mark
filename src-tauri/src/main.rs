@@ -19,7 +19,7 @@
 //             MARK_SKIP_MIGRATION, snapshot, runner, dialogs) was
 //             retired by C-13; the live m005_prefs store stays.
 //   DEPENDS:  dialog, m001_panic, m001_pdf, m001_security,
-//             m001_validate, m013b, mt_paths.
+//             m001_validate, m013b, mt_paths, m047_bookmarks.
 //   LINKS:    M-001, .grace/graph/runtime.xml M-001 (PhaseRef Phase-B1) step-7..11 + step-B-pre2;
 //             .grace/graph/runtime.xml M-001;
 //             .grace/verification/runtime.xml V-M-001;
@@ -34,11 +34,14 @@
 // START_MODULE_MAP
 //   PendingOpens - Stores launch/open-file requests until the renderer is ready.
 //   mt_drain_pending_opens - Delivers queued launch/open-file requests to the ready renderer.
+//   mt_take_bookmark_persistence_warning - Consume a queued permission-store failure after readiness.
 //   mt_dev_diag - Emits redacted renderer diagnostics in development builds.
 //   main - Validates startup state and runs the configured Tauri application with commands, lifecycle hooks, and native menu routing.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-15 C-BOOKMARK-PERSISTENCE-DURABILITY: consume grant failures;
+//     install content-free main-window warning wakeups and readiness recovery.
 //   - 2026-11-11 C-SEC-STREAM-AUTH: manage shared live-session state and its event epoch so disable can close the owned stream before native credential I/O.
 //   - 2026-11-09 C-STABILIZE-PROFILE-ISOLATION: bind the generated application namespace before pre-boot state access and reuse the same Context for Tauri build.
 //   - 2026-10-30 M-069: setup applies m069_dev_badge::apply_dev_badge after
@@ -217,6 +220,12 @@ impl Default for PendingOpens {
     }
 }
 
+/// Consume the content-free pending permission warning after renderer readiness.
+#[tauri::command]
+fn mt_take_bookmark_persistence_warning(window: tauri::WebviewWindow) -> bool {
+    m047_bookmarks::take_persistence_warning(window.label())
+}
+
 #[tauri::command]
 fn mt_drain_pending_opens(
     window: tauri::WebviewWindow,
@@ -237,7 +246,9 @@ fn mt_drain_pending_opens(
     let diff = state.diff_mode.load(std::sync::atomic::Ordering::SeqCst);
     for path in &drained {
         // C-15 T-M3: CLI/LaunchServices grant moment — bookmark it.
-        m047_bookmarks::remember(path);
+        if let Err(error) = m047_bookmarks::remember(path) {
+            m047_bookmarks::report_persistence_failure(&error);
+        }
         if let Err(e) = m_v1_compat::emit_open_new_tab_ext(&window, path, preview, watch, diff) {
             safe_eprintln!("[main][pending_opens][BLOCK_EMIT_FAILED path={path} err={e}]");
         } else {
@@ -515,6 +526,16 @@ fn main() {
         .setup(move |app| {
             use tauri::Manager;
             let handle = app.handle().clone();
+            let bookmark_warning_handle = handle.clone();
+            m047_bookmarks::install_warning_notifier(move || {
+                use tauri::Emitter;
+                if bookmark_warning_handle
+                    .emit_to("main", "mt::bookmark-persistence-warning", ())
+                    .is_err()
+                {
+                    safe_eprintln!("[SecurityBookmarks][warning][BLOCK_BOOKMARK_WARNING_PENDING]");
+                }
+            });
             let menu = m009_menu::build_native_menu(&handle).inspect_err(|e| {
                 safe_eprintln!("[menu][build][BLOCK_BUILD_NATIVE_MENU_FAILED reason={e}]");
             })?;
@@ -852,6 +873,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             mt_dev_diag,
             mt_drain_pending_opens,
+            mt_take_bookmark_persistence_warning,
             m013b::fs::mt_fs_read,
             m013b::fs::mt_fs_write,
             m013b::fs::mt_fs_stat,

@@ -1,8 +1,8 @@
 // FILE: tests/quicklook/PreviewBoundaryTests.swift
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Exercise the actual QuickLook provider and packaged renderer in a separately identified native fixture.
-//   SCOPE: Twenty-four positive/negative cases, harmless markers, local resources and navigation; no installed extension or external service.
+//   SCOPE: Twenty-six positive/negative cases, harmless markers, local resources and navigation; no installed extension or external service.
 //   DEPENDS: Cocoa, WebKit, actual PreviewProvider and MarkdownRenderer.
 //   LINKS: M-073; V-M-073; C-QUICKLOOK-CONTENT-BOUNDARY.
 //   ROLE: TEST
@@ -13,7 +13,7 @@
 //   PreviewBoundaryTests - Main-actor native case runner and result protocol.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-11-11 C-QUICKLOOK-CONTENT-BOUNDARY: run actual provider cases without registration or a replacement webview.
+//   LAST_CHANGE: 2026-11-20 C-QUICKLOOK-SYNTAX-THEME: required fail-closed native theme-light/theme-dark evidence.
 // END_CHANGE_SUMMARY
 
 import Cocoa
@@ -58,6 +58,24 @@ private enum PreviewBoundaryTests {
     })
     """
 
+    // Dedicated theme observation; the shared snapshotScript and the existing
+    // 24 cases keep byte-identical observations.
+    private static let themeScript = """
+    JSON.stringify({
+      mediaLight: window.matchMedia('(prefers-color-scheme: light)').matches,
+      preBackground: getComputedStyle(document.querySelector('pre')).backgroundColor,
+      keyword: getComputedStyle(document.querySelector('span.hljs-keyword')).color,
+      string: getComputedStyle(document.querySelector('span.hljs-string')).color,
+      number: getComputedStyle(document.querySelector('span.hljs-number')).color,
+      comment: getComputedStyle(document.querySelector('span.hljs-comment')).color,
+      plainText: getComputedStyle(document.querySelector('pre')).color,
+      inlineCode: getComputedStyle(document.querySelector('p code')).color,
+      codeTextLength: (document.querySelector('pre code')?.textContent || '').length,
+      codeRect: (() => { const r = document.querySelector('pre code').getBoundingClientRect();
+                         return { x: r.x, y: r.y, width: r.width, height: r.height } })()
+    })
+    """
+
     private static func evaluate(_ view: WKWebView, _ script: String) async -> Any? {
         await withCheckedContinuation { continuation in
             view.evaluateJavaScript(script) { value, error in
@@ -90,6 +108,99 @@ private enum PreviewBoundaryTests {
         return false
     }
 
+    private static func themeObservation(_ view: WKWebView) async -> [String: Any]? {
+        guard let json = await evaluate(view, themeScript) as? String,
+              let data = json.data(using: .utf8),
+              let result = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+        return result
+    }
+
+    private static func waitForThemeScheme(_ view: WKWebView, light: Bool) async -> Bool {
+        for _ in 0..<100 {
+            if await themeObservation(view)?["mediaLight"] as? Bool == light { return true }
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
+        return false
+    }
+
+    private static func rgbComponents(_ value: String?) -> [Double]? {
+        guard let value = value, value.hasPrefix("rgb("), value.hasSuffix(")") else { return nil }
+        let parts = value.dropFirst(4).dropLast()
+            .split(separator: ",")
+            .compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
+        guard parts.count == 3 else { return nil }
+        return parts.map { $0 / 255.0 }
+    }
+
+    private static func relativeLuminance(_ components: [Double]) -> Double {
+        let linear = components.map { channel -> Double in
+            channel <= 0.03928 ? channel / 12.92 : pow((channel + 0.055) / 1.055, 2.4)
+        }
+        return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+    }
+
+    private static func contrastRatio(_ front: [Double], _ back: [Double]) -> Double {
+        let frontLuminance = relativeLuminance(front)
+        let backLuminance = relativeLuminance(back)
+        return (max(frontLuminance, backLuminance) + 0.05) / (min(frontLuminance, backLuminance) + 0.05)
+    }
+
+    private static func sameGeometry(_ before: [String: Any], _ after: [String: Any]) -> Bool {
+        ["x", "y", "width", "height"].allSatisfy { (before[$0] as? Double) == (after[$0] as? Double) }
+    }
+
+    private static func themeChecks(_ view: WKWebView, dark: Bool) async -> [String: Bool] {
+        var checks: [String: Bool] = ["themeObserved": false]
+        guard let theme = await themeObservation(view),
+              let mediaLight = theme["mediaLight"] as? Bool,
+              let preBackground = theme["preBackground"] as? String,
+              let keyword = theme["keyword"] as? String,
+              let string = theme["string"] as? String,
+              let number = theme["number"] as? String,
+              let comment = theme["comment"] as? String,
+              let plainComponents = rgbComponents(theme["plainText"] as? String),
+              let inlineComponents = rgbComponents(theme["inlineCode"] as? String),
+              let codeTextLength = theme["codeTextLength"] as? Int,
+              let codeRect = theme["codeRect"] as? [String: Any],
+              let backgroundComponents = rgbComponents(preBackground) else { return checks }
+        checks["themeObserved"] = true
+        if dark {
+            checks["darkMediaMatches"] = mediaLight == false
+            checks["darkPaletteUnchanged"] = preBackground == "rgb(22, 27, 34)"
+                && keyword == "rgb(255, 123, 114)" && string == "rgb(165, 214, 255)"
+                && number == "rgb(121, 192, 255)" && comment == "rgb(139, 148, 158)"
+            if let stringComponents = rgbComponents(string) {
+                checks["darkContrastControl"] = contrastRatio(stringComponents, backgroundComponents) >= 4.5
+            } else {
+                checks["darkContrastControl"] = false
+            }
+        } else {
+            checks["lightMediaMatches"] = mediaLight == true
+            checks["preLightBackground"] = preBackground == "rgb(246, 248, 250)"
+            checks["lightPalette"] = keyword == "rgb(207, 34, 46)" && string == "rgb(3, 47, 98)"
+                && number == "rgb(0, 92, 197)" && comment == "rgb(101, 109, 118)"
+            checks["lightContrastFloor"] = contrastRatio(plainComponents, backgroundComponents) >= 4.5
+                && contrastRatio(inlineComponents, backgroundComponents) >= 4.5
+                && [keyword, string, number, comment].allSatisfy { token -> Bool in
+                    guard let components = rgbComponents(token) else { return false }
+                    return contrastRatio(components, backgroundComponents) >= 4.5
+                }
+            // An appearance switch may change colors only; code text and geometry
+            // must survive byte-for-byte. Colors are owned by theme-dark.
+            view.appearance = NSAppearance(named: .darkAqua)
+            guard await waitForThemeScheme(view, light: false),
+                  let after = await themeObservation(view),
+                  after["codeTextLength"] as? Int == codeTextLength,
+                  let afterRect = after["codeRect"] as? [String: Any],
+                  sameGeometry(codeRect, afterRect) else {
+                checks["appearancePreservesContent"] = false
+                return checks
+            }
+            checks["appearancePreservesContent"] = true
+        }
+        return checks
+    }
+
     private static func cases(base: String, png: URL, dataImage: String) -> [BoundaryCase] {
         let mark = "window.__quicklookBoundaryExecuted=true"
         let brokenImage = "data:image/png;base64,AA=="
@@ -118,7 +229,23 @@ private enum PreviewBoundaryTests {
             BoundaryCase("missing-file"),
             BoundaryCase("resource-integrity"),
             BoundaryCase("file-resource-policy", "![relative](pixel.png)\n\n![absolute](\(png.absoluteString))"),
-            BoundaryCase("repeat-preview")
+            BoundaryCase("repeat-preview"),
+            BoundaryCase("theme-light", """
+                ```javascript
+                const s = "value"; // QLTHEME note
+                const n = 42;
+                ```
+
+                Inline `ctrl` control
+                """),
+            BoundaryCase("theme-dark", """
+                ```javascript
+                const s = "value"; // QLTHEME note
+                const n = 42;
+                ```
+
+                Inline `ctrl` control
+                """)
         ]
     }
 
@@ -151,6 +278,15 @@ private enum PreviewBoundaryTests {
         }
         guard await prepare(provider, file: file, sentinel: sentinel) else {
             return ["id": fixture.id, "passed": false, "error": "preview-not-ready"]
+        }
+        if fixture.id == "theme-light" || fixture.id == "theme-dark" {
+            // Appearance is forced on this case's own webview only — never the
+            // application, the system appearance or any registration step.
+            provider.webView.appearance = fixture.id == "theme-dark"
+                ? NSAppearance(named: .darkAqua) : NSAppearance(named: .aqua)
+            guard await waitForThemeScheme(provider.webView, light: fixture.id == "theme-light") else {
+                return ["id": fixture.id, "passed": false, "error": "theme-scheme-timeout"]
+            }
         }
         try? await Task.sleep(nanoseconds: 150_000_000)
         let windowsBefore = NSApplication.shared.windows.count
@@ -193,6 +329,10 @@ private enum PreviewBoundaryTests {
             checks["contentSecurityPolicy"] = result["csp"] as? Bool == true
         case "file-resource-policy": checks["localImagesBlocked"] = result["localLoaded"] as? Int == 0
         case "repeat-preview": checks["retiredTextAbsent"] = (result["text"] as? String)?.contains("QLFIXTURE-retired") == false
+        case "theme-light", "theme-dark":
+            for (key, value) in await themeChecks(provider.webView, dark: fixture.id == "theme-dark") {
+                checks[key] = value
+            }
         default: break
         }
         return ["id": fixture.id, "passed": checks.values.allSatisfy { $0 }, "checks": checks,
@@ -258,7 +398,7 @@ private enum PreviewBoundaryTests {
                   let json = String(data: data, encoding: .utf8) else { exit(2) }
             print(json)
             let rows = result["cases"] as? [[String: Any]] ?? []
-            exit(rows.count == 24 && rows.allSatisfy { $0["passed"] as? Bool == true } ? 0 : 1)
+            exit(rows.count == 26 && rows.allSatisfy { $0["passed"] as? Bool == true } ? 0 : 1)
         }
         application.run()
     }

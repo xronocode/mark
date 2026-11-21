@@ -138,6 +138,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-024; docs/development-plan.xml: M-024</LegacySource>
     </M-024>
     <M-025>
+      <SummaryDelta>C-BOOKMARK-BOOTSTRAP-CONTRACT: runtime pending-open behavior is unchanged; legacy bootstrap tests verify the complete thirteen-listener main surface and twelve-listener Settings surface, including main-only bookmark warning ownership and honest ready-marker counts.</SummaryDelta>
       <SummaryDelta>C-METADATA-SAVE-SAFETY T-003: mt::open-file-failed reports shared strict read refusals, including fire-and-forget routes. Successful mt::open-new-tab retains existing parallel drain and awaited position/recently-closed ordering; validated options carry pending choices separately from actual source metadata.</SummaryDelta>
       <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: bootstrap-ipc.js retains parallel pending-open drain and other subscriptions, but legacy saved/path/forced-close broadcasts have no live document authority. C-MD-LINK-TABS: validated document links reuse the existing current-window mt::open-new-tab consumer; canonical duplicate targets retain their live document token, unsaved buffer and history. No parallel-drain or timing policy changes.</SummaryDelta>
       <Name>perf-pending-opens-parallel</Name>
@@ -937,6 +938,8 @@
       <ChangeRefs>
         <C-PAGE-WIDTH-TABLES/>
       </ChangeRefs>
-    </M-061>
+          <SummaryDelta>C-TABLE-PROFILE-SCHEMA: the persisted table-layout profile consumers share one zero-import schema owner, so profile adoption and migration cost one validation pass with unchanged store/serialization behavior.</SummaryDelta>
+      <SummaryDelta>C-TABLE-LAYOUT-COMPLETION: terminal table operations run one ordered completion pass instead of six ad-hoc persist paths; no new timers, polling or geometry reads beyond the existing cue measurement.</SummaryDelta>
+</M-061>
   </GD-PERFORMANCE>
 </GraceGraphDocument>

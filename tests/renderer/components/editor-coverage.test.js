@@ -1,10 +1,10 @@
 // FILE: tests/renderer/components/editor-coverage.test.js
-// VERSION: 1.16.0
+// VERSION: 1.18.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify editorWithTabs/editor.vue methods, watchers, computed state, event handlers, and lifecycle behavior beyond the base editor test.
-//   SCOPE: Deterministic Vue/jsdom tests with mocked Muya, stores, bus, services, and browser scheduling.
-//   DEPENDS: Vue Test Utils, Vitest, Pinia test setup, mocked Muya and renderer services.
-//   LINKS: .grace/verification/runtime.xml V-M-011 scenarios 15-16; .grace/graph/runtime.xml M-011.
+//   SCOPE: Deterministic Vue/jsdom tests with mocked Muya, stores, bus, services, and browser scheduling; the two restored table-dialog cases use an opt-in real Element Plus mount.
+//   DEPENDS: Vue Test Utils, Vitest, Pinia test setup, real Element Plus table-dialog controls (Node CommonJS library entry), mocked Muya and renderer services.
+//   LINKS: .grace/verification/runtime.xml V-M-011 scenarios 15-16; .grace/graph/runtime.xml M-011; .grace/changes/active/C-TABLE-DIALOG-CREATION-VERIFICATION (restored table-dialog cases, mutation controls, revert-sensitivity proof).
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -40,7 +40,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.16.0 - C-TAB-CLOSE-OWNERSHIP: delayed cross-tab render events, missed activation recovery, edit ownership and duplicate-render regressions.
+//   LAST_CHANGE: v1.18.0 - 2026-11-20 C-SEC-EDIT-TARGETING: the editor_ext_targeting describe invokes the captured ext insert/transform/undo bus handlers directly on a normally rendered document — foreign/stale/null/absent bindings refuse before any mutation (setMarkdown, replace, insertParagraph and undo untouched) with the content-free BLOCK_EXT_TARGETING_MISMATCH marker, matched bindings read the real rendered identity (currentFile.id plus documentOwner(tab).documentToken through the real util) and apply exactly once (transform through the selection replace or the whole-document setMarkdown fallback, insert at the cursor, undo), and a diff-mode case proves the diff guard still drops the event before the binding check.
+//   - v1.17.0: C-TABLE-DIALOG-CREATION-VERIFICATION: the two skipped table-dialog cases run again on an opt-in real Element Plus mount (opening 4×3 defaults, declared limits, stable row focus after the dialog's opened lifecycle, no focus theft after a deliberate columns-input move, Cancel creating nothing, reopen reset, real 7×5 input confirmation dispatching exactly one createTable and closing) and the mutation-control block rejects missing open/reset/focus/createTable/close, transposed and ignored dimensions, a dropped trapDefault guard and a revert of the T-001 focus repair, restoring exact editor.vue bytes in finally after every mutation.
+//   - v1.16.0: C-TAB-CLOSE-OWNERSHIP: delayed cross-tab render events, missed activation recovery, edit ownership and duplicate-render regressions.
 //   - 2026-10-19 v1.15.0: C-70 — picture export transport: table copy/save (built svg, 1-based table index, bare-table fallback), undrawable table warning, diagram SVG save, copy/save failure notices.
 //   - 2026-10-18 v1.14.0: C-60 — footnote toggles invalidate all cached tab blocks without changing Markdown, history or isSaved.
 //   - 2026-08-07 v1.1.0: add UC-030 first-paint and UC-031 preview-caret regression coverage.
@@ -58,10 +60,25 @@
 //   - 2026-10-15 v1.13.0: C-40 T-004 — the preview-exit gestures (mousedown, Cmd+backslash) are suppressed while the tab is locked (locked tabs stay read-only; the chord degrades to the sidebar toggle); copyAsMarkdown handler cases (raw selection write without rendering, whole-document fallback, empty no-op).
 // END_CHANGE_SUMMARY
 
-import { shallowMount } from '@vue/test-utils'
+import { mount, shallowMount, flushPromises } from '@vue/test-utils'
+import { createRequire } from 'node:module'
 import { nextTick } from 'vue'
 import { setupTestPinia } from '../pinia'
 import { createI18n } from 'vue-i18n'
+// C-SEC-EDIT-TARGETING: the matched-passthrough cases read the real rendered
+// identity through the real util (documentOwner mints the tab's
+// documentToken once per document lifetime, during the mount render).
+import { documentOwner } from '@/util/documentSnapshot'
+// C-TABLE-DIALOG-CREATION-VERIFICATION T-002 mutation controls: the restored
+// cases must reject controlled byte-level mutations of the actual editor SFC,
+// so this file reads/writes those bytes and proves exact restoration. The
+// node: prefixes bypass the test aliases ('fs' → fs-shim, 'path' →
+// path-browserify); no dependency, bundling or global test configuration
+// changes.
+import { createHash } from 'node:crypto'
+import { readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { dirname, join, resolve } from 'node:path'
 
 /* ── hoisted mock state ─────────────────────────────────────────── */
 const busMock = vi.hoisted(() => ({
@@ -350,6 +367,58 @@ describe('editor.vue — coverage', () => {
         }
       }
     })
+  }
+
+  // C-TABLE-DIALOG-CREATION-VERIFICATION T-002: opt-in real-control mount,
+  // used ONLY by the two restored table-dialog cases and their mutation
+  // controls; every other case keeps the shallowMount harness above. The
+  // installed Element Plus components load through the library's Node
+  // CommonJS entry (its ESM bundle imports CJS Popper named exports), so
+  // the real dialog/form/numeric-input/button controls — including the real
+  // FocusTrap — render. The Muya mock stays the Muya boundary. The mutation
+  // controls pass `loadEditorComponent` to mount the mutated SFC bytes.
+  const mountEditorWithRealDialog = async (props = {}, attachTo = null, loadEditorComponent = null) => {
+    const Editor = loadEditorComponent
+      ? await loadEditorComponent()
+      : (await import('@/components/editorWithTabs/editor.vue')).default
+    const { ElDialog, ElForm, ElFormItem, ElInputNumber, ElButton } = createRequire(import.meta.url)('element-plus')
+    return mount(Editor, {
+      attachTo,
+      props: {
+        markdown: '# Hello',
+        cursor: null,
+        textDirection: 'ltr',
+        platform: 'darwin',
+        ...props
+      },
+      global: {
+        plugins: [pinia, i18n],
+        components: { ElDialog, ElForm, ElFormItem, ElInputNumber, ElButton },
+        stubs: {
+          EditorSearch: true,
+          CloseIcon: true
+        }
+      }
+    })
+  }
+
+  // The table dialog's DOM identity in element-plus 2.x: `custom-class`
+  // reaches the .el-dialog container as a plain `custom-class` attribute
+  // (element-plus declares no customClass prop), so the honest container
+  // selector is the attribute selector — not `.el-dialog.ag-dialog-table`.
+  const tableDialogContainer = () =>
+    document.querySelector('.el-dialog[custom-class="ag-dialog-table"]')
+
+  // Let the dialog's real opening lifecycle finish: the Element Plus
+  // FocusTrap focuses the dialog container within a few microtasks, while
+  // the `opened` emission (and therefore handleDialogTableOpened) rides the
+  // enter transition, which resolves over requestAnimationFrame frames in
+  // jsdom. No fixed sleeps beyond these owned frames, no timeout weakening.
+  const settleDialogLifecycle = async (frames = 5) => {
+    for (let frame = 0; frame < frames; frame += 1) {
+      await new Promise((resolve) => requestAnimationFrame(resolve))
+    }
+    await flushPromises()
   }
 
   beforeEach(async () => {
@@ -1025,9 +1094,76 @@ describe('editor.vue — coverage', () => {
     expect(mockEditorInstance.format).toHaveBeenCalledWith('bold')
   })
 
-  it.skip('handleEditParagraph opens table dialog for type=table', async () => {
-    // Skipped: shallowMount leaves rowInput ref null, causing unhandled rejection
-    // when nextTick(() => rowInput.value.focus()) runs after dialogTableVisible=true
+  // C-TABLE-DIALOG-CREATION-VERIFICATION T-002: restored on the opt-in real
+  // Element Plus mount (real dialog, form, numeric inputs, buttons and
+  // FocusTrap). Expectations are independently stated — opening defaults,
+  // declared limits, stable row focus, no focus theft, Cancel-no-create and
+  // the reopen reset — never derived from the implementation.
+  it('handleEditParagraph opens table dialog for type=table', async () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    let wrapper
+    try {
+      wrapper = await mountEditorWithRealDialog({ markdown: '# A' }, host)
+      const dialog = wrapper.getComponent({ name: 'ElDialog' })
+      expect(dialog.props('modelValue')).toBe(false)
+
+      // Open through the registered paragraph bus handler.
+      getBusHandler('paragraph')('table')
+      await flushPromises()
+      expect(dialog.props('modelValue')).toBe(true)
+      expect(tableDialogContainer()).toBeTruthy()
+
+      // The real dialog opens at the 4×3 opening defaults with two numeric
+      // controls, and the declared limits are attribute-level on them.
+      const controls = dialog.findAllComponents({ name: 'ElInputNumber' })
+      expect(controls).toHaveLength(2)
+      expect(controls.map((control) => control.props('modelValue'))).toEqual([4, 3])
+      expect(controls.map((control) => [control.props('min'), control.props('max')])).toEqual([[1, 30], [1, 20]])
+      const rowInputInner = controls[0].get('input')
+      const columnInputInner = controls[1].get('input')
+      expect(rowInputInner.attributes('min')).toBe('1')
+      expect(rowInputInner.attributes('max')).toBe('30')
+      expect(columnInputInner.attributes('min')).toBe('1')
+      expect(columnInputInner.attributes('max')).toBe('20')
+
+      // Stable row focus: the trap's own opening sequence commits via
+      // open-auto-focus, focuses the container, and the repaired claim
+      // follows it one tick later — the row input's inner element holds
+      // document.activeElement once the dialog's real lifecycle settles.
+      await vi.waitFor(() => expect(document.activeElement).toBe(rowInputInner.element))
+
+      // Editing + Cancel create nothing and close the dialog.
+      await rowInputInner.setValue('7')
+      await columnInputInner.setValue('5')
+      expect(controls.map((control) => control.props('modelValue'))).toEqual([7, 5])
+      const cancel = wrapper.get('.dialog-footer button:not(.el-button--primary)')
+      expect(cancel).toBeTruthy()
+      await cancel.trigger('click')
+      await flushPromises()
+      expect(dialog.props('modelValue')).toBe(false)
+      expect(mockEditorInstance.createTable).not.toHaveBeenCalled()
+
+      // Reopening resets to the opening defaults.
+      getBusHandler('paragraph')('table')
+      await flushPromises()
+      const reopened = dialog.findAllComponents({ name: 'ElInputNumber' })
+      expect(dialog.props('modelValue')).toBe(true)
+      expect(reopened.map((control) => control.props('modelValue'))).toEqual([4, 3])
+
+      // No focus theft: the trap-ordered claim has landed by the time the
+      // open flush settles; the deliberate move to the columns input then
+      // happens before the lifecycle's final settle (@opened) — the
+      // guarded fallback must never steal the move back.
+      const reopenedColumnInput = reopened[1].get('input')
+      reopenedColumnInput.element.focus()
+      expect(document.activeElement).toBe(reopenedColumnInput.element)
+      await settleDialogLifecycle()
+      expect(document.activeElement).toBe(reopenedColumnInput.element)
+    } finally {
+      wrapper?.unmount()
+      host.remove()
+    }
   })
 
   it('handleEditParagraph calls updateParagraph for non-table types', async () => {
@@ -2192,8 +2328,40 @@ describe('editor.vue — coverage', () => {
   /* ── handlePrintServiceClearup ─────────────────────────────── */
 
   /* ── handleDialogTableConfirm ──────────────────────────────── */
-  it.skip('handleDialogTableConfirm creates table', async () => {
-    // Skipped: same rowInput.focus() issue as table dialog test above
+  // C-TABLE-DIALOG-CREATION-VERIFICATION T-002: restored on the opt-in real
+  // Element Plus mount. The dimensions are typed into the real numeric
+  // inputs (native input events) and the confirmation is the real primary
+  // footer button click — the handler is never called directly.
+  it('handleDialogTableConfirm creates table', async () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    let wrapper
+    try {
+      wrapper = await mountEditorWithRealDialog({ markdown: '# A' }, host)
+      getBusHandler('paragraph')('table')
+      await flushPromises()
+      const dialog = wrapper.getComponent({ name: 'ElDialog' })
+      const controls = dialog.findAllComponents({ name: 'ElInputNumber' })
+      expect(controls).toHaveLength(2)
+      await controls[0].get('input').setValue('7')
+      await controls[1].get('input').setValue('5')
+      expect(controls.map((control) => control.props('modelValue'))).toEqual([7, 5])
+      expect(mockEditorInstance.createTable).not.toHaveBeenCalled()
+
+      const confirm = wrapper.get('.dialog-footer button.el-button--primary')
+      expect(confirm).toBeTruthy()
+      await confirm.trigger('click')
+      await flushPromises()
+
+      // Exactly one createTable dispatch with the user-entered dimensions,
+      // and the dialog is closed afterwards.
+      expect(mockEditorInstance.createTable).toHaveBeenCalledTimes(1)
+      expect(mockEditorInstance.createTable).toHaveBeenCalledWith({ rows: 7, columns: 5 })
+      expect(dialog.props('modelValue')).toBe(false)
+    } finally {
+      wrapper?.unmount()
+      host.remove()
+    }
   })
 
   /* ── keyup listener (Escape closes image viewer) ───────────── */
@@ -2895,6 +3063,454 @@ describe('editor.vue — coverage', () => {
       const warnings = noticeMock.notify.mock.calls.filter(([n]) => n.type === 'warning')
       expect(warnings).toHaveLength(2)
       warn.mockRestore()
+    })
+  })
+
+  // ══ C-SEC-EDIT-TARGETING: editor_ext_targeting ═══════════════════
+  // The ext insert/transform/undo bus handlers are invoked directly (the
+  // diffGuarded wrappers registered on the bus) on a normally rendered
+  // document: the mount's hydrateMountedDocument render sets renderedTabId
+  // and renderedDocumentOwner, so the gate's rendered identity is the real
+  // one — currentFile.id plus documentOwner(currentFile).documentToken
+  // through the real util.
+  describe('editor_ext_targeting — the ext mutation targeting gate (C-SEC-EDIT-TARGETING)', () => {
+    const renderedIdentity = () => ({
+      documentId: editorStore.currentFile.id,
+      documentGeneration: documentOwner(editorStore.currentFile).documentToken
+    })
+
+    const expectNoMutation = () => {
+      expect(mockEditorInstance.setMarkdown).not.toHaveBeenCalled()
+      expect(mockEditorInstance.replace).not.toHaveBeenCalled()
+      expect(mockEditorInstance.insertParagraph).not.toHaveBeenCalled()
+      expect(mockEditorInstance.undo).not.toHaveBeenCalled()
+    }
+
+    // The mount render itself calls setMarkdown once (hydrateMountedDocument
+    // → handleFileChange → editor.setMarkdown). Every case that drives an
+    // ext handler clears the mutation spies AFTER mount so the assertions
+    // count only ext-driven calls.
+    const clearMutationSpies = () => {
+      mockEditorInstance.setMarkdown.mockClear()
+      mockEditorInstance.replace.mockClear()
+      mockEditorInstance.insertParagraph.mockClear()
+      mockEditorInstance.undo.mockClear()
+    }
+
+    it('drops ext-text-transform with a foreign document instance before any mutation, including the setMarkdown fallback', async () => {
+      const wrapper = await mountEditor()
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      try {
+        const transform = getBusHandler('ext-text-transform')
+        expect(transform).toBeTruthy()
+        clearMutationSpies()
+        // A foreign tab id with an otherwise-valid generation.
+        transform({ text: '# Foreign', documentId: 'tab-999', documentGeneration: renderedIdentity().documentGeneration })
+        expectNoMutation()
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('BLOCK_EXT_TARGETING_MISMATCH'))
+        expect(warnSpy.mock.calls.some((call) => String(call[0]).includes('op=transform'))).toBe(true)
+        // A stale generation for the correct tab is equally refused.
+        clearMutationSpies()
+        transform({ text: '# Stale', documentId: editorStore.currentFile.id, documentGeneration: 'document-stale-gen' })
+        // Null identity never matches the rendered instance either.
+        transform({ text: '# Null', documentId: null, documentGeneration: null })
+        expectNoMutation()
+      } finally {
+        warnSpy.mockRestore()
+        wrapper.unmount()
+      }
+    })
+
+    it('drops ext-text-insert with a stale generation before insertParagraph', async () => {
+      const wrapper = await mountEditor()
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      try {
+        const insert = getBusHandler('ext-text-insert')
+        expect(insert).toBeTruthy()
+        clearMutationSpies()
+        insert({ text: 'stale', documentId: editorStore.currentFile.id, documentGeneration: 'document-stale-gen' })
+        expectNoMutation()
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('BLOCK_EXT_TARGETING_MISMATCH'))
+        expect(warnSpy.mock.calls.some((call) => String(call[0]).includes('op=insert'))).toBe(true)
+      } finally {
+        warnSpy.mockRestore()
+        wrapper.unmount()
+      }
+    })
+
+    it('drops ext-undo with no binding at all before any undo dispatch', async () => {
+      const wrapper = await mountEditor()
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      try {
+        const undo = getBusHandler('ext-undo')
+        expect(undo).toBeTruthy()
+        clearMutationSpies()
+        // Unbound relay payload: documentId/documentGeneration undefined.
+        undo({ extensionId: 'ext-unbound' })
+        expectNoMutation()
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('BLOCK_EXT_TARGETING_MISMATCH'))
+        expect(warnSpy.mock.calls.some((call) => String(call[0]).includes('op=undo'))).toBe(true)
+      } finally {
+        warnSpy.mockRestore()
+        wrapper.unmount()
+      }
+    })
+
+    it('a mount that never rendered (no rendered identity) rejects ext ops fail-closed', async () => {
+      // A non-string store markdown skips the mount render paths
+      // (hydrateMountedDocument and reconcileActiveDocument both require a
+      // string), so renderedTabId/renderedDocumentOwner stay null — the
+      // fail-closed half of the gate: a handler with no rendered document
+      // must not mutate on ext ops, whatever the event claims.
+      await seedStores({ markdown: null })
+      const wrapper = await mountEditor()
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      try {
+        const identity = { documentId: 'tab-1', documentGeneration: 'document-any-gen' }
+        getBusHandler('ext-text-transform')({ text: '# Unrendered', ...identity })
+        getBusHandler('ext-text-insert')({ text: 'unrendered', ...identity })
+        getBusHandler('ext-undo')({ extensionId: 'ext-unrendered', ...identity })
+        expectNoMutation()
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('BLOCK_EXT_TARGETING_MISMATCH'))
+        const warns = warnSpy.mock.calls.map((call) => String(call[0])).join('\n')
+        expect(warns.includes('op=transform')).toBe(true)
+        expect(warns.includes('op=insert')).toBe(true)
+        expect(warns.includes('op=undo')).toBe(true)
+      } finally {
+        warnSpy.mockRestore()
+        wrapper.unmount()
+      }
+    })
+
+    it('applies a matched ext-text-transform exactly once via the no-selection setMarkdown fallback', async () => {
+      const wrapper = await mountEditor()
+      clearMutationSpies()
+      const identity = renderedIdentity()
+      getBusHandler('ext-text-transform')({ text: '# Replaced', documentId: identity.documentId, documentGeneration: identity.documentGeneration })
+      expect(mockEditorInstance.setMarkdown).toHaveBeenCalledTimes(1)
+      expect(mockEditorInstance.setMarkdown).toHaveBeenCalledWith('# Replaced')
+      expect(mockEditorInstance.replace).not.toHaveBeenCalled()
+      wrapper.unmount()
+    })
+
+    it('applies a matched ext-text-transform exactly once via the selection replace branch', async () => {
+      const wrapper = await mountEditor()
+      mockEditorInstance.getSelection.mockReturnValue({ selectedText: 'old text' })
+      clearMutationSpies()
+      const identity = renderedIdentity()
+      getBusHandler('ext-text-transform')({ text: 'new text', documentId: identity.documentId, documentGeneration: identity.documentGeneration })
+      expect(mockEditorInstance.replace).toHaveBeenCalledTimes(1)
+      expect(mockEditorInstance.replace).toHaveBeenCalledWith({ value: 'new text', opt: { isSingle: true } })
+      expect(mockEditorInstance.setMarkdown).not.toHaveBeenCalled()
+      expect(mockEditorInstance.insertParagraph).not.toHaveBeenCalled()
+      wrapper.unmount()
+    })
+
+    it('applies a matched ext-text-insert at the cursor', async () => {
+      const wrapper = await mountEditor()
+      clearMutationSpies()
+      const identity = renderedIdentity()
+      getBusHandler('ext-text-insert')({ text: 'inserted', documentId: identity.documentId, documentGeneration: identity.documentGeneration })
+      expect(mockEditorInstance.insertParagraph).toHaveBeenCalledTimes(1)
+      expect(mockEditorInstance.insertParagraph).toHaveBeenCalledWith('after', 'inserted', true)
+      expect(mockEditorInstance.setMarkdown).not.toHaveBeenCalled()
+      wrapper.unmount()
+    })
+
+    it('applies a matched ext-undo', async () => {
+      const wrapper = await mountEditor()
+      clearMutationSpies()
+      const identity = renderedIdentity()
+      getBusHandler('ext-undo')({ extensionId: 'ext-paired', documentId: identity.documentId, documentGeneration: identity.documentGeneration })
+      expect(mockEditorInstance.undo).toHaveBeenCalledTimes(1)
+      wrapper.unmount()
+    })
+
+    it('the diff guard still drops a matched ext mutation before the binding check', async () => {
+      const wrapper = await mountEditor()
+      editorStore.currentFile.diffMode = true
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      try {
+        clearMutationSpies()
+        const identity = renderedIdentity()
+        getBusHandler('ext-text-transform')({ text: '# Diff', documentId: identity.documentId, documentGeneration: identity.documentGeneration })
+        expectNoMutation()
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('BLOCK_DIFF_EDIT_BLOCKED'))
+        expect(warnSpy.mock.calls.some((call) => String(call[0]).includes('BLOCK_EXT_TARGETING_MISMATCH'))).toBe(false)
+      } finally {
+        warnSpy.mockRestore()
+        wrapper.unmount()
+      }
+    })
+  })
+
+  // ── C-TABLE-DIALOG-CREATION-VERIFICATION T-002: mutation controls ──
+  // One-at-a-time controlled mutations of the actual editor.vue bytes must
+  // each break the observable the restored cases pin (missing open/reset/
+  // focus/createTable/close, transposed or ignored dimensions, and a
+  // dropped trapDefault guard), and a temporary revert of the T-001 focus
+  // repair alone must reproduce the strict row-focus failure. Exact pristine
+  // bytes are restored in a finally after every mutation and proven restored
+  // (byte + sha256) after the loop — no mutant enters the candidate. The
+  // probes assert the mutant world affirmatively, so a mutation that did
+  // not actually take effect (drifted anchor) fails the control loudly
+  // instead of passing vacuously.
+  describe('table-dialog mutation controls — the restored cases reject broken dialog lifecycle edits', () => {
+    const editorPath = resolve(
+      dirname(fileURLToPath(import.meta.url)),
+      '../../../src/renderer/src/components/editorWithTabs/editor.vue'
+    )
+    // Normalize CRLF (Windows checkouts) so byte anchors are portable.
+    const pristineBytes = readFileSync(editorPath, 'utf8').replace(/\r\n/g, '\n')
+    const pristineSha256 = createHash('sha256').update(pristineBytes).digest('hex')
+
+    // Each probe loads the mutated SFC under a fresh
+    // `?table-dialog-mutant-<seq>` module id. The module runner has never
+    // seen that id, so the server re-reads the freshly written bytes and
+    // re-runs the SFC transform — the mutant is never served from a cached
+    // transform, and no watcher timing or settle sleep is involved. The
+    // SFC's own dependencies keep their cached module instances, so the
+    // seeded stores and mocks are exactly the ones beforeEach prepared.
+    let mutationImportSeq = 0
+    const importCurrentEditorComponent = async () => {
+      // A literal template import is a variable dynamic import Vite cannot
+      // analyze; a runtime file:// URL with a unique query keeps the module
+      // runner busting its transform cache per mutant.
+      const mutantUrl = pathToFileURL(mutantPath).href + `?table-dialog-mutant-${++mutationImportSeq}`
+      return (await import(/* @vite-ignore */ mutantUrl)).default
+    }
+
+    // Mutations land in a per-run TEMP COPY, never in the shared source:
+    // in the full parallel suite other test files (and the transform
+    // watcher) may read editor.vue at any moment, so on-disk mutation of
+    // the real file is a suite-wide hazard; the mutant module is imported
+    // from the copy by its file URL.
+    // Inside the vite root (module runner rejects outside-root file URLs),
+    // but a dotfile sibling no other test imports.
+    const mutantPath = join(dirname(editorPath), '.editor.mutant.tmp.vue')
+    const applyMutation = (name, patches) => {
+      expect(
+        readFileSync(editorPath, 'utf8').replace(/\r\n/g, '\n'),
+        `precondition for ${name}: exact editor.vue bytes before mutating`
+      ).toBe(pristineBytes)
+      let mutated = pristineBytes
+      for (const [anchor, replacement] of patches) {
+        expect(mutated.includes(anchor), `mutation ${name}: anchor present`).toBe(true)
+        mutated = mutated.replace(anchor, replacement)
+      }
+      expect(mutated, `mutation ${name}: bytes changed`).not.toBe(pristineBytes)
+      writeFileSync(mutantPath, mutated)
+    }
+
+    const restorePristineBytes = (name) => {
+      rmSync(mutantPath, { force: true })
+      expect(
+        readFileSync(editorPath, 'utf8').replace(/\r\n/g, '\n'),
+        `mutation ${name}: shared source untouched`
+      ).toBe(pristineBytes)
+    }
+
+    const withMutation = (name, patches, probe) => async () => {
+      const host = document.createElement('div')
+      document.body.appendChild(host)
+      let wrapper = null
+      try {
+        applyMutation(name, patches)
+        wrapper = await probe(host)
+      } finally {
+        wrapper?.unmount()
+        host.remove()
+        restorePristineBytes(name)
+      }
+    }
+
+    const openDialog = async (wrapper) => {
+      getBusHandler('paragraph')('table')
+      await flushPromises()
+      return wrapper.getComponent({ name: 'ElDialog' })
+    }
+
+    const setSevenByFive = async (wrapper) => {
+      const dialog = wrapper.getComponent({ name: 'ElDialog' })
+      const controls = dialog.findAllComponents({ name: 'ElInputNumber' })
+      await controls[0].get('input').setValue('7')
+      await controls[1].get('input').setValue('5')
+      expect(controls.map((control) => control.props('modelValue'))).toEqual([7, 5])
+      return controls
+    }
+
+    it('rejects a missing dialog open (the real dialog never becomes visible)', withMutation(
+      'missing open',
+      [['    dialogTableVisible.value = true\n', '']],
+      async (host) => {
+        const wrapper = await mountEditorWithRealDialog({}, host, importCurrentEditorComponent)
+        const dialog = await openDialog(wrapper)
+        // Case 1's "the real dialog is visible at 4×3" step fails here.
+        expect(dialog.props('modelValue')).toBe(false)
+        expect(tableDialogContainer()).toBeNull()
+        return wrapper
+      }
+    ))
+
+    it('rejects a missing 4×3 reset (reopening keeps the edited values)', withMutation(
+      'missing reset',
+      [['    tableChecker.rows = 4\n    tableChecker.columns = 3\n', '']],
+      async (host) => {
+        const wrapper = await mountEditorWithRealDialog({}, host, importCurrentEditorComponent)
+        const dialog = await openDialog(wrapper)
+        await setSevenByFive(wrapper)
+        await wrapper.get('.dialog-footer button:not(.el-button--primary)').trigger('click')
+        await flushPromises()
+        const reopenedControls = (await openDialog(wrapper)).findAllComponents({ name: 'ElInputNumber' })
+        // Case 1's "reopening resets to the opening defaults" step fails here.
+        expect(reopenedControls.map((control) => control.props('modelValue'))).toEqual([7, 5])
+        return wrapper
+      }
+    ))
+
+    it('rejects a missing opened-focus claim (the trap container keeps focus)', withMutation(
+      'missing focus claim',
+      [['  rowInput.value?.focus()\n', '']],
+      async (host) => {
+        const wrapper = await mountEditorWithRealDialog({}, host, importCurrentEditorComponent)
+        await openDialog(wrapper)
+        await settleDialogLifecycle()
+        const rowInputInner = wrapper.find('.el-form-item:first-child input.el-input__inner')
+        const container = tableDialogContainer()
+        // Case 1's "stable row focus after the lifecycle settles" step fails
+        // here: the FocusTrap's opening container focus is never superseded.
+        expect(document.activeElement).toBe(container)
+        expect(document.activeElement).not.toBe(rowInputInner.element)
+        return wrapper
+      }
+    ))
+
+    it('rejects a missing createTable dispatch (OK creates nothing)', withMutation(
+      'missing creation',
+      [['  editor.value && editor.value.createTable(tableChecker)\n', '']],
+      async (host) => {
+        const wrapper = await mountEditorWithRealDialog({}, host, importCurrentEditorComponent)
+        await openDialog(wrapper)
+        await setSevenByFive(wrapper)
+        await wrapper.get('.dialog-footer button.el-button--primary').trigger('click')
+        await flushPromises()
+        // Case 2's "exactly one createTable call with { rows: 7, columns: 5 }"
+        // step fails here — the mutant world has no dispatch at all.
+        expect(mockEditorInstance.createTable).not.toHaveBeenCalled()
+        return wrapper
+      }
+    ))
+
+    it('rejects transposed dimensions (the entered 7×5 reaches Muya as 5×7)', withMutation(
+      'transposed dimensions',
+      [['editor.value.createTable(tableChecker)', 'editor.value.createTable({ rows: 5, columns: 7 })']],
+      async (host) => {
+        const wrapper = await mountEditorWithRealDialog({}, host, importCurrentEditorComponent)
+        await openDialog(wrapper)
+        await setSevenByFive(wrapper)
+        await wrapper.get('.dialog-footer button.el-button--primary').trigger('click')
+        await flushPromises()
+        // Case 2's payload step fails here: the single dispatch carries the
+        // transposed dimensions instead of the user-entered 7×5.
+        expect(mockEditorInstance.createTable).toHaveBeenCalledTimes(1)
+        expect(mockEditorInstance.createTable).toHaveBeenCalledWith({ rows: 5, columns: 7 })
+        expect(mockEditorInstance.createTable).not.toHaveBeenCalledWith({ rows: 7, columns: 5 })
+        return wrapper
+      }
+    ))
+
+    it('rejects ignored dimensions (the entered 7×5 is discarded for stale defaults)', withMutation(
+      'ignored dimensions',
+      [['editor.value.createTable(tableChecker)', 'editor.value.createTable({ rows: 4, columns: 3 })']],
+      async (host) => {
+        const wrapper = await mountEditorWithRealDialog({}, host, importCurrentEditorComponent)
+        await openDialog(wrapper)
+        await setSevenByFive(wrapper)
+        await wrapper.get('.dialog-footer button.el-button--primary').trigger('click')
+        await flushPromises()
+        // Case 2's payload step fails here: the single dispatch carries the
+        // stale opening defaults instead of the user-entered 7×5.
+        expect(mockEditorInstance.createTable).toHaveBeenCalledTimes(1)
+        expect(mockEditorInstance.createTable).toHaveBeenCalledWith({ rows: 4, columns: 3 })
+        expect(mockEditorInstance.createTable).not.toHaveBeenCalledWith({ rows: 7, columns: 5 })
+        return wrapper
+      }
+    ))
+
+    it('rejects an omitted close (OK leaves the dialog open)', withMutation(
+      'omitted close',
+      [['  dialogTableVisible.value = false\n', '']],
+      async (host) => {
+        const wrapper = await mountEditorWithRealDialog({}, host, importCurrentEditorComponent)
+        const dialog = await openDialog(wrapper)
+        await setSevenByFive(wrapper)
+        await wrapper.get('.dialog-footer button.el-button--primary').trigger('click')
+        await flushPromises()
+        // Case 2's "the dialog is closed afterwards" step fails here.
+        expect(mockEditorInstance.createTable).toHaveBeenCalledTimes(1)
+        expect(dialog.props('modelValue')).toBe(true)
+        return wrapper
+      }
+    ))
+
+    it('rejects a dropped trapDefault guard (the opened claim steals a deliberate user focus)', withMutation(
+      'dropped trapDefault guard',
+      [['  if (!trapDefault) return\n', '']],
+      async (host) => {
+        const wrapper = await mountEditorWithRealDialog({}, host, importCurrentEditorComponent)
+        const dialog = await openDialog(wrapper)
+        const controls = dialog.findAllComponents({ name: 'ElInputNumber' })
+        // The trap-ordered claim has landed by now (rows hold focus). A
+        // deliberate user move to the columns input must never be stolen
+        // back: the only later claim entry is the @opened fallback, which
+        // re-runs this same guarded claim body after the opening
+        // transition. jsdom's v-show enter transition does not deliver
+        // afterEnter/opened within the settle window (the guard-dropped
+        // mutant provably keeps the user's focus through it), so the probe
+        // settles for environments where it does deliver and then drives
+        // that exact entry — the same function the @opened binding
+        // invokes — at the user-moved moment.
+        const columnInputInner = controls[1].get('input')
+        columnInputInner.element.focus()
+        expect(document.activeElement).toBe(columnInputInner.element)
+        await settleDialogLifecycle()
+        const fallbackClaim = wrapper.vm.$.setupState.handleDialogTableOpened
+        expect(typeof fallbackClaim, 'the @opened fallback claim is reachable on the mounted component').toBe('function')
+        fallbackClaim()
+        // Guard dropped → the mutant steals the focus back to rows over
+        // the user's move (case 1's no-focus-theft step fails here). In the
+        // pristine world the same call declines, so this assertion is
+        // non-vacuous: it rejects pristine bytes too.
+        expect(document.activeElement).toBe(controls[0].get('input').element)
+        return wrapper
+      }
+    ))
+
+    it('a temporary revert of the T-001 focus repair alone reproduces the strict row-focus failure', withMutation(
+      'revert of the T-001 focus repair',
+      [
+        ['      dir="ltr"\n      @opened="handleDialogTableOpened"\n      @open-auto-focus="handleDialogTableTrapFocused"\n    >', '      dir="ltr"\n    >'],
+        ['    dialogTableVisible.value = true\n  } else if', '    dialogTableVisible.value = true\n    nextTick(() => {\n      rowInput.value.focus()\n    })\n  } else if']
+      ],
+      async (host) => {
+        const wrapper = await mountEditorWithRealDialog({}, host, importCurrentEditorComponent)
+        await openDialog(wrapper)
+        await settleDialogLifecycle()
+        const rowInputInner = wrapper.find('.el-form-item:first-child input.el-input__inner')
+        const container = tableDialogContainer()
+        // The documented pre-fix end state is back: the pre-trap nextTick
+        // claim lands first and the FocusTrap's opening container focus
+        // overwrites it, so case 1's stable-row-focus step fails.
+        expect(document.activeElement).toBe(container)
+        expect(document.activeElement).not.toBe(rowInputInner.element)
+        return wrapper
+      }
+    ))
+
+    it('proves the exact editor.vue bytes are restored after the mutation loop', () => {
+      const finalBytes = readFileSync(editorPath, 'utf8').replace(/\r\n/g, '\n')
+      expect(finalBytes).toBe(pristineBytes)
+      expect(createHash('sha256').update(finalBytes).digest('hex')).toBe(pristineSha256)
     })
   })
 })

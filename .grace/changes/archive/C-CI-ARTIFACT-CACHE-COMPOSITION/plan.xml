@@ -1,0 +1,115 @@
+<GraceChangePlan graceVersion="4.0" status="superseded">
+  <C-CI-ARTIFACT-CACHE-COMPOSITION>
+    <ReplacementChange>C-CI-ARTIFACT-CACHE-FAILURE-CLEANUP</ReplacementChange>
+    <SupersessionReason>Independent review of the tested source union identified two additional QA permission/output cleanup failure paths; bounded successor owns their reproduction and minimal correction before any hosted publication.</SupersessionReason>
+    <IntentSummary>Compose cache and both native artifact lifecycle source changes, prove the exact candidate and deliver ordinary CI under preserved release boundaries.</IntentSummary>
+    <ReferenceState>Fresh main5599b1e9f83419af123c1dc71981c8037c5a6e51; current0errors4existingwarnings before observed writes. Three separately approved source owners and root-reviewed archives/projections are the inputs; no published intermediate cache head.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-046</Value>
+      </MustExist>
+      <MustContain>
+        <File>.github/workflows/ci.yml</File>
+        <Text>run: cargo test</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-046</Module>
+      </MustVerify>
+      <MustContain>
+        <File>.github/workflows/test.yml</File>
+        <Text>cargo-workspace-v1</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/ci.yml</File>
+        <Text>node tools/run-rust-tests.mjs</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release-tauri.yml</File>
+        <Text>qa-artifact-smoke.mjs</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>qa_test_case</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="120">node node_modules/vitest/vitest.mjs run tests/tools/cargo-workspace-cache.test.mjs tests/tools/run-rust-tests.test.mjs tests/tools/ci-rust-test-lifecycle.test.mjs tests/tools/prepare-qa-artifacts.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/run-qa-rust-tests.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="30">cargo metadata --locked --offline --no-deps --format-version 1</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="30">npm run release:governance</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-046 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-046 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>.github/workflows/ci.yml</File>
+      <File>.github/workflows/test.yml</File>
+      <File>.github/workflows/release.yml</File>
+      <File>.github/workflows/release-tauri.yml</File>
+      <File>tools/run-rust-tests.mjs</File>
+      <File>tools/prepare-qa-artifacts.mjs</File>
+      <File>tools/qa-artifact-smoke.mjs</File>
+      <File>tools/run-qa-rust-tests.mjs</File>
+      <File>tests/tools/cargo-workspace-cache.test.mjs</File>
+      <File>tests/tools/run-rust-tests.test.mjs</File>
+      <File>tests/tools/ci-rust-test-lifecycle.test.mjs</File>
+      <File>tests/tools/prepare-qa-artifacts.test.mjs</File>
+      <File>tests/tools/qa-artifact-smoke.test.mjs</File>
+      <File>tests/tools/run-qa-rust-tests.test.mjs</File>
+      <File>tests/renderer/release-github-controls.test.js</File>
+      <File>tests/renderer/release-preflight.test.js</File>
+      <File>docs/acceptance/README.md</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Compose exact observed source and verify original workflow boundaries</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Verify original source/approval hashes before copy. Keep generic Rust ci/test workflow source and merge only exact root target/key hunks into QA release/release-tauri workflows. Copy four helpers/six tool tests/two renderer controls/acceptance README from settled owners. No current XML/archive/public mutation by worker.</Criterion>
+          <Criterion>Preserve complete original checks/actions/cache/production job control AST outside the intended union. Run affected suites, locked metadata, governance/syntax/diff; report any genuine test incompatibility rather than weaken controls.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node node_modules/vitest/vitest.mjs run tests/tools/cargo-workspace-cache.test.mjs tests/tools/run-rust-tests.test.mjs tests/tools/ci-rust-test-lifecycle.test.mjs tests/tools/prepare-qa-artifacts.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/run-qa-rust-tests.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2</Command>
+          <Command>cargo metadata --locked --offline --no-deps --format-version 1</Command>
+          <Command>npm run release:governance</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Reconcile durable ownership and run combined final</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Root copies four original completed/retired bundles unchanged, merges M046/VM046 additions onto actualmain and proves reverse/outside identity. Keep required native fault/hosted/manual acceptance distinctions.</Criterion>
+          <Criterion>Independent source-bound Standards/Spec review and all three target/final leaf commands pass on actual composed source. Synthetic child tests keep finally cleanup; no app/build/manual dispatch required for local source verification.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node node_modules/vitest/vitest.mjs run tests/tools/cargo-workspace-cache.test.mjs tests/tools/run-rust-tests.test.mjs tests/tools/ci-rust-test-lifecycle.test.mjs tests/tools/prepare-qa-artifacts.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/run-qa-rust-tests.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2</Command>
+          <Command>cargo metadata --locked --offline --no-deps --format-version 1</Command>
+          <Command>npm run release:governance</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Archive and perform ordinary exact-head integration</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Root only after successful fresh final/review may set applied/archive preserving approved bodies, then rerun current/status. Normal exact-candidate commit/push gates remain mandatory; no intermediate cache-only head published.</Criterion>
+          <Criterion>Create pre-labeled operational PR, observe exact-head required and configured CI including native cleanup,3OS/cache evidence and guarded current-base integration. Keep manual/owner acceptance open. Collecting bookkeeping follows separately; no release action.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>git diff --check</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+    <ExecutionMode>sequential</ExecutionMode>
+    <Lifecycle>Explicit owner technical delegation approves bounded integration; root owns current XML/final/archive/delivery. Original applied bundles remain immutable inputs. Manual/platform/owner/release boundaries are unchanged.</Lifecycle>
+  </C-CI-ARTIFACT-CACHE-COMPOSITION>
+</GraceChangePlan>

@@ -1,0 +1,29 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-BOOKMARK-PERSISTENCE-DURABILITY>
+    <Summary>Preserve previously saved macOS access bookmarks when a new grant cannot be persisted, and visibly distinguish current access from durable permission.</Summary>
+    <Goals>
+      <R-1>Return an explicit typed outcome from remember. Write a complete sibling candidate with create_new, write_all and sync_all, then atomically rename it over the store. Change in-memory bookmarks and bounded eviction only after that commit succeeds.</R-1>
+      <R-2>Before commit, directory, serialization, create, write, sync and replacement failures preserve the previous disk and memory state. Remove only this operation's temporary file. Retain schema version 1, namespace, codec, cap 256 and ancestor resolution.</R-2>
+      <R-3>Each grant caller and stale refresh handles failure while preserving current OS-granted access, pending opens and recents behavior. Queue a content-free failure indication until the main renderer is ready; show a sticky deduplicated notification explaining that access was not saved and a later restart may require selecting the file or folder again.</R-3>
+    </Goals>
+    <Constraints>
+      <Constraint>Original TECH:F-004 only. Policy A is a delegated technical decision preserving existing usable work; it is not a claim of an individual owner answer to an earlier request.</Constraint>
+      <Constraint>No new dependency, capability, grant, schema, signing, release, version or tag changes. Non-macOS remember remains a successful no-op. Bookmark creation failure becomes an explicit unavailable outcome on macOS.</Constraint>
+      <Constraint>Serialize updates under the existing store mutex. Claim complete JSON replacement for normal restart, not hardware/power-loss durability or a new multiprocess protocol. Never claim rollback after the rename commit point.</Constraint>
+      <Constraint>Change only the bookmark module, its existing callers, main command/event wiring, boot warning consumption, localized message entries and bounded tests. Preserve unrelated main/compat behavior. Root integrator owns durable graph/verification apply.</Constraint>
+    </Constraints>
+    <NonGoals><NonGoal>No security-scope lifetime redesign, migration of invalid historical stores, new UI surface, blocking grant policy, automatic grant retry or signing-boundary work.</NonGoal></NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Real filesystem directory-at-target, parent-is-file and child-only midwrite fault checks preserve prior valid JSON and memory. Successful insert/update/reload and cap eviction retain the existing format and leave no owned temporary files.</Criterion>
+      <Criterion>Typed failures cover unavailable data root and precommit create/write/sync/rename failures. Fault injection exercises production transaction boundaries; a real child file-size limit independently tests actual partial-write failure.</Criterion>
+      <Criterion>All four callers and stale refresh consume failure without losing or duplicating current work. A failure before listener readiness reaches one visible deduplicated sticky card; repeated live events, no-failure startup and drain rejection are checked.</Criterion>
+      <Criterion>Relevant Rust and renderer tests pass, with exact-source artifact/process/digest evidence and removal of task-owned executables. Hosted supported-platform checks and native sandbox reopen remain explicit acceptance gates, never inferred from unsandboxed or browser doubles.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas><M-047/><M-001/><M-017/><M-011/><M-067/></AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --bin mark m047_bookmarks::tests</ExpectedCommand>
+      <ExpectedCommand>node node_modules/vitest/vitest.mjs run tests/renderer/bookmark-persistence-warning.test.js tests/renderer/bootstrap-ipc.test.ts tests/renderer/store/bootstrap-ipc-coverage.test.js --maxWorkers=2</ExpectedCommand>
+      <ExpectedEvidence>Existing baseline actual CF and mid-write fault receipts; new failing-first transaction regression; current source native fault matrix; boot delivery and notification-store assertions. Current integrity, final gates and required hosted contexts before integration; real sandbox reopen remains separate.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-BOOKMARK-PERSISTENCE-DURABILITY>
+</GraceChangeSpec>

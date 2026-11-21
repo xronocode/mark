@@ -1,9 +1,9 @@
 # FILE: .github/workflows/release-governance.yml
-# VERSION: 1.4.0
+# VERSION: 1.5.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Expose the stable release/governance and docs-security required checks for ordinary pull requests and main without demanding a frozen release train.
-#   SCOPE: Read-only Conventional title/admission, repository governance, schema, focused regression validation and the committed-range leak scan; an optional push-main job uses one dedicated secret to reconcile the non-authoritative public Project mirror.
-#   DEPENDS: M-046 release-governance, bounded action-reference and Project-sync tools; tools/security_gate.py scan-diff with the Gitleaks binary; Node 22; locked npm dependencies; PROJECT_MIRROR_AUTH for the optional push-main mirror only.
+#   SCOPE: Read-only Conventional title/admission, repository governance, schema, focused regression validation and the committed-range leak scan over a digest-verified pinned Gitleaks binary; an optional push-main job uses one dedicated secret to reconcile the non-authoritative public Project mirror.
+#   DEPENDS: M-046 release-governance, bounded action-reference and Project-sync tools; tools/security_gate.py scan-diff with the digest-verified pinned Gitleaks binary; Node 22; locked npm dependencies; PROJECT_MIRROR_AUTH for the optional push-main mirror only.
 #   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046.
 #   ROLE: CONFIG
 #   MAP_MODE: SUMMARY
@@ -17,6 +17,7 @@
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-11-21 C-SEC-GITLEAKS-CHECKSUM: download the pinned Gitleaks v8.30.1 archive to a temporary file, verify it against the committed GITLEAKS_SHA256 digest with sha256sum --check --strict before any extraction or execution, and fail the docs-security job closed on mismatch (F-011, F-005).
 #   - 2026-11-12 C-RELEASE-ACTION-REFERENCES: verify privileged action commits and metadata using the existing read-only governance token.
 #   - 2026-11-09 v1.4.0: add the always-on docs-security job (owner instruction) — tools/security_gate.py scan-diff over origin/main..HEAD with a pinned Gitleaks binary, applying the local gate's exposure and secret rules to every pull-request diff so the docs-only CI lane cannot bypass leak review.
 #   - 2026-10-20 v1.3.0: fetch full history for the governance job so the release-boundary normalization regression can inspect its pinned bootstrap commit in CI.
@@ -39,6 +40,17 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  # Digest of the exact upstream artifact gitleaks_8.30.1_linux_x64.tar.gz
+  # from the gitleaks v8.30.1 release checksum listing, confirmed out-of-band
+  # (second independent source, or the owner's locally installed gate archive
+  # of the same version) before merge; derivation recorded in the change bundle.
+  # The URL pin and this digest are one reviewed unit: bump together with the
+  # local install (tools/security_gate.py), never one without the other.
+  # 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb is a blocked placeholder: the governance tests
+  # require a lowercase 64-hex digest here, so a forgotten placeholder fails CI.
+  GITLEAKS_SHA256: '551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb'
+
 jobs:
   docs-security:
     name: docs-security
@@ -56,10 +68,13 @@ jobs:
       - name: install pinned Gitleaks
         run: |
           set -euo pipefail
-          # Pinned to the owner's local gate version so CI and the local gate
-          # apply the same rule set; bump together with the local install.
-          curl -fsSL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz \
-            | tar -xz -C /usr/local/bin gitleaks
+          # Download to a temporary file first: unverified bytes are never
+          # piped into tar and nothing executes before the digest matches.
+          archive="$(mktemp "${RUNNER_TEMP:-/tmp}/gitleaks_8.30.1_linux_x64.tar.gz.XXXXXX")"
+          curl -fsSL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz -o "$archive"
+          echo "$GITLEAKS_SHA256  $archive" | sha256sum --check --strict -
+          tar -xzf "$archive" -C /usr/local/bin gitleaks
+          rm -f "$archive"
           gitleaks version
 
       - name: committed-range exposure and secret scan

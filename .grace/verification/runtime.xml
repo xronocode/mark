@@ -18,7 +18,7 @@
       <Command>cargo test --manifest-path src-tauri/Cargo.toml --bin mark link_click_</Command>
       </Commands>
       <Scenarios>
-        <scenario-settings-window-restore>C-SETTINGS-WINDOW-RESTORE: isolated real-native minimized General reopens visibly at General; fresh Word-export notice restores the same minimized Settings at Export. Hidden, visible and fresh-window controls preserve identity, fixed shell, section routing and close/reopen. Export document.xml marker and unchanged source bytes are verified separately from renderer navigation tests. Native results, source/artifact hashes and normal Quit/deletion evidence accompany acceptance; renderer doubles alone do not establish restoration.</scenario-settings-window-restore>
+        <scenario-settings-window-restore>C-SETTINGS-WINDOW-RESTORE: isolated real-native minimized General reopens visibly at General; fresh Word-export notice restores the same minimized Settings at Export. Hidden, visible and fresh-window controls preserve identity, fixed shell, section routing and close/reopen. Export document.xml marker and unchanged source bytes are verified separately from renderer navigation tests. Native results, source/artifact hashes and normal Quit/deletion evidence accompany acceptance; renderer doubles alone do not establish restoration.</scenario-settings-window-restore>        <scenario-bookmark-durability-v-m-001>C-BOOKMARK-PERSISTENCE-DURABILITY: main-only warning consumption rejects Settings and other labels without consuming pending state. Existing compatibility and validator coverage retains folder grants and pending-open delivery.</scenario-bookmark-durability-v-m-001>
         <scenario-security-stream-state>C-SEC-STREAM-AUTH: the full backend test binary compiles the managed live-server state and generic disable command; mock-runtime fixtures prove disable reaches exactly the owner session.</scenario-security-stream-state>
         <scenario-metadata-t001-vm001>T-001: required format deserialization, UTF-16 BOM/CRLF exact bytes and echoed format; invalid/unsupported/mixed/BOM/unrepresentable policies preserve an existing byte sentinel and create no missing parent. Owned-path and sandbox regressions remain unchanged.</scenario-metadata-t001-vm001>
         <scenario-md-link-m001-route>C-MD-LINK-TABS: link_click_document_has_internal_destination fails on the OS-only baseline. The production dispatch seam selects exactly one document/web/local sink; real document payload reading and an unreadable UTF-8 target prove no empty event or OS fallback. Existing canonical aliases, traversal and executable guards remain. Native current-window/process evidence is recorded separately.</scenario-md-link-m001-route>
@@ -466,7 +466,8 @@
         </closed-evidence>
       </LegacyBase>
       <LegacySource>docs/verification-plan.xml: V-M-001</LegacySource>
-    </V-M-001>
+            <scenario-sec-save-handle-m001>C-SEC-SAVE-HANDLE: save/snapshot race refusals — a leaf symlink planted in the window is refused, outer bytes untouched — verified by the two m001 race tests on the deterministic cfg-test seam.</scenario-sec-save-handle-m001>
+</V-M-001>
     <V-M-002>
       <Priority>critical</Priority>
       <Commands>
@@ -797,7 +798,8 @@
         </negative-assertions>
       </LegacyBase>
       <LegacySource>docs/verification-plan.xml: V-M-002</LegacySource>
-    </V-M-002>
+            <scenario-sec-save-handle-m002>C-SEC-SAVE-HANDLE: the three fs.rs race shapes (leaf outward, ancestor swapped outward, leaf inward planted in the window) each deny with outer bytes untouched; the allowance suite stays green — 40/40 on m013b::fs.</scenario-sec-save-handle-m002>
+</V-M-002>
     <V-M-003>
       <Priority>critical</Priority>
       <Commands>
@@ -1537,7 +1539,8 @@
         </closed-evidence>
       </LegacyBase>
       <LegacySource>docs/verification-plan.xml: V-M-004</LegacySource>
-    </V-M-004>
+            <scenario-search-session-completion>C-SEARCH-SESSION-COMPLETION: the session-trace family — two-root single-terminal, strictly increasing seq across the root boundary, pre/mid/between-root cancellation shapes, error stopping remaining roots for both adapters, one-shot finalize, post-terminal silence and cross-session isolation — runs through the production run_session; the renderer two-root scenarios drive the real consumer class with captured envelopes.</scenario-search-session-completion>
+</V-M-004>
     <V-M-005>
       <Priority>high</Priority>
       <Commands>
@@ -1582,7 +1585,8 @@
         module; see .grace/changes/archive/C-13. The live preferences
         store scenarios and markers above remain authoritative.
       </RetiredByC-13>
-    </V-M-005>
+            <scenario-sec-save-handle-m005>C-SEC-SAVE-HANDLE: reference-only — the m005_prefs suite (19/19) is untouched evidence.</scenario-sec-save-handle-m005>
+</V-M-005>
     <V-M-006>
       <Priority>medium</Priority>
       <Commands>
@@ -3330,10 +3334,12 @@
         </negative-assertions>
       </LegacyBase>
       <LegacySource>docs/verification-plan.xml: V-M-010</LegacySource>
-    </V-M-010>
+            <scenario-sec-save-handle-m010>C-SEC-SAVE-HANDLE: check_path unchanged (34/34); the re-fence reuse is covered through the fs.rs race tests.</scenario-sec-save-handle-m010>
+</V-M-010>
     <V-M-011>
       <Priority>critical</Priority>
       <Commands>
+        <Command>node node_modules/vitest/vitest.mjs run tests/renderer/bookmark-persistence-warning.test.js tests/renderer/bootstrap-ipc.test.ts tests/renderer/store/bootstrap-ipc-coverage.test.js --maxWorkers=2</Command>
         <Command>node node_modules/vitest/vitest.mjs run tests/renderer/components/projectSearch/index.test.js tests/renderer/chrome/chrome-platform.test.js tests/renderer/store/search.test.ts tests/renderer/store/search-coverage.test.js --maxWorkers=2</Command>
         <Command>node node_modules/vitest/vitest.mjs run tests/renderer/util/extension-theme-tokens.test.js tests/renderer/components/extensionGallery.test.js tests/renderer/components/extensionGallery/index.test.js tests/renderer/components/liveViewer.test.js tests/renderer/components/liveViewer/index.test.js tests/renderer/store/live-stream-ownership.test.js</Command>
         <Command>npx --no-install vitest run tests/renderer/store/export-defaults-dispatch.test.js tests/renderer/store/export-docx-dispatch.test.js tests/renderer/components/titleBar-popover.test.js tests/renderer/contextMenu/tabs-export.test.js tests/renderer/components/editor-print-clearup.test.js tests/renderer/components/editor-export-images.test.js --maxWorkers=2</Command>
@@ -3541,6 +3547,7 @@
         <Command>npx --no-install vitest run tests/renderer/prefComponents/keybindings-deep.test.js tests/renderer/pages/keybindings.test.js tests/renderer/pages/keybindingConfigurator.test.js tests/renderer/pages/shortcut-dialog.test.js</Command>
       </Commands>
       <Scenarios>
+        <scenario-bookmark-durability-v-m-011>C-BOOKMARK-PERSISTENCE-DURABILITY: boot and live wakeups drain in serialized order; secondary windows cannot consume global warnings. Tests cover cold recovery, no pending state, invoke rejection, overlapping wakeups and actual sticky notification-store deduplication.</scenario-bookmark-durability-v-m-011>
         <scenario-settings-keyboard-focus>C-SETTINGS-KEYBOARD-FOCUS: real Tab or explicitly recorded WebKit Option-Tab reaches the shared switch, native select and segment controls in Paper and Ink; a two-pixel preference-accent outline with one-pixel offset identifies focus separately from on/selected/nearest-preset state and disappears on Tab away. The existing Chromium and webkit-settings settings-shell command covers actual Settings and Quick Settings consumers, textbox and pointer-first controls, unchanged values/geometry/aria-checked and zero additional preference writes after observed fixture bootstrap persistence. Runtime templates/scripts and all other component styles remain unchanged. Native application observations and owner/platform verdicts remain separate from renderer-shim evidence.</scenario-settings-keyboard-focus>
         <scenario-project-search-chrome-accent>Project-search active option text and borders follow the existing scenario-56 chrome accent contract, matching document-search active controls. Built-renderer comparison in Paper/Ink covers all three options, inactive/active/hover states and a narrow desktop viewport while preserving search behavior and document theme colors. Browser evidence does not replace native owner/platform acceptance.</scenario-project-search-chrome-accent>
         <scenario-extension-surface-theme-tokens>Gallery and LiveViewer style variable references must resolve against the shipped Paper and Ink theme declarations, preventing light fallback backgrounds in dark appearance. Existing mounted gallery actions and live-session ownership tests retain their behavior coverage. Built renderer browser comparison covers gallery normal/hover and an accepted live session; native owner/platform acceptance remains separate.</scenario-extension-surface-theme-tokens>
@@ -5949,7 +5956,10 @@
         </negative-assertions>
       </LegacyBase>
       <LegacySource>docs/verification-plan.xml: V-M-011</LegacySource>
-    </V-M-011>
+            <scenario-table-dialog-verification>C-TABLE-DIALOG-CREATION-VERIFICATION: real-mount dialog lifecycle — stable row focus through the trap-ordered claim, 4×3 defaults with 1–30/1–20 limits, Cancel-no-create, exactly one createTable with typed dimensions — verified by the restored component cases with ten mutation probes plus the three browser scenarios in chromium and webkit-tables.</scenario-table-dialog-verification>
+        <scenario-external-reload-operation>C-EXTERNAL-RELOAD-OPERATION: the owner matrix — policy rows, ready-data admission, settle/read races (edits during settle never start a read), one-shot generation-bound confirmation lifecycle, choice-time vs dispatch-time captures, attempt identity binding across close/reopen/rename, manifest and commit pins preserving the legacy order, stale/declined/skipped byte-identical mutation controls — verified by the 109-test trio plus the live-reload-scroll browser scenarios.</scenario-external-reload-operation>
+        <scenario-sec-edit-targeting-m011>C-SEC-EDIT-TARGETING: the editor gate — foreign instance, stale generation, missing binding and never-rendered identity all reject insert/transform/undo before any mutation (including the whole-document fallback), matched bindings proceed, diff guard still first — verified by the nine-case editor_ext_targeting family plus the relay pins (270 renderer tests green).</scenario-sec-edit-targeting-m011>
+</V-M-011>
     <V-M-012>
       <Priority>critical</Priority>
       <Commands>
@@ -8467,7 +8477,10 @@
         </negative-assertions>
       </LegacyBase>
       <LegacySource>docs/verification-plan.xml: V-M-012</LegacySource>
-    </V-M-012>
+            <scenario-table-profile-schema>C-TABLE-PROFILE-SCHEMA: the shared schema owner behind both persisted-entry consumers — six historical mode families through each adapter, array/width edge shapes, the intentional truthy-empty-ratios vs null asymmetry, input immutability and legacy-precedence change detection — verified by the four-suite delegation pins and the table-width-persistence plus table-modes browser scenarios.</scenario-table-profile-schema>
+        <scenario-table-layout-completion>C-TABLE-LAYOUT-COMPLETION: the completion matrix — every COMPLETION_CAUSE × readiness × write-permit outcome including hidden/zero-geometry deferred layout, rollback baselines, reset re-fit-before-persist, remember-off gating, measurement-independence and read-only absence-of-write — verified by the 151-test three-suite run plus the four table browser specs in both engines (86 passed).</scenario-table-layout-completion>
+        <scenario-pele-html-postprocess>C-PELE-HTML-POSTPROCESS: export post-processing parity — pie donut-hole geometry/fill across appearances, kanban byte-parity with the post-processor output, flowchart no-op, both export APIs carrying processed SVG with preserved theme variables, and mixed valid/invalid sources — verified by the 54-test four-suite run plus the diagram-appearance browser scenarios in both engines (14 passed).</scenario-pele-html-postprocess>
+</V-M-012>
     <V-M-013>
       <Priority>high</Priority>
       <Commands>
@@ -8734,7 +8747,8 @@
         </negative-assertions>
       </LegacyBase>
       <LegacySource>docs/verification-plan.xml: V-M-013</LegacySource>
-    </V-M-013>
+            <scenario-search-session-m013b>C-SEARCH-SESSION-COMPLETION: inline cargo suite 41/41 on the bin mark search filter with unchanged budgets and quiet caps; rg-guarded parity tests included.</scenario-search-session-m013b>
+</V-M-013>
     <V-M-013-A>
       <Priority>critical</Priority>
       <Commands>
@@ -10469,6 +10483,7 @@
         <Command>cargo test --manifest-path src-tauri/Cargo.toml recent</Command>
       </Commands>
       <Scenarios>
+        <scenario-bookmark-durability-v-m-017>C-BOOKMARK-PERSISTENCE-DURABILITY: recent-add retains its existing behavior when bookmark persistence fails and emits the queued guidance instead of suppressing the failure.</scenario-bookmark-durability-v-m-017>
         <Scenario>scenario-1: Add 20 paths; list returns last 12 deduplicated.</Scenario>
         <Scenario>scenario-2: macOS: NSDocumentController.noteNewRecentDocumentURL invoked.</Scenario>
         <Scenario>
@@ -12776,12 +12791,10 @@
     <V-M-047>
       <Priority>high</Priority>
       <Commands>
-        <Command>
-          cd src-tauri &amp;&amp; cargo test --bin mark --manifest-path
-          src-tauri/Cargo.toml m047
-        </Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --bin mark m047_bookmarks::tests</Command>
       </Commands>
       <Scenarios>
+        <scenario-bookmark-durability-transaction>C-BOOKMARK-PERSISTENCE-DURABILITY: production transaction fault boundaries preserve prior disk bytes, memory and cap eviction on precommit write/sync/rename failure; directory/parent failures leave no owned temporary files. Insert/update/reload retains version 1 and private candidate mode. Actual macOS CF child-only file-size-limit partial writes preserve two previous grants across a fresh process, and later recovery persists a third. Unsandboxed CF evidence does not establish App Store sandbox reopen, which remains mandatory separate acceptance. Main-only pending-warning ownership and content-free errors are verified.</scenario-bookmark-durability-transaction>
         <Scenario>
           scenario-1: hex store codec round-trips blobs; odd-length and
           non-hex inputs are rejected.

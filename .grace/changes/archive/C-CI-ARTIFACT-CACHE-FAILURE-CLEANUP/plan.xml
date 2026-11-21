@@ -1,0 +1,128 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-CI-ARTIFACT-CACHE-FAILURE-CLEANUP>
+    <IntentSummary>Close the two reviewed QA cleanup/output failure paths in the exact approved17file CI union, preserving original policies and delivery gates.</IntentSummary>
+    <ReferenceState>Actual prepared union e04e5caf45afb7fcf004520db66e2467b0ec40ead46c26aef5f64f07b6e33e96 on main5599. Target3/3passed201tests,metadata,governance; no current XML writes yet. Predecessor is superseded after actual source execution, not labelled unexecuted. Independent review confirms17source/provenance/workflow preservation, holds final verdict for two source-grounded faults. Original applied QA/cache/generic lifecycle bundles remain immutable.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-046</Value>
+      </MustExist>
+      <MustContain>
+        <File>tools/prepare-qa-artifacts.mjs</File>
+        <Text>export function cleanupGenerated(state)</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/run-qa-rust-tests.mjs</File>
+        <Text>export function runCommand(file, args,</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-046</Module>
+      </MustVerify>
+      <MustContain>
+        <File>.github/workflows/test.yml</File>
+        <Text>cargo-workspace-v1</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/ci.yml</File>
+        <Text>node tools/run-rust-tests.mjs</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release-tauri.yml</File>
+        <Text>qa-artifact-smoke.mjs</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>qa_test_case</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="120">node node_modules/vitest/vitest.mjs run tests/tools/cargo-workspace-cache.test.mjs tests/tools/run-rust-tests.test.mjs tests/tools/ci-rust-test-lifecycle.test.mjs tests/tools/prepare-qa-artifacts.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/run-qa-rust-tests.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="30">cargo metadata --locked --offline --no-deps --format-version 1</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="30">npm run release:governance</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-046 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-046 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>.github/workflows/ci.yml</File>
+      <File>.github/workflows/test.yml</File>
+      <File>.github/workflows/release.yml</File>
+      <File>.github/workflows/release-tauri.yml</File>
+      <File>tools/run-rust-tests.mjs</File>
+      <File>tools/prepare-qa-artifacts.mjs</File>
+      <File>tools/qa-artifact-smoke.mjs</File>
+      <File>tools/run-qa-rust-tests.mjs</File>
+      <File>tests/tools/cargo-workspace-cache.test.mjs</File>
+      <File>tests/tools/run-rust-tests.test.mjs</File>
+      <File>tests/tools/ci-rust-test-lifecycle.test.mjs</File>
+      <File>tests/tools/prepare-qa-artifacts.test.mjs</File>
+      <File>tests/tools/qa-artifact-smoke.test.mjs</File>
+      <File>tests/tools/run-qa-rust-tests.test.mjs</File>
+      <File>tests/renderer/release-github-controls.test.js</File>
+      <File>tests/renderer/release-preflight.test.js</File>
+      <File>docs/acceptance/README.md</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Reproduce exact QA failure boundaries without apps or builds</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Before fixes, add isolated owned-file permission-denial control and real QA child-controller outer stderr closed-pipe control. Record actual failure/assertion, source/digest/PID before launch and finally reap/remove all owned fixture binaries/children; never broad kills or permissions changes outside owned fixtures.</Criterion>
+          <Criterion>Do not modify frozen source before this fresh approval and selected baseline. If a suspected path already fails safely, retain that fact and bound the fix to the proven defect rather than fabricate red.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>git diff --check</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Fix only QA presence and asynchronous output cleanup</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Use ENOENT-specific presence checks at affected owned candidate/cleanup boundaries. EACCES or other I/O error fails visibly and cannot mark deleted/generatedCleanupComplete. Continue safe independent cleanup and retain exact remaining-path errors; preserve symlink/digest/ownership policies.</Criterion>
+          <Criterion>Attach the actual output stream error route to the existing owned QA Rust child controller, stop only its owned child, await close and allow outer finally cleanup before failure. Preserve full Cargo bin-mark selection, order, working directory and status. No app forced termination, new retries, timeout or broader CLI redesign.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node node_modules/vitest/vitest.mjs run tests/tools/cargo-workspace-cache.test.mjs tests/tools/run-rust-tests.test.mjs tests/tools/ci-rust-test-lifecycle.test.mjs tests/tools/prepare-qa-artifacts.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/run-qa-rust-tests.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2</Command>
+          <Command>cargo metadata --locked --offline --no-deps --format-version 1</Command>
+          <Command>npm run release:governance</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Verify exact full union and reconcile centrally</Title>
+        <DependsOn>T-001, T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>All17sourcepaths remain approved; only two QA helpers/two related tests differ from original reviewed union. Run all original201cases plus new faults,metadata/governance/syntax/diff; retain external synthetic receipts under local agent reporter. Workflow/source preservation proofs remain current and original archive bodies unchanged.</Criterion>
+          <Criterion>Root alone copies original completed bundles, applies bounded M046/VM046 including new failure policy, runs final --run-commands, receives independent code/spec review and archives successor. Superseded predecessor body hashes remain reversible. No manual dispatch or release.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>node node_modules/vitest/vitest.mjs run tests/tools/cargo-workspace-cache.test.mjs tests/tools/run-rust-tests.test.mjs tests/tools/ci-rust-test-lifecycle.test.mjs tests/tools/prepare-qa-artifacts.test.mjs tests/tools/qa-artifact-smoke.test.mjs tests/tools/run-qa-rust-tests.test.mjs tests/renderer/release-github-controls.test.js tests/renderer/release-preflight.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2</Command>
+          <Command>cargo metadata --locked --offline --no-deps --format-version 1</Command>
+          <Command>npm run release:governance</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Perform ordinary guarded delivery after final</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Run postarchive current/status and normal exact-candidate commit/push gates, publish pre-labeled operational PR and observe exact-head required/native3OS/cache evidence. Source fixtures are not hosted acceptance; manual handoff remains open.</Criterion>
+          <Criterion>Integrate only under current-base guard with exact resulting tree, then separate Collecting bookkeeping. No production signing/key/version/tag/store/tap/release dispatch/publication.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>git diff --check</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+    <ExecutionMode>sequential</ExecutionMode>
+    <Lifecycle>Fresh bounded technical successor approved under explicit owner2026-11-15 delegation before new fault correction. Root owns terminal retirement/durable/final/archive/publication. Earlier applied source-owner bundles remain historical immutable inputs. Original77denominator and all signing/release/native/manual authority boundaries unchanged.</Lifecycle>
+  </C-CI-ARTIFACT-CACHE-FAILURE-CLEANUP>
+</GraceChangePlan>

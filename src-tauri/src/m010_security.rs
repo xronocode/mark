@@ -23,13 +23,34 @@
 //            adversarial edge cases — this module covers ~6 of them
 //            plus the pure-logic subset of the rest);
 //            .grace/graph/runtime.xml M-010;
+//            .grace/changes/active/C-SEC-SAVE-HANDLE;
 //            .grace/changes/archive/C-SEC-AUDIT-FIXES T-007.
 //   STATUS:  Phase-B2 step-1 stub-shipped. NEVER panics — every public
 //            fn returns Result<_, SecurityError>. V-M-010 hard
 //            requirement: rejected paths/URLs/exts MUST reach no
 //            downstream FsCmd or shell-open call.
 //
+//   C-SEC-SAVE-HANDLE note (contract only — no behavioral change):
+//   check_path and canonicalize_nearest_ancestor are byte-unchanged and
+//   this module stays stdlib-only. Sandboxed writers now re-fence with a
+//   second full check_path after their last filesystem mutation and
+//   immediately before their only opening syscall. std cannot hold a
+//   validated descriptor across the open on any desktop platform (Unix
+//   OpenOptionsExt custom_flags exposes no O_NOFOLLOW constant; Windows
+//   FILE_FLAG_OPEN_REPARSE_POINT applies to the final component only and
+//   intermediate components still resolve normally), so one kernel
+//   pathwalk between the writer's last fence and the open remains the
+//   stated residual race; the OS-true follow-up (Linux openat2 RESOLVE
+//   flags via libc/rustix, macOS per-component openat with O_NOFOLLOW,
+//   Windows per-component CreateFileW with a junction/mount-point policy)
+//   needs its own approval and a per-hop symlink policy so kept-working
+//   inward links survive.
+//
 // CHANGE_SUMMARY:
+//   - 2026-11-21 C-SEC-SAVE-HANDLE: contract note only — sandboxed writers
+//     re-fence immediately before their only opening syscall;
+//     check_path / canonicalize_nearest_ancestor are byte-unchanged and
+//     the module stays stdlib-only.
 //   - 2026-11-11 C-SEC-LINK-OPEN: block Windows launch types and allow only regular, unambiguous document attachments from Markdown.
 //   - 2026-11-10 C-STABILIZE-PATH-TEST-PORTABILITY: three positive fixtures assert exact native canonical temporary paths on every platform; runtime guard policy is unchanged.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES T-007: missing paths resolve their
