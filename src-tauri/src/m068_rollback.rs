@@ -1,5 +1,5 @@
 // FILE: src-tauri/src/m068_rollback.rs
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: M-068 mt-rollback. One-step updater rollback (C-UPDATER-
 //            ROLLBACK): snapshot the running version before every
@@ -9,11 +9,14 @@
 //   SCOPE:   rollback set lifecycle only — prepare/stage/digest,
 //            promote-on-next-launch reconciliation, strict manifest
 //            validation, per-platform restore (macOS bundle swap with
-//            Trash; Windows verified-installer spawn), the preferences
-//            snapshot restore + skippedUpdateVersion write, the
-//            instance lock and the delegate request/ack files. Update
-//            checks/downloads stay in the renderer + tauri-plugin-
-//            updater; the feed and release pipeline are untouched.
+//            Trash; Windows verified-installer spawn dispatched off the
+//            async task under a deadline), the pending-rollback.json
+//            installer-accounting fact and its three-state reconcile,
+//            the preferences snapshot restore + skippedUpdateVersion
+//            write, the instance lock and the delegate request/ack
+//            files. Update checks/downloads stay in the renderer +
+//            tauri-plugin-updater; the feed and release pipeline are
+//            untouched.
 //   DEPENDS: sha2, minisign-verify, trash, reqwest (Windows fetch),
 //            serde/serde_json, mt_paths (M-022), m005_prefs (M-005).
 //   LINKS:   .grace/graph/features.xml M-068;
@@ -44,6 +47,24 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-21 v1.2.0 C-WIN-ROLLBACK-PANIC T-001..T-004: the menu
+//     restore core (rollback_restore_core) leaves the async command
+//     task via tauri::async_runtime::spawn_blocking under
+//     tokio::time::timeout(ROLLBACK_RESTORE_DEADLINE_SECS) — restart/
+//     exit strictly after the join (RestoreMenuEnd::Relaunch/
+//     HandoffExit); ReqwestFetch carries client-builder deadlines
+//     (ROLLBACK_CONNECT_TIMEOUT_SECS / ROLLBACK_FETCH_DEADLINE_SECS)
+//     so a stalled transfer ends in the typed exit-4-class failure
+//     with the set byte-identical; the pending installer is accounted
+//     by pending-rollback.json (PendingRollbackRecord write-before-
+//     spawn, pid patched best-effort) reconciled by the three-state
+//     evaluate_pending_rollback table (PENDING_INSTALLER_WINDOW_SECS,
+//     positive-failure-only, pid-reuse-bound) — the restore_inner gate
+//     declines with the new exit-8 event=pending CLI outcome
+//     (pending_restore_ending), finalize clears the consumed fact,
+//     and the boot reconcile is fail-open (pending_retry_armed /
+//     pending_stay / pending_reuse_suspected). F-008 stays cut:
+//     prepare_inner and installSignedUpdate untouched.
 //   - 2026-11-15 C-ROLLBACK-STORE-BUILD-GUARD: align desktop-only restore
 //     coordinator/Windows flow cfg with their excluded updater-key helper;
 //     preserve inert Store commands and unchanged desktop restore behavior.
@@ -95,6 +116,39 @@ const DELEGATE_TIMEOUT_SECS: u64 = 10;
 /// The prefs key the renderer's skip-this-version logic already reads
 /// (autoUpdates.js SKIPPED_UPDATE_VERSION_KEY, exact-match semantics).
 pub const KEY_SKIPPED_VERSION: &str = "skippedUpdateVersion";
+// ─── Rollback transport + pending-installer accounting (T-002/T-003
+// ─── C-WIN-ROLLBACK-PANIC) ─────────────────────────────────────────
+/// The client-builder connect deadline (T-002): only the production
+/// ReqwestFetch builder consumes it — the Fetch trait and every test
+/// fixture stay synchronous and network-free.
+#[cfg(not(feature = "app-store"))]
+const ROLLBACK_CONNECT_TIMEOUT_SECS: u64 = 10;
+/// The client-builder total deadline: covers connect, headers and body
+/// (the whole request) — the ~31 MB installer on a slow link.
+#[cfg(not(feature = "app-store"))]
+const ROLLBACK_FETCH_DEADLINE_SECS: u64 = 300;
+/// The menu command's whole-operation bound around the spawn_blocking
+/// join (T-002): 2× the fetch deadline plus local slack.
+#[cfg(not(feature = "app-store"))]
+const ROLLBACK_RESTORE_DEADLINE_SECS: u64 = 660;
+/// The pending-installer fact file (T-003): a root-level sibling of
+/// instance.lock / restore-outcome.json — never inside the live/ set —
+/// bridging the pending installer window across the restoring
+/// process's exit (the lock cannot cover it).
+#[cfg(not(feature = "app-store"))]
+const PENDING_ROLLBACK_FILE: &str = "pending-rollback.json";
+/// The pending window (T-003): a passive NSIS run of the ~31 MB
+/// installer takes minutes; the generous bound is the false-failed
+/// guard — a rollback retry inside the window is always declined.
+#[cfg(not(feature = "app-store"))]
+const PENDING_INSTALLER_WINDOW_SECS: u64 = 7200;
+/// The gate/boot decline reasons (whole-string matched by the boot
+/// marker selection — both are owned consts, never parsed prose).
+#[cfg(not(feature = "app-store"))]
+const PENDING_DECLINED_IN_WINDOW: &str = "the pending installer may still be running";
+#[cfg(not(feature = "app-store"))]
+const PENDING_DECLINED_PID_ALIVE: &str =
+    "the pending installer's pid is alive past the window — pid reuse suspected";
 
 // ─── Layout helpers ─────────────────────────────────────────────────
 
@@ -528,6 +582,12 @@ pub(crate) fn reconcile_at_boot_inner(
     reconcile_stale_bundle_aside(bundle, trash_impl, rename);
     promote_staging_over_live(root, running, rename);
     finalize_finished_restore(root, running);
+    // T-003 C-WIN-ROLLBACK-PANIC: the pending-installer fact
+    // reconcile — read fact; absent → no-op; declined → BLOCK marker
+    // (pending_stay / pending_reuse_suspected); expired → clear +
+    // pending_retry_armed. Every branch is fail-open: nothing wedges
+    // boot, and a broken fact channel never blocks the table above.
+    reconcile_pending_rollback_at_boot(root, running, &windows_pid_alive);
 }
 
 /// Re-verify the artifact digests a manifest recorded against the bytes
@@ -836,6 +896,11 @@ fn finalize_finished_restore(root: &Path, running: &str) {
     if let Some(m) = m {
         if m.previous_version == running {
             let _ = std::fs::remove_dir_all(&base);
+            // T-003 C-WIN-ROLLBACK-PANIC: the confirmed transition
+            // consumes the pending fact too — cleared best-effort after
+            // the delete, never blocking or delaying the finalize (an
+            // injected failing writer proves the finalize stands).
+            let _ = std::fs::remove_file(root.join(PENDING_ROLLBACK_FILE));
             safe_eprintln!(
                 "[Rollback][restore][BLOCK_ROLLBACK_RESTORE finalized version={running}]"
             );
@@ -930,6 +995,212 @@ fn read_and_clear_restore_outcome(root: &Path) -> Option<RestoreOutcomeRecord> {
     parsed
 }
 
+// ─── Pending-rollback fact (T-003 C-WIN-ROLLBACK-PANIC) ─────────────
+
+/// The pending-installer fact schema, strict on BOTH sides (the
+/// RestoreOutcomeRecord precedent): the read side treats any parse
+/// failure — a missing field included — as absent and clears the
+/// broken file best-effort. `at` is the unix-seconds write time that
+/// anchors the PENDING_INSTALLER_WINDOW_SECS consumer window;
+/// `installer_pid` is the spawned child's pid (absent in the
+/// write-before-spawn fact, patched best-effort after the spawn).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg(not(feature = "app-store"))]
+#[serde(rename_all = "camelCase")]
+pub struct PendingRollbackRecord {
+    pub to_version: String,
+    pub from_version: String,
+    pub at: i64,
+    pub installer_pid: Option<u32>,
+}
+
+/// Write the fact at `root`. The restore's primary job never fails on
+/// accounting: callers treat an error as a logged BLOCK marker and
+/// proceed (today's unbridged behavior is the fallback, never worse).
+#[cfg(not(feature = "app-store"))]
+fn write_pending_rollback(root: &Path, rec: &PendingRollbackRecord) -> Result<(), String> {
+    let raw = serde_json::to_string(rec).map_err(|e| e.to_string())?;
+    std::fs::write(root.join(PENDING_ROLLBACK_FILE), raw).map_err(|e| e.to_string())
+}
+
+/// Strict read: absent → None; any parse failure → treated as absent
+/// and the broken file cleared best-effort (the
+/// read_and_clear_restore_outcome precedent, without the clearing
+/// read — a healthy fact is never consumed by a read).
+#[cfg(not(feature = "app-store"))]
+fn read_pending_rollback(root: &Path) -> Option<PendingRollbackRecord> {
+    let path = root.join(PENDING_ROLLBACK_FILE);
+    let raw = std::fs::read_to_string(&path).ok()?;
+    match serde_json::from_str::<PendingRollbackRecord>(&raw) {
+        Ok(rec) => Some(rec),
+        Err(_) => {
+            let _ = std::fs::remove_file(&path);
+            None
+        }
+    }
+}
+
+/// Remove the fact, ignoring absence and errors (the clear_restore_outcome
+/// precedent). Expired facts and consumed transitions clear through here.
+#[cfg(not(feature = "app-store"))]
+fn clear_pending_rollback(root: &Path) {
+    let _ = std::fs::remove_file(root.join(PENDING_ROLLBACK_FILE));
+}
+
+/// The three-state reconcile verdict (T-003). Positive-failure-only:
+/// inside the window the probe is never consulted — no absence
+/// evidence can declare failure; past the window, retry needs the
+/// window bound AND no positive liveness. A positively-alive pid past
+/// the window is presumed pid reuse (Windows recycles PIDs
+/// aggressively; a passive NSIS never runs for hours) and stays
+/// declined — the safe direction. An absent fact is cleared by
+/// definition (gate callers proceed; boot callers check presence first
+/// when they must distinguish absent from expired).
+#[derive(Debug)]
+#[cfg(not(feature = "app-store"))]
+enum PendingDecision {
+    Declined(&'static str),
+    ExpiredClear,
+}
+
+#[cfg(not(feature = "app-store"))]
+fn evaluate_pending_rollback(
+    root: &Path,
+    running: &str,
+    now: u64,
+    pid_alive: &dyn Fn(u32) -> Option<bool>,
+) -> PendingDecision {
+    // Absent (or unparsable → already treated as absent by the
+    // reader): nothing pending to reconcile.
+    let Some(rec) = read_pending_rollback(root) else {
+        return PendingDecision::ExpiredClear;
+    };
+    // The target version is already the running one: the pending
+    // rollback completed (the transition-confirm branch consumes the
+    // set at finalize) — the fact is stale, clear and allow.
+    if rec.to_version == running {
+        return PendingDecision::ExpiredClear;
+    }
+    let at = rec.at.max(0) as u64;
+    let age = now.saturating_sub(at);
+    if age < PENDING_INSTALLER_WINDOW_SECS {
+        return PendingDecision::Declined(PENDING_DECLINED_IN_WINDOW);
+    }
+    match rec.installer_pid.and_then(|p| pid_alive(p)) {
+        Some(true) => PendingDecision::Declined(PENDING_DECLINED_PID_ALIVE),
+        // Negative or probe-unavailable (None): the window carries the
+        // verdict — clear and allow the idempotent retry.
+        _ => PendingDecision::ExpiredClear,
+    }
+}
+
+/// The accounting wrapper composing the production spawn (T-003): pure
+/// over seams, so unit tests pin the write-before-spawn order with a
+/// temp root and a canned-pid spawner. Sequence: write the fact
+/// (installer_pid absent) best-effort BEFORE Command::spawn — a crash
+/// in the spawn window still leaves the bridged fact — spawn, then
+/// patch installer_pid best-effort (a missed patch degrades to the
+/// age-bound-only path, never to a false-failed verdict).
+#[cfg(not(feature = "app-store"))]
+fn pending_accounting_spawn<'a>(
+    root: &'a Path,
+    to_version: &'a str,
+    from_version: &'a str,
+    at: i64,
+    raw_spawn: &'a dyn Fn(&Path) -> Result<u32, String>,
+) -> Box<dyn Fn(&Path) -> Result<u32, String> + 'a> {
+    Box::new(move |exe: &Path| {
+        // 1. The fact BEFORE the spawn (pid absent).
+        if let Err(e) = write_pending_rollback(
+            root,
+            &PendingRollbackRecord {
+                to_version: to_version.to_string(),
+                from_version: from_version.to_string(),
+                at,
+                installer_pid: None,
+            },
+        ) {
+            safe_eprintln!(
+                "[Rollback][restore][BLOCK_ROLLBACK_RESTORE pending_write_failed err={e}]"
+            );
+        }
+        // 2. Spawn.
+        let pid = raw_spawn(exe)?;
+        // 3. Patch the pid, best-effort.
+        if let Some(mut rec) = read_pending_rollback(root) {
+            rec.installer_pid = Some(pid);
+            if let Err(e) = write_pending_rollback(root, &rec) {
+                safe_eprintln!(
+                    "[Rollback][restore][BLOCK_ROLLBACK_RESTORE pending_pid_patch_failed err={e}]"
+                );
+            }
+        }
+        Ok(pid)
+    })
+}
+
+/// Production pid liveness probe (T-003, std-only — no new
+/// dependency): tasklist filtered by pid; the quoted pid in CSV output
+/// means alive. A probe failure is None (unavailable), never a
+/// positive answer — the window bound carries the verdict.
+#[cfg(not(feature = "app-store"))]
+#[cfg(target_os = "windows")]
+fn windows_pid_alive(pid: u32) -> Option<bool> {
+    use std::os::windows::process::CommandExt;
+    std::process::Command::new("tasklist")
+        .args(["/FI", &format!("PID eq {pid}"), "/FO", "CSV", "/NH"])
+        .creation_flags(0x0800_0000) // CREATE_NO_WINDOW
+        .output()
+        .ok()
+        .map(|o| String::from_utf8_lossy(&o.stdout).contains(&format!("\"{pid}\"")))
+}
+
+/// Non-Windows hosts never write the fact in production (no installer
+/// spawn); the probe answers negatively — the age bound decides. Tests
+/// on the reference macOS host inject their own probes at the seams.
+#[cfg(not(feature = "app-store"))]
+#[cfg(not(target_os = "windows"))]
+fn windows_pid_alive(_pid: u32) -> Option<bool> {
+    Some(false)
+}
+
+/// The boot-side pending-fact reconcile (T-003), driven by
+/// reconcile_at_boot_inner with the production probe and by tests with
+/// injected probes. Fail-open on every branch: a broken or foreign
+/// fact file reads as absent and nothing wedges boot.
+#[cfg(not(feature = "app-store"))]
+fn reconcile_pending_rollback_at_boot(
+    root: &Path,
+    running: &str,
+    pid_alive: &dyn Fn(u32) -> Option<bool>,
+) {
+    let Some(rec) = read_pending_rollback(root) else {
+        return; // absent → no-op
+    };
+    match evaluate_pending_rollback(root, running, now_secs(), pid_alive) {
+        PendingDecision::ExpiredClear => {
+            clear_pending_rollback(root);
+            safe_eprintln!(
+                "[Rollback][restore][BLOCK_ROLLBACK_RESTORE pending_retry_armed to={} from={}]",
+                rec.to_version,
+                rec.from_version
+            );
+        }
+        PendingDecision::Declined(reason) => {
+            let marker = if reason == PENDING_DECLINED_PID_ALIVE {
+                "pending_reuse_suspected"
+            } else {
+                "pending_stay"
+            };
+            safe_eprintln!(
+                "[Rollback][restore][BLOCK_ROLLBACK_RESTORE {marker} to={} from={} reason={reason}]",
+                rec.to_version,
+                rec.from_version
+            );
+        }
+    }
+}
+
 // ─── Restore (T-003) ────────────────────────────────────────────────
 
 /// Fetch abstraction so unit tests can count fetches and serve
@@ -956,13 +1227,33 @@ pub struct ReqwestFetch;
 #[cfg(not(feature = "app-store"))]
 impl Fetch for ReqwestFetch {
     fn get(&self, url: &str) -> Result<Vec<u8>, String> {
-        // Blocking fetch; the CLI path is synchronous by design.
+        // R-2 C-WIN-ROLLBACK-PANIC: the deadline lives in the builder,
+        // not the Fetch trait — connect (ROLLBACK_CONNECT_TIMEOUT_SECS)
+        // plus total (ROLLBACK_FETCH_DEADLINE_SECS, covering connect,
+        // headers and body) bound the request with zero signature
+        // change; the trait object and every test fixture stay
+        // network-free and unaware of it.
+        let client = reqwest::Client::builder()
+            .connect_timeout(std::time::Duration::from_secs(
+                ROLLBACK_CONNECT_TIMEOUT_SECS,
+            ))
+            .timeout(std::time::Duration::from_secs(ROLLBACK_FETCH_DEADLINE_SECS))
+            .build()
+            .map_err(|e| format!("fetch client: {e}"))?;
+        // R-1: this current-thread runtime is only ever entered from a
+        // spawn_blocking thread or the CLI main thread — never from
+        // Tauri's async command task, so Runtime::block_on can no
+        // longer panic inside a runtime context.
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| format!("fetch runtime: {e}"))?;
         rt.block_on(async {
-            let resp = reqwest::get(url).await.map_err(|e| format!("fetch {url}: {e}"))?;
+            let resp = client
+                .get(url)
+                .send()
+                .await
+                .map_err(|e| format!("fetch {url}: {e}"))?;
             if !resp.status().is_success() {
                 return Err(format!("fetch {url}: status {}", resp.status()));
             }
@@ -1385,7 +1676,13 @@ fn restore_macos_flow(
 
 /// Verify-first restore core, shared by the CLI and dialog paths.
 /// `fetch` is injected (tests count fetches). Every step logs its
-/// marker; any failure leaves the current state untouched.
+/// marker; any failure leaves the current state untouched. T-003
+/// C-WIN-ROLLBACK-PANIC: `spawn_installer` returns the child pid (the
+/// accounting wrapper composes the production spawn), and
+/// `pending_probe` — the new last parameter — rides the pending-
+/// installer gate directly after `clear_restore_outcome` (the single
+/// choke point shared by the CLI re-run and the Windows menu path);
+/// `None` skips the gate, so every existing caller keeps its meaning.
 #[cfg(not(feature = "app-store"))]
 #[allow(clippy::too_many_arguments)]
 pub fn restore_inner(
@@ -1394,12 +1691,13 @@ pub fn restore_inner(
     running: &str,
     root_override: Option<&Path>,
     prefs_write: &dyn Fn(&Path, &str) -> Result<(), String>,
-    spawn_installer: Option<&dyn Fn(&Path) -> Result<(), String>>,
+    spawn_installer: Option<&dyn Fn(&Path) -> Result<u32, String>>,
     relaunch: Option<&dyn Fn() -> Result<(), String>>,
     dry_paths: bool,
+    pending_probe: Option<&dyn Fn(u32) -> Option<bool>>,
 ) -> Result<RestoreOutcome, (i32, String)> {
     // Silence cfg-asymmetric params (fetch/spawn are Windows-only,
-    // relaunch is macOS-only).
+    // relaunch is macOS-only); the pending gate runs on every platform.
     let _ = (fetch, spawn_installer, relaunch);
     let root = match root_override {
         Some(p) => p.to_path_buf(),
@@ -1413,6 +1711,30 @@ pub fn restore_inner(
     // it sits ahead of validation, so even an early no-snapshot error
     // leaves the root clean.
     clear_restore_outcome(&root);
+    // T-003 C-WIN-ROLLBACK-PANIC: the pending-installer gate sits
+    // directly after the stale-marker removal, ahead of validation and
+    // ahead of every fetch or write. The fact is read WITHOUT
+    // clearing: absent → proceed; Declined → the new exit-8 terminal
+    // outcome (no second installer for the same release); ExpiredClear
+    // → clear the fact and proceed (the idempotent retry). With the
+    // probe passed, an in-window fact declines without ever consulting
+    // the probe (positive-failure-only).
+    if let Some(probe) = pending_probe {
+        if let Some(rec) = read_pending_rollback(&root) {
+            match evaluate_pending_rollback(&root, running, now_secs(), probe) {
+                PendingDecision::Declined(reason) => {
+                    return Err((
+                        8,
+                        format!(
+                            "Rollback pending: {reason} — no second installer for Mark {} was launched. Try again later.",
+                            rec.to_version
+                        ),
+                    ));
+                }
+                PendingDecision::ExpiredClear => clear_pending_rollback(&root),
+            }
+        }
+    }
     let base = root.join(LIVE_DIR);
 
     // 1. Validate (invalid == missing; exit 7).
@@ -1528,7 +1850,7 @@ pub fn restore_windows_flow(
     base: &Path,
     prefs_snap: &Path,
     prefs_write: &dyn Fn(&Path, &str) -> Result<(), String>,
-    spawn_installer: &dyn Fn(&Path) -> Result<(), String>,
+    spawn_installer: &dyn Fn(&Path) -> Result<u32, String>,
     stage_write: &dyn Fn(&Path, &[u8]) -> Result<(), String>,
     verify_sig: &dyn Fn(&[u8], &str, &str) -> bool,
 ) -> Result<RestoreOutcome, (i32, String)> {
@@ -1583,8 +1905,11 @@ pub fn restore_windows_flow(
         return Err((6, "Installer bytes changed between verify and spawn".into()));
     }
     // 6. Spawn. A failure here is the accepted R-3 state (the set is
-    // intact, the retry is idempotent): the user line says exactly
-    // that.
+    //    intact, the retry is idempotent): the user line says exactly
+    //    that. T-003 C-WIN-ROLLBACK-PANIC: the composed spawn closure
+    //    writes the pending fact strictly before Command::spawn and
+    //    patches the child pid after; the returned pid feeds the
+    //    unchanged event=pending outcome.
     spawn_installer(&exe)
         .map_err(|e| (6, spawn_failure_user_line(&e)))?;
     Ok(RestoreOutcome {
@@ -1790,6 +2115,27 @@ fn restore_ok_ending(out: &RestoreOutcome, running: &str) -> (i32, Vec<String>) 
     }
 }
 
+/// The CLI's pending-decline ending (T-003 C-WIN-ROLLBACK-PANIC), pure
+/// so a test asserts it without running the full CLI (the
+/// restore_ok_ending precedent): exit 8 — the new terminal row in the
+/// exit table (0/3/4/5/6/7 untouched) — with the machine line
+/// event=pending (a whole token already in the MARK_ROLLBACK
+/// dictionary, matched whole-token never by substring) plus the human
+/// line naming the pending rollback and the no-second-installer
+/// guarantee.
+#[cfg(not(feature = "app-store"))]
+fn pending_restore_ending(running: &str, to_version: &str) -> (i32, Vec<String>) {
+    (
+        8,
+        vec![
+            machine_line("pending", Some(running), Some(to_version)),
+            format!(
+                "Rollback pending: the installer for Mark {to_version} was started recently and may still be running — no second installer was launched. Try again later."
+            ),
+        ],
+    )
+}
+
 fn tty_stdin() -> bool {
     use std::io::IsTerminal;
     std::io::stdin().is_terminal()
@@ -1906,15 +2252,23 @@ pub fn run_cli_rollback(yes: bool) -> i32 {
     let relaunch_ref: Option<&dyn Fn() -> Result<(), String>> = None;
 
     #[cfg(target_os = "macos")]
-    let spawn_ref: Option<&dyn Fn(&Path) -> Result<(), String>> = None;
+    let spawn_ref: Option<&dyn Fn(&Path) -> Result<u32, String>> = None;
     #[cfg(not(target_os = "macos"))]
-    let spawn_ref: Option<&dyn Fn(&Path) -> Result<(), String>> = Some(&|exe: &Path| {
+    let raw_spawn = |exe: &Path| -> Result<u32, String> {
         std::process::Command::new(exe)
             .arg("/S") // NSIS passive
             .spawn()
-            .map(|_| ())
+            .map(|c| c.id())
             .map_err(|e| e.to_string())
-    });
+    };
+    // T-003 C-WIN-ROLLBACK-PANIC: the production spawn is composed with
+    // the accounting wrapper — the pending fact is written before the
+    // spawn and the child pid patched after, both best-effort.
+    #[cfg(not(target_os = "macos"))]
+    let accounting_spawn =
+        pending_accounting_spawn(&root, &to_version, &running, now_secs() as i64, &raw_spawn);
+    #[cfg(not(target_os = "macos"))]
+    let spawn_ref: Option<&dyn Fn(&Path) -> Result<u32, String>> = Some(&accounting_spawn);
 
     match restore_inner(
         &ReqwestFetch,
@@ -1925,6 +2279,8 @@ pub fn run_cli_rollback(yes: bool) -> i32 {
         spawn_ref,
         relaunch_ref,
         true,
+        // The pending gate rides the single choke point (T-003).
+        Some(&windows_pid_alive),
     ) {
         Ok(out) => {
             // The outcome-to-(exit code, printed lines) mapping is pure
@@ -1932,6 +2288,18 @@ pub fn run_cli_rollback(yes: bool) -> i32 {
             // exit 0; restored_norelaunch is exit 6 plus the launch
             // guidance.
             let (code, lines) = restore_ok_ending(&out, &running);
+            for line in lines {
+                println!("{line}");
+            }
+            code
+        }
+        Err((8, msg)) => {
+            // T-003 C-WIN-ROLLBACK-PANIC: the pending-installer decline
+            // is its own terminal outcome — exit 8, event=pending, the
+            // human line naming the pending rollback. Rows 0/3/4/5/6/7
+            // are untouched.
+            eprintln!("{msg}");
+            let (code, lines) = pending_restore_ending(&running, &to_version);
             for line in lines {
                 println!("{line}");
             }
@@ -1953,6 +2321,88 @@ pub fn run_cli_rollback(yes: bool) -> i32 {
 
 // ─── Tauri commands ─────────────────────────────────────────────────
 
+/// The menu restore's terminal action, decided by the blocking core
+/// and taken on the async side strictly after the join (T-001
+/// C-WIN-ROLLBACK-PANIC): Relaunch → app.restart() (macOS),
+/// HandoffExit → app.exit(0) (the Windows installer handoff).
+#[cfg(not(feature = "app-store"))]
+enum RestoreMenuEnd {
+    Relaunch,
+    /// Constructed only by the Windows restore branch; on other targets the
+    /// menu path always relaunches, so silence the non-Windows dead-code pass.
+    #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
+    HandoffExit,
+}
+
+/// The verified-restore core relocated off Tauri's async command task
+/// (T-001 C-WIN-ROLLBACK-PANIC, the mt_rollback_prepare precedent):
+/// the macOS gui_restore_core body and the Windows restore_inner call
+/// keep their current argument values verbatim — only the spawn seam's
+/// return type changed (T-003) — and the whole synchronous body runs
+/// on a spawn_blocking thread. The preferences quiescence anchor
+/// survives unchanged: PrefsState is resolved inside the blocking core
+/// (the State<'_> borrow cannot cross spawn_blocking, so the command's
+/// State parameter is dropped) and replace_from_snapshot still
+/// serializes behind the store mutex. The ReqwestFetch block_on site
+/// is unreachable from the async command context on every platform.
+#[cfg(not(feature = "app-store"))]
+fn rollback_restore_core(
+    app: &tauri::AppHandle,
+    running: String,
+) -> Result<RestoreMenuEnd, String> {
+    // `tauri::Manager` must be in scope for `app.state`.
+    use tauri::Manager;
+    let prefs = app.state::<crate::m005_prefs::PrefsState>();
+    let prefs_restore = |snap: &Path, ver: &str| -> Result<(), String> {
+        prefs.replace_from_snapshot(snap, KEY_SKIPPED_VERSION, ver)
+    };
+    #[cfg(target_os = "macos")]
+    {
+        let target = current_app_bundle()?;
+        gui_restore_core(None, &running, &target, &prefs_restore, &SystemTrash, &system_rename)?;
+        Ok(RestoreMenuEnd::Relaunch) // app.restart() on the async side
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        // The Windows handoff: fetch + verify + stage + prefs +
+        // re-digest + spawn inside restore_inner, then app.exit(0) on
+        // the async side. The spawn is composed with the accounting
+        // wrapper (T-003): the pending fact bridges the installer
+        // window across this process's exit.
+        let root = match rollback_root() {
+            Some(r) => r,
+            None => return Err("no data root".to_string()),
+        };
+        let to_version = load_valid_live(&running)
+            .map(|(_, m)| m.previous_version)
+            .unwrap_or_default();
+        let raw_spawn = |exe: &Path| -> Result<u32, String> {
+            std::process::Command::new(exe)
+                .arg("/S") // NSIS passive
+                .spawn()
+                .map(|c| c.id())
+                .map_err(|e| e.to_string())
+        };
+        let accounting_spawn =
+            pending_accounting_spawn(&root, &to_version, &running, now_secs() as i64, &raw_spawn);
+        match restore_inner(
+            &ReqwestFetch,
+            Some(true),
+            &running,
+            None,
+            &prefs_restore,
+            Some(&accounting_spawn),
+            None,
+            true,
+            // The pending gate rides the single choke point (T-003).
+            Some(&windows_pid_alive),
+        ) {
+            Ok(_) => Ok(RestoreMenuEnd::HandoffExit), // app.exit(0) on the async side
+            Err((_, msg)) => Err(msg),
+        }
+    }
+}
+
 #[cfg(not(feature = "app-store"))]
 #[tauri::command]
 pub async fn mt_rollback_prepare() -> Result<(), String> {
@@ -1969,62 +2419,33 @@ pub async fn mt_rollback_status() -> Result<RollbackStatus, String> {
 
 #[cfg(not(feature = "app-store"))]
 #[tauri::command]
-pub async fn mt_rollback_restore(
-    app: tauri::AppHandle,
-    prefs: tauri::State<'_, crate::m005_prefs::PrefsState>,
-) -> Result<(), String> {
+pub async fn mt_rollback_restore(app: tauri::AppHandle) -> Result<(), String> {
     let running = current_version();
-    // The preferences write routes through PrefsState::replace_from_snapshot
-    // (the quiescence anchor: in-flight mt_prefs_set calls serialize
-    // behind the store mutex) — never a direct file write — and rides
-    // the restore core AFTER verification and the swap, never before
-    // (T-002 C-UPDATER-REVIEW-FIXES: verify-then-mutate).
-    let prefs_restore = |snap: &Path, ver: &str| -> Result<(), String> {
-        prefs.replace_from_snapshot(snap, KEY_SKIPPED_VERSION, ver)
-    };
-    #[cfg(target_os = "macos")]
-    {
-        // Verify-then-mutate: the extracted core (a root-override seam,
-        // unit-testable without tauri::AppHandle/State) runs
-        // load+validate (snapshot parsed) → digest re-verified →
-        // T-001 swap → preferences (post-swap failure logged and
-        // skipped); only then the restart. The GUI's former inline
-        // digest check is gone — the core's check is the single hash
-        // of the staged binary on every path.
-        let target = current_app_bundle()?;
-        gui_restore_core(
-            None,
-            &running,
-            &target,
-            &prefs_restore,
-            &SystemTrash,
-            &system_rename,
-        )?;
-        app.restart()
-    }
-    #[cfg(not(target_os = "macos"))]
-    {
-        // Windows GUI path: verified installer fetch + spawn, then a
-        // clean exit so the passive installer can replace the app. The
-        // unconditional preferences restore that used to precede every
-        // verification is gone; the real write rides restore_inner as
-        // the last write before the spawn, after the fetch, version and
-        // minisignature verification.
-        let _ = &app;
-        let spawn = |exe: &Path| -> Result<(), String> {
-            std::process::Command::new(exe)
-                .arg("/S")
-                .spawn()
-                .map(|_| ())
-                .map_err(|e| e.to_string())
-        };
-        match restore_inner(&ReqwestFetch, Some(true), &running, None, &prefs_restore, Some(&spawn), None, true) {
-            Ok(_) => {
-                let _ = app.exit(0);
-                Ok(())
-            }
-            Err((_, msg)) => Err(msg),
+    let handle = app.clone();
+    // R-1 C-WIN-ROLLBACK-PANIC: the verified-restore core never runs on
+    // the async command task (the mt_rollback_prepare precedent) — it
+    // is dispatched through spawn_blocking, so the synchronous fetch
+    // runtime can no longer be entered from this async context on any
+    // platform and the renderer's invoke always settles with Ok or a
+    // real Err(String) (the localized rollback.restoreFailed* notice).
+    // R-2: the whole operation is bounded — a deadline expiry returns a
+    // String rejection while the per-fetch builder deadline caps the
+    // abandoned blocking thread. Ordering pin: restart/exit strictly
+    // after the blocking core joins.
+    let joined = tokio::time::timeout(
+        std::time::Duration::from_secs(ROLLBACK_RESTORE_DEADLINE_SECS),
+        tauri::async_runtime::spawn_blocking(move || rollback_restore_core(&handle, running)),
+    )
+    .await
+    .map_err(|_| "Rollback restore timed out".to_string())?
+    .map_err(|e| format!("rollback restore join: {e}"))?;
+    match joined {
+        Ok(RestoreMenuEnd::Relaunch) => app.restart(),
+        Ok(RestoreMenuEnd::HandoffExit) => {
+            let _ = app.exit(0);
+            Ok(())
         }
+        Err(e) => Err(e),
     }
 }
 
@@ -2287,11 +2708,11 @@ mod rollback_restore {
             urls: std::sync::Mutex::new(vec![]),
         };
         #[cfg(target_os = "macos")]
-        let (spawn, relaunch): (Option<&dyn Fn(&Path) -> Result<(), String>>, Option<&dyn Fn() -> Result<(), String>>) = (None, None);
+        let (spawn, relaunch): (Option<&dyn Fn(&Path) -> Result<u32, String>>, Option<&dyn Fn() -> Result<(), String>>) = (None, None);
         #[cfg(not(target_os = "macos"))]
-        let (spawn, relaunch): (Option<&dyn Fn(&Path) -> Result<(), String>>, Option<&dyn Fn() -> Result<(), String>>) =
-            (Some(&|_: &Path| Ok(())), None);
-        let err = restore_inner(&counter, Some(true), "2.9.1", Some(root.path()), &noop_prefs, spawn, relaunch, true).unwrap_err();
+        let (spawn, relaunch): (Option<&dyn Fn(&Path) -> Result<u32, String>>, Option<&dyn Fn() -> Result<(), String>>) =
+            (Some(&|_: &Path| Ok(0)), None);
+        let err = restore_inner(&counter, Some(true), "2.9.1", Some(root.path()), &noop_prefs, spawn, relaunch, true, None).unwrap_err();
         assert_eq!(err.0, 7);
         assert_eq!(counter.urls.lock().unwrap().len(), 0, "invalid manifest must fetch nothing");
     }
@@ -2307,11 +2728,11 @@ mod rollback_restore {
             urls: std::sync::Mutex::new(vec![]),
         };
         #[cfg(target_os = "macos")]
-        let (spawn, relaunch): (Option<&dyn Fn(&Path) -> Result<(), String>>, Option<&dyn Fn() -> Result<(), String>>) = (None, None);
+        let (spawn, relaunch): (Option<&dyn Fn(&Path) -> Result<u32, String>>, Option<&dyn Fn() -> Result<(), String>>) = (None, None);
         #[cfg(not(target_os = "macos"))]
-        let (spawn, relaunch): (Option<&dyn Fn(&Path) -> Result<(), String>>, Option<&dyn Fn() -> Result<(), String>>) =
-            (Some(&|_: &Path| Ok(())), None);
-        let err = restore_inner(&counter, Some(true), "2.9.1", Some(root.path()), &noop_prefs, spawn, relaunch, true).unwrap_err();
+        let (spawn, relaunch): (Option<&dyn Fn(&Path) -> Result<u32, String>>, Option<&dyn Fn() -> Result<(), String>>) =
+            (Some(&|_: &Path| Ok(0)), None);
+        let err = restore_inner(&counter, Some(true), "2.9.1", Some(root.path()), &noop_prefs, spawn, relaunch, true, None).unwrap_err();
         assert_eq!(err.0, 6);
         assert!(base.join(MANIFEST_FILE).exists(), "set stays intact");
     }
@@ -2322,11 +2743,11 @@ mod rollback_restore {
         let _ = make_live_set(root.path());
         let fetch = FixtureFetch { feed: vec![], installer: vec![], fail_installer: false };
         #[cfg(target_os = "macos")]
-        let (spawn, relaunch): (Option<&dyn Fn(&Path) -> Result<(), String>>, Option<&dyn Fn() -> Result<(), String>>) = (None, None);
+        let (spawn, relaunch): (Option<&dyn Fn(&Path) -> Result<u32, String>>, Option<&dyn Fn() -> Result<(), String>>) = (None, None);
         #[cfg(not(target_os = "macos"))]
-        let (spawn, relaunch): (Option<&dyn Fn(&Path) -> Result<(), String>>, Option<&dyn Fn() -> Result<(), String>>) =
-            (Some(&|_: &Path| Ok(())), None);
-        let err = restore_inner(&fetch, Some(false), "2.9.1", Some(root.path()), &noop_prefs, spawn, relaunch, true).unwrap_err();
+        let (spawn, relaunch): (Option<&dyn Fn(&Path) -> Result<u32, String>>, Option<&dyn Fn() -> Result<(), String>>) =
+            (Some(&|_: &Path| Ok(0)), None);
+        let err = restore_inner(&fetch, Some(false), "2.9.1", Some(root.path()), &noop_prefs, spawn, relaunch, true, None).unwrap_err();
         assert_eq!(err.0, 5);
     }
 
@@ -2344,7 +2765,7 @@ mod rollback_restore {
         let spawned: std::sync::Mutex<Vec<PathBuf>> = std::sync::Mutex::new(vec![]);
         let sp = |p: &Path| {
             spawned.lock().unwrap().push(p.to_path_buf());
-            Ok(())
+            Ok(0)
         };
         let counter = CountingFetch {
             inner: FixtureFetch {
@@ -2354,7 +2775,7 @@ mod rollback_restore {
             },
             urls: std::sync::Mutex::new(vec![]),
         };
-        let err = restore_inner(&counter, Some(true), "2.9.1", Some(root.path()), &noop_prefs, Some(&sp), None, true).unwrap_err();
+        let err = restore_inner(&counter, Some(true), "2.9.1", Some(root.path()), &noop_prefs, Some(&sp), None, true, None).unwrap_err();
         assert_eq!(err.0, 4, "got {:?}", err);
         assert_eq!(err.1, "Installer signature verification failed");
         assert!(spawned.lock().unwrap().is_empty(), "tampered installer must never execute");
@@ -2381,14 +2802,14 @@ mod rollback_restore {
         let sp = |p: &Path| {
             let bytes = fs::read(p).unwrap();
             *spawned.lock().unwrap() = bytes;
-            Ok(())
+            Ok(0)
         };
         // Verification against the REAL pinned pubkey fails on the
         // garbage signature — the fetch-count contract (exactly two)
         // and the executed-equals-verified-bytes staging are what this
         // fixture pins; the positive signature path is exercised by the
         // two-platform manual protocol.
-        let _ = restore_inner(&counter, Some(true), "2.9.1", Some(root.path()), &noop_prefs, Some(&sp), None, true);
+        let _ = restore_inner(&counter, Some(true), "2.9.1", Some(root.path()), &noop_prefs, Some(&sp), None, true, None);
         let urls = counter.urls.lock().unwrap().clone();
         assert_eq!(urls.len(), 2, "exactly two fetches: {urls:?}");
         assert!(urls[0].ends_with("/latest.json"));
@@ -2408,7 +2829,7 @@ mod rollback_restore {
             inner: FixtureFetch { feed: serde_json::to_vec(&feed).unwrap(), installer: vec![], fail_installer: false },
             urls: std::sync::Mutex::new(vec![]),
         };
-        let err = restore_inner(&counter, Some(true), "2.9.1", Some(root.path()), &noop_prefs, Some(&|_: &Path| Ok(())), None, true).unwrap_err();
+        let err = restore_inner(&counter, Some(true), "2.9.1", Some(root.path()), &noop_prefs, Some(&|_: &Path| Ok(0)), None, true, None).unwrap_err();
         assert_eq!(err.0, 4);
         assert!(err.1.contains("disagrees"), "got {}", err.1);
         assert_eq!(counter.urls.lock().unwrap().len(), 1, "installer not fetched after mismatch");
@@ -2430,6 +2851,326 @@ mod rollback_restore {
         assert_eq!(raw["futureKey"], serde_json::json!(true), "unknown keys survive");
         assert_eq!(raw["skippedUpdateVersion"], serde_json::json!("2.9.1"));
     }
+
+    // ── T-001 C-WIN-ROLLBACK-PANIC: the off-async dispatch pin ──────
+    // Source-scan between unique markers (the V-M-071 no-logging-scan
+    // precedent). This pin FAILS BEFORE THE FIX — the old command body
+    // ran restore_inner/gui_restore_core inline — and pins the fixed
+    // dispatch shape after it (the spec's before/after evidence duty).
+
+    #[test]
+    fn rollback_restore_dispatch_is_off_async_by_source_scan() {
+        let src = include_str!("m068_rollback.rs");
+        let start = src
+            .find("pub async fn mt_rollback_restore")
+            .expect("the async command exists");
+        let rest = &src[start..];
+        let end = rest
+            .find("#[cfg(not(feature = \"app-store\"))]")
+            .expect("the next desktop-only section follows the command");
+        let body = &rest[..end];
+        for needle in [
+            "tauri::async_runtime::spawn_blocking",
+            "rollback_restore_core",
+            "RestoreMenuEnd::Relaunch",
+            "RestoreMenuEnd::HandoffExit",
+            "tokio::time::timeout",
+        ] {
+            assert!(body.contains(needle), "the dispatch body must contain {needle}");
+        }
+        for banned in ["restore_inner(", "gui_restore_core(", "block_on"] {
+            assert!(
+                !body.contains(banned),
+                "the async body must not contain {banned} — the core runs off the async task"
+            );
+        }
+    }
+
+    // ── T-002 C-WIN-ROLLBACK-PANIC: the transport deadline pin ──────
+
+    #[test]
+    fn rollback_fetch_deadline_lives_in_the_client_builder() {
+        let src = include_str!("m068_rollback.rs");
+        let start = src
+            .find("impl Fetch for ReqwestFetch")
+            .expect("the production fetch impl exists");
+        let rest = &src[start..];
+        let end = rest
+            .find("/// The updater pubkey pinned")
+            .expect("the pubkey section follows the fetch impl");
+        let body = &rest[..end];
+        for needle in [
+            "reqwest::Client::builder()",
+            ".connect_timeout(std::time::Duration::from_secs(",
+            ".timeout(std::time::Duration::from_secs(",
+            "ROLLBACK_CONNECT_TIMEOUT_SECS",
+            "ROLLBACK_FETCH_DEADLINE_SECS",
+        ] {
+            assert!(
+                body.contains(needle),
+                "the deadline provably lives in the transport builder: {needle}"
+            );
+        }
+        assert!(
+            !body.contains("reqwest::get("),
+            "the deadline-less default client is gone"
+        );
+    }
+
+    #[test]
+    fn rollback_deadline_and_window_constants_are_pinned() {
+        assert_eq!(ROLLBACK_CONNECT_TIMEOUT_SECS, 10);
+        assert_eq!(ROLLBACK_FETCH_DEADLINE_SECS, 300);
+        assert_eq!(ROLLBACK_RESTORE_DEADLINE_SECS, 660);
+        assert_eq!(PENDING_INSTALLER_WINDOW_SECS, 7200);
+        assert_eq!(PENDING_ROLLBACK_FILE, "pending-rollback.json");
+    }
+
+    // ── T-003 C-WIN-ROLLBACK-PANIC: the pending-installer gate ──────
+
+    /// A recorder probe: answers `answer` and records every pid it was
+    /// asked about (the gate must consult it only past the window).
+    fn recorder_probe(
+        calls: &std::sync::Mutex<Vec<u32>>,
+        answer: Option<bool>,
+    ) -> impl Fn(u32) -> Option<bool> + '_ {
+        move |pid: u32| {
+            calls.lock().unwrap().push(pid);
+            answer
+        }
+    }
+
+    fn write_fact_at(root: &Path, age_secs: u64, pid: Option<u32>) {
+        write_pending_rollback(
+            root,
+            &PendingRollbackRecord {
+                to_version: "2.9.0".to_string(),
+                from_version: "2.9.1".to_string(),
+                at: now_secs() as i64 - age_secs as i64,
+                installer_pid: pid,
+            },
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn gate_declines_inwindow_pending_before_any_fetch_or_write() {
+        let root = TempDir::new().unwrap();
+        let (base, _, prefs_sha_before) = make_live_set(root.path());
+        // In-window fact (age 0): the re-run must decline with zero
+        // fetches, zero writes, zero spawns and zero probe calls.
+        write_fact_at(root.path(), 0, None);
+        let counter = CountingFetch {
+            inner: FixtureFetch {
+                feed: vec![],
+                installer: vec![],
+                fail_installer: false,
+            },
+            urls: std::sync::Mutex::new(vec![]),
+        };
+        let probe_calls: std::sync::Mutex<Vec<u32>> = std::sync::Mutex::new(vec![]);
+        let probe = recorder_probe(&probe_calls, Some(false));
+        let prefs_calls: std::sync::Mutex<Vec<(PathBuf, String)>> = std::sync::Mutex::new(vec![]);
+        let prefs = |s: &Path, v: &str| -> Result<(), String> {
+            prefs_calls.lock().unwrap().push((s.to_path_buf(), v.to_string()));
+            Ok(())
+        };
+        let spawn_calls: std::sync::Mutex<Vec<PathBuf>> = std::sync::Mutex::new(vec![]);
+        let sp = |p: &Path| -> Result<u32, String> {
+            spawn_calls.lock().unwrap().push(p.to_path_buf());
+            Ok(0)
+        };
+        let err = restore_inner(
+            &counter,
+            Some(true),
+            "2.9.1",
+            Some(root.path()),
+            &prefs,
+            Some(&sp),
+            None,
+            true,
+            Some(&probe),
+        )
+        .unwrap_err();
+        assert_eq!(err.0, 8, "the pending decline is the new exit-8 outcome: {:?}", err);
+        assert!(err.1.contains("pending"), "the rejection names the pending state: {}", err.1);
+        assert_eq!(
+            counter.urls.lock().unwrap().len(),
+            0,
+            "a declined re-run fetches nothing"
+        );
+        assert!(
+            prefs_calls.lock().unwrap().is_empty(),
+            "a declined re-run writes no preferences"
+        );
+        assert!(
+            spawn_calls.lock().unwrap().is_empty(),
+            "a declined re-run spawns no second installer"
+        );
+        assert!(
+            probe_calls.lock().unwrap().is_empty(),
+            "positive-failure-only: in-window the probe is never consulted"
+        );
+        // The set stays intact and the fact survives (a decline never clears).
+        assert!(base.join(MANIFEST_FILE).exists(), "set intact");
+        assert_eq!(sha256_hex(&fs::read(base.join(prefs_snapshot_name())).unwrap()), prefs_sha_before);
+        assert!(
+            root.path().join(PENDING_ROLLBACK_FILE).exists(),
+            "the in-window fact is not cleared by the decline"
+        );
+    }
+
+    #[test]
+    fn gate_declines_alive_pid_past_window() {
+        let root = TempDir::new().unwrap();
+        let (base, _, _) = make_live_set(root.path());
+        // Expired window, but the recorded pid answers positively alive:
+        // presumed pid reuse — declined, the safe direction.
+        write_fact_at(root.path(), PENDING_INSTALLER_WINDOW_SECS + 1, Some(4242));
+        let counter = CountingFetch {
+            inner: FixtureFetch { feed: vec![], installer: vec![], fail_installer: false },
+            urls: std::sync::Mutex::new(vec![]),
+        };
+        let probe_calls: std::sync::Mutex<Vec<u32>> = std::sync::Mutex::new(vec![]);
+        let probe = recorder_probe(&probe_calls, Some(true));
+        let noop_prefs = |_: &Path, _: &str| -> Result<(), String> { Ok(()) };
+        let err = restore_inner(
+            &counter,
+            Some(true),
+            "2.9.1",
+            Some(root.path()),
+            &noop_prefs,
+            Some(&|_: &Path| Ok(0)),
+            None,
+            true,
+            Some(&probe),
+        )
+        .unwrap_err();
+        assert_eq!(err.0, 8, "got {:?}", err);
+        assert!(
+            err.1.contains("alive past the window") || err.1.contains("reuse"),
+            "the decline names the reuse suspicion: {}",
+            err.1
+        );
+        assert_eq!(
+            probe_calls.lock().unwrap().as_slice(),
+            &[4242],
+            "past the window the recorded pid was probed exactly once"
+        );
+        assert_eq!(counter.urls.lock().unwrap().len(), 0, "zero fetches on decline");
+        assert!(
+            root.path().join(PENDING_ROLLBACK_FILE).exists(),
+            "a reuse-suspected decline never clears the fact"
+        );
+        assert!(base.join(MANIFEST_FILE).exists(), "set intact");
+    }
+
+    #[test]
+    fn gate_clears_expired_fact_and_the_retry_proceeds() {
+        let root = TempDir::new().unwrap();
+        let _ = make_live_set(root.path());
+        write_fact_at(root.path(), PENDING_INSTALLER_WINDOW_SECS + 1, None);
+        let counter = CountingFetch {
+            inner: FixtureFetch { feed: vec![], installer: vec![], fail_installer: false },
+            urls: std::sync::Mutex::new(vec![]),
+        };
+        let probe_calls: std::sync::Mutex<Vec<u32>> = std::sync::Mutex::new(vec![]);
+        let probe = recorder_probe(&probe_calls, Some(false));
+        let noop_prefs = |_: &Path, _: &str| -> Result<(), String> { Ok(()) };
+        let err = restore_inner(
+            &counter,
+            Some(true),
+            "2.9.1",
+            Some(root.path()),
+            &noop_prefs,
+            Some(&|_: &Path| Ok(0)),
+            None,
+            true,
+            Some(&probe),
+        )
+        .unwrap_err();
+        // The gate cleared the expired fact and let the restore proceed:
+        // NOT the exit-8 decline. On the reference macOS host the flow
+        // proceeds into the macOS core, whose bundle-ancestor probe
+        // fails in the test binary (no .app ancestor) — exit 6, proof
+        // the gate no longer declines.
+        assert_ne!(err.0, 8, "an expired fact must not decline: {:?}", err);
+        assert!(
+            !root.path().join(PENDING_ROLLBACK_FILE).exists(),
+            "the expired fact is cleared by the gate"
+        );
+        #[cfg(target_os = "macos")]
+        assert_eq!(err.0, 6, "the flow proceeded into the macOS core: {:?}", err);
+    }
+
+    #[test]
+    fn probe_unavailable_past_window_retries() {
+        let root = TempDir::new().unwrap();
+        let _ = make_live_set(root.path());
+        write_fact_at(root.path(), PENDING_INSTALLER_WINDOW_SECS + 1, Some(99));
+        let counter = CountingFetch {
+            inner: FixtureFetch { feed: vec![], installer: vec![], fail_installer: false },
+            urls: std::sync::Mutex::new(vec![]),
+        };
+        let probe_calls: std::sync::Mutex<Vec<u32>> = std::sync::Mutex::new(vec![]);
+        // Probe unavailable (None, e.g. tasklist failed): the window
+        // carries the verdict — clear and allow the retry.
+        let probe = recorder_probe(&probe_calls, None);
+        let noop_prefs = |_: &Path, _: &str| -> Result<(), String> { Ok(()) };
+        let err = restore_inner(
+            &counter,
+            Some(true),
+            "2.9.1",
+            Some(root.path()),
+            &noop_prefs,
+            Some(&|_: &Path| Ok(0)),
+            None,
+            true,
+            Some(&probe),
+        )
+        .unwrap_err();
+        assert_ne!(err.0, 8, "probe unavailability never declares failure: {:?}", err);
+        assert!(
+            !root.path().join(PENDING_ROLLBACK_FILE).exists(),
+            "the expired fact is cleared despite the unavailable probe"
+        );
+        #[cfg(target_os = "macos")]
+        assert_eq!(err.0, 6);
+    }
+
+    #[test]
+    fn gate_absent_fact_is_noop() {
+        let root = TempDir::new().unwrap();
+        let _ = make_live_set(root.path());
+        let counter = CountingFetch {
+            inner: FixtureFetch { feed: vec![], installer: vec![], fail_installer: false },
+            urls: std::sync::Mutex::new(vec![]),
+        };
+        let probe_calls: std::sync::Mutex<Vec<u32>> = std::sync::Mutex::new(vec![]);
+        let probe = recorder_probe(&probe_calls, Some(false));
+        let noop_prefs = |_: &Path, _: &str| -> Result<(), String> { Ok(()) };
+        let err = restore_inner(
+            &counter,
+            Some(true),
+            "2.9.1",
+            Some(root.path()),
+            &noop_prefs,
+            Some(&|_: &Path| Ok(0)),
+            None,
+            true,
+            Some(&probe),
+        )
+        .unwrap_err();
+        assert_ne!(err.0, 8, "no fact → no gate decline: {:?}", err);
+        assert!(
+            probe_calls.lock().unwrap().is_empty(),
+            "absent fact: the probe is never consulted"
+        );
+        assert!(
+            !root.path().join(PENDING_ROLLBACK_FILE).exists(),
+            "no fact file is created by the gate"
+        );
+    }
 }
 
 #[cfg(all(test, not(feature = "app-store")))]
@@ -2444,6 +3185,27 @@ mod rollback_cli {
         assert_eq!(line, "MARK_ROLLBACK event=restored from=2.9.1 to=2.9.0");
         let bare = machine_line("nosnapshot", None, None);
         assert_eq!(bare, "MARK_ROLLBACK event=nosnapshot");
+    }
+
+    #[test]
+    fn pending_restore_ending_maps_exit_eight_with_the_pending_whole_token() {
+        // T-003 C-WIN-ROLLBACK-PANIC: the new terminal CLI row — exit 8,
+        // machine line event=pending, human line naming the pending
+        // rollback and the no-second-installer guarantee. Pure mapping:
+        // asserted without running the full CLI.
+        let (code, lines) = pending_restore_ending("2.9.1", "2.9.0");
+        assert_eq!(code, 8);
+        assert_eq!(lines.len(), 2, "machine line + human line: {lines:?}");
+        assert_eq!(lines[0], "MARK_ROLLBACK event=pending from=2.9.1 to=2.9.0");
+        // Whole-token matching: event=pending is one whole
+        // whitespace-delimited token, never a substring read.
+        assert!(lines[0].split(' ').any(|t| t == "event=pending"));
+        assert!(lines[1].contains("2.9.0"), "names the pending rollback: {}", lines[1]);
+        assert!(
+            lines[1].contains("no second installer"),
+            "states the guarantee: {}",
+            lines[1]
+        );
     }
 
     #[test]
@@ -3072,7 +3834,7 @@ mod rollback_windows_flow {
         let log = Log(std::sync::Mutex::new(vec![]));
         let stage = |_: &Path, _: &[u8]| -> Result<(), String> { log.push("stage"); Ok(()) };
         let prefs = |_: &Path, _: &str| -> Result<(), String> { log.push("prefs"); Ok(()) };
-        let spawn = |_: &Path| -> Result<(), String> { log.push("spawn"); Ok(()) };
+        let spawn = |_: &Path| -> Result<u32, String> { log.push("spawn"); Ok(0) };
         let err = restore_windows_flow(
             &fetch, "2.9.0", &base, &prefs_snap, &prefs, &spawn, &stage, &accept_all,
         )
@@ -3098,7 +3860,7 @@ mod rollback_windows_flow {
         let log = Log(std::sync::Mutex::new(vec![]));
         let stage = |_: &Path, _: &[u8]| -> Result<(), String> { log.push("stage"); Ok(()) };
         let prefs = |_: &Path, _: &str| -> Result<(), String> { log.push("prefs"); Ok(()) };
-        let spawn = |_: &Path| -> Result<(), String> { log.push("spawn"); Ok(()) };
+        let spawn = |_: &Path| -> Result<u32, String> { log.push("spawn"); Ok(0) };
         let err = restore_windows_flow(
             &fetch, "2.9.0", &base, &prefs_snap, &prefs, &spawn, &stage, &accept_all,
         )
@@ -3128,7 +3890,7 @@ mod rollback_windows_flow {
         let log = Log(std::sync::Mutex::new(vec![]));
         let stage = |_: &Path, _: &[u8]| -> Result<(), String> { log.push("stage"); Ok(()) };
         let prefs = |_: &Path, _: &str| -> Result<(), String> { log.push("prefs"); Ok(()) };
-        let spawn = |_: &Path| -> Result<(), String> { log.push("spawn"); Ok(()) };
+        let spawn = |_: &Path| -> Result<u32, String> { log.push("spawn"); Ok(0) };
         let err = restore_windows_flow(
             &counter, "2.9.0", &base, &prefs_snap, &prefs, &spawn, &stage, &accept_all,
         )
@@ -3159,7 +3921,7 @@ mod rollback_windows_flow {
         let log = Log(std::sync::Mutex::new(vec![]));
         let stage = |_: &Path, _: &[u8]| -> Result<(), String> { log.push("stage"); Ok(()) };
         let prefs = |_: &Path, _: &str| -> Result<(), String> { log.push("prefs"); Ok(()) };
-        let spawn = |_: &Path| -> Result<(), String> { log.push("spawn"); Ok(()) };
+        let spawn = |_: &Path| -> Result<u32, String> { log.push("spawn"); Ok(0) };
         // The REAL production verification: a garbage fixture signature
         // can never verify against the pinned key.
         let err = restore_windows_flow(
@@ -3194,7 +3956,7 @@ mod rollback_windows_flow {
             Err("injected staging failure".to_string())
         };
         let prefs = |_: &Path, _: &str| -> Result<(), String> { log.push("prefs"); Ok(()) };
-        let spawn = |_: &Path| -> Result<(), String> { log.push("spawn"); Ok(()) };
+        let spawn = |_: &Path| -> Result<u32, String> { log.push("spawn"); Ok(0) };
         let err = restore_windows_flow(
             &fetch, "2.9.0", &base, &prefs_snap, &prefs, &spawn, &stage, &accept_all,
         )
@@ -3233,7 +3995,7 @@ mod rollback_windows_flow {
             std::fs::write(p, b).map_err(|e| e.to_string())
         };
         let prefs = |_: &Path, _: &str| -> Result<(), String> { log.push("prefs"); Ok(()) };
-        let spawn = |p: &Path| -> Result<(), String> {
+        let spawn = |p: &Path| -> Result<u32, String> {
             log.push("spawn");
             Err(format!("injected spawn failure ({})", p.display()))
         };
@@ -3287,14 +4049,14 @@ mod rollback_windows_flow {
             std::fs::write(p, b).map_err(|e| e.to_string())
         };
         let prefs = |_: &Path, _: &str| -> Result<(), String> { log.push("prefs"); Ok(()) };
-        let spawn = |p: &Path| -> Result<(), String> {
+        let spawn = |p: &Path| -> Result<u32, String> {
             log.push("spawn");
             assert_eq!(
                 fs::read(p).unwrap(),
                 installer,
                 "spawn executes the staged verified bytes"
             );
-            Ok(())
+            Ok(0)
         };
         let out = restore_windows_flow(
             &counter, "2.9.0", &base, &prefs_snap, &prefs, &spawn, &stage, &accept_all,
@@ -3335,7 +4097,7 @@ mod rollback_windows_flow {
             std::fs::write(p, tampered).map_err(|e| e.to_string())
         };
         let prefs = |_: &Path, _: &str| -> Result<(), String> { log.push("prefs"); Ok(()) };
-        let spawn = |_: &Path| -> Result<(), String> { log.push("spawn"); Ok(()) };
+        let spawn = |_: &Path| -> Result<u32, String> { log.push("spawn"); Ok(0) };
         let err = restore_windows_flow(
             &fetch, "2.9.0", &base, &prefs_snap, &prefs, &spawn, &stage, &accept_all,
         )
@@ -3346,6 +4108,157 @@ mod rollback_windows_flow {
             log.got(),
             vec!["stage", "prefs"],
             "the re-digest sits between the prefs write and the spawn"
+        );
+    }
+
+    // ── T-002 C-WIN-ROLLBACK-PANIC: non-progressing transfer fixtures
+    // (no network, no Windows host) — a timed-out fetch rides the
+    // existing typed fetch-error mapping (exit-4 class) and ends the
+    // restore before any mutation: prefs closure never called, spawn
+    // never called, staging empty, set intact, no retry of the failed
+    // URL.
+
+    #[test]
+    fn feed_fetch_deadline_ends_the_restore_with_zero_writes() {
+        let root = TempDir::new().unwrap();
+        let base = live_base(&root);
+        let prefs_snap = base.join(prefs_snapshot_name());
+        let prefs_before = fs::read(&prefs_snap).unwrap();
+        let fetch = FlowFetch {
+            feed: Err("fetch <feed>: operation timed out".to_string()),
+            installer: Ok(b"installer-bytes".to_vec()),
+        };
+        let counter = CountingFetch {
+            inner: fetch,
+            urls: std::sync::Mutex::new(vec![]),
+        };
+        let log = Log(std::sync::Mutex::new(vec![]));
+        let stage = |_: &Path, _: &[u8]| -> Result<(), String> { log.push("stage"); Ok(()) };
+        let prefs = |_: &Path, _: &str| -> Result<(), String> { log.push("prefs"); Ok(()) };
+        let spawn = |_: &Path| -> Result<u32, String> { log.push("spawn"); Ok(0) };
+        let err = restore_windows_flow(
+            &counter, "2.9.0", &base, &prefs_snap, &prefs, &spawn, &stage, &accept_all,
+        )
+        .unwrap_err();
+        assert_eq!(err.0, 4, "the deadline rides the fetch-error class: {:?}", err);
+        assert!(
+            err.1.contains("feed fetch") && err.1.contains("timed out"),
+            "typed mapping preserved: {}",
+            err.1
+        );
+        assert!(
+            log.got().is_empty(),
+            "zero writes on a stalled feed transfer: {:?}",
+            log.got()
+        );
+        assert_eq!(
+            counter.urls.lock().unwrap().len(),
+            1,
+            "the stalled URL is attempted exactly once — no retry"
+        );
+        assert!(
+            !base.join(windows_installer_name("2.9.0")).exists(),
+            "nothing was staged"
+        );
+        assert_eq!(
+            fs::read(&prefs_snap).unwrap(),
+            prefs_before,
+            "the snapshot file is byte-identical"
+        );
+    }
+
+    #[test]
+    fn installer_fetch_deadline_ends_the_restore_with_zero_writes() {
+        let root = TempDir::new().unwrap();
+        let base = live_base(&root);
+        let prefs_snap = base.join(prefs_snapshot_name());
+        let prefs_before = fs::read(&prefs_snap).unwrap();
+        let fetch = FlowFetch {
+            feed: Ok(feed_json("2.9.0")),
+            installer: Err("fetch <installer>: operation timed out".to_string()),
+        };
+        let counter = CountingFetch {
+            inner: fetch,
+            urls: std::sync::Mutex::new(vec![]),
+        };
+        let log = Log(std::sync::Mutex::new(vec![]));
+        let stage = |_: &Path, _: &[u8]| -> Result<(), String> { log.push("stage"); Ok(()) };
+        let prefs = |_: &Path, _: &str| -> Result<(), String> { log.push("prefs"); Ok(()) };
+        let spawn = |_: &Path| -> Result<u32, String> { log.push("spawn"); Ok(0) };
+        let err = restore_windows_flow(
+            &counter, "2.9.0", &base, &prefs_snap, &prefs, &spawn, &stage, &accept_all,
+        )
+        .unwrap_err();
+        assert_eq!(err.0, 4, "the deadline rides the fetch-error class: {:?}", err);
+        assert!(
+            err.1.contains("installer fetch") && err.1.contains("timed out"),
+            "typed mapping preserved: {}",
+            err.1
+        );
+        assert!(
+            log.got().is_empty(),
+            "zero writes on a stalled installer transfer: {:?}",
+            log.got()
+        );
+        let urls = counter.urls.lock().unwrap().clone();
+        assert_eq!(urls.len(), 2, "feed once + stalled installer once: {urls:?}");
+        assert!(
+            urls[1].contains(windows_installer_name("2.9.0").as_str()),
+            "the stalled URL is the installer, attempted exactly once: {urls:?}"
+        );
+        assert!(
+            !base.join(windows_installer_name("2.9.0")).exists(),
+            "nothing was staged"
+        );
+        assert_eq!(
+            fs::read(&prefs_snap).unwrap(),
+            prefs_before,
+            "the snapshot file is byte-identical"
+        );
+    }
+
+    // ── T-003 C-WIN-ROLLBACK-PANIC: pid plumbing through the spawn
+    // seam — the accounting wrapper composes the fixture spawn, the
+    // fact is written before the spawn (pid absent) and patched after,
+    // and the outcome stays the unchanged event=pending.
+
+    #[test]
+    fn accounting_spawn_composes_the_seam_and_outcome_stays_pending() {
+        let root = TempDir::new().unwrap();
+        let base = live_base(&root);
+        let prefs_snap = base.join(prefs_snapshot_name());
+        let fetch = FlowFetch {
+            feed: Ok(feed_json("2.9.0")),
+            installer: Ok(b"installer-bytes".to_vec()),
+        };
+        let raw = |p: &Path| -> Result<u32, String> {
+            // Runs strictly after the fact write: the pre-spawn fact is
+            // present, carries no pid yet, and names the right versions.
+            let rec = read_pending_rollback(root.path())
+                .expect("the fact precedes the spawn");
+            assert_eq!(rec.installer_pid, None, "the pre-spawn fact has no pid yet");
+            assert_eq!(rec.to_version, "2.9.0");
+            assert_eq!(rec.from_version, "2.9.1");
+            assert_eq!(rec.at, 1000);
+            let _ = fs::write(p, b"spawned").unwrap();
+            Ok(4242)
+        };
+        let spawn = pending_accounting_spawn(root.path(), "2.9.0", "2.9.1", 1000, &raw);
+        let stage = |p: &Path, b: &[u8]| -> Result<(), String> {
+            std::fs::write(p, b).map_err(|e| e.to_string())
+        };
+        let prefs = |_: &Path, _: &str| -> Result<(), String> { Ok(()) };
+        let out = restore_windows_flow(
+            &fetch, "2.9.0", &base, &prefs_snap, &prefs, &spawn, &stage, &accept_all,
+        )
+        .unwrap();
+        assert_eq!(out.event, "pending", "the outcome is unchanged");
+        assert_eq!(out.detail.as_deref(), Some("2.9.0"));
+        let rec = read_pending_rollback(root.path()).expect("the fact stands after the spawn");
+        assert_eq!(
+            rec.installer_pid,
+            Some(4242),
+            "the child pid was patched after the spawn"
         );
     }
 }
@@ -3676,6 +4589,7 @@ mod rollback_gui_restore {
             None,
             None,
             true,
+            None,
         )
         .unwrap_err();
         assert_eq!(err.0, 7, "no live set in the fixture: {err:?}");
@@ -4261,6 +5175,250 @@ mod rollback_boot {
         assert!(!root.path().join(LIVE_DIR).exists());
         assert!(!root.path().join(PROMOTION_ASIDE_DIR).exists());
         assert!(!root.path().join(STAGING_DIR).exists());
+    }
+
+    // ── T-003 C-WIN-ROLLBACK-PANIC: the pending-installer accounting
+    // matrix. Boot branches (transition-clear, in-window stay, expired
+    // clear + retry armed, reuse-suspected stay, absent no-op), the
+    // three-state evaluate table and the accounting wrapper — all on a
+    // temp root with injected probes and canned-pid spawners.
+
+    fn write_boot_fact(root: &Path, age_secs: u64, pid: Option<u32>) {
+        write_pending_rollback(
+            root,
+            &PendingRollbackRecord {
+                to_version: "2.9.0".to_string(),
+                from_version: "2.9.1".to_string(),
+                at: now_secs() as i64 - age_secs as i64,
+                installer_pid: pid,
+            },
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn confirmed_transition_finalize_clears_the_pending_fact() {
+        let root = TempDir::new().unwrap();
+        let live = root.path().join(LIVE_DIR);
+        // previous_version == running ("2.9.1"): the confirmed
+        // transition — the finalize branch runs exactly as today.
+        make_valid_set(&live, "2.9.1", false);
+        write_boot_fact(root.path(), 0, Some(1));
+        reconcile(&root, None, &NoTrash);
+        assert!(
+            !live.exists(),
+            "the confirmed transition finalizes exactly as today"
+        );
+        assert!(
+            !root.path().join(PENDING_ROLLBACK_FILE).exists(),
+            "the consumed fact is cleared by the finalize"
+        );
+    }
+
+    #[test]
+    fn confirmed_transition_survives_a_failing_fact_clear() {
+        let root = TempDir::new().unwrap();
+        let live = root.path().join(LIVE_DIR);
+        make_valid_set(&live, "2.9.1", false);
+        // A directory at the fact name makes the best-effort clear
+        // fail without touching any restore machinery — the injected
+        // failing writer.
+        fs::create_dir_all(root.path().join(PENDING_ROLLBACK_FILE)).unwrap();
+        reconcile(&root, None, &NoTrash);
+        assert!(
+            !live.exists(),
+            "the finalize is never blocked or delayed by the failing clear"
+        );
+        assert!(
+            root.path().join(PENDING_ROLLBACK_FILE).is_dir(),
+            "the blocker is left untouched (stderr marker only)"
+        );
+    }
+
+    #[test]
+    fn boot_in_window_fact_stays_with_the_probe_unconsulted() {
+        let root = TempDir::new().unwrap();
+        write_boot_fact(root.path(), 0, None);
+        let calls: std::sync::Mutex<Vec<u32>> = std::sync::Mutex::new(vec![]);
+        let probe = |pid: u32| -> Option<bool> {
+            calls.lock().unwrap().push(pid);
+            Some(false)
+        };
+        reconcile_pending_rollback_at_boot(root.path(), "2.9.1", &probe);
+        assert!(
+            root.path().join(PENDING_ROLLBACK_FILE).exists(),
+            "in-window: the fact stays, the retry stays declined"
+        );
+        assert!(
+            calls.lock().unwrap().is_empty(),
+            "positive-failure-only: the probe is never consulted in-window"
+        );
+    }
+
+    #[test]
+    fn boot_expired_fact_clears_and_arms_the_retry() {
+        let root = TempDir::new().unwrap();
+        write_boot_fact(root.path(), PENDING_INSTALLER_WINDOW_SECS + 1, None);
+        let dead = |_: u32| -> Option<bool> { Some(false) };
+        reconcile_pending_rollback_at_boot(root.path(), "2.9.1", &dead);
+        assert!(
+            !root.path().join(PENDING_ROLLBACK_FILE).exists(),
+            "expired without positive liveness: cleared, retry armed"
+        );
+    }
+
+    #[test]
+    fn boot_alive_pid_past_window_stays_reuse_suspected() {
+        let root = TempDir::new().unwrap();
+        write_boot_fact(root.path(), PENDING_INSTALLER_WINDOW_SECS + 1, Some(9));
+        let calls: std::sync::Mutex<Vec<u32>> = std::sync::Mutex::new(vec![]);
+        let probe = |pid: u32| -> Option<bool> {
+            calls.lock().unwrap().push(pid);
+            Some(true)
+        };
+        reconcile_pending_rollback_at_boot(root.path(), "2.9.1", &probe);
+        assert!(
+            root.path().join(PENDING_ROLLBACK_FILE).exists(),
+            "a positively-alive pid past the window stays declined (reuse suspected)"
+        );
+        assert_eq!(calls.lock().unwrap().as_slice(), &[9]);
+    }
+
+    #[test]
+    fn boot_absent_fact_is_a_noop() {
+        let root = TempDir::new().unwrap();
+        let calls: std::sync::Mutex<Vec<u32>> = std::sync::Mutex::new(vec![]);
+        let probe = |pid: u32| -> Option<bool> {
+            calls.lock().unwrap().push(pid);
+            Some(false)
+        };
+        reconcile_pending_rollback_at_boot(root.path(), "2.9.1", &probe);
+        assert!(calls.lock().unwrap().is_empty(), "absent: nothing consulted");
+        assert!(
+            !root.path().join(PENDING_ROLLBACK_FILE).exists(),
+            "absent: nothing created"
+        );
+    }
+
+    #[test]
+    fn evaluate_pending_table_pins_the_three_states() {
+        let root = TempDir::new().unwrap();
+        let dead = |_: u32| -> Option<bool> { Some(false) };
+        let unavailable = |_: u32| -> Option<bool> { None };
+
+        write_pending_rollback(
+            root.path(),
+            &PendingRollbackRecord {
+                to_version: "2.9.0".to_string(),
+                from_version: "2.9.1".to_string(),
+                at: 1000,
+                installer_pid: None,
+            },
+        )
+        .unwrap();
+        // In-window: declined, probe unconsulted.
+        let calls: std::sync::Mutex<Vec<u32>> = std::sync::Mutex::new(vec![]);
+        let counting = |pid: u32| -> Option<bool> {
+            calls.lock().unwrap().push(pid);
+            Some(false)
+        };
+        match evaluate_pending_rollback(
+            root.path(),
+            "2.9.1",
+            1000 + PENDING_INSTALLER_WINDOW_SECS - 1,
+            &counting,
+        ) {
+            PendingDecision::Declined(reason) => assert_eq!(reason, PENDING_DECLINED_IN_WINDOW),
+            other => panic!("in-window must decline, got {other:?}"),
+        }
+        assert!(
+            calls.lock().unwrap().is_empty(),
+            "inside the window the probe is never consulted"
+        );
+        // Exactly at the window the age bound expires the fact.
+        match evaluate_pending_rollback(
+            root.path(),
+            "2.9.1",
+            1000 + PENDING_INSTALLER_WINDOW_SECS,
+            &dead,
+        ) {
+            PendingDecision::ExpiredClear => {}
+            other => panic!("age == window is expired, got {other:?}"),
+        }
+        // Past the window: probe unavailable (None) never declares
+        // failure — the window carries the verdict.
+        match evaluate_pending_rollback(
+            root.path(),
+            "2.9.1",
+            1000 + PENDING_INSTALLER_WINDOW_SECS + 1,
+            &unavailable,
+        ) {
+            PendingDecision::ExpiredClear => {}
+            other => panic!("unavailable probe → clear, got {other:?}"),
+        }
+        // Past the window with a positively-alive pid: reuse suspected.
+        write_pending_rollback(
+            root.path(),
+            &PendingRollbackRecord {
+                to_version: "2.9.0".to_string(),
+                from_version: "2.9.1".to_string(),
+                at: 1000,
+                installer_pid: Some(5),
+            },
+        )
+        .unwrap();
+        let alive = |pid: u32| -> Option<bool> { if pid == 5 { Some(true) } else { Some(false) } };
+        match evaluate_pending_rollback(
+            root.path(),
+            "2.9.1",
+            1000 + PENDING_INSTALLER_WINDOW_SECS + 1,
+            &alive,
+        ) {
+            PendingDecision::Declined(reason) => assert_eq!(reason, PENDING_DECLINED_PID_ALIVE),
+            other => panic!("alive past window must decline, got {other:?}"),
+        }
+        // Stale fact (the target version is already running): clear and
+        // allow — the transition-confirm branch consumes it at finalize.
+        write_pending_rollback(
+            root.path(),
+            &PendingRollbackRecord {
+                to_version: "2.9.1".to_string(),
+                from_version: "2.8.2".to_string(),
+                at: now_secs() as i64,
+                installer_pid: None,
+            },
+        )
+        .unwrap();
+        match evaluate_pending_rollback(root.path(), "2.9.1", now_secs(), &dead) {
+            PendingDecision::ExpiredClear => {}
+            other => panic!("a consumed transition's fact is stale, got {other:?}"),
+        }
+        // Absent: cleared by definition (gate proceeds; boot checks
+        // presence first when it must distinguish absent from expired).
+        clear_pending_rollback(root.path());
+        match evaluate_pending_rollback(root.path(), "2.9.1", now_secs(), &dead) {
+            PendingDecision::ExpiredClear => {}
+            other => panic!("absent fact → clear, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn failed_fact_write_is_non_blocking_and_the_spawn_proceeds() {
+        let root = TempDir::new().unwrap();
+        // A directory at the fact name makes both the pre-spawn write
+        // and the pid patch fail without touching the spawn machinery.
+        fs::create_dir_all(root.path().join(PENDING_ROLLBACK_FILE)).unwrap();
+        let raw = |_: &Path| -> Result<u32, String> { Ok(7) };
+        let spawn = pending_accounting_spawn(root.path(), "2.9.0", "2.9.1", 1, &raw);
+        let pid = spawn(Path::new("installer.exe")).unwrap();
+        assert_eq!(
+            pid, 7,
+            "the restore's primary job never fails on accounting — the spawn proceeded"
+        );
+        assert!(
+            root.path().join(PENDING_ROLLBACK_FILE).is_dir(),
+            "the blocker is left untouched (logged BLOCK marker only)"
+        );
     }
 }
 

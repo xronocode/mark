@@ -1,5 +1,5 @@
 # FILE: .github/workflows/release.yml
-# VERSION: 3.7.0
+# VERSION: 3.8.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Admit only an approved annotated release tag, build and sign its exact Ready seal, then stage one digest-verified draft release and expose it only after the owner approves the synchronous release environment gate.
 #   SCOPE: Named-test manual unsigned QA handoffs plus tag-only readiness, signing, notarization, artifact verification, owner-gated draft-first publication, and downstream Homebrew handoff.
@@ -10,7 +10,7 @@
 # END_MODULE_CONTRACT
 #
 # START_MODULE_MAP
-#   authorize-tag - Reject any non-bot, lightweight, wrong-target, stale-check, or non-Ready release tag before secrets or candidate code execute. C-RELEASE-CANARY-PRERELEASE: hyphenated vX.Y.Z-beta.N/canary.N tags (base equal to the collecting train computedVersion) take the prerelease lane — payload-checks, strict admission, materials, preflight and the release-identity artifact are skipped for them while the tagger, annotated-tag and seal=HEAD checks stay.
+#   authorize-tag - Reject any non-bot, lightweight, wrong-target, stale-check, or non-Ready release tag before secrets or candidate code execute. C-RELEASE-CANARY-PRERELEASE: hyphenated vX.Y.Z-beta.N/canary.N tags (base equal to the collecting train computedVersion) take the prerelease lane — payload-checks, strict admission, materials, preflight and the release-identity artifact are skipped for them while the tagger, annotated-tag and seal=HEAD checks stay. C-RELEASE-BETA-CHECKS-GATE: prerelease tags additionally collect check runs at the seal and require the pinned main set green before any signing lane runs.
 #   manual-build - Run unsigned build-only QA from an input-free manual dispatch.
 #   build - Re-run readiness, create signed/notarized release artifacts, and enforce smoke/supply-chain gates inside release-signing. C-RELEASE-CANARY-PRERELEASE: the admitted-evidence download, repeated strict admission, materials gate and metadata preflight are skipped for prerelease tags; packaging, signing and smoke stay unconditional.
 #   prepare-publication - Render and digest the exact release body and asset set without write credentials. C-RELEASE-CANARY-PRERELEASE: prerelease tags get a generated body (automated verification block plus the external-tester notice) with no reviewed-notes extraction and no brew line.
@@ -19,6 +19,7 @@
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-11-21 v3.8.0 C-RELEASE-BETA-CHECKS-GATE: the prerelease lane gains a fail-closed checks boundary inside authorize-tag — prerelease tags collect their commit's check runs at the seal (stable jq shape, latest attempt kept, fresh evidence on every re-run) and are rejected unless the pinned main required set (status check and release/governance, both GitHub Actions, derived from rulesets.main.requiredChecks minus this workflow's own tag-time check) is exactly-once green at that SHA; a failed, cancelled, missing, ambiguous or stale-SHA match stops the tag before the release-signing environment or any packaging job runs. The stable lane is byte-identical for non-hyphenated tags.
 #   - 2026-11-17 v3.7.0 C-RELEASE-CANARY-PRERELEASE: prerelease lane for external-tester tags — authorize-tag admits vX.Y.Z-beta.N/canary.N (base = train computedVersion, no Ready seal) and skips readiness/materials/preflight plus the identity artifact; build skips the repeated admission gates; prepare-publication renders a tester body; publish exposes a prerelease that never advances releases/latest; publish-cask is skipped for prereleases. The stable path is unchanged for non-hyphenated tags.
 #   - 2026-11-15 C-QA-INSTALLER-ARTIFACTS: isolate named-test QA handoffs and clean completed local binaries.
 #   - 2026-11-12 C-RELEASE-ACTION-REFERENCES: resolve exact release action pins and preserve shell output under actionlint.
@@ -179,6 +180,59 @@ jobs:
 
       - name: install locked dependencies without lifecycle scripts
         run: npm ci --ignore-scripts
+
+      # C-RELEASE-BETA-CHECKS-GATE: this collection keys on the tag's HEAD
+      # SHA (the seal) and never on the train payload field. The stable jq
+      # shape below sorts by started time and groups per name+app keeping
+      # the latest attempt, which is what makes a superseded earlier attempt
+      # (a flaky red re-run) resolve to the latest one. No artifact, cache
+      # or cross-run state exists on this path: a re-run re-collects fresh
+      # evidence.
+      - name: collect prerelease check runs at the seal
+        if: steps.identity.outputs.prerelease == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SEAL: ${{ steps.identity.outputs.seal }}
+        run: |
+          set -euo pipefail
+          gh api --paginate --slurp \
+            "repos/$GITHUB_REPOSITORY/commits/$SEAL/check-runs?per_page=100" \
+            | jq '[.[].check_runs[]] | sort_by(.started_at) | group_by(.name + "|" + .app.name) | map(last | {name, app:.app.name, sha:.head_sha, conclusion})' \
+            > /tmp/release-checks.json
+
+      # C-RELEASE-BETA-CHECKS-GATE: the pinned set is the main-branch
+      # required contexts derived from
+      # .github/release-governance.json rulesets.main.requiredChecks, pinned
+      # here in the workflow source instead of read from the config so the
+      # gate cannot silently drift with a config edit. release/readiness is
+      # excluded because it is the tag-time check of this very workflow and
+      # cannot pre-exist on the beta commit — requiring it here would
+      # deadlock the lane.
+      - name: gate prerelease required checks
+        if: steps.identity.outputs.prerelease == 'true'
+        env:
+          SEAL: ${{ steps.identity.outputs.seal }}
+          PRERELEASE_REQUIRED_CHECKS: '[{"name":"status check","app":"GitHub Actions"},{"name":"release/governance","app":"GitHub Actions"}]'
+        run: |
+          set -euo pipefail
+          node -e '
+            const checks = JSON.parse(require("fs").readFileSync("/tmp/release-checks.json", "utf8"));
+            const required = JSON.parse(process.env.PRERELEASE_REQUIRED_CHECKS);
+            const seal = process.env.SEAL;
+            let rejected = false;
+            const reject = (identity, reason) => {
+              console.error("::error::[ReleaseAuthorize][authorize-tag][BLOCK_PRERELEASE_CHECKS_NOT_GREEN] " + identity.name + " (" + identity.app + "): " + reason);
+              rejected = true;
+            };
+            for (const identity of required) {
+              const matches = checks.filter((check) => check.name === identity.name && check.app === identity.app);
+              if (matches.length === 0) reject(identity, "missing from the check runs collected at the seal");
+              else if (matches.length > 1) reject(identity, "ambiguous identity: " + matches.length + " live matches");
+              else if (matches[0].sha !== seal) reject(identity, "stale: recorded at " + matches[0].sha + " instead of the seal");
+              else if (matches[0].conclusion !== "success") reject(identity, "conclusion is " + matches[0].conclusion + ", not success");
+            }
+            if (rejected) process.exit(1);
+          '
 
       - name: read exact payload check runs
         if: steps.identity.outputs.prerelease != 'true'
