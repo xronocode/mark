@@ -1,0 +1,279 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-SEC-EXT-GRANT-BOUND>
+    <ChangeRef>C-SEC-EXT-GRANT-BOUND</ChangeRef>
+    <Created>2026-11-21</Created>
+    <IntentSummary>Bind each extension's incoming rights to the capability set approved at pairing time: the approved incoming capability set is captured from the registered manifest whether or not the extension is enabled and persisted beside the credential in the auth store; every incoming route — /ext/context, /ext/apply, /ext/text-insert and every /stream/* route at open and on every state change — authorizes by that stored grant instead of the live manifest; enabling an extension whose current manifest requests incoming capabilities beyond the stored grant is refused into explicit re-approval through the gallery error surface; and key replacement becomes honest — store_secret verifies the new key through the effective credential path before reporting success and a rebind additionally verifies the old key no longer validates, with keychain write failure, verification mismatch and keychain read error as distinct logged refusal states. Proven by a grant-establishing fixture, the migrated enabled_extension_passes_only_declared_capability_routes pin (mechanism moves from manifest-derived to grant-derived, meaning and statuses unchanged), grow-after-pairing and stream-without-grant refusals, the fail-closed legacy-credential pin, the honest-replace family, the gallery re-approval-surface test, and the two unchanged-meaning extensionGallery vitest suites.</IntentSummary>
+    <ReferenceState>SpecSha256 = 2493ed3d646a6fbdb1b2404c1268df2ab789e6cc3c3fe82782f16c613665a7c8 (pinned over the approved spec.xml at admission; the orchestrator computes and replaces this placeholder from the approved spec bytes). Authored 2026-11-21 against the current read-only state of the canary-beta-wave worktree, post C-SEC-EDIT-TARGETING/C-SEC-STREAM-SCOPE/C-SEC-PAIR-REBIND: src-tauri/src/m045_ext/auth.rs holds the credential store — secret_key (lines 34-36, "ext:{ext_id}:shared_secret"), MEM_STORE (38-39), the Credential trait with read/write/delete (43-47), KeyringCredential (49-70), credential() with TEST_BACKENDS injection for tests (72-91), store_secret (START_BLOCK_STORE 110-125: memory insert, best-effort keychain write with read-back, and on any keychain failure only a BLOCK_KEYCHAIN_STORE_FAILED "(in-memory fallback active)" warning before the unconditional BLOCK_STORE_OK and Ok(()) — the F-003 Ok-on-keychain-failure anchor), get_secret (128-136, persistent-first with memory fallback on read error), revoke_secret/verify_secret_absent (139-158), validate_token (162-180, constant_time_eq 182-191), test helpers inject_test_secret/inject_test_backend/clear_test_secret (194-208). src-tauri/src/m045_ext/registry.rs: ExtensionState (27-33), register (91-110), enable/disable (113-150) both bump authorization_epoch, authorization_epoch(id) (199-203) answers only for enabled ids, get_manifest (205-216) answers only for enabled registrations and refuses a disabled one with format!("extension '{id}' is disabled") (line 213) — the F-001 approval-time anchor: the declared list degrades to nothing for disabled or unregistered ids. src-tauri/src/m045_ext/mod.rs: mt_ext_enable (92-107) mints a secret via auth::store_secret when none exists (BLOCK_ENABLE_SECRET_GENERATED line 100) and only flips the enabled flag under stream_gate (103-105) — no grant notion exists; mt_ext_disable (111-142) fences, disables, then strictly revokes and verifies absence; mt_ext_invoke (148-173) reads the live manifest per call. src-tauri/src/m045_ext/live_server.rs: StreamIdentity/is_enabled/owns (437-450), authenticate_stream (452-464: bearer, enabled-epoch lookup, spawn_blocking validate_token — consults no capability), validate_bearer (468-478) delegating to it for patch/close/heartbeat, RouteCapability enum (487-522: StreamDocument, ContextRead, TextEdit, TextInsert with name/grant_phrase/all in fixed order), authenticate_incoming (530-555: candidates from registry.get_manifest(id) for declared-identity routes line 539 or registry.get_enabled(cap.name()) line 540, then the request-time live-manifest capability check at 546-551 "capability.is_none_or(|cap| manifest.capabilities.iter().any(|c| c.name == cap.name()))" — the F-001/F-002 authorization anchor), pairing_grant_description (567-588) and pairing_rebind_description (595-603), handle_pair (613-742: prior-secret rebind gate 624-658 constant-time, #[cfg(test)] auto-approval 662-669, release rfd dialog 670-703 whose declared list comes from .get_manifest(&amp;req.extension_id) line 675 — enabled-only, hence empty for disabled/unregistered ids, denial 705-714, then generate/store/response 716-741 with no grant capture and no post-store verification), handle_doc_open (745-858, authenticates via authenticate_stream line 750 with no capability), handle_doc_patch/close/heartbeat (861-1027, 1030-1102, 1105-1162, all via validate_bearer), handle_text_insert (1168-1213, Some(RouteCapability::TextInsert) line 1173), handle_ext_context (1219-1306, Some(&amp;req.extension_id), Some(RouteCapability::ContextRead) line 1224), handle_ext_apply (1315-1437, Some(RouteCapability::TextEdit) line 1320 with the unchanged C-SEC-EDIT-TARGETING binding fence 1331-1363), router 1532-1540. src-tauri/src/m045_ext/tests.rs: incoming_fixture/incoming_fixture_caps (937-1000) registers a manifest, injects the fixture token as stored secret and a DummyCredential, but establishes no grant (none exists yet); DummyCredential (1204-1241) with fail_delete/fail_read/keep_after_delete and read_pause but no write-failure mode; enabled_extension_passes_only_declared_capability_routes (1329-1342) pins per-route denial plus the stream pin at 1340-1341 "the owned stream route keeps working under C-SEC-STREAM-AUTH fencing" with stream_open_fixture 200 — today authorization is manifest-derived; pairing_grant_description_names_only_declared_capabilities (1345-1368), fresh_pair_secret (1370-1381) and fresh_pairing_restores_access (1384-1441) whose pairs land inside verified-empty windows and whose enable-after-pair (1396) is the F-001 UI entry exercised headlessly; the stream security family (1640-1743) pins owner/epoch/disable fencing. src/renderer/src/components/extensionGallery/index.vue contains NO pairing dialog (spec Assumption 1): the anchor is toggleExtension (177-195) with its catch-all error surface (91-93, gallery-error div) and the existing ext_disable_revoke_failed mapping precedent (186-187). tests/renderer/components/extensionGallery/index.test.js drives the toggle through input[type="checkbox"] setValue with invokeMock (124-150). Graph anchor .grace/graph/features.xml M-045; verification anchor .grace/verification/features.xml V-M-045. Design decisions locked by this plan: (1) the approved grant persists BESIDE the secret in the auth store as a second record under the same backend family — key ext:{ext_id}:approved_grant, canonical JSON array of incoming capability names in RouteCapability::all() fixed order, memory mirror MEM_GRANTS, read precedence identical to get_secret — chosen over a registry-side grant because the registry is rebuilt by re-discovery (register overwrites state, registry.rs:89-110), so a registry-stored grant would be silently wiped or stale exactly when the manifest grows, while the auth store is the one place already keyed by extension id, already surviving restarts, and already the thing every route authenticates through; "one secret per extension id" is untouched — the grant is capability names, not a credential. (2) Grant absence (Ok(None)) and grant read failure both fail closed on every incoming route — the recorded no-migration assumption means credentials paired before this change lose incoming rights until a fresh pairing. (3) Pairing captures the grant from a new registry.peek_manifest that answers regardless of enabled state, stores the grant BEFORE the secret, and the stored set is exactly the dialog-presented incoming subset in all() order; an unregistered id stores the honest empty grant. (4) Route authorization moves wholesale to the stored grant: candidate selection keeps its current shape, the request-time manifest capability check is removed; stream enforcement lives inside authenticate_stream so validate_bearer inherits it for every state change, refusals 401 with distinct BLOCK_STREAM_GRANT_REFUSED reasons, before any session mutation or live event. (5) mt_ext_enable mints a credential with NO grant (authorizes no incoming route, spec criterion 2) and refuses enable when the current manifest requests incoming capabilities beyond the stored grant, via peek_manifest (get_manifest is enabled-only and would self-refuse); the check does its credential I/O before stream_gate per the lock-order rule that native credential I/O holds neither gate nor session lock. (6) Honest replace: store_secret verifies through get_secret (the effective credential path) and fails with memory rollback on mismatch/absence/read-error; handle_pair stores the grant first (inert until a credential exists), then the verified secret, then — rebind only — proves the prior token no longer validates; keychain write failure, verification mismatch and keychain read error are distinct logged refusal states and none reports success. Deviation note (one, deliberate): the spec enumerates an exact seven-file ObservedWriteScope; this plan appends .grace/graph/features.xml and .grace/verification/features.xml because the spec's own constraints require the GRACE surface to stay synchronized and task T-005 writes those governed files — the same extension the C-SEC-STREAM-SCOPE and C-SEC-PAIR-REBIND plans applied over their specs. Per the drafting instruction this plan carries no self-referential grace-lint MustPassCommand; the orchestrator runs current/target/final lifecycle assertions itself. Writing this draft approves neither the execution plan nor code implementation, apply/archive, commits, departure into main, manual-acceptance exceptions or release.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-045</Value>
+        <Value>src-tauri/src/m045_ext/auth.rs</Value>
+        <Value>src-tauri/src/m045_ext/registry.rs</Value>
+        <Value>src-tauri/src/m045_ext/mod.rs</Value>
+        <Value>src-tauri/src/m045_ext/live_server.rs</Value>
+        <Value>src-tauri/src/m045_ext/tests.rs</Value>
+        <Value>src/renderer/src/components/extensionGallery/index.vue</Value>
+        <Value>tests/renderer/components/extensionGallery/index.test.js</Value>
+        <Value>tests/renderer/components/extensionGallery/textOps.test.js</Value>
+        <Value>.grace/graph/features.xml</Value>
+        <Value>.grace/verification/features.xml</Value>
+      </MustExist>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>async fn authenticate_incoming</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>registry.get_manifest(id).map(|m| vec![m])</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>manifest.capabilities.iter().any(|c| c.name == cap.name())</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>async fn authenticate_stream</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>.get_manifest(&amp;req.extension_id)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/auth.rs</File>
+        <Text>in-memory fallback active</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/auth.rs</File>
+        <Text>BLOCK_STORE_OK</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/registry.rs</File>
+        <Text>extension '{id}' is disabled</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>BLOCK_ENABLE_SECRET_GENERATED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>enabled_extension_passes_only_declared_capability_routes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>fresh_pairing_restores_access</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-045</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/auth.rs</File>
+        <Text>ext:{ext_id}:approved_grant</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/auth.rs</File>
+        <Text>pub(super) fn store_grant</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/auth.rs</File>
+        <Text>pub(super) fn get_grant</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/auth.rs</File>
+        <Text>pub(super) fn revoke_grant</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/auth.rs</File>
+        <Text>BLOCK_STORE_VERIFY_MISMATCH</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/auth.rs</File>
+        <Text>BLOCK_STORE_VERIFY_READ_FAILED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/registry.rs</File>
+        <Text>pub fn peek_manifest</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>fn grant_authorizes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>super::auth::get_grant</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>super::auth::store_grant</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>peek_manifest(&amp;req.extension_id)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_STREAM_GRANT_REFUSED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_PAIR_GRANT_STORE_FAILED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_PAIR_NEW_KEY_UNVERIFIED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_PAIR_OLD_KEY_STILL_VALID</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_PAIR_CREDENTIAL_VERIFY_READ_FAILED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>BLOCK_ENABLE_GRANT_EXCEEDED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>ext_enable_reapproval_required</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/extensionGallery/index.vue</File>
+        <Text>ext_enable_reapproval_required</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>enabled_extension_passes_only_declared_capability_routes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>pairing_persists_the_captured_grant</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>grow_after_pairing_enable_is_refused_to_reapproval</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>stream_requires_stored_stream_document_grant</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>legacy_credential_without_grant_fails_closed</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>rebind_refused_when_new_key_fails_verification</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>pair_keychain_read_error_is_a_distinct_refusal</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/extensionGallery/index.test.js</File>
+        <Text>ext_enable_reapproval_required</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">npx vitest run tests/renderer/components/extensionGallery/index.test.js tests/renderer/components/extensionGallery/textOps.test.js</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-045 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-045 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src-tauri/src/m045_ext/live_server.rs</File>
+      <File>src-tauri/src/m045_ext/auth.rs</File>
+      <File>src-tauri/src/m045_ext/registry.rs</File>
+      <File>src-tauri/src/m045_ext/mod.rs</File>
+      <File>src-tauri/src/m045_ext/tests.rs</File>
+      <File>src/renderer/src/components/extensionGallery/index.vue</File>
+      <File>tests/renderer/components/extensionGallery/index.test.js</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/features.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Grant store beside the credential, registry peek for disabled-registered ids, and pairing-time grant capture</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src-tauri/src/m045_ext/auth.rs gains a START_BLOCK_GRANT_STORE/END_BLOCK_GRANT_STORE pair (placed between END_BLOCK_STORE and START_BLOCK_GET): grant_key(ext_id) returning format!("ext:{ext_id}:approved_grant"); a MEM_GRANTS memory mirror (LazyLock&lt;Mutex&lt;HashMap&lt;String, Vec&lt;String&gt;&gt;&gt;&gt;); grant_credential(ext_id) building a keyring entry under the same service identity with the grant key, with #[cfg(test)] TEST_GRANT_BACKENDS plus inject_test_grant_backend/clear_test_grant helpers mirroring the credential-backend ones; pub(super) fn store_grant(ext_id, capabilities: &amp;[String]) -&gt; Result&lt;(), String&gt; persisting the canonical serde_json array and the memory mirror, verifying through get_grant before Ok, with distinct BLOCK_GRANT_STORE_FAILED/BLOCK_GRANT_STORE_OK logs; pub(super) fn get_grant(ext_id) -&gt; Result&lt;Option&lt;Vec&lt;String&gt;&gt;, String&gt; with exactly get_secret's precedence (persistent-first, memory fallback after a logged BLOCK_GRANT_GET_FAILED read error, Ok(None) when neither holds a record); pub(super) fn revoke_grant removing both stores with a BLOCK_GRANT_REVOKED log. The grant holds capability names only — no secret material ever enters it, and no name validation happens in auth (callers validate against RouteCapability). The existing secret-side blocks, logs and MODULE_MAP entries are updated only where this task touches them; MAP entries for the three new functions are added.</Criterion>
+          <Criterion>src-tauri/src/m045_ext/registry.rs gains pub fn peek_manifest(&amp;self, id: &amp;str) -&gt; Option&lt;ExtensionManifest&gt; answering the stored manifest regardless of enabled state and None when unregistered, with a doc comment naming its single purpose (pairing-time capture for a disabled-but-registered extension); get_manifest, enable, disable, register and authorization_epoch stay byte-identical in behavior.</Criterion>
+          <Criterion>src-tauri/src/m045_ext/live_server.rs handle_pair: the declared read is hoisted out of the cfg arms — a single peek_manifest(&amp;req.extension_id) capability-name list captured before the approval decision, consumed by the release dialog description (pairing_grant_description and pairing_rebind_description unchanged) AND by shared post-approval code that computes the approved incoming set as the declared names intersected with RouteCapability::all() in all() fixed order and persists it via super::auth::store_grant BEFORE the secret is generated and stored; a store_grant failure returns 500 with BLOCK_PAIR_GRANT_STORE_FAILED and touches no credential (a first pairing leaves no credential behind; a rebind leaves the prior key fully valid); an unregistered id captures the honest empty grant; the #[cfg(test)] auto-approval arm captures identically. PairResponse and PairRequest shapes are unchanged and the grant never travels in any wire field.</Criterion>
+          <Criterion>Module hygiene: live_server.rs, auth.rs and registry.rs CHANGE_SUMMARY/SCOPE lines gain dated 2026-11-21 C-SEC-EXT-GRANT-BOUND entries; every START_BLOCK_/END_BLOCK_ marker stays paired and unique codebase-wide; no Cargo.toml, dependency, discovery, manifest-schema or renderer change; existing log anchors are untouched.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">cargo check --locked --offline --manifest-path src-tauri/Cargo.toml</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Authorize every route by the stored grant: data routes, /stream/* at open and on state changes, and the enable coverage gate surfaced by the gallery</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src-tauri/src/m045_ext/live_server.rs: a pure fn grant_authorizes(grant: Option&lt;&amp;[String]&gt;, capability: RouteCapability) -&gt; bool (Some and contains capability.name()); authenticate_incoming replaces the request-time live-manifest check (current lines 546-551) with the stored grant — candidate selection keeps its current shape (declared identity via get_manifest, else get_enabled by the route capability), and the spawn_blocking step validates the token AND reads super::auth::get_grant AND requires grant_authorizes; no stored grant or a grant lacking the route capability is a 401 through the existing BLOCK_AUTH_FAILED_INCOMING path before any content, context event or mt::text::op; the three call sites keep their RouteCapability arguments; the doc comment is updated to state grant-derived authorization.</Criterion>
+          <Criterion>authenticate_stream gains the stream.document authorization: after token validation it reads super::auth::get_grant via spawn_blocking and requires grant_authorizes(grant, RouteCapability::StreamDocument); every refusal is 401 with a distinct BLOCK_STREAM_GRANT_REFUSED log carrying a reason field (grant-unreadable, no-stored-grant, missing-stream.document) and no secret material; validate_bearer inherits the check unchanged, so /stream/open and patch/close/heartbeat all enforce the stored stream.document grant; refusals happen before any session mutation and before any live event; owner/epoch fencing, the is_enabled re-check under stream_gate, the gate lock order and every response shape stay unchanged.</Criterion>
+          <Criterion>src-tauri/src/m045_ext/mod.rs mt_ext_enable: after the existing mint-if-absent (the minted credential deliberately receives NO grant and therefore authorizes no incoming route) and BEFORE taking stream_gate, the command reads the current manifest via peek_manifest (get_manifest is enabled-only and would self-refuse the disabled extension), computes the incoming-requested names (those in RouteCapability::all()), reads the stored grant and refuses with BLOCK_ENABLE_GRANT_EXCEEDED plus Err("ext_enable_reapproval_required") when any requested name is missing from the stored grant; an unreadable grant refuses with a distinct BLOCK_ENABLE_GRANT_UNREADABLE log and Err("ext_enable_grant_unreadable"); enabling within the stored grant and enabling a manifest with no incoming-route capabilities succeed exactly as today; mt_ext_disable's success conditions are unchanged and its revocation task additionally calls auth::revoke_grant best-effort with a distinct log (a stale grant is inert while no valid token exists, so it never joins the strict-absence condition).</Criterion>
+          <Criterion>src/renderer/src/components/extensionGallery/index.vue toggleExtension: the catch maps the 'ext_enable_reapproval_required' error string to a re-approval instruction rendered on the existing gallery-error surface via t('extensions.reapprovalRequired', ...) with an honest English fallback instructing disable-then-pair-again; the ext_disable_revoke_failed mapping, the toggle flow, the template structure and the absence of any pairing dialog or native surface in the gallery are preserved; no other renderer file changes.</Criterion>
+          <Criterion>Module hygiene: dated CHANGE_SUMMARY entries in live_server.rs and mod.rs; markers paired and unique; existing log anchors elsewhere unchanged; no wire request/response field changes.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">cargo check --locked --offline --manifest-path src-tauri/Cargo.toml</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Honest key replacement: store_secret verifies through the effective credential path and the pair verifies new-valid plus old-dead</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src-tauri/src/m045_ext/auth.rs store_secret becomes verifying: it captures the previous memory value, writes the memory store and the best-effort persistent record (the BLOCK_KEYCHAIN_STORE_FAILED "(in-memory fallback active)" warning is kept verbatim for a failed keychain write), then verifies through get_secret — the effective credential path every reader uses: equal via constant_time_eq → the now-conditional BLOCK_STORE_OK and Ok(()); Ok(Some(other)) → BLOCK_STORE_VERIFY_MISMATCH and Err; Ok(None) → BLOCK_STORE_VERIFY_ABSENT and Err; Err → BLOCK_STORE_VERIFY_READ_FAILED and Err. Every failure path restores the captured previous memory value, so a refused store leaves the prior credential exactly as found; error strings carry no secret material. Callers today (handle_pair, the mt_ext_enable mint) both want this strictness; no other function in auth.rs changes behavior.</Criterion>
+          <Criterion>src-tauri/src/m045_ext/live_server.rs handle_pair post-approval sequence: store_grant (T-001, inert until a credential exists) → store_secret, whose Err maps to the existing 500 BLOCK_PAIR_SECRET_STORE_FAILED with the prior key intact (memory rollback plus untouched keychain) → rebind-only verification: spawn_blocking validate_token(extension_id, prior_secret) — Ok(false) proceeds, Ok(true) refuses 500 BLOCK_PAIR_OLD_KEY_STILL_VALID, Err refuses 500 BLOCK_PAIR_CREDENTIAL_VERIFY_READ_FAILED — and only then BLOCK_PAIR_OK with paired:true. First pairing requires only the new-key verification. The refused states never report success, never leave the old key displaced while claiming a working new one, and are distinct logged states: keychain write failure (BLOCK_KEYCHAIN_STORE_FAILED via store_secret), verification mismatch (BLOCK_STORE_VERIFY_MISMATCH/BLOCK_PAIR_NEW_KEY_UNVERIFIED logged at the pair when store_secret refuses a rebind), keychain read error (BLOCK_STORE_VERIFY_READ_FAILED/BLOCK_PAIR_CREDENTIAL_VERIFY_READ_FAILED). The prior-secret rebind gate, its constant-time comparison, the approval decision and both dialog descriptions are untouched; the single-record credential model makes old-key death structural once the new key verifies — the explicit old-token check is the verification the spec demands, and its refusal branch is defensive (documented in the impl notes, not forceable without mocking validate_token).</Criterion>
+          <Criterion>Module hygiene: dated CHANGE_SUMMARY entries in auth.rs and live_server.rs; markers paired and unique; no response body, log line or error message carries secret material or comparison lengths; no wire shape changes.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">cargo check --locked --offline --manifest-path src-tauri/Cargo.toml</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Grant-matrix regressions: grant-establishing fixture, migrated pin, grow-after-pairing refusal, stream-without-grant refusal, honest-replace family, gallery re-approval surface</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Fixture work in src-tauri/src/m045_ext/tests.rs: incoming_fixture_caps establishes the grant beside the injected secret — after inject_test_secret it calls super::auth::store_grant with the manifest's incoming subset in RouteCapability::all() order and injects a grant test backend — so every existing route pin keeps its meaning under paired-and-granted semantics; a grant-less variant helper builds enabled fixtures whose credential has no stored grant (legacy/migration shape); DummyCredential gains a fail_write mode; Drop cleanup and clear paths also clear grants. No existing expectation is weakened; the text_insert_*, binding-matrix, disable and stream-security families stay green unchanged.</Criterion>
+          <Criterion>The migrated pin enabled_extension_passes_only_declared_capability_routes keeps its name, its per-route statuses and its event-count assertions — one pin changes mechanism, not meaning: the stream.document fixture's stream_open 200 now proves grant-derived authorization, and the same pin adds a grant-less stream.document variant whose open is 401 (F-002 red-before-green proof: locally reverting authenticate_incoming to the manifest check or removing the stream grant check turns these refusals into 200s, then re-applying turns them green, recorded as task evidence without any commit).</Criterion>
+          <Criterion>F-001 grant matrix: pairing_persists_the_captured_grant pairs a disabled-but-registered context.read extension and asserts the stored grant equals ["context.read"] via super::auth::get_grant, enable then succeeds and the fresh token gets context 200 with apply/insert 401; it also pairs an unregistered id and asserts the honest empty grant; grow_after_pairing_enable_is_refused_to_reapproval re-registers a grown manifest (context.read → context.read + text.edit) and asserts mt_ext_enable answers ext_enable_reapproval_required with the registry still disabled and zero events, a shrunk manifest enables and works within the grant, an enable-minted credential with no grant and an incoming-capability manifest is refused the same way, and a text.transform-only manifest enables freely; legacy_credential_without_grant_fails_closed asserts an enabled secret without a grant gets 401 on context/apply/insert and on stream open (the recorded fail-closed migration consequence, pinned as a test).</Criterion>
+          <Criterion>F-002 stream pin: stream_requires_stored_stream_document_grant opens with a granted fixture (200), drives patch/heartbeat/close 200 with the existing owner/epoch/revision pins intact, then revokes the grant (revoke_grant) and asserts every state change is 401 with the session state, revision and live-event list untouched; a grant-less open is 401; the existing stream security family stays green (owner/generation fencing unchanged in meaning).</Criterion>
+          <Criterion>F-003 honest-replace family: rebind_refused_when_new_key_fails_verification injects a fail_write backend (persistent keeps the old value) and asserts the pair answers 500 with the distinct mismatch log state, memory rolled back, the prior token still validating and still authorized on its granted routes; pair_keychain_read_error_is_a_distinct_refusal injects fail_read and asserts the distinct read-error refusal with the prior credential intact; the approved-rebind happy path (new validates, old fenced on every incoming route) stays pinned by the existing C-SEC-PAIR-REBIND suite and fresh_pairing_restores_access, which now exercises grant-establishing pairs inside the verified-empty window.</Criterion>
+          <Criterion>tests/renderer/components/extensionGallery/index.test.js gains one test driving the enable toggle against an invokeMock rejection of 'ext_enable_reapproval_required' and asserting the gallery-error surface shows the re-approval instruction; all existing gallery and textOps assertions stay untouched and green; no renderer source behavior beyond the error mapping is asserted.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+          <Command budgetSeconds="600">npx vitest run tests/renderer/components/extensionGallery/index.test.js tests/renderer/components/extensionGallery/textOps.test.js</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Record the M-045 graph and V-M-045 verification deltas</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>In .grace/graph/features.xml append a dated C-SEC-EXT-GRANT-BOUND SummaryDelta to M-045 after the C-SEC-PAIR-REBIND delta: the approved incoming capability set is captured at pairing from the registered manifest regardless of enabled state and stored beside the credential; every incoming route including every /stream/* route authorizes by the stored grant instead of the live manifest; enabling beyond the stored grant is refused into explicit re-approval (ext_enable_reapproval_required surfaced by the gallery); credentials without a stored grant fail closed; pair/rebind success requires the new key to verify and, on rebind, the prior key to no longer validate, with distinct write-failure/mismatch/read-error refusal states; preserve every existing SummaryDelta, Summary sentence, LegacySource, LegacyAttributes and annotation byte-identical.</Criterion>
+          <Criterion>In .grace/verification/features.xml record only executed evidence in V-M-045: update the native-suite Command entry to the executed form cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext and add one scenario-security-extension-grant-binding scenario naming the migrated pin and the new tests by name (enabled_extension_passes_only_declared_capability_routes, pairing_persists_the_captured_grant, grow_after_pairing_enable_is_refused_to_reapproval, stream_requires_stored_stream_document_grant, legacy_credential_without_grant_fails_closed, rebind_refused_when_new_key_fails_verification, pair_keychain_read_error_is_a_distinct_refusal) with their expected per-route statuses; keep every existing scenario, Marker, TraceAssertion and the LegacyMatrixEvidence block verbatim; do not claim pass evidence for the real rfd pairing dialog rendering or the macOS keychain itself — those stay explicitly open and are exercised only through pure descriptions, injected backends and source shapes.</Criterion>
+          <Criterion>No durable artifact outside the ObservedWriteScope changes; no release publication, version change or lane action is authorized by this task.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+      <Command budgetSeconds="600">npx vitest run tests/renderer/components/extensionGallery/index.test.js tests/renderer/components/extensionGallery/textOps.test.js</Command>
+      <Environment>Baseline is the current canary-beta-wave worktree: the Rust toolchain runs with --locked --offline against the committed Cargo.lock and both extensionGallery suite files exist (verified). Tasks run strictly sequentially T-001 through T-005. cargo check passes alone after T-001, T-002 and T-003; between T-002 and T-004 the native suite is knowingly red because the fixtures do not yet establish grants (every route refusal pin answers 401 against grant-less fixtures) — the suite becomes green at T-004 with the grant-establishing fixture and stays green through T-005; the renderer suites are regression-only until T-004 adds the single re-approval-surface test. The F-001/F-002 regressions are proven in both directions inside T-004 by locally restoring the manifest-derived check and removing the stream grant check (red) and re-applying the grant checks (green) with no commit; the F-003 family is proven by the injected failing backends. Fail-closed migration is a pinned consequence, not an oversight: credentials paired before this change hold no stored grant and are refused on all incoming routes until disable-then-fresh-pair re-approval, per the spec's recorded assumption. Debug/unsigned-build semantics: first-time pairing over a dead keychain still answers honestly through the memory fallback (distinct BLOCK_KEYCHAIN_STORE_FAILED warning), while a rebind over a dead or unreadable keychain now refuses — a deliberate debug-visible behavior change covered by the injected-backend tests. The gallery stays a toggle plus error surface with no native pairing dialog; the rfd dialog surface in live_server.rs keeps its cfg gating and wording helpers; capability names, grant ordering, the constant-time rebind gate, the C-SEC-EDIT-TARGETING 400/409 binding fence with zero events on refusal, C-SEC-STREAM-AUTH owner/epoch fencing, the stream_gate lock order (native credential I/O holds neither gate nor session lock) and disable revocation semantics are unchanged. No log, error or response ever contains secret material; the stored grant holds capability names only; comparisons stay constant time. Every START_BLOCK_/END_BLOCK_ marker stays paired and unique after each task. This plan deliberately carries no self-referential grace-lint MustPassCommand; the orchestrator runs grace lint --assertions current/target/final and the archived current-state integrity itself. Owned cargo/vitest processes are cleaned up after runs; no apply/archive, commit/push, lane admission, departure into main, version/tag or release is authorized by this plan.</Environment>
+    </AcceptanceVerification>
+  </C-SEC-EXT-GRANT-BOUND>
+</GraceChangePlan>
