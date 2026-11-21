@@ -47,7 +47,10 @@
 //   as ids here; their CSS and registration land with C-41 T-003.
 // END_CHANGE_SUMMARY
 
-export const PATH_SEPARATOR = window.path.sep
+// vite-8 chunking can evaluate this module before the shim installs
+// window.path, so derive the separator from the `process.platform` define
+// (folds at build time; the windows build host yields '\\', others '/').
+export const PATH_SEPARATOR = process.platform === 'win32' ? '\\' : '/'
 
 export const THEME_STYLE_ID = 'ag-theme'
 export const COMMON_STYLE_ID = 'ag-common-style'
