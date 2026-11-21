@@ -1726,8 +1726,8 @@
     "search": {
       "searchInFolder": "在資料夾中搜尋…",
       "noResultsFound": "找不到結果。",
-      "startTyping": "輸入即可搜尋已開啟資料夾中的 Markdown 檔案。",
-      "openFolder": "開啟資料夾",
+      "searchFailed": "Search failed. Results may be missing.",
+      "resultsPartial": "Partial results — the search stopped early.",
       "showMoreMatches": "顯示更多符合項目",
       "noFolderOpen": "沒有開啟的資料夾",
       "cancel": "取消",

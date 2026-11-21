@@ -1,4 +1,4 @@
-// MODULE_CONTRACT
+// START_MODULE_CONTRACT
 //   PURPOSE: Install the v1.2.3 window.* contextBridge surface (electron,
 //            fileUtils, path, commandExists, i18nUtils, rgPath) by
 //            proxying through M-013-B @/ipc/runtime so renderer code
@@ -47,10 +47,20 @@
 //     DYNAMIC import inside the drop handler — the static import pulled
 //     the shared renderer chunk (import-time window.electron.process
 //     readers like @/util/index.js) into the entry chunk, which
-//     evaluates BEFORE this shim installs window.electron, so the app
-//     failed to boot (every e2e red; pinned by
+//     evaluates BEFORE this shim installs window.electron, so the
+//     app failed to boot (every e2e red; pinned by
 //     tests/renderer/_shims/install-window-globals.test.js).
+//   - 2026-11-21 C-SEARCH-ERROR-VISIBILITY: the mt::search-event branch
+//     forwards the backend's additive optional partial flag
+//     (partial: m.partial === true) on terminal envelopes only so the
+//     store keeps already-streamed hits honestly marked partial.
 
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+//   MAP_MODE: SIDE_EFFECT — installs window.* globals on import; exports nothing.
+//   window.electron / window.fileUtils / window.path / window.commandExists / window.i18nUtils / window.rgPath — the installed surface.
+// END_MODULE_MAP
+//
 import * as posixPath from 'path-browserify'
 import win32Path from 'path-win32' // CJS port — named exports live on .default
 import { ipc } from '@/ipc/runtime'
@@ -406,11 +416,14 @@ const electron = {
               handler(event, { searchId: sid, type: 'match', payload: { filePath, matches } })
             }
           } else if (m.kind === 'complete') {
-            handler(event, { searchId: sid, type: 'complete' })
+            // C-SEARCH-ERROR-VISIBILITY: the additive optional partial flag
+            // is forwarded on terminal envelopes only (match envelopes stay
+            // untouched) so the store keeps streamed hits honestly marked.
+            handler(event, { searchId: sid, type: 'complete', partial: m.partial === true })
           } else if (m.kind === 'cancelled') {
-            handler(event, { searchId: sid, type: 'complete' })
+            handler(event, { searchId: sid, type: 'complete', partial: m.partial === true })
           } else if (m.kind === 'error') {
-            handler(event, { searchId: sid, type: 'error', payload: { message: m.error || 'search error' } })
+            handler(event, { searchId: sid, type: 'error', payload: { message: m.error || 'search error' }, partial: m.partial === true })
           }
         })
       } else {

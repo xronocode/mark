@@ -1726,8 +1726,8 @@
     "search": {
       "searchInFolder": "Buscar en carpeta...",
       "noResultsFound": "No se encontraron resultados.",
-      "startTyping": "Escribe para buscar en los archivos Markdown de las carpetas abiertas.",
-      "openFolder": "Abrir Carpeta",
+      "searchFailed": "Search failed. Results may be missing.",
+      "resultsPartial": "Partial results — the search stopped early.",
       "showMoreMatches": "Mostrar más coincidencias",
       "noFolderOpen": "No hay carpeta abierta",
       "cancel": "Cancelar",

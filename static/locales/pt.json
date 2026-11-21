@@ -1727,8 +1727,8 @@
     "search": {
       "searchInFolder": "Pesquisar na pasta...",
       "noResultsFound": "Nenhum resultado encontrado.",
-      "startTyping": "Escreva para pesquisar nos ficheiros Markdown das pastas abertas.",
-      "openFolder": "Abrir Pasta",
+      "searchFailed": "Search failed. Results may be missing.",
+      "resultsPartial": "Partial results — the search stopped early.",
       "showMoreMatches": "Mostrar mais correspondências",
       "noFolderOpen": "Nenhuma pasta aberta",
       "cancel": "Cancelar",

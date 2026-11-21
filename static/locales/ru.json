@@ -1745,8 +1745,8 @@
     "search": {
       "searchInFolder": "Поиск в папке...",
       "noResultsFound": "Ничего не найдено.",
-      "startTyping": "Введите запрос — поиск по markdown-файлам открытых папок.",
-      "openFolder": "Открыть папку",
+      "searchFailed": "Search failed. Results may be missing.",
+      "resultsPartial": "Partial results — the search stopped early.",
       "showMoreMatches": "Показать больше совпадений",
       "noFolderOpen": "Папка не открыта",
       "cancel": "Отмена",

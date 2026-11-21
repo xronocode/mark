@@ -1742,8 +1742,8 @@
     "search": {
       "searchInFolder": "Search in folder...",
       "noResultsFound": "No results found.",
-      "startTyping": "Type to search across markdown files in the open folders.",
-      "openFolder": "Open Folder",
+      "searchFailed": "Search failed. Results may be missing.",
+      "resultsPartial": "Partial results — the search stopped early.",
       "showMoreMatches": "Show more matches",
       "noFolderOpen": "No folder open",
       "cancel": "Cancel",
