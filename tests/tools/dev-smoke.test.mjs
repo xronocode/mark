@@ -198,7 +198,13 @@ function makeSandbox({ livePids = [], curlCode = '', curlSequence = '', lsofLine
     FIXTURE_CURL_SEQUENCE: curlSequence,
     FIXTURE_LSOF_LINE: lsofLine,
     FIXTURE_PS_COMMAND: psCommand,
-    PATH: `${sandbox.bin}${delimiter}${process.env.PATH ?? ''}`,
+    // node:path's delimiter is ';' on win32, but the script runs under bash
+    // (git-bash on the Windows runner) where PATH is ':'-separated — a ';'
+    // join makes the whole PATH one dead entry and NO shim is found (the
+    // real curl answers 000, kill probes miss). Use the separator the
+    // TARGET shell expects: if the ambient PATH already looks msys-style
+    // (':' present), join with ':' regardless of the host OS.
+    PATH: `${sandbox.bin}${process.env.PATH?.includes(':') && !process.env.PATH?.includes(';') ? ':' : delimiter}${process.env.PATH ?? ''}`,
   }
   return sandbox
 }
