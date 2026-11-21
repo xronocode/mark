@@ -1,0 +1,272 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-COMPACT-WINDOWS-FIT>
+    <Name>Compact-window fit and keyboard integrity for Quick Settings, Settings navigation and sheets — implementation plan</Name>
+    <Created>2026-11-21</Created>
+    <Spec>C-COMPACT-WINDOWS-FIT</Spec>
+    <IntentSummary>Draft plan for the approved-scope compact-window fit wave (frontend-design findings F-002/F-003/F-005/F-006/F-007/F-010, wave 35), all code facts verified at their cited lines on the beta-gate-wave tree. (1) Quick Settings viewport binding (R-1): the panel src/renderer/src/components/titleBar/quickSettings/index.vue is today a position:absolute top:calc(100% + 6px) 428px column whose ONLY height bound is the body's max-height: 62vh (overflow hidden on the panel itself, no panel max-height), so at the editor window's 600x400 minimum (tauri.conf.json minWidth 600 / minHeight 400) the toolbar, body and Open Settings footer must fit under the title bar with no total-height cap — the footer row clips and the body can double-limit against the remaining viewport. The fix keeps the approved mock metrics verbatim (428px width, 12px radius, the settings shadow, row anatomy, palette, open/close semantics) and adds ONLY a viewport height binding to the panel (max-height: calc(100vh - 64px), the constant reserving the title-bar strip plus the 6px gap on all platforms — the macOS strip is 30px padding per the tabsBar C-51 rule, Win/Linux frameless cells are 46px), flex-shrink: 0 on the .quick-toolbar and the .quick-openall footer, and the body becomes the single scroll region (flex: 1 1 auto; min-height: 0; the existing overflow-y: auto kept) with max-height: 62vh deleted; proof is the new compact geometry walker (viewport-pinned e2e per the settings-shell.spec.ts canon) asserting every descendant rect inside the window rect at 600x400 on all three tabs, and unchanged approved metrics at 640x620 and 1440x900. (2) Settings toolbar fit (R-2): src/renderer/src/prefComponents/tabsBar/index.vue renders seven .pref-tab buttons (tabsBar/config.js TABS: general, appearance, editor, markdown, export, advanced, experimental) — mac centred column tabs with min-width: 76px, underline row tabs with no shrink floor — inside the fixed non-resizable 640x620 Settings window (m_v1_compat.rs mt_open_setting_window); the settings-shell e2e overflow walker covers .pref-body * only and never the toolbar. The fix keeps both platform variants, the macOS drag-region attribute (:data-tauri-drag-region="isOsx ? '' : null") and tab routing byte-identical, and adds ONLY: min-width: 0 on the base .pref-tab (shrink allowance; the mac variant keeps its 76px floor — 7x76px + 24px padding + gaps always fit 640px, so the floor never itself overflows), and on .pref-tab-label overflow: hidden; white-space: nowrap; text-overflow: ellipsis (a flex child, so blockified — labels ellipsize instead of pushing tabs past the window edge). Proof: the walker extension to .pref-toolbar, .pref-toolbar * in settings-shell.spec.ts (scrollWidth at most innerWidth, every .pref-tab rect inside the viewport) including a stress run seeded through the prefs shim with the longest-label shipped locale catalog — de (preferences.tabs.appearance = "Erscheinungsbild", 16 chars, the longest tab label across the ten shipped locales; en "Appearance", ru "Оформление" are shorter) — plus unit pins in the existing tests/renderer/prefComponents/tabsBar.test.js, whose hoisted osState.isOsx mock already mounts BOTH style variants. (3) Visible keyboard focus (R-3): five interactive controls carry all: unset (or bare chrome) with no :focus-visible rule — verified absent by search: the settings toolbar .pref-tab (tabsBar/index.vue), the Quick Settings Aa button .quick-settings-btn (quickSettings/index.vue, whose existing :focus-visible rule covers only .quick-tab/.quick-openall), the View tab .quick-view-tab .theme-family-tile (viewTab.vue), the Page tab .quick-page-tab .linkish (pageTab.vue) and the sheet .pref-sheet-close (sheet/index.vue); each gains the C-SETTINGS-KEYBOARD-FOCUS canon rule — 2px solid var(--prefAccent) outline with 1px offset, :focus-visible only — beside the control's own chrome; selected/on/active state stays visually distinct from keyboard focus, pointer activation stays outline-free, and the already-covered switch/select/segment outlines keep passing unchanged. Evidence uses the real-keyboard checkKeyboardFocus harness canon (real Tab routes with the WebKit Option-Tab fallback recorded; a synthetic focus() call is insufficient), extended to the new targets in settings-shell.spec.ts (toolbar tab) and the new compact spec (Aa button, family tile, Reset row, open sheet's Close button). (4) Sheet focus trap (R-4): src/renderer/src/prefComponents/common/sheet/index.vue declares role="dialog" aria-modal="true" but implements only a capture-phase window Escape handler (window.addEventListener('keydown', onKeydown, true) guarding on the open prop) — Tab walks out onto the dimmed page beneath, initial focus is not claimed and closing does not restore focus. The trap decision is RESOLVED AT PLAN TIME per the CAUTION: the pinned element-plus build (package.json "element-plus": "^2.14.8") ships the focus-trap component publicly — node_modules/element-plus/es/components/focus-trap/index.mjs exports ElFocusTrap (props loop/trapped/focusStartEl; the repo's established deep per-component import convention, main.js: import { ElDialog } from 'element-plus/es/components/dialog/index.mjs'; the el-dialog FocusTrap/@open-auto-focus precedent already rides in editor.vue's insert-table dialog) — so the sheet wires ElFocusTrap from element-plus/es/components/focus-trap/index.mjs with trapped bound to the open prop and loop enabled, gaining initial focus inside the panel, Tab/Shift+Tab cycling in both directions and automatic focus restore to the invoking control on release; the existing capture-phase Escape handler and its stopPropagation stay byte-identical, the 560px panel metrics and the three Advanced sheets' content flows (shortcutsSheet.vue, extensionsSheet.vue, customCssSheet.vue) are unchanged, and no new dependency is added; if the execution-time import check against the installed build ever fails, the same-semantics fallback is a hand-rolled Tab cycle inside the existing onKeydown capture handler (bounded replan, not a silent swap). Unit pins land in a new tests/renderer/pages/common/sheet.test.js per the pages/common canon; e2e trap integrity (no keystroke reaches the page behind while open; Escape and Close-button close both restore) rides the compact spec. (5) Aa Space activation (R-5): the Aa button binds @keydown.enter.prevent="toggle" only; it gains the components/recent/index.vue enter+space pair precedent (@keydown.enter.prevent="openRecentFile(file)" + @keydown.space.prevent="openRecentFile(file)" at recent/index.vue:103-104) as @keydown.space.prevent="toggle" with the default prevented, the Enter path unchanged — pinned red-first in the existing tests/renderer/components/quick-settings.test.js harness. Scope discipline: no window-size change (tauri.conf.json and mt_open_setting_window untouched), no palette/anatomy/interaction redesign, no i18n changes (every needed string exists, including preferences.advanced.sheets.close), no new dependencies/IPC/preference keys, no tabindex changes beyond what the sheet trap legitimately needs, no searchPanel/whats-new/workspace-dialog/unsaved-close work. CAUTION carried as a follow-up note, NOT an edit: the titlebar theme-toggle role="button" siblings (titleBar/index.vue .titlebar-nav-btn macOS and .frameless-titlebar-theme Win/Linux, both @keydown.enter.prevent-only and outline-less) stay OUT of this change's scope and are recorded in the bundle as the named follow-up. The F-id to surface mapping follows the spec assumption (F-002 Quick Settings fit, F-003 Settings navigation fit, F-005/F-006 visible focus, F-007 sheet trap, F-010 Aa Space) and is re-verified against the wave-35 findings report at execution start. Execution mode: T-001..T-005 strictly sequential (single-writer discipline; each task authors its own pins red-first against the pre-edit tree of that task, then turns them green); no grace-lint command appears inside this plan — lint runs only in the external target/final phases; GRACE semantic markup of every touched component (MODULE_CONTRACT, MODULE_MAP, CHANGE_SUMMARY, paired unique START_BLOCK_/END_BLOCK_ where new blocks are introduced) is synchronized per task, and the graph SummaryDeltas for M-061 (performance.xml) and M-011 (runtime.xml) plus the V-M-061/V-M-011 verification refs land in T-005 with the approved execution plan; applied bundles, frozen docs and the current graph/verification are not mutated while this spec is draft.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src/renderer/src/components/titleBar/quickSettings/index.vue</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/renderer/src/components/titleBar/quickSettings/pageTab.vue</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/renderer/src/components/titleBar/quickSettings/viewTab.vue</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/renderer/src/prefComponents/tabsBar/index.vue</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/renderer/src/prefComponents/common/sheet/index.vue</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/renderer/components/quick-settings.test.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/renderer/prefComponents/tabsBar.test.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/e2e/settings-shell.spec.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/e2e/page-width-panel.spec.ts</Value>
+      </MustExist>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>width: 428px;</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>max-height: 62vh;</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>overflow: hidden;</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>@keydown.enter.prevent="toggle"</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>role="button"</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>.quick-settings-popover .quick-tab:focus-visible,</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/tabsBar/index.vue</File><Text>min-width: 76px;</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/tabsBar/index.vue</File><Text>.pref-toolbar--underline .pref-tab</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/tabsBar/index.vue</File><Text>:data-tauri-drag-region="isOsx ? '' : null"</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/common/sheet/index.vue</File><Text>role="dialog"</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/common/sheet/index.vue</File><Text>aria-modal="true"</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/common/sheet/index.vue</File><Text>if (event.key === 'Escape')</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/common/sheet/index.vue</File><Text>window.addEventListener('keydown', onKeydown, true)</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/common/sheet/index.vue</File><Text>width: 560px;</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/common/sheet/index.vue</File><Text>.pref-sheet-close {</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/viewTab.vue</File><Text>.quick-view-tab .theme-family-tile {</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/viewTab.vue</File><Text>all: unset;</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/pageTab.vue</File><Text>.quick-page-tab .linkish {</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/recent/index.vue</File><Text>@keydown.enter.prevent="openRecentFile(file)"</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/recent/index.vue</File><Text>@keydown.space.prevent="openRecentFile(file)"</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>@open-auto-focus="handleDialogTableTrapFocused"</Text></MustContain>
+      <MustContain><File>src/renderer/src/main.js</File><Text>import { ElDialog } from 'element-plus/es/components/dialog/index.mjs'</Text></MustContain>
+      <MustContain><File>package.json</File><Text>"element-plus": "^2.14.8"</Text></MustContain>
+      <MustContain><File>src-tauri/tauri.conf.json</File><Text>"minWidth": 600,</Text></MustContain>
+      <MustContain><File>src-tauri/tauri.conf.json</File><Text>"minHeight": 400,</Text></MustContain>
+      <MustContain><File>src-tauri/src/m_v1_compat.rs</File><Text>pub async fn mt_open_setting_window(app: tauri::AppHandle) -&gt; Result&lt;(), String&gt; {</Text></MustContain>
+      <MustContain><File>tests/e2e/settings-shell.spec.ts</File><Text>async function checkKeyboardFocus</Text></MustContain>
+      <MustContain><File>tests/e2e/settings-shell.spec.ts</File><Text>test.use({ viewport: { width: 640, height: 620 } })</Text></MustContain>
+      <MustContain><File>tests/e2e/settings-shell.spec.ts</File><Text>document.querySelectorAll('.pref-body *')</Text></MustContain>
+      <MustContain><File>tests/e2e/page-width-panel.spec.ts</File><Text>.quick-settings-btn</Text></MustContain>
+      <MustContain><File>tests/renderer/prefComponents/tabsBar.test.js</File><Text>osState.isOsx = false</Text></MustContain>
+      <MustNotContain><File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>.quick-settings-btn:focus-visible</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>@keydown.space</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>max-height: calc(100vh</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/prefComponents/tabsBar/index.vue</File><Text>text-overflow</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/prefComponents/tabsBar/index.vue</File><Text>.pref-tab:focus-visible</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/prefComponents/common/sheet/index.vue</File><Text>ElFocusTrap</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/prefComponents/common/sheet/index.vue</File><Text>key === 'Tab'</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/prefComponents/common/sheet/index.vue</File><Text>focus-visible</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/components/titleBar/quickSettings/viewTab.vue</File><Text>focus-visible</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/components/titleBar/quickSettings/pageTab.vue</File><Text>focus-visible</Text></MustNotContain>
+      <MustNotContain><File>tests/e2e/settings-shell.spec.ts</File><Text>.pref-toolbar</Text></MustNotContain>
+      <MustPassCommand>
+        <Command budgetSeconds="120">node node_modules/vitest/vitest.mjs run tests/renderer/components/quick-settings.test.js tests/renderer/pages/common/bool.test.js tests/renderer/pages/common/segmented.test.js tests/renderer/pages/common/range.test.js tests/renderer/pages/common/select.test.js</Command>
+      </MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-061</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-011</Module>
+      </MustVerify>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>max-height: calc(100vh - 64px);</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>flex-shrink: 0;</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>flex: 1 1 auto;</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>min-height: 0;</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>.quick-settings-btn:focus-visible</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>@keydown.space.prevent="toggle"</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>@keydown.enter.prevent="toggle"</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>width: 428px;</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>border-radius: 12px;</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>outline: 2px solid var(--prefAccent);</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>outline-offset: 1px;</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/viewTab.vue</File><Text>.quick-view-tab .theme-family-tile {</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/viewTab.vue</File><Text>theme-family-tile:focus-visible</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/viewTab.vue</File><Text>outline: 2px solid var(--prefAccent);</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/viewTab.vue</File><Text>outline-offset: 1px;</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/pageTab.vue</File><Text>.quick-page-tab .linkish {</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/pageTab.vue</File><Text>linkish:focus-visible</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/pageTab.vue</File><Text>outline: 2px solid var(--prefAccent);</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/titleBar/quickSettings/pageTab.vue</File><Text>outline-offset: 1px;</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/tabsBar/index.vue</File><Text>min-width: 76px;</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/tabsBar/index.vue</File><Text>min-width: 0;</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/tabsBar/index.vue</File><Text>white-space: nowrap;</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/tabsBar/index.vue</File><Text>text-overflow: ellipsis;</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/tabsBar/index.vue</File><Text>pref-tab:focus-visible</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/tabsBar/index.vue</File><Text>outline: 2px solid var(--prefAccent);</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/tabsBar/index.vue</File><Text>outline-offset: 1px;</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/tabsBar/index.vue</File><Text>:data-tauri-drag-region="isOsx ? '' : null"</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/common/sheet/index.vue</File><Text>ElFocusTrap</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/common/sheet/index.vue</File><Text>element-plus/es/components/focus-trap/index.mjs</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/common/sheet/index.vue</File><Text>trapped</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/common/sheet/index.vue</File><Text>loop</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/common/sheet/index.vue</File><Text>if (event.key === 'Escape')</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/common/sheet/index.vue</File><Text>window.addEventListener('keydown', onKeydown, true)</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/common/sheet/index.vue</File><Text>width: 560px;</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/common/sheet/index.vue</File><Text>pref-sheet-close:focus-visible</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/common/sheet/index.vue</File><Text>outline: 2px solid var(--prefAccent);</Text></MustContain>
+      <MustContain><File>src/renderer/src/prefComponents/common/sheet/index.vue</File><Text>outline-offset: 1px;</Text></MustContain>
+      <MustContain><File>tests/e2e/compact-windows-fit.spec.ts</File><Text>compact windows fit (C-COMPACT-WINDOWS-FIT)</Text></MustContain>
+      <MustContain><File>tests/e2e/compact-windows-fit.spec.ts</File><Text>test.use({ viewport: { width: 600, height: 400 } })</Text></MustContain>
+      <MustContain><File>tests/e2e/compact-windows-fit.spec.ts</File><Text>600, 400</Text></MustContain>
+      <MustContain><File>tests/e2e/compact-windows-fit.spec.ts</File><Text>640, 620</Text></MustContain>
+      <MustContain><File>tests/e2e/compact-windows-fit.spec.ts</File><Text>1440, 900</Text></MustContain>
+      <MustContain><File>tests/e2e/compact-windows-fit.spec.ts</File><Text>.quick-settings-popover</Text></MustContain>
+      <MustContain><File>tests/e2e/compact-windows-fit.spec.ts</File><Text>.pref-toolbar</Text></MustContain>
+      <MustContain><File>tests/e2e/compact-windows-fit.spec.ts</File><Text>fully inside the viewport</Text></MustContain>
+      <MustContain><File>tests/e2e/compact-windows-fit.spec.ts</File><Text>wraps within the sheet panel and never reaches the page behind</Text></MustContain>
+      <MustContain><File>tests/e2e/compact-windows-fit.spec.ts</File><Text>restores focus to the invoking control when the sheet closes</Text></MustContain>
+      <MustContain><File>tests/e2e/compact-windows-fit.spec.ts</File><Text>shows keyboard focus on the quick-settings Aa button</Text></MustContain>
+      <MustContain><File>tests/e2e/compact-windows-fit.spec.ts</File><Text>shows keyboard focus on the sheet close button</Text></MustContain>
+      <MustContain><File>tests/e2e/settings-shell.spec.ts</File><Text>.pref-toolbar</Text></MustContain>
+      <MustContain><File>tests/e2e/settings-shell.spec.ts</File><Text>shows keyboard focus on the settings toolbar tab</Text></MustContain>
+      <MustContain><File>tests/renderer/prefComponents/tabsBar.test.js</File><Text>text-overflow: ellipsis</Text></MustContain>
+      <MustContain><File>tests/renderer/prefComponents/tabsBar.test.js</File><Text>Erscheinungsbild</Text></MustContain>
+      <MustContain><File>tests/renderer/pages/common/sheet.test.js</File><Text>moves initial focus inside the sheet panel</Text></MustContain>
+      <MustContain><File>tests/renderer/pages/common/sheet.test.js</File><Text>wraps Tab at the last focusable back to the first</Text></MustContain>
+      <MustContain><File>tests/renderer/pages/common/sheet.test.js</File><Text>wraps Shift+Tab at the first focusable back to the last</Text></MustContain>
+      <MustContain><File>tests/renderer/pages/common/sheet.test.js</File><Text>restores focus to the invoking control when the sheet closes</Text></MustContain>
+      <MustContain><File>tests/renderer/pages/common/sheet.test.js</File><Text>closes on Escape with the capture handler unchanged</Text></MustContain>
+      <MustContain><File>tests/renderer/pages/common/sheet.test.js</File><Text>ElFocusTrap</Text></MustContain>
+      <MustContain><File>tests/renderer/components/quick-settings.test.js</File><Text>activates the panel on Space keydown with the default prevented</Text></MustContain>
+      <MustContain><File>tests/renderer/components/quick-settings.test.js</File><Text>activates the panel on Enter keydown</Text></MustContain>
+      <MustContain><File>.grace/graph/performance.xml</File><Text>C-COMPACT-WINDOWS-FIT</Text></MustContain>
+      <MustContain><File>.grace/graph/runtime.xml</File><Text>C-COMPACT-WINDOWS-FIT</Text></MustContain>
+      <MustContain><File>.grace/verification/performance.xml</File><Text>C-COMPACT-WINDOWS-FIT</Text></MustContain>
+      <MustContain><File>.grace/verification/runtime.xml</File><Text>C-COMPACT-WINDOWS-FIT</Text></MustContain>
+      <MustNotContain><File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>max-height: 62vh;</Text></MustNotContain>
+      <MustPassCommand>
+        <Command budgetSeconds="120">node node_modules/vitest/vitest.mjs run tests/renderer/components/quick-settings.test.js tests/renderer/pages/common/bool.test.js tests/renderer/pages/common/segmented.test.js tests/renderer/pages/common/range.test.js tests/renderer/pages/common/select.test.js</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="120">node node_modules/vitest/vitest.mjs run tests/renderer/pages/common/sheet.test.js</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="1200">npx playwright test tests/e2e/compact-windows-fit.spec.ts tests/e2e/page-width-panel.spec.ts tests/e2e/settings-shell.spec.ts --project=chromium</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-061 />
+        <M-011 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-061 />
+        <V-M-011 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/renderer/src/components/titleBar/quickSettings/index.vue</File>
+      <File>src/renderer/src/components/titleBar/quickSettings/pageTab.vue</File>
+      <File>src/renderer/src/components/titleBar/quickSettings/viewTab.vue</File>
+      <File>src/renderer/src/prefComponents/tabsBar/index.vue</File>
+      <File>src/renderer/src/prefComponents/common/sheet/index.vue</File>
+      <File>tests/renderer/components/quick-settings.test.js</File>
+      <File>tests/renderer/prefComponents/tabsBar.test.js</File>
+      <File>tests/renderer/pages/common/sheet.test.js</File>
+      <File>tests/e2e/compact-windows-fit.spec.ts</File>
+      <File>tests/e2e/settings-shell.spec.ts</File>
+      <File>.grace/graph/performance.xml</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/performance.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>M-061 Quick Settings viewport-bound layout: the panel height binding, pinned toolbar/footer, single-scroll body — approved mock metrics verbatim</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Red-first: author the compact geometry walker group in tests/e2e/compact-windows-fit.spec.ts (new file, viewport-pinned per the settings-shell.spec.ts canon — test.use 600x400, installTauriShim + bootEditor per the page-width-panel.spec.ts fixtures, open the panel via .quick-settings-btn per its openPanel helper) BEFORE editing the component: for each of the three tabs (page/view/tables) run the walker with the existing overflow tolerances and assert every .quick-settings-popover descendant rect lies fully inside the viewport below the title bar, the .quick-toolbar and the .quick-openall footer are visible and pinned (their rects constant while the body scrolls), the body scrolls when its content exceeds the remaining height and every row/control becomes reachable by that scroll alone, and nothing clips at the 600x400 minimum; run the focused group and record the pre-fix failures (footer clipped / panel past the viewport) in the bundle evidence. No successful skip, artificial sleep or disabled timing budget.</Criterion>
+          <Criterion>Implement ONLY the height binding in quickSettings/index.vue inside the existing START_BLOCK_QUICK_PANEL_METRICS block: the panel .quick-settings-popover gains max-height: calc(100vh - 64px) (the constant reserving the title-bar strip plus the 6px gap; macOS strip 30px per the tabsBar C-51 rule, Win/Linux frameless cells 46px — verified against both chrome forms), .quick-toolbar and .quick-openall gain flex-shrink: 0, and .quick-body loses max-height: 62vh, gaining flex: 1 1 auto and min-height: 0 with its existing overflow-y: auto and overflow-x: hidden kept — the body is the single scroll region and no other element scrolls. Every other rule in the block is byte-identical: position: absolute; top: calc(100% + 6px); right: 8px with the JS right-anchor in openPanel unchanged, width: 428px; max-width: calc(100vw - 32px);, border-radius: 12px;, the 0.5px border and the settings box-shadow, the palette blocks, the row anatomy block and the Aa glyph block untouched. At 640x620 and 1440x900 the cap must not bind below the natural content height, so the approved mock metrics and the current open/close semantics (window capture-phase mousedown closer, document Escape closer, bus entry) are unchanged. Open/close/toggle/openPanel/onDocMouseDown/onDocKeydown JavaScript byte-identical except semantic contract/change-summary comments; update MODULE_CONTRACT/MODULE_MAP/CHANGE_SUMMARY honestly (one new CHANGE_SUMMARY line, all pre-existing lines byte-identical, paired unique START_BLOCK_/END_BLOCK_ only if a new block is introduced).</Criterion>
+          <Criterion>Run the existing shell unit floor (tests/renderer/components/quick-settings.test.js green unchanged — open/close, outside click, Escape, bus entry, dark parity) and the renderer build, then re-run the focused compact walker group green. Review the walker output at all three tab states; if the required viewport fit cannot be reached within this scope (e.g. the 64px reserve is wrong on a real platform chrome), stop for a bounded scope revision — no relaxation of the walker tolerances and no per-platform constants beyond the one disclosed binding.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="60">node node_modules/vitest/vitest.mjs run tests/renderer/components/quick-settings.test.js</Command>
+          <Command budgetSeconds="90">npm run build</Command>
+          <Command budgetSeconds="300">npx playwright test tests/e2e/compact-windows-fit.spec.ts --project=chromium --grep "quick settings panel"</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>M-011 Settings toolbar fit: base-tab shrink allowance, label ellipsis on both style variants, the walker extended to .pref-toolbar and the de-locale stress run</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Red-first: extend the settings-shell.spec.ts overflow walker to the toolbar — the existing evaluate block gains .pref-toolbar and .pref-toolbar * alongside the .pref-body * set, asserting every element rect inside the viewport and toolbar/document scrollWidth at most innerWidth at the fixed 640x620 — and record the group failing (or the walker provably blind to the toolbar) on pre-fix code; author the tabsBar.test.js fit pins red-first in the existing per-OS describe: with the hoisted osState mock driving BOTH variants (isOsx true and false) the toolbar renders all seven .pref-tab buttons, the de stress catalog is asserted via the source-level readFileSync canon already used in that file (the sfc carries text-overflow: ellipsis and the stress labels come from static/locales/de.json — "Erscheinungsbild" named in the pin), and the mac variant's min-width: 76px floor plus the base min-width: 0 allowance are pinned in the sfc assertions; jsdom has no layout engine, so the geometric no-overflow proof lives in the e2e walker and the unit pins carry variant presence, routing, drag-region and CSS-shape assertions only.</Criterion>
+          <Criterion>Implement ONLY the shrink/ellipsis behavior in tabsBar/index.vue inside the existing START_BLOCK_TOOLBAR_METRICS block: the base .pref-toolbar .pref-tab gains min-width: 0 (shrink allowance), the mac variant keeps min-width: 76px (7x76px + 24px padding + gaps always fit the 640px window, so the approved floor never itself overflows), and .pref-tab-label gains overflow: hidden; white-space: nowrap; text-overflow: ellipsis on BOTH variants (the shared label selector — a flex child, blockified, so ellipsis paints). Every other rule is byte-identical: both variant layouts, active-tab styling, paddings, the 28px traffic-light strip reservation, the border-bottom treatments, and the template/JavaScript (role="tablist", :data-tauri-drag-region="isOsx ? '' : null", aria-selected/aria-pressed, the search panel wiring) untouched — tab click and keyboard reachability unchanged. Update MODULE_CONTRACT/MODULE_MAP/CHANGE_SUMMARY honestly per the one-file convention.</Criterion>
+          <Criterion>Run the extended walker green in the settings-shell spec (mac variant, chromium — the underline variant is pinned at unit level via the osState mock; if the shim can seed a non-darwin window.electron.process.platform before app scripts load, the underline variant MAY additionally join the e2e, but it is not required), then the de-locale stress run: seed the prefs shim (the installFocusPreferences canon — mt_prefs_get_all override with language: 'de') and assert the toolbar reports no horizontal overflow and every .pref-tab rect stays inside the viewport with labels ellipsized, in both the light and dark parity runs the spec already drives. The macOS drag-region attribute, tab routing and the body's existing vertical scroll are pinned unchanged by the pre-existing spec groups staying green.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="60">node node_modules/vitest/vitest.mjs run tests/renderer/prefComponents/tabsBar.test.js tests/renderer/prefComponents/tabsBar-config.test.js</Command>
+          <Command budgetSeconds="600">npx playwright test tests/e2e/settings-shell.spec.ts --project=chromium --grep "without horizontal overflow"</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>R-3 visible keyboard focus: the C-SETTINGS-KEYBOARD-FOCUS outline on the five named selectors with real-keyboard evidence on every target</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Red-first: author the real-Tab focus groups BEFORE editing any stylesheet — the settings-shell.spec.ts gains 'shows keyboard focus on the settings toolbar tab' (the checkKeyboardFocus harness against a .pref-tab, asserting the missing outline failure pre-fix), and tests/e2e/compact-windows-fit.spec.ts gains 'shows keyboard focus on the quick-settings Aa button', the View-tab family tile, the Page-tab Reset row and 'shows keyboard focus on the sheet close button' groups (a local harness copy following the settings-shell canon: focusThroughKeyboard with the WebKit Option-Tab fallback recorded, focusState reading :focus-visible/computed outline/accent, before/focused row captures, invariant value/geometry/selection/write-count state files); run them focused and record the five pre-fix missing-outline failures in the bundle evidence. The compact spec runs --project=chromium per the spec's command; real keyboard input only — a synthetic focus() call is insufficient and never replaces reaching the target.</Criterion>
+          <Criterion>Implement ONLY the five focus-visible rules, each beside its control's own chrome in its owning file: quickSettings/index.vue gains .quick-settings-btn:focus-visible (the existing .quick-tab/.quick-openall rule untouched beside it), viewTab.vue gains .quick-view-tab .theme-family-tile:focus-visible, pageTab.vue gains .quick-page-tab .linkish:focus-visible, tabsBar/index.vue gains .pref-tab:focus-visible, sheet/index.vue gains the .pref-sheet-close:focus-visible rule — every one exactly outline: 2px solid var(--prefAccent); outline-offset: 1px; inside :focus-visible only, per the C-SETTINGS-KEYBOARD-FOCUS canon. No JavaScript focus manager, no tabindex changes, no new tokens or wrappers; selected/on/active state styling is untouched and stays visually distinct from the focus outline; pointer activation stays outline-free (pinned by the harness's pointer-first fresh context in the settings-shell canon). The existing switch/select/segment rules and their verification keep passing byte-identical.</Criterion>
+          <Criterion>Run the focus groups green in both engines the harness already drives where applicable (the compact spec per the spec's command is chromium; settings-shell keeps its chromium/webkit-settings projects), review the before/focused captures for ring clipping/overlap at all five targets (a 22px close button and 28px Aa button must not clip the 2px ring), and confirm Tab-away removes the outline. Existing component suites (bool/select/segmented/range, quick-settings shell) stay green unchanged.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="90">npm run build</Command>
+          <Command budgetSeconds="600">npx playwright test tests/e2e/settings-shell.spec.ts --project=chromium --grep "shows keyboard focus on the settings toolbar tab"</Command>
+          <Command budgetSeconds="600">npx playwright test tests/e2e/compact-windows-fit.spec.ts --project=chromium --grep "shows keyboard focus"</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>R-4 sheet keyboard modality: the verified ElFocusTrap wiring (trapped + loop, deep per-component import) with initial focus, both-direction wrap and restore on close</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Execution-time CAUTION first: re-verify against the installed build before wiring — node_modules/element-plus/es/components/focus-trap/index.mjs exports ElFocusTrap on the pinned ^2.14.8 tree (verified public at plan time: exports ElFocusTrap with props loop/trapped/focusStartEl and the focus-after-trapped/release events); the import itself failing loudly in the new unit test is the check. If it ever fails, STOP — the fallback is the hand-rolled same-semantics Tab cycle inside the existing capture-phase onKeydown (bounded replan per the spec constraint), never a silent swap and never a new dependency.</Criterion>
+          <Criterion>Red-first: author tests/renderer/pages/common/sheet.test.js (new file, the pages/common canon: real component, real en locale, Vue Test Utils over jsdom) with the pins 'moves initial focus inside the sheet panel', 'wraps Tab at the last focusable back to the first', 'wraps Shift+Tab at the first focusable back to the last', 'restores focus to the invoking control when the sheet closes' (both close paths: Escape and the Close button) and 'closes on Escape with the capture handler unchanged' — run red on pre-fix code (focus stays outside, Tab walks to the page beneath, nothing restores) and record the failures. The e2e trap group in compact-windows-fit.spec.ts ('wraps within the sheet panel and never reaches the page behind' — real Tab/Shift+Tab cycling with an active-element probe asserting no keystroke lands on the dimmed page while open; 'restores focus to the invoking control when the sheet closes') is authored red the same way.</Criterion>
+          <Criterion>Implement ONLY the trap wiring in sheet/index.vue: the .pref-sheet panel is wrapped in ElFocusTrap imported from element-plus/es/components/focus-trap/index.mjs (the repo's established deep per-component import convention, main.js precedent) with trapped bound to the open prop and loop enabled, so opening claims initial focus inside the panel, Tab/Shift+Tab cycle within the panel in both directions, and release restores focus to the invoking control (the trap's own focus-after-released semantics; the three Advanced sheets' parents — shortcutsSheet.vue, extensionsSheet.vue, customCssSheet.vue — are NOT edited: the trap lives in the shared sheet, the parents' open/close props and content flows are unchanged). The existing capture-phase Escape handler stays byte-identical: if (event.key === 'Escape') with stopPropagation inside onKeydown and window.addEventListener('keydown', onKeydown, true) kept. The 560px panel metrics, overlay dimming, foot slot behavior and the new .pref-sheet-close:focus-visible rule from T-003 are untouched. Update MODULE_CONTRACT/MODULE_MAP/CHANGE_SUMMARY honestly (the DEPENDS line gains the focus-trap import; one new CHANGE_SUMMARY line, pre-existing lines byte-identical, paired unique START_BLOCK_/END_BLOCK_ if a new block is introduced).</Criterion>
+          <Criterion>Run the sheet unit suite green (initial focus, both-direction wrap, restore on both close paths, Escape semantics and 560px metrics pinned; no preference writes, no content-flow change), then the compact spec's sheet groups green. No keystroke reaches the page behind while a sheet is open; closing via Escape or the Close button restores focus to the invoking control in e2e as in jsdom.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="120">node node_modules/vitest/vitest.mjs run tests/renderer/pages/common/sheet.test.js</Command>
+          <Command budgetSeconds="300">npx playwright test tests/e2e/compact-windows-fit.spec.ts --project=chromium --grep "sheet panel"</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>R-5 Aa Space activation, the full compact/trap/focus command matrix, semantic-markup synchronization and the M-061/M-011 graph + V-M-061/V-M-011 verification deltas</Title>
+        <DependsOn>T-001, T-002, T-003, T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Red-first: author the quick-settings.test.js pins 'activates the panel on Space keydown with the default prevented' (the wrapper's .quick-settings-btn triggered with keydown space cancelable, asserting the panel opens exactly as the Enter path does and preventDefault happened) and 'activates the panel on Enter keydown' (the unchanged path, pinned explicitly) — run red on the enter-only button, then implement ONLY the recent/index.vue enter+space pair precedent (lines 103-104) on the Aa button: @keydown.space.prevent="toggle" added beside the byte-identical @keydown.enter.prevent="toggle"; the Space keydown's default action is prevented and Space alone never scrolls or types. Unit evidence in the existing quick-settings.test.js harness; the button's role="button" tabindex="0" chrome is untouched.</Criterion>
+          <Criterion>Semantic markup synchronized across every touched source file: exactly one new CHANGE_SUMMARY line each, all pre-existing lines byte-identical, MODULE_CONTRACT/MODULE_MAP stating the viewport binding, the shrink/ellipsis behavior, the five focus rules and the trap honestly; the compact spec and the two extended/new unit files carry their own ROLE: TEST contracts per the test-file canon. The follow-up CAUTION is recorded in the bundle, NOT edited: the titlebar theme-toggle role="button" siblings (titleBar/index.vue .titlebar-nav-btn on macOS and .frameless-titlebar-theme on Win/Linux, both @keydown.enter.prevent-only and outline-less) stay out of this change's scope and are named for a later change.</Criterion>
+          <Criterion>Graph deltas: .grace/graph/performance.xml gains one SummaryDelta prepended in M-061 (the Quick Settings panel is viewport-bound at compact sizes — toolbar/footer pinned, the body the single scroll region, 62vh double-cap removed, approved 428px metrics unchanged; the Aa button is Space-operable per the enter+space pair and carries the focus outline), and .grace/graph/runtime.xml gains one SummaryDelta prepended in M-011 (the Settings toolbar tabs shrink with label ellipsis inside the fixed 640x620 window on both style variants, the toolbar carries the focus outline, and the shared Advanced sheet traps focus — initial focus, both-direction wrap, restore on close — via the element-plus focus-trap deep import); each delta names C-COMPACT-WINDOWS-FIT; no other module's entry is edited. Verification deltas: .grace/verification/performance.xml V-M-061 and .grace/verification/runtime.xml V-M-011 each gain the scenario naming their new pins (compact walker at 600x400/640x620/1440x900, toolbar walker + de stress, the five real-keyboard focus routes, the sheet trap suite, the Aa Space pin) and their Commands lines gain tests/e2e/compact-windows-fit.spec.ts and tests/renderer/pages/common/sheet.test.js; the four XML files must parse after the edits.</Criterion>
+          <Criterion>The full matrix is green in one pass: the five-suite unit floor (quick-settings shell + the four shared-control suites unchanged), the new sheet trap suite, and the three-spec chromium e2e set (compact-windows-fit + page-width-panel + settings-shell, whose pre-existing keyboard-focus and overflow groups stay green unchanged). Any pre-existing unrelated failure in these filters is recorded in the bundle evidence rather than silently skipped. No version bump, no release action; grace lint runs only in the external target/final phases and no self-referential lint command appears in this plan.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="120">node node_modules/vitest/vitest.mjs run tests/renderer/components/quick-settings.test.js tests/renderer/pages/common/bool.test.js tests/renderer/pages/common/segmented.test.js tests/renderer/pages/common/range.test.js tests/renderer/pages/common/select.test.js</Command>
+          <Command budgetSeconds="120">node node_modules/vitest/vitest.mjs run tests/renderer/pages/common/sheet.test.js</Command>
+          <Command budgetSeconds="1200">npx playwright test tests/e2e/compact-windows-fit.spec.ts tests/e2e/page-width-panel.spec.ts tests/e2e/settings-shell.spec.ts --project=chromium</Command>
+          <Command budgetSeconds="30">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/performance.xml'); ET.parse('.grace/graph/runtime.xml'); ET.parse('.grace/verification/performance.xml'); ET.parse('.grace/verification/runtime.xml')"</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Criterion>Quick Settings compact fit (spec AC-1, R-1): the compact walker pins in tests/e2e/compact-windows-fit.spec.ts fail on the pre-fix tree (panel past the viewport, footer clipped, the 62vh body cap double-limiting against max-height: calc(100vh - 64px) absent) and pass post-fix — at a 600x400 viewport the open panel on each of the three tabs lies fully inside the viewport below the title bar with every descendant rect inside the window rect (the existing overflow tolerances), the .quick-toolbar and the .quick-openall footer are visible and pinned while the body scrolls, every row and control is reachable by that scroll alone; at 640x620 and 1440x900 the approved metrics (width: 428px, border-radius: 12px, the settings shadow, row anatomy, palette, data-darkmode parity) and the current open/close semantics are pinned unchanged by the existing quick-settings.test.js shell groups and the page-width-panel.spec.ts gate staying green.</Criterion>
+      <Criterion>Settings navigation compact fit (spec AC-2, R-2): the extended settings-shell walker (now covering .pref-toolbar and .pref-toolbar * beside .pref-body *) proves at the fixed 640x620 viewport that every .pref-tab rect stays inside the viewport and the toolbar reports no horizontal overflow (scrollWidth at most innerWidth) — including the de-locale stress run seeded through the prefs shim (language: 'de', the longest shipped tab label "Erscheinungsbild") — in both parity runs; the unit pins in tabsBar.test.js carry both style variants through the hoisted osState.isOsx mock (mac floor min-width: 76px kept, base min-width: 0 allowance, text-overflow: ellipsis on the shared label) since jsdom has no layout; the macOS drag-region attribute (:data-tauri-drag-region="isOsx ? '' : null"), tab routing (pick → router.push) and the body's existing vertical scroll are unchanged, pinned by the pre-existing spec and unit groups staying green.</Criterion>
+      <Criterion>Visible keyboard focus (spec AC-3, R-3): real Tab navigation (the checkKeyboardFocus canon, WebKit Option-Tab fallback recorded where applicable — never a synthetic focus()) reaches all five targets — the «Aa» button, a View tab family tile, the Page tab Reset row, a Settings toolbar tab and an open sheet's Close button — and each shows exactly the 2px solid var(--prefAccent) outline with 1px offset while :focus-visible, with value, geometry, selection and preference-write counts invariant (state files + before/focused captures per target, reviewed for ring clipping on the 22px and 28px buttons); Tab-away removes the outline and the pointer-first fresh context proves mouse-only activation does not force it; the already-covered switch/select/segment outlines and their verification keep passing unchanged; Paper and Ink parity driven by the existing harness theme loop.</Criterion>
+      <Criterion>Sheet focus integrity (spec AC-4, R-4): opening any of the three Advanced sheets (shortcuts, extensions, custom CSS — parents unedited, the trap lives in the shared sheet) moves focus inside the panel; Tab at the last focusable wraps to the first and Shift+Tab at the first wraps to the last (jsdom pins in the new sheet.test.js, e2e wrap transcripts in the compact spec); no keystroke moves focus to the dimmed page behind while open (active-element probe across the cycle); closing via Escape AND the Close button restores focus to the invoking control in both tiers; sheet content flows, the 560px metrics and the Esc-close capture-phase semantics are unchanged (the handler byte-identical, pinned by the MustContain baseline anchor surviving into TargetAssertions); the trap is the verified element-plus ElFocusTrap deep import (element-plus/es/components/focus-trap/index.mjs, public on the pinned ^2.14.8 build — re-verified at execution start) with no new dependency, or the disclosed hand-rolled capture-phase fallback after a bounded replan.</Criterion>
+      <Criterion>Unit pins (spec AC-5, R-5): the «Aa» button activates on Space keydown with the default prevented, producing exactly the Enter path's effect (panel opens on the requested tab) in the existing quick-settings.test.js harness, and the Enter path is pinned explicitly unchanged; the sheet trap wiring (initial focus, wrap both directions, restore on close, Escape unchanged) is pinned in the new tests/renderer/pages/common/sheet.test.js following the pages/common canon; all red-first evidence (the walker failures, the five missing-outline failures, the trap-walk-out failures, the Space no-op failure) is recorded against the pre-fix trees of their tasks before the green runs.</Criterion>
+      <Criterion>Governance and gates (spec Constraints/AffectedAreas): the touched components' MODULE_CONTRACT/MODULE_MAP/CHANGE_SUMMARY state the changes honestly with all pre-existing lines byte-identical and paired unique START_BLOCK_/END_BLOCK_ only where new blocks are introduced; the M-061 SummaryDelta (performance.xml), the M-011 SummaryDelta (runtime.xml) and the V-M-061/V-M-011 verification deltas land naming C-COMPACT-WINDOWS-FIT and the four XML files parse; the three MustPassCommand sets are green including the new tests/e2e/compact-windows-fit.spec.ts; no window-size change (tauri.conf.json 600/400 and mt_open_setting_window 640x620 pinned by baseline anchors surviving untouched), no new dependency, IPC, preference key, i18n string or tab-order change; the theme-toggle role="button" siblings remain outside ObservedWriteScope and are recorded as the named follow-up; the F-id to surface mapping is re-verified against the wave-35 findings report at execution start; grace lint runs only in the external target/final phases — this plan contains no self-referential grace-lint MustPassCommand; no implementation before the spec and this plan are explicitly approved; no release authorization.</Criterion>
+    </AcceptanceVerification>
+  </C-COMPACT-WINDOWS-FIT>
+</GraceChangePlan>
