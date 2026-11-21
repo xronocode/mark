@@ -83,7 +83,15 @@
       "error": "Erreur d'exportation",
       "imagesEmbeddedMessage": "{embedded} sur {total} images intégrées — les images trop volumineuses ou introuvables conservent leur lien d'origine",
       "errorExporting": "Erreur lors de l'exportation du fichier",
-      "settingsAction": "Paramètres d'export"
+      "settingsAction": "Paramètres d'export",
+      "embedConsentTitle": "Intégrer des images hors du dossier du document ?",
+      "embedConsentMessage": "{count} fichier(s) image hors du répertoire du document ({dir}) seraient lus et intégrés : {paths}",
+      "embedConsentConfirm": "Intégrer ces fichiers",
+      "embedConsentCancel": "Les ignorer",
+      "plantumlConsentTitle": "Les diagrammes PlantUML sont rendus par plantuml.com",
+      "plantumlConsentMessage": "{count} diagramme(s) PlantUML seraient envoyés à {address} pour rendu — le texte source du diagramme quitte cette machine",
+      "plantumlConsentConfirm": "Envoyer à plantuml.com",
+      "plantumlConsentCancel": "Garder la source en local"
     },
     "resizeTable": "Redimensionner le tableau",
     "vega-lite-start": "début vega-lite",

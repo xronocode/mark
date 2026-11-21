@@ -83,7 +83,15 @@
       "error": "匯出錯誤",
       "imagesEmbeddedMessage": "已嵌入 {embedded}/{total} 張圖片——過大或不存在的圖片保留原始連結",
       "errorExporting": "匯出檔案時發生錯誤",
-      "settingsAction": "匯出設定"
+      "settingsAction": "匯出設定",
+      "embedConsentTitle": "嵌入文件資料夾以外的圖片？",
+      "embedConsentMessage": "文件目錄（{dir}）以外的 {count} 個圖片檔案將被讀取並嵌入：{paths}",
+      "embedConsentConfirm": "嵌入這些檔案",
+      "embedConsentCancel": "跳過",
+      "plantumlConsentTitle": "PlantUML 圖表由 plantuml.com 渲染",
+      "plantumlConsentMessage": "{count} 個 PlantUML 圖表將被送到 {address} 進行渲染——圖表原始碼會離開本機",
+      "plantumlConsentConfirm": "傳送到 plantuml.com",
+      "plantumlConsentCancel": "在本機保留原始碼"
     },
     "resizeTable": "調整表格大小",
     "vega-lite-start": "vega-lite 開始",

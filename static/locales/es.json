@@ -83,7 +83,15 @@
       "error": "Error de exportación",
       "imagesEmbeddedMessage": "{embedded} de {total} imágenes incrustadas — las imágenes grandes o ausentes conservan sus enlaces originales",
       "errorExporting": "Error al exportar archivo {type}",
-      "settingsAction": "Ajustes de exportación"
+      "settingsAction": "Ajustes de exportación",
+      "embedConsentTitle": "¿Incrustar imágenes de fuera de la carpeta del documento?",
+      "embedConsentMessage": "{count} archivo(s) de imagen fuera del directorio del documento ({dir}) se leerían e incrustarían: {paths}",
+      "embedConsentConfirm": "Incrustar estos archivos",
+      "embedConsentCancel": "Omitirlos",
+      "plantumlConsentTitle": "Los diagramas PlantUML se renderizan en plantuml.com",
+      "plantumlConsentMessage": "{count} diagrama(s) PlantUML se enviarían a {address} para su renderizado — el texto fuente del diagrama sale de esta máquina",
+      "plantumlConsentConfirm": "Enviar a plantuml.com",
+      "plantumlConsentCancel": "Conservar el origen localmente"
     },
     "resizeTable": "Redimensionar tabla",
     "vega-lite-start": "inicio de vega-lite",
