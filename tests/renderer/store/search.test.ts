@@ -25,7 +25,10 @@ vi.mock('@/store/project', () => ({
 
 const preferencesProxy = {
   searchExclusions: [] as string[],
-  searchMaxFileSize: null as null | number,
+  // C-SEARCH-ERROR-VISIBILITY: the documented schema value is a string
+  // ("1048576" / "1K" / "2M" / "3G" / empty); the number branch stays
+  // for the legacy-persisted-value tolerance pin.
+  searchMaxFileSize: null as null | number | string,
   searchIncludeHidden: false,
   searchNoIgnore: false,
   searchFollowSymlinks: false
@@ -77,6 +80,8 @@ describe('store/search', () => {
       expect(s.results).toEqual([])
       expect(s.running).toBe(false)
       expect(s.error).toBe('')
+      // C-SEARCH-ERROR-VISIBILITY: the honest-partial state starts false.
+      expect(s.partialResults).toBe(false)
       expect(s.showCancel).toBe(false)
     })
 
@@ -358,10 +363,11 @@ describe('store/search', () => {
   // late root's matches out of the visible result set (owner acceptance
   // С4: "quarterly" typed char-by-char showed only the first root).
   describe('generation guard', () => {
+    // Macrotask drain: the completion path chains several microtask
+    // hops (didComplete, partial handling, generation guard) — a real
+    // timer tick drains them all deterministically.
     const tick = async () => {
-      await Promise.resolve()
-      await Promise.resolve()
-      await Promise.resolve()
+      await new Promise((r) => setTimeout(r, 0))
     }
 
     it('a stale generation completing while the newest runs leaves running true', async () => {
@@ -428,6 +434,193 @@ describe('store/search', () => {
       resolveGen1()
       await tick()
       expect(s.results).toHaveLength(2)
+      expect(s.running).toBe(false)
+    })
+  })
+
+  // C-SEARCH-ERROR-VISIBILITY T-002: parseSearchMaxFileSize at the store
+  // boundary accepts the documented preferences-schema format —
+  // "1048576", "1K", "2M", "3G", empty → no limit — and converts to
+  // bytes; an invalid limit fails the search before any searcher call
+  // or spawn.
+  describe('parseSearchMaxFileSize (C-SEARCH-ERROR-VISIBILITY)', () => {
+    it.each([
+      ['1048576', 1048576],
+      ['1K', 1024],
+      ['2M', 2097152],
+      ['3G', 3221225472]
+    ])('accepts the documented schema value %s → %i bytes', async (raw, expected) => {
+      const { parseSearchMaxFileSize } = await import('@/store/search')
+      expect(parseSearchMaxFileSize(raw)).toBe(expected)
+    })
+
+    it('treats empty/absent as no limit (null)', async () => {
+      const { parseSearchMaxFileSize } = await import('@/store/search')
+      expect(parseSearchMaxFileSize('')).toBe(null)
+      expect(parseSearchMaxFileSize(null)).toBe(null)
+      expect(parseSearchMaxFileSize(undefined)).toBe(null)
+    })
+
+    it('rejects values outside the documented schema as invalid (undefined)', async () => {
+      const { parseSearchMaxFileSize } = await import('@/store/search')
+      expect(parseSearchMaxFileSize('12X')).toBeUndefined()
+      expect(parseSearchMaxFileSize('abc')).toBeUndefined()
+      expect(parseSearchMaxFileSize('-5')).toBeUndefined()
+    })
+  })
+
+  // C-SEARCH-ERROR-VISIBILITY T-002: the store's voice — an invalid
+  // limit never spawns, rejections surface a stable error message and
+  // keep streamed results only when the terminal marked them partial,
+  // and a cancelled search resolves quietly.
+  describe('store failure and partial state (C-SEARCH-ERROR-VISIBILITY)', () => {
+    const tick = async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    }
+
+    it('an invalid maxFileSize sets the error state and performs no searcher call', async () => {
+      projectStateProxy.projectTrees = [{ pathname: '/proj' }]
+      preferencesProxy.searchMaxFileSize = '12X'
+      const { useSearchStore } = await import('@/store/search')
+      const s = useSearchStore()
+      s.keyword = 'q'
+      s.runSearch()
+      expect(searchSpy).not.toHaveBeenCalled()
+      expect(s.running).toBe(false)
+      expect(s.error).toBe('Invalid max file size: 12X')
+      expect(s.results).toEqual([])
+      expect(s.partialResults).toBe(false)
+    })
+
+    it('a valid limit that suppresses candidates marks the result set partial', async () => {
+      projectStateProxy.projectTrees = [{ pathname: '/proj' }]
+      preferencesProxy.searchMaxFileSize = '1K'
+      const promiseLike: any = Promise.resolve()
+      promiseLike.cancel = vi.fn()
+      searchSpy.mockImplementation((_roots: string[], _kw: string, opts: any) => {
+        // A size limit suppressed every candidate except one streamed
+        // hit, and the terminal honestly marked the set partial.
+        opts.didMatch({ filePath: '/proj/a.md', matches: [{ line: 1 }] })
+        opts.didComplete({ partial: true })
+        return promiseLike
+      })
+      const { useSearchStore } = await import('@/store/search')
+      const s = useSearchStore()
+      s.keyword = 'q'
+      s.runSearch()
+      await tick()
+      expect(s.results).toHaveLength(1)
+      expect(s.partialResults).toBe(true)
+      expect(s.error).toBe('')
+    })
+
+    it('the rejection path sets a non-empty error message', async () => {
+      projectStateProxy.projectTrees = [{ pathname: '/proj' }]
+      const promiseLike: any = Promise.reject(new Error('rg exited with code 2'))
+      promiseLike.cancel = vi.fn()
+      promiseLike.catch(() => {})
+      searchSpy.mockReturnValue(promiseLike)
+      const { useSearchStore } = await import('@/store/search')
+      const s = useSearchStore()
+      s.keyword = 'bad'
+      s.runSearch()
+      await tick()
+      expect(s.error).toBe('rg exited with code 2')
+      expect(s.running).toBe(false)
+    })
+
+    it('the rejection keeps streamed results only when marked partial', async () => {
+      projectStateProxy.projectTrees = [{ pathname: '/proj' }]
+      let rejectOuter!: (e: Error) => void
+      const inner = new Promise<void>((_r, reject) => { rejectOuter = reject })
+      ;(inner as any).cancel = vi.fn()
+      ;(inner as any).catch(() => {})
+      searchSpy.mockImplementation((_roots: string[], _kw: string, opts: any) => {
+        opts.didMatch({ filePath: '/proj/partial-hit.md', matches: [{ line: 1 }] })
+        opts.didComplete({ partial: true })
+        Promise.resolve().then(() => rejectOuter(new Error('boom')))
+        return inner
+      })
+      const { useSearchStore } = await import('@/store/search')
+      const s = useSearchStore()
+      s.keyword = 'q'
+      s.runSearch()
+      await tick()
+      expect(s.error).not.toBe('')
+      expect(s.partialResults).toBe(true)
+      expect(s.results).toHaveLength(1)
+      expect(s.results[0].filePath).toBe('/proj/partial-hit.md')
+    })
+
+    it('the rejection drops streamed results when not marked partial', async () => {
+      projectStateProxy.projectTrees = [{ pathname: '/proj' }]
+      let rejectOuter!: (e: Error) => void
+      const inner = new Promise<void>((_r, reject) => { rejectOuter = reject })
+      ;(inner as any).cancel = vi.fn()
+      ;(inner as any).catch(() => {})
+      searchSpy.mockImplementation((_roots: string[], _kw: string, opts: any) => {
+        opts.didMatch({ filePath: '/proj/a.md', matches: [{ line: 1 }] })
+        Promise.resolve().then(() => rejectOuter(new Error('boom')))
+        return inner
+      })
+      const { useSearchStore } = await import('@/store/search')
+      const s = useSearchStore()
+      s.keyword = 'q'
+      s.runSearch()
+      await tick()
+      expect(s.error).not.toBe('')
+      expect(s.partialResults).toBe(false)
+      expect(s.results).toEqual([])
+    })
+
+    it('a cancelled search resolves quietly without a failure message', async () => {
+      projectStateProxy.projectTrees = [{ pathname: '/proj' }]
+      let resolveOuter!: () => void
+      const promiseLike: any = new Promise<void>((resolve) => { resolveOuter = resolve })
+      promiseLike.cancel = vi.fn(() => { resolveOuter() })
+      searchSpy.mockImplementation((_roots: string[], _kw: string, opts: any) => {
+        opts.didMatch({ filePath: '/proj/a.md', matches: [{ line: 1 }] })
+        return promiseLike
+      })
+      const { useSearchStore } = await import('@/store/search')
+      const s = useSearchStore()
+      s.keyword = 'q'
+      s.runSearch()
+      expect(s.running).toBe(true)
+      s.cancelRunning()
+      await tick()
+      expect(s.error).toBe('')
+      expect(s.partialResults).toBe(false)
+      expect(s.running).toBe(false)
+      // Streamed hits stay visible but unmarked — neither failure nor
+      // partial renders for a cancelled search.
+      expect(s.results).toHaveLength(1)
+    })
+
+    it('a stale generation rejection cannot write the error state', async () => {
+      projectStateProxy.projectTrees = [{ pathname: '/proj' }]
+      let rejectGen1!: (e: Error) => void
+      let resolveGen2!: () => void
+      const p1 = new Promise<void>((_r, reject) => { rejectGen1 = reject })
+      const p2 = new Promise<void>((resolve) => { resolveGen2 = resolve })
+      ;(p1 as any).cancel = vi.fn()
+      ;(p2 as any).cancel = vi.fn()
+      ;(p1 as any).catch(() => {})
+      ;(p2 as any).catch(() => {})
+      searchSpy.mockReturnValueOnce(p1).mockReturnValueOnce(p2)
+      const { useSearchStore } = await import('@/store/search')
+      const s = useSearchStore()
+      s.SET_KEYWORD('quarterl')
+      s.SET_KEYWORD('quarterly')
+      resolveGen2()
+      await tick()
+      expect(s.error).toBe('')
+      // The stale generation rejects LAST — it must not write.
+      rejectGen1(new Error('stale boom'))
+      await tick()
+      expect(s.error).toBe('')
       expect(s.running).toBe(false)
     })
   })

@@ -39,8 +39,15 @@
         </div>
         <div v-if="hasQuery" class="result-info">
           <span v-if="running && results.length === 0">{{ t('sideBar.search.searching') }}</span>
+          <!-- C-SEARCH-ERROR-VISIBILITY: the honest failure line takes
+               precedence over the "No results found." empty branch — a
+               failed search must never render as a plain empty state. -->
+          <span v-else-if="error">{{ t('sideBar.search.searchFailed') }}</span>
           <span v-else-if="results.length === 0">{{ t('sideBar.search.noResultsFound') }}</span>
           <span v-else>{{ resultSummary }}</span>
+          <!-- A partial notice accompanies a marked result set; a
+               cancelled search shows neither failure nor partial. -->
+          <span v-if="!running && partialResults" class="result-partial">{{ t('sideBar.search.resultsPartial') }}</span>
           <el-button v-if="running" type="primary" size="small" @click="cancel">
             {{ t('sideBar.search.cancel') }}
           </el-button>
@@ -62,10 +69,10 @@
 
 <script setup>
 // START_MODULE_CONTRACT
-//   PURPOSE: Present the existing project-search overlay, options and result summary.
-//   SCOPE: Store bindings, option controls and bus-owned overlay lifecycle; search execution stays in the search store.
+//   PURPOSE: Present the existing project-search overlay, options and result summary — honestly: the localized failure line takes precedence over the empty state and a partial notice accompanies a marked result set.
+//   SCOPE: Store bindings (including the additive partialResults state), option controls and bus-owned overlay lifecycle; search execution stays in the search store.
 //   DEPENDS: Vue lifecycle/reactivity, Pinia stores, Vue i18n, renderer bus, result item and plural-count helper.
-//   LINKS: M-011; V-M-011 scenario-56.
+//   LINKS: M-011; V-M-011 scenario-56; C-SEARCH-ERROR-VISIBILITY.
 //   ROLE: RUNTIME
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
@@ -76,6 +83,7 @@
 //   results - Current grouped search results.
 //   running - Current search progress state.
 //   error - Search-store failure state.
+//   partialResults - Whether the current result set is honestly partial.
 //   isCaseSensitive - Case option binding.
 //   isWholeWord - Whole-word option binding.
 //   isRegexp - Regular-expression option binding.
@@ -95,7 +103,8 @@
 //   focusResults - Retain the current Enter-key placeholder behavior.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-11-13 - Resolve active option text and borders through the established chrome accent.
+//   LAST_CHANGE: 2026-11-21 - C-SEARCH-ERROR-VISIBILITY T-002: the error branch renders the localized failure line (sideBar.search.searchFailed) BEFORE the "No results found." empty branch, and a partial notice (sideBar.search.resultsPartial) accompanies a marked result set; a cancelled search shows neither.
+//   PREVIOUS: 2026-11-13 - Resolve active option text and borders through the established chrome accent.
 // END_CHANGE_SUMMARY
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { storeToRefs } from 'pinia'
@@ -110,7 +119,7 @@ const { t } = useI18n()
 const searchStore = useSearchStore()
 const projectStore = useProjectStore()
 
-const { results, running, error } = storeToRefs(searchStore)
+const { results, running, error, partialResults } = storeToRefs(searchStore)
 const { isCaseSensitive, isWholeWord, isRegexp } = storeToRefs(searchStore)
 const { projectTree } = storeToRefs(projectStore)
 
@@ -276,6 +285,10 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+.result-partial {
+  margin-left: 8px;
+  color: var(--editorColor50);
 }
 .panel-results {
   flex: 1;
