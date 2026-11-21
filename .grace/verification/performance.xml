@@ -1669,13 +1669,18 @@
         </Scenario>
         <Scenario>
           Unmounted-tail interaction: navigation into a not-yet-mounted
-          region (scroll jump, search hit, TOC or link jump, restored
-          remembered cursor position, jump-to-end) lands on mounted content
-          through the on-demand region mount; continuous scrolling never
-          overtakes the mount boundary (prefetch keeps mounted content
-          ahead of the viewport); the reading position holds steady while
-          the tail mounts and the ag-tail-pending reserved-space
-          indication keeps the document from appearing truncated.
+          region (scroll jump, search hit, TOC or link jump, jump-to-end)
+          lands on mounted content through the on-demand region mount;
+          continuous scrolling never overtakes the mount boundary (prefetch
+          keeps mounted content ahead of the viewport); the reading position
+          holds steady while the tail mounts and the ag-tail-pending
+          reserved-space indication keeps the document from appearing
+          truncated. Legacy-path exception, C-DOCS-SYNC (2026-11-21):
+          restored-cursor and blocks-cache opens keep the LEGACY single-pass
+          mount per the C-LARGE-DOC-WAVE-A owner decision (b) (2026-11-02)
+          and never land through the on-demand region mount;
+          tests/renderer/components/editor-progressive-mount.test.js pins
+          the exclusion (restored opens stay legacy with the toggle ON).
         </Scenario>
         <Scenario>
           Experimental surface: the toggle is visible under the

@@ -39,11 +39,11 @@
 //            .grace/verification/features.xml V-M-071;
 //            .grace/changes/archive/C-UPDATER-STATS spec R-1..R-5,
 //            corners C-1..C-7;
-//            .grace/changes/active/C-STATS-READOUT spec R-1..R-4,
+//            .grace/changes/archive/C-STATS-READOUT spec R-1..R-4,
 //            R-7/R-8, plan T-003 — the readout route is this change's
 //            documented exception, and the bundle path moves under
 //            .grace/changes/archive/ when the change archives;
-//            .grace/changes/active/C-STATS-DASH-PUSH — the dashboard
+//            .grace/changes/archive/C-STATS-DASH-PUSH — the dashboard
 //            push beside the AE write.
 //   STATUS:  C-UPDATER-STATS T-001. Deployed owner-side via wrangler to
 //            the custom domain updates.mark.xronocode.com (workers_dev
@@ -93,6 +93,7 @@
 //     check order, pre-hash x-read-key auth, upstream-secret gate,
 //     60-second mapped-rows cache, one SQL API fetch with the 10 s
 //     abort); PURPOSE/SCOPE/DEPENDS/STATUS/LINKS amended per R-8.
+//   - 2026-11-21 C-DOCS-SYNC: the C-STATS-READOUT and C-STATS-DASH-PUSH LINKS references repointed to .grace/changes/archive/ (both changes archived); no behavior change.
 // END_CHANGE_SUMMARY
 
 import { SQL_TEXT, normalizeRows, renderTables } from './tables.mjs';

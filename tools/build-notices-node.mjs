@@ -4,7 +4,7 @@
 // VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Render deterministic third-party Node notices from the installed production checker output.
-//   SCOPE: Group license metadata, exclude workspace names and count actual rendered packages; no package installation or network.
+//   SCOPE: Group license metadata, exclude workspace names, apply the pinned LICENSE_OVERRIDES to undetected licenses and count actual rendered packages; no package installation or network.
 //   DEPENDS: Node filesystem; lockfile-installed license-checker JSON.
 //   LINKS: .grace/graph/features.xml M-046; .grace/verification/features.xml V-M-046; .grace/changes/archive/C-ATTRIBUTION-NOTICE-REFRESH.
 //   ROLE: SCRIPT
@@ -14,6 +14,7 @@
 //   input - Checker JSON from a file or stdin.
 //   data - Parsed installed production package metadata.
 //   SELF_PACKAGE_NAMES - Existing workspace-name exclusions.
+//   LICENSE_OVERRIDES - Pinned "name@version" → {license, repository} for packages the checker reports UNLICENSED/UNKNOWN.
 //   byLicense - Third-party records grouped by license.
 //   groups - Sorted license groups and package rows.
 //   total - Number of rendered third-party records after exclusions.
@@ -21,6 +22,7 @@
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
 //   - 2026-11-09 C-ATTRIBUTION-NOTICE-REFRESH: count rendered third-party rows and document the installed local command.
+//   - 2026-11-21 C-DOCS-SYNC: pinned LICENSE_OVERRIDES rescue a checker-undetected license (file-icons@2.1.47 → MIT per package-lock.json); NOTICES-node.md is regenerated with it because tools/verify-attributions.sh diffs them.
 // END_CHANGE_SUMMARY
 // Reads license-checker JSON from stdin (or first arg) and emits a
 // markdown table sorted by license group → package name.
@@ -50,6 +52,23 @@ const data = JSON.parse(input)
 // changing about third-party deps. Skip the self-package by name.
 const SELF_PACKAGE_NAMES = new Set(['reborn-mark', 'mark'])
 
+// Pinned overrides for packages license-checker reports as UNLICENSED or
+// UNKNOWN although the lockfile records their license. license-checker
+// classifies every "private": true package as UNLICENSED whatever its
+// package.json declares - how the git-hosted file-icons 2.1.47 (private,
+// license MIT) landed in that bucket.
+//
+// Source of each entry: package-lock.json for the same pinned revision
+// ("file-icons@2.1.47" -> "license": "MIT"). The key is the exact
+// name@version license-checker reports, so a real version bump re-enters
+// normal detection instead of inheriting this pin.
+//
+// The committed NOTICES-node.md and this map must move together:
+// tools/verify-attributions.sh regenerates the notice and diffs it in CI.
+const LICENSE_OVERRIDES = new Map([
+  ['file-icons@2.1.47', { license: 'MIT', repository: 'https://github.com/file-icons/atom' }]
+])
+
 const byLicense = new Map()
 for (const [pkgKey, info] of Object.entries(data)) {
   // pkgKey is "name@version"; split off last @ to handle scoped names.
@@ -58,8 +77,17 @@ for (const [pkgKey, info] of Object.entries(data)) {
   if (SELF_PACKAGE_NAMES.has(name)) continue
   const version = pkgKey.slice(lastAt + 1)
   const lic = Array.isArray(info.licenses) ? info.licenses.join(' OR ') : (info.licenses || 'UNKNOWN')
-  if (!byLicense.has(lic)) byLicense.set(lic, [])
-  byLicense.get(lic).push({ name, version, repo: info.repository || '', publisher: info.publisher || '' })
+  // A pinned override rescues only an undetected license; everything the
+  // checker did classify stays exactly as checked.
+  const override = lic === 'UNLICENSED' || lic === 'UNKNOWN' ? LICENSE_OVERRIDES.get(pkgKey) : undefined
+  const license = override ? override.license : lic
+  if (!byLicense.has(license)) byLicense.set(license, [])
+  byLicense.get(license).push({
+    name,
+    version,
+    repo: (override && override.repository) || info.repository || '',
+    publisher: info.publisher || ''
+  })
 }
 
 // Sort license groups by descending count, then name within group.
