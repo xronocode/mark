@@ -410,4 +410,63 @@ describe('RipgrepDirectorySearcher', () => {
 
     await expect(searcher.search(['/docs'], 'q')).rejects.toThrow()
   })
+
+  // ─── C-SEARCH-ERROR-VISIBILITY: wire compatibility pins ────────────
+  // The read-only facade (src/renderer/src/ipc/runtime/search.ts) stays
+  // byte-for-byte unchanged; these pins prove the additive optional
+  // `partial` flag on terminal envelopes is wire-compatible — old
+  // consumer behavior is preserved when the field arrives or is absent.
+  it('keeps resolving on complete envelopes carrying the additive partial field', async () => {
+    const searcher = new RipgrepDirectorySearcher()
+
+    ipcInvokeMock.mockImplementation(async (cmd: string, args: any) => {
+      if (cmd === 'mt::search::spawn') {
+        const searchId = args.searchId
+        setTimeout(() => {
+          capturedListenerHandler!(
+            { searchId, kind: 'complete', seq: 1, partial: true },
+            SEARCH_EVENT_CHANNEL
+          )
+        }, 10)
+      }
+    })
+
+    await searcher.search(['/docs'], 'q')
+  })
+
+  it('keeps resolving on complete envelopes without the partial field (absent-field compatibility)', async () => {
+    const searcher = new RipgrepDirectorySearcher()
+
+    ipcInvokeMock.mockImplementation(async (cmd: string, args: any) => {
+      if (cmd === 'mt::search::spawn') {
+        const searchId = args.searchId
+        setTimeout(() => {
+          capturedListenerHandler!(
+            { searchId, kind: 'complete', seq: 1 },
+            SEARCH_EVENT_CHANNEL
+          )
+        }, 10)
+      }
+    })
+
+    await searcher.search(['/docs'], 'q')
+  })
+
+  it('keeps rejecting on error envelopes carrying the additive partial field', async () => {
+    const searcher = new RipgrepDirectorySearcher()
+
+    ipcInvokeMock.mockImplementation(async (cmd: string, args: any) => {
+      if (cmd === 'mt::search::spawn') {
+        const searchId = args.searchId
+        setTimeout(() => {
+          capturedListenerHandler!(
+            { searchId, kind: 'error', error: 'rg exited with code 2', seq: 1, partial: true },
+            SEARCH_EVENT_CHANNEL
+          )
+        }, 10)
+      }
+    })
+
+    await expect(searcher.search(['/docs'], 'q')).rejects.toThrow('rg exited with code 2')
+  })
 })

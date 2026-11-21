@@ -1727,8 +1727,8 @@
     "search": {
       "searchInFolder": "在文件夹中搜索…",
       "noResultsFound": "未找到结果。",
-      "startTyping": "输入即可在已打开文件夹的 Markdown 文件中搜索。",
-      "openFolder": "打开文件夹",
+      "searchFailed": "Search failed. Results may be missing.",
+      "resultsPartial": "Partial results — the search stopped early.",
       "showMoreMatches": "显示更多匹配",
       "noFolderOpen": "没有打开的文件夹",
       "cancel": "取消",

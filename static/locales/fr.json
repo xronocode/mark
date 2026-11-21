@@ -1736,8 +1736,8 @@
     "search": {
       "searchInFolder": "Rechercher dans le dossier...",
       "noResultsFound": "Aucun résultat trouvé.",
-      "startTyping": "Saisissez pour rechercher dans les fichiers Markdown des dossiers ouverts.",
-      "openFolder": "Ouvrir un dossier",
+      "searchFailed": "Search failed. Results may be missing.",
+      "resultsPartial": "Partial results — the search stopped early.",
       "showMoreMatches": "Afficher plus de correspondances",
       "noFolderOpen": "Aucun dossier ouvert",
       "cancel": "Annuler",

@@ -1727,8 +1727,8 @@
     "search": {
       "searchInFolder": "フォルダ内を検索...",
       "noResultsFound": "結果が見つかりませんでした。",
-      "startTyping": "入力して開いているフォルダのMarkdownファイルを検索。",
-      "openFolder": "フォルダを開く",
+      "searchFailed": "Search failed. Results may be missing.",
+      "resultsPartial": "Partial results — the search stopped early.",
       "showMoreMatches": "さらに一致するものを表示",
       "noFolderOpen": "フォルダが開かれていません",
       "cancel": "キャンセル",

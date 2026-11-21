@@ -3,6 +3,10 @@
 // surface (search() returns a thenable with .cancel()) so callers
 // (commands/quickOpen, store/search) need no changes.
 //
+// C-SEARCH-ERROR-VISIBILITY: callers may additionally pass one additive
+// optional terminal callback didComplete({ partial }) — fired exactly
+// once per terminal so streamed hits stay honestly marked partial.
+//
 // Per-search lifecycle: a unique searchId is generated, attached to
 // each event, and used for cancellation. The renderer subscribes to
 // `mt::search-event` once per search and dispatches based on searchId.
@@ -27,6 +31,12 @@ class RipgrepDirectorySearcher {
     const searchId = generateSearchId()
     const didMatch = (options && options.didMatch) || (() => {})
     const didSearchPaths = (options && options.didSearchPaths) || (() => {})
+    // C-SEARCH-ERROR-VISIBILITY: one additive optional terminal callback —
+    // fired exactly once per terminal with { partial } so callers can
+    // keep already-streamed hits honestly marked partial. The search()
+    // signature, the thenable/cancel contract and every other channel
+    // stay unchanged.
+    const didComplete = (options && options.didComplete) || null
 
     let resolveOuter
     let rejectOuter
@@ -57,9 +67,15 @@ class RipgrepDirectorySearcher {
           try { didSearchPaths(msg.payload) } catch {}
           break
         case 'error':
+          if (!settled && typeof didComplete === 'function') {
+            try { didComplete({ partial: msg.partial === true }) } catch (err) { console.warn('search didComplete threw:', err) }
+          }
           settle('reject', new Error(msg.payload && msg.payload.message ? msg.payload.message : 'search error'))
           break
         case 'complete':
+          if (!settled && typeof didComplete === 'function') {
+            try { didComplete({ partial: msg.partial === true }) } catch (err) { console.warn('search didComplete threw:', err) }
+          }
           settle('resolve')
           break
       }
