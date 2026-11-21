@@ -85,7 +85,15 @@
       "error": "Ошибка экспорта",
       "imagesEmbeddedMessage": "Встроено {embedded} из {total} изображений — слишком большие или отсутствующие остались исходными ссылками",
       "errorExporting": "Ошибка экспорта файла {type}",
-      "settingsAction": "Настройки экспорта"
+      "settingsAction": "Настройки экспорта",
+      "embedConsentTitle": "Встроить изображения вне папки документа?",
+      "embedConsentMessage": "{count} файл(ов) изображений вне каталога документа ({dir}) будут прочитаны и встроены: {paths}",
+      "embedConsentConfirm": "Встроить эти файлы",
+      "embedConsentCancel": "Пропустить",
+      "plantumlConsentTitle": "Диаграммы PlantUML рендерит plantuml.com",
+      "plantumlConsentMessage": "{count} диаграмм(ы) PlantUML будут отправлены на {address} для рендеринга — исходный текст диаграмм покидает этот компьютер",
+      "plantumlConsentConfirm": "Отправить на plantuml.com",
+      "plantumlConsentCancel": "Оставить исходник локально"
     },
     "resizeTable": "Изменить размер таблицы",
     "vega-lite-start": "начало vega-lite",
