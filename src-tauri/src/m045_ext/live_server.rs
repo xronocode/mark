@@ -21,6 +21,26 @@
 //   STATUS:  Phase-B5b — handlers emit to frontend via live_bridge.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-21 C-STREAM-BUDGET T-001..T-003: per-session stream
+//     budgets on LiveSession.budget (StreamBudget, rebuilt wholesale by
+//     every (re)open incl. the ReplaceSameSession resync path, so a
+//     client that hit a cap honestly resets by re-opening) —
+//     STREAM_BUDGET_TOTAL_BYTES 67108864 counts the authoritative
+//     document_md bytes at open plus the GROSS content bytes of every
+//     accepted patch at the single apply site, STREAM_BUDGET_MAX_SECTIONS
+//     4096 caps the post-dedup section list at open, and the token
+//     bucket (STREAM_BUDGET_RATE_PER_MINUTE 30 / STREAM_BUDGET_RATE_BURST
+//     60 / STREAM_BUDGET_REFILL_SECS 2, pure decide_rate_admission
+//     beside decide_open) is charged one token per applied patch only
+//     after the duplicate and needs_resync short-circuits, with
+//     heartbeat/close staying budget-free; every exceed is refused
+//     413/413/429 (BLOCK_STREAM_BUDGET_BYTES_EXCEEDED /
+//     BLOCK_STREAM_BUDGET_SECTIONS_EXCEEDED /
+//     BLOCK_STREAM_BUDGET_RATE_EXCEEDED) through the existing
+//     {"error": ...} body naming the budget and the cap, with zero
+//     state mutation — the session keeps its last valid revision and
+//     stays active; per-opens quota abuse via fresh opens is an
+//     accepted NonGoal.
 //   - 2026-11-21 C-SEC-EXT-GRANT-BOUND T-001..T-003: pairing captures the dialog-presented incoming set (registry.peek_manifest — registered regardless of enabled state; an unregistered id captures the honest empty grant) and stores it beside the credential via super::auth::store_grant BEFORE the secret; every incoming data route and every /stream/* route at open and on state changes authorizes by that stored grant (grant_authorizes; legacy credentials without a grant fail closed), with /stream/* refusals 401 BLOCK_STREAM_GRANT_REFUSED before any session mutation or live event; key replacement is honest — store_grant failure refuses 500 BLOCK_PAIR_GRANT_STORE_FAILED before any credential I/O, a refused new-key store logs BLOCK_PAIR_NEW_KEY_UNVERIFIED on a rebind, and a rebind additionally proves the prior token dead through a strict credential-record read (BLOCK_PAIR_OLD_KEY_STILL_VALID, BLOCK_PAIR_CREDENTIAL_VERIFY_READ_FAILED) before BLOCK_PAIR_OK answers paired:true.
 //   - 2026-11-20 C-SEC-EDIT-TARGETING: the /ext/context response names the
 //     active document instance (document_id + document_generation) and the
@@ -69,6 +89,52 @@ use tokio::sync::Mutex;
 
 // START_BLOCK_TYPES
 
+/// C-STREAM-BUDGET: per-session budget caps (spec-pinned defaults,
+/// written as plain literals so the values are greppable). 64 MiB
+/// cumulative accepted payload bytes; 4096 live sections at open.
+pub const STREAM_BUDGET_TOTAL_BYTES: u64 = 67108864;
+pub const STREAM_BUDGET_MAX_SECTIONS: usize = 4096;
+
+/// C-STREAM-BUDGET rate bucket: STREAM_BUDGET_RATE_PER_MINUTE sustained
+/// patches (one token per STREAM_BUDGET_REFILL_SECS) with a
+/// STREAM_BUDGET_RATE_BURST capacity. Decision core:
+/// decide_rate_admission.
+pub const STREAM_BUDGET_RATE_PER_MINUTE: u32 = 30;
+pub const STREAM_BUDGET_RATE_BURST: u32 = 60;
+pub const STREAM_BUDGET_REFILL_SECS: u64 = 2;
+
+/// Per-session budget state (C-STREAM-BUDGET). Lives on LiveSession —
+/// deliberately NOT on LiveServerState, so the LiveServerState literal
+/// in src-tauri/src/main.rs stays untouched — and is rebuilt wholesale
+/// by every (re)open, so a same-session resync re-open resets both
+/// budgets (the documented recovery for a client that hit a cap
+/// honestly). Per-opens quota abuse via fresh opens is an accepted
+/// NonGoal.
+pub struct StreamBudget {
+    /// Cumulative accepted payload bytes: the authoritative document_md
+    /// bytes accepted at open plus the GROSS content bytes of every
+    /// accepted patch (gross, so replace-with-smaller traffic cannot
+    /// cycle the budget).
+    pub cumulative_bytes: u64,
+    /// Rate bucket: available tokens (one debited per applied patch),
+    /// initialized at burst and refilled one token per
+    /// STREAM_BUDGET_REFILL_SECS capped at STREAM_BUDGET_RATE_BURST.
+    pub credit: f64,
+    /// The instant the refill clock was last advanced.
+    pub last_refill: Instant,
+}
+
+impl StreamBudget {
+    /// A fresh budget: zero cumulative bytes, bucket full at burst.
+    pub fn at_burst(now: Instant) -> Self {
+        Self {
+            cumulative_bytes: 0,
+            credit: STREAM_BUDGET_RATE_BURST as f64,
+            last_refill: now,
+        }
+    }
+}
+
 /// A live streaming session. Tracks document state, sequence numbers
 /// for idempotency, and heartbeat timestamp for timeout detection.
 pub struct LiveSession {
@@ -82,6 +148,10 @@ pub struct LiveSession {
     /// /stream/open and preserved for the whole session. Content is
     /// self-contained markdown (sections carry their own headers).
     pub sections: Vec<(String, String)>,
+    /// C-STREAM-BUDGET: per-session resource budgets (cumulative bytes
+    /// and patch rate). Fresh at every (re)open; heartbeat and close
+    /// never touch it, and a refusal leaves it untouched.
+    pub budget: StreamBudget,
     pub active: bool,
     pub last_heartbeat: Instant,
 }
@@ -396,6 +466,45 @@ pub fn decide_open(existing: Option<&LiveSession>, incoming_session_id: &str, in
         Some(s) if s.extension_id != incoming_extension_id => OpenDecision::ForeignOwner,
         Some(s) if s.session_id == incoming_session_id => OpenDecision::ReplaceSameSession,
         Some(_) => OpenDecision::Conflict,
+    }
+}
+
+/// Decision for an incoming patch against the session rate bucket
+/// (C-STREAM-BUDGET). Admit carries the post-decision bucket state the
+/// caller writes back deterministically; Exhausted refuses with the
+/// bucket untouched.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum RateDecision {
+    /// Admitted — the bucket was refilled (one token per
+    /// STREAM_BUDGET_REFILL_SECS, capped at STREAM_BUDGET_RATE_BURST,
+    /// i.e. STREAM_BUDGET_RATE_PER_MINUTE sustained) and debited by
+    /// exactly one token.
+    Admit {
+        credit: f64,
+        last_refill: Instant,
+    },
+    /// Fewer than 1.0 refilled tokens — refuse and change nothing.
+    Exhausted,
+}
+
+/// Pure core of the patch-rate budget: refill one token per
+/// STREAM_BUDGET_REFILL_SECS capped at STREAM_BUDGET_RATE_BURST
+/// (STREAM_BUDGET_RATE_PER_MINUTE sustained) and admit iff the refilled
+/// total is at least 1.0, returning both the decision and the
+/// post-decision bucket state so the caller applies it
+/// deterministically. Reads no clock itself and touches no session or
+/// HTTP state — tests drive it with synthetic Instants and never sleep.
+pub fn decide_rate_admission(current_credit: f64, last_refill: Instant, now: Instant) -> RateDecision {
+    let elapsed_secs = now.saturating_duration_since(last_refill).as_secs_f64();
+    let refilled = (current_credit + elapsed_secs / STREAM_BUDGET_REFILL_SECS as f64)
+        .min(STREAM_BUDGET_RATE_BURST as f64);
+    if refilled >= 1.0 {
+        RateDecision::Admit {
+            credit: refilled - 1.0,
+            last_refill: now,
+        }
+    } else {
+        RateDecision::Exhausted
     }
 }
 
@@ -954,9 +1063,61 @@ pub(super) async fn handle_doc_open<R: tauri::Runtime>(
     } else {
         rebuild_document_md(&sections)
     };
+
+    // C-STREAM-BUDGET: over-budget opens are refused before any session
+    // or frontend state exists — no LiveSession is built, the previous
+    // session (in the Conflict/ForeignOwner-checked window) and the
+    // emitted event stream are untouched. Section cap first, on the
+    // post-dedup list produced by build_sections_from_init (sections
+    // are fixed at open): refusal is strictly "longer than the cap",
+    // exactly STREAM_BUDGET_MAX_SECTIONS passes.
+    if sections.len() > STREAM_BUDGET_MAX_SECTIONS {
+        safe_eprintln!(
+            "[ExtHost][live_server][BLOCK_STREAM_BUDGET_SECTIONS_EXCEEDED sections={} cap={}]",
+            sections.len(),
+            STREAM_BUDGET_MAX_SECTIONS,
+        );
+        return (
+            StatusCode::PAYLOAD_TOO_LARGE,
+            Json(serde_json::json!({
+                "error": format!(
+                    "stream budget exceeded: {} sections would pass STREAM_BUDGET_MAX_SECTIONS {}",
+                    sections.len(),
+                    STREAM_BUDGET_MAX_SECTIONS,
+                )
+            })),
+        );
+    }
+    // Byte cap on the authoritative stored document — exactly today's
+    // document_md value (rebuild of the sections when non-empty,
+    // initial_md otherwise). Refusal is strictly "would push past the
+    // cap": exactly STREAM_BUDGET_TOTAL_BYTES passes.
+    if document_md.len() as u64 > STREAM_BUDGET_TOTAL_BYTES {
+        safe_eprintln!(
+            "[ExtHost][live_server][BLOCK_STREAM_BUDGET_BYTES_EXCEEDED bytes={} cap={}]",
+            document_md.len(),
+            STREAM_BUDGET_TOTAL_BYTES,
+        );
+        return (
+            StatusCode::PAYLOAD_TOO_LARGE,
+            Json(serde_json::json!({
+                "error": format!(
+                    "stream budget exceeded: document bytes {} would pass STREAM_BUDGET_TOTAL_BYTES {}",
+                    document_md.len(),
+                    STREAM_BUDGET_TOTAL_BYTES,
+                )
+            })),
+        );
+    }
     let document_md_for_emit = document_md.clone();
 
     let session_epoch = state.next_epoch.fetch_add(1, Ordering::Relaxed);
+    // C-STREAM-BUDGET: the (re)open charges the authoritative
+    // document_md bytes once — every fresh budget (the
+    // ReplaceSameSession wholesale rebuild included) starts from the
+    // stored document's size with the rate bucket at burst.
+    let mut budget = StreamBudget::at_burst(Instant::now());
+    budget.cumulative_bytes = document_md.len() as u64;
     let session = LiveSession {
         session_epoch,
         session_id: req.session_id.clone(),
@@ -965,6 +1126,7 @@ pub(super) async fn handle_doc_open<R: tauri::Runtime>(
         revision: 1,
         document_md,
         sections,
+        budget,
         active: true,
         last_heartbeat: Instant::now(),
     };
@@ -1102,6 +1264,69 @@ pub(super) async fn handle_doc_patch<R: tauri::Runtime>(
     // v2 op semantics; missing op defaults to replace). Unknown op or a
     // section not declared at /stream/open is a client bug -> 400.
     // START_BLOCK_APPLY_PATCH
+    // C-STREAM-BUDGET: charged bytes are the GROSS content bytes
+    // of every accepted patch — net-growth accounting would be
+    // cycle-able by replace-with-smaller traffic. Checked immediately
+    // before the apply so a refusal happens with zero mutation: the
+    // last valid revision, last_seq, document_md, sections and
+    // last_heartbeat stay untouched, no event is emitted and the
+    // session stays active.
+    let patch_bytes = req.content.len() as u64;
+    if session.budget.cumulative_bytes + patch_bytes > STREAM_BUDGET_TOTAL_BYTES {
+        safe_eprintln!(
+            "[ExtHost][live_server][BLOCK_STREAM_BUDGET_BYTES_EXCEEDED cumulative={} patch={} cap={} seq={}]",
+            session.budget.cumulative_bytes,
+            patch_bytes,
+            STREAM_BUDGET_TOTAL_BYTES,
+            req.seq,
+        );
+        return (
+            StatusCode::PAYLOAD_TOO_LARGE,
+            Json(serde_json::json!({
+                "error": format!(
+                    "stream budget exceeded: cumulative bytes {} + patch {} would pass STREAM_BUDGET_TOTAL_BYTES {}",
+                    session.budget.cumulative_bytes,
+                    patch_bytes,
+                    STREAM_BUDGET_TOTAL_BYTES,
+                )
+            })),
+        );
+    }
+    // C-STREAM-BUDGET: rate bucket — decided here, after the duplicate
+    // and needs_resync short-circuits (both stay free: a needs_resync
+    // response applies nothing and is not charged), and debited only
+    // when the patch is actually applied below, so a 400 unknown
+    // op/section (nothing applied) is never charged. On Exhausted the
+    // bucket is not debited and nothing else mutates — because last_seq
+    // is unchanged, a later retransmit of the refused seq is still a
+    // new-seq patch that can be admitted once tokens refill.
+    let admitted_bucket = match decide_rate_admission(
+        session.budget.credit,
+        session.budget.last_refill,
+        Instant::now(),
+    ) {
+        RateDecision::Admit { credit, last_refill } => (credit, last_refill),
+        RateDecision::Exhausted => {
+            safe_eprintln!(
+                "[ExtHost][live_server][BLOCK_STREAM_BUDGET_RATE_EXCEEDED credit={} burst={} refill_secs={} seq={}]",
+                session.budget.credit,
+                STREAM_BUDGET_RATE_BURST,
+                STREAM_BUDGET_REFILL_SECS,
+                req.seq,
+            );
+            return (
+                StatusCode::TOO_MANY_REQUESTS,
+                Json(serde_json::json!({
+                    "error": format!(
+                        "stream budget exceeded: patch rate exhausted (STREAM_BUDGET_RATE_PER_MINUTE {}, STREAM_BUDGET_RATE_BURST {}, refill {}s)",
+                        STREAM_BUDGET_RATE_PER_MINUTE,
+                        STREAM_BUDGET_RATE_BURST,
+                        STREAM_BUDGET_REFILL_SECS,
+                    )
+                })),
+            );
+        }
+    };
     if let Err(e) = apply_section_patch(
         &mut session.sections,
         &req.section,
@@ -1124,6 +1349,12 @@ pub(super) async fn handle_doc_patch<R: tauri::Runtime>(
             Json(serde_json::json!({"error": e.to_string()})),
         );
     }
+    // C-STREAM-BUDGET: accepted — write back the debited/refilled
+    // bucket and advance the cumulative total by the same gross bytes,
+    // atomically with the apply, then the unchanged rebuild flow runs.
+    session.budget.credit = admitted_bucket.0;
+    session.budget.last_refill = admitted_bucket.1;
+    session.budget.cumulative_bytes += patch_bytes;
     session.document_md = rebuild_document_md(&session.sections);
     // END_BLOCK_APPLY_PATCH
 
