@@ -80,7 +80,7 @@ pub struct TextOpEvent {
 ///
 /// Event name `mt::text::op` follows the project convention established
 /// in bootstrap-ipc.js (all Tauri events use `mt::` prefix).
-fn emit_text_op(app: &AppHandle, event: TextOpEvent) -> Result<(), String> {
+fn emit_text_op<R: tauri::Runtime>(app: &AppHandle<R>, event: TextOpEvent) -> Result<(), String> {
     safe_eprintln!(
         "[ExtHost][text_ops][BLOCK_EMIT op_type={} ext={}]",
         event.op_type,
@@ -107,8 +107,8 @@ fn emit_text_op(app: &AppHandle, event: TextOpEvent) -> Result<(), String> {
 /// is performed by the frontend Muya instance — this command only validates
 /// and relays the payload as a Tauri event.
 #[tauri::command]
-pub async fn mt_ext_text_insert(
-    app: AppHandle,
+pub async fn mt_ext_text_insert<R: tauri::Runtime>(
+    app: AppHandle<R>,
     extension_id: String,
     text: String,
     position: Option<CursorPosition>,
@@ -146,8 +146,8 @@ pub async fn mt_ext_text_insert(
 /// is performed by the frontend Muya instance — this command only validates
 /// and relays the payload as a Tauri event.
 #[tauri::command]
-pub async fn mt_ext_text_transform(
-    app: AppHandle,
+pub async fn mt_ext_text_transform<R: tauri::Runtime>(
+    app: AppHandle<R>,
     extension_id: String,
     text: String,
     registry: tauri::State<'_, ExtRegistry>,

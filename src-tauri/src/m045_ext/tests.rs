@@ -18,6 +18,21 @@
 // END_MODULE_MAP
 
 // START_CHANGE_SUMMARY
+//   - 2026-11-22 C-EXT-EDIT-PROOF T-001: failing-first dead-route refusal
+//     pins — text_insert_authorized_emits_with_requester_identity moves to
+//     text_insert_authorized_request_refused_not_implemented (an authorized
+//     /ext/text-insert answers 501 with the stable deprecated-route reason
+//     naming the /ext/context + /ext/apply alternative, zero events) and
+//     text_insert_authorized_old_shape_body_emits to
+//     text_insert_authorized_old_shape_body_still_parses (the v1 body still
+//     parses through TextInsertRequest; the honest 501 refusal); the four
+//     401 gate pins stay green unchanged; the new command pins
+//     mt_ext_text_insert_refuses_when_enabled and
+//     mt_ext_text_transform_refuses_when_enabled drive the commands through
+//     the mock-runtime fixture registry (stable ext_text_op_refused, zero
+//     mt::text::op events) with the get_manifest-refusal companions
+//     mt_ext_text_insert_refuses_when_disabled and
+//     mt_ext_text_transform_refuses_when_unregistered kept green.
 //   - 2026-11-21 C-SEC-EXT-GRANT-BOUND T-004: grant-matrix regressions — the fixture establishes the pairing grant beside the injected secret (plus a grant-less legacy-shape variant), the migrated pin enabled_extension_passes_only_declared_capability_routes keeps name/statuses/event counts while its stream 200 becomes grant-derived and gains a grant-less stream 401, and the new pins pairing_persists_the_captured_grant, grow_after_pairing_enable_is_refused_to_reapproval, stream_requires_stored_stream_document_grant, legacy_credential_without_grant_fails_closed, rebind_refused_when_new_key_fails_verification and pair_keychain_read_error_is_a_distinct_refusal cover F-001/F-002/F-03 fail-closed, grow-refusal and honest-replace semantics; DummyCredential gains a fail_write mode and cleanup clears grants.
 //   - 2026-11-20 C-SEC-EDIT-TARGETING: document-bound context/apply matrix — the fixture context responder hands tab-{id} plus a fresh per-request document-gen-N generation and records the last handed pair on the fixture, the apply request literals gain explicit binding arguments (apply_bound beside the unbound apply_fixture), four new pins (context_response_carries_document_binding, apply_requires_binding_fields 400, apply_requires_matching_context_binding 409/200 with the binding inside the op payload, apply_stale_instance_binding_refused), and the C-SEC-STREAM-SCOPE family reconciled without weakening: apply_requires_text_edit_capability and fresh_pairing_restores_access move every apply-200 expectation onto dual-capability (context.read + text.edit) fixtures that read context first, single-capability text.edit applies pin the fence statuses (400/409, zero events), and every auth/capability 401 keeps its status.
 //   - 2026-11-20 C-SEC-STREAM-SCOPE: capability-scoped incoming routes — flipped the over-grant pin to per-route denial, added the context/apply permission matrix, the pairing-grant-description unit pin and capability-scoped fresh-pairing restoral.
@@ -1082,27 +1097,96 @@ async fn text_insert_refuses_missing_capability() {
     assert_eq!(f.credential.reads.load(std::sync::atomic::Ordering::Relaxed), 0);
 }
 
+// C-EXT-EDIT-PROOF: the authorized /ext/text-insert request is refused at
+// the source — the deprecated unbound route answers 501 NOT_IMPLEMENTED
+// with a stable machine reason naming the live /ext/context read plus
+// /ext/apply alternative and emits no mt::text::op event the editor
+// targeting gate would drop anyway.
+
 #[tokio::test]
-async fn text_insert_authorized_emits_with_requester_identity() {
+async fn text_insert_authorized_request_refused_not_implemented() {
     let f = incoming_fixture(true, "text.insert");
-    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::OK);
-    let events = f.events.lock().unwrap();
-    assert_eq!(events.len(), 1);
-    assert_eq!(events[0]["extension_id"], f.id);
-    assert_eq!(events[0]["payload"]["text"], "fixture text");
+    let response = super::live_server::handle_text_insert(State(f.state.clone()), bearer_headers(Some(&f.token)),
+        Json(serde_json::from_value(serde_json::json!({"text": "fixture text", "source": "fixture"})).unwrap()))
+        .await.into_response();
+    assert_eq!(response.status(), StatusCode::NOT_IMPLEMENTED);
+    let bytes = axum::body::to_bytes(response.into_body(), 8192).await.unwrap();
+    let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    let error = body["error"].as_str().unwrap().to_string();
+    assert!(error.contains("text-insert route deprecated"), "error must name the deprecated route: {error}");
+    assert!(error.contains("/ext/context"), "error must name the live read alternative: {error}");
+    assert!(error.contains("/ext/apply"), "error must name the live apply alternative: {error}");
+    assert!(f.events.lock().unwrap().is_empty(), "zero mt::text::op events on the route refusal");
     assert_eq!(f.credential.reads.load(std::sync::atomic::Ordering::Relaxed), 1);
 }
 
 #[tokio::test]
-async fn text_insert_authorized_old_shape_body_emits() {
+async fn text_insert_authorized_old_shape_body_still_parses() {
     let f = incoming_fixture(true, "text.insert");
-    // The actual server schema deserializes the v1 body without an id field.
+    // The actual server schema still deserializes the v1 body without an id
+    // field — the request shape stays frozen; only the honest refusal moves.
     let req: super::live_server::TextInsertRequest = serde_json::from_str(r#"{"text":"old body","source":"paired fixture"}"#).unwrap();
-    let status = super::live_server::handle_text_insert(State(f.state.clone()), bearer_headers(Some(&f.token)), Json(req))
-        .await.into_response().status();
-    assert_eq!(status, StatusCode::OK);
-    assert_eq!(f.events.lock().unwrap()[0]["payload"]["text"], "old body");
+    let response = super::live_server::handle_text_insert(State(f.state.clone()), bearer_headers(Some(&f.token)), Json(req))
+        .await.into_response();
+    assert_eq!(response.status(), StatusCode::NOT_IMPLEMENTED);
+    let bytes = axum::body::to_bytes(response.into_body(), 8192).await.unwrap();
+    let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert!(body["error"].as_str().unwrap().contains("text-insert route deprecated"));
+    assert!(f.events.lock().unwrap().is_empty());
+    assert_eq!(f.credential.reads.load(std::sync::atomic::Ordering::Relaxed), 1);
 }
+
+// START_BLOCK_EXT_TEXT_OPS_COMMAND_TESTS
+// C-EXT-EDIT-PROOF: the mt_ext_text_insert / mt_ext_text_transform commands
+// refuse on a registered, enabled extension — their unbound events are
+// dropped by the editor targeting gate, so the dead command routes answer
+// the stable string-code refusal instead of emitting; the registry
+// get_manifest refusals (disabled / unregistered) keep their existing
+// semantics unchanged.
+
+#[tokio::test]
+async fn mt_ext_text_insert_refuses_when_enabled() {
+    let f = incoming_fixture(true, "text.insert");
+    let error = super::mt_ext_text_insert(
+        f.app.handle().clone(), f.id.clone(), "fixture text".to_string(), None, f.app.state::<ExtRegistry>(),
+    ).await.unwrap_err();
+    assert_eq!(error, "ext_text_op_refused");
+    assert!(f.events.lock().unwrap().is_empty(), "zero mt::text::op events on the command refusal");
+    assert_eq!(f.credential.reads.load(std::sync::atomic::Ordering::Relaxed), 0);
+}
+
+#[tokio::test]
+async fn mt_ext_text_transform_refuses_when_enabled() {
+    let f = incoming_fixture(true, "text.insert");
+    let error = super::mt_ext_text_transform(
+        f.app.handle().clone(), f.id.clone(), "fixture text".to_string(), f.app.state::<ExtRegistry>(),
+    ).await.unwrap_err();
+    assert_eq!(error, "ext_text_op_refused");
+    assert!(f.events.lock().unwrap().is_empty(), "zero mt::text::op events on the command refusal");
+    assert_eq!(f.credential.reads.load(std::sync::atomic::Ordering::Relaxed), 0);
+}
+
+#[tokio::test]
+async fn mt_ext_text_insert_refuses_when_disabled() {
+    let f = incoming_fixture(false, "text.insert");
+    let error = super::mt_ext_text_insert(
+        f.app.handle().clone(), f.id.clone(), "fixture text".to_string(), None, f.app.state::<ExtRegistry>(),
+    ).await.unwrap_err();
+    assert!(error.contains("disabled"), "{error}");
+    assert!(f.events.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn mt_ext_text_transform_refuses_when_unregistered() {
+    let f = incoming_fixture(true, "text.insert");
+    let missing = format!("{}-never-registered", f.id);
+    let error = super::mt_ext_text_transform(
+        f.app.handle().clone(), missing, "fixture text".to_string(), f.app.state::<ExtRegistry>(),
+    ).await.unwrap_err();
+    assert!(error.contains("not found"), "{error}");
+    assert!(f.events.lock().unwrap().is_empty());
+}
+// END_BLOCK_EXT_TEXT_OPS_COMMAND_TESTS
 
 #[tokio::test]
 async fn context_requires_context_read_capability() {
