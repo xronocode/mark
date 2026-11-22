@@ -302,10 +302,12 @@ describe('util/index', () => {
 
   describe('platform constants', () => {
     it('should export platform booleans', () => {
-      // window.electron.process.platform is set to 'darwin' in setup
-      expect(isOsx).toBe(true)
-      expect(isWindows).toBe(false)
-      expect(isLinux).toBe(false)
+      // Vite-8 order-independence: the flags are build-time constants from
+      // the process.platform define (the shim installs the same value), so
+      // they follow the HOST that runs this suite, not a bridge mutation.
+      expect(isOsx).toBe(process.platform === 'darwin')
+      expect(isWindows).toBe(process.platform === 'win32')
+      expect(isLinux).toBe(process.platform === 'linux')
     })
   })
 })

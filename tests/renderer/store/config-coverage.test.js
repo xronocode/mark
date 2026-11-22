@@ -21,8 +21,11 @@ describe('config.js', () => {
     config = await import('@/config')
   })
 
-  it('PATH_SEPARATOR is window.path.sep', () => {
-    expect(config.PATH_SEPARATOR).toBe(window.path.sep)
+  it('PATH_SEPARATOR matches the build host platform separator', () => {
+    // Under the vite-8 build-time define PATH_SEPARATOR folds to the BUILD
+    // host separator: '/' everywhere except a win32 CI runner, where the
+    // posix window.path shim deliberately stays '/' (tests join POSIX paths).
+    expect(config.PATH_SEPARATOR).toBe(process.platform === 'win32' ? '\\' : '/')
   })
 
   it('exports THEME_STYLE_ID and COMMON_STYLE_ID as strings', () => {

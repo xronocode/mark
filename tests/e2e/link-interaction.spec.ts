@@ -20,11 +20,30 @@ const editor=`document.querySelector('#app').__vue_app__.config.globalProperties
 async function state(page:Page){return page.evaluate(code=>{const s=eval(code);return{path:s.currentFile.pathname,md:s.currentFile.markdown,saved:s.currentFile.isSaved,preview:s.currentFile.previewMode,tabs:s.tabs.map((t:any)=>({path:t.pathname,md:t.markdown,saved:t.isSaved,token:t.documentToken,historyLength:t.history?.stack?.length,index:t.history?.index})),requests:(window as any).__linkRequests}},editor)}
 async function initialDouble(page:Page){const link=page.locator('#ag-editor-id a.ag-inline-rule').first();await expect(link).toHaveAttribute('data-link-rendered','true');const r=await link.evaluate(a=>{const r=a.getClientRects()[0];return{x:r.x+1,y:r.y+r.height/2}});await page.mouse.dblclick(r.x,r.y,{delay:80})}
 async function wordDouble(page:Page,locator:Locator){
-  const point=await locator.evaluate(element=>{
-    const walker=document.createTreeWalker(element,NodeFilter.SHOW_TEXT);let node:Node|null
-    while((node=walker.nextNode())){if(!node.textContent?.trim())continue;const range=document.createRange();range.setStart(node,Math.min(1,node.textContent.length));range.setEnd(node,Math.min(3,node.textContent.length));const r=range.getBoundingClientRect();if(r.width&&r.height)return{x:r.x+r.width/2,y:r.y+r.height/2}}
-    throw new Error('No visible word in target')
-  });await page.mouse.dblclick(point.x,point.y,{delay:80})
+  // The point computation must wait for a stable layout the same way a real
+  // Playwright click does: right after a mount or a CodeMirror refresh cycle
+  // (ResizeObserver → cm.refresh) text rects can be transiently empty.
+  let point=null
+  for(let i=0;i<25&&!point;i++){
+    point=await locator.evaluate(element=>{
+      const walker=document.createTreeWalker(element,NodeFilter.SHOW_TEXT);let node:Node|null
+      while((node=walker.nextNode())){if(!node.textContent?.trim())continue;const range=document.createRange();range.setStart(node,Math.min(1,node.textContent.length));range.setEnd(node,Math.min(3,node.textContent.length));const r=range.getBoundingClientRect();if(r.width&&r.height)return{x:r.x+r.width/2,y:r.y+r.height/2}}
+      return null
+    }).catch(()=>null)
+    if(!point)await page.waitForTimeout(100)
+  }
+  if(!point){
+    const diag=await locator.evaluate(el=>{
+      const box=el.getBoundingClientRect()
+      const cs=getComputedStyle(el)
+      const nodes=[]
+      const walker=document.createTreeWalker(el,NodeFilter.SHOW_TEXT);let node:Node|null
+      while((node=walker.nextNode())){const r=document.createRange();r.setStart(node,0);r.setEnd(node,node.textContent.length);const b=r.getBoundingClientRect();nodes.push({len:node.textContent.length,code:node.textContent.charCodeAt(0),w:Math.round(b.width),h:Math.round(b.height)})}
+      return{box:{w:Math.round(box.width),h:Math.round(box.height)},display:cs.display,visibility:cs.visibility,nodes}
+    }).catch(()=>'diag-unavailable')
+    throw new Error(`No visible word in target — ${JSON.stringify(diag)}`)
+  }
+  await page.mouse.dblclick(point.x,point.y,{delay:80})
 }
 test.beforeEach(async({page})=>{
   await installTauriShim(page)
@@ -96,7 +115,12 @@ test('source and adjacent text double-clicks select normally, while a failed tar
   const before=await state(page);await wordDouble(page,page.locator('#ag-editor-id span.ag-paragraph',{hasText:'Ordinary tail words.'}))
   await expect.poll(()=>page.evaluate(()=>window.getSelection()?.toString().trim())).not.toBe('');expect((await state(page)).requests).toEqual([])
   await page.evaluate(()=>{(window as any).__emitFakeEvent('mt::menu-invoked','view.source-code-mode')})
-  const line=page.locator('.CodeMirror-line',{hasText:'Ordinary tail words.'});await wordDouble(page,line);await expect.poll(()=>page.evaluate(()=>window.getSelection()?.toString().trim())).not.toBe('');expect((await state(page)).requests).toEqual([])
+  const line=page.locator('.CodeMirror-line',{hasText:'Ordinary tail words.'});
+  // Readiness: the source pane mounts asynchronously after the menu event;
+  // the line can be attached before CodeMirror lays it out (vite-8 chunk
+  // timing on slow CI runners), and wordDouble needs a non-empty text rect.
+  await expect(line).toBeVisible();
+  await wordDouble(page,line);await expect.poll(()=>page.evaluate(()=>window.getSelection()?.toString().trim())).not.toBe('');expect((await state(page)).requests).toEqual([])
   await page.evaluate(()=>{(window as any).__emitFakeEvent('mt::menu-invoked','view.source-code-mode')})
   // Move the caret away through ordinary input, then start a fresh link gesture.
   await page.locator('#ag-editor-id h1').click()

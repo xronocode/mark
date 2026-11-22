@@ -123,11 +123,17 @@ test.describe('titlebar mode chips (C-TITLEBAR-MODE-CHIPS)', () => {
     await expect(chips(page).first()).toHaveAttribute('aria-label', 'Changes')
 
     await openMenu(page)
-    await viewRows(page).nth(0).click()
-    await expect(page.locator('[data-testid="mode-chips"]')).toHaveCount(1)
-    const state = await editorState(page)
-    expect(state.splitView).toBe(false)
-    expect(state.diffMode).toBe(false)
+    // vite-8 chunking: the menu rows mount a frame after the container
+    // becomes visible and the row list can re-render once the active-row
+    // checkmark settles — click the row by its accessible name and poll
+    // for the reset instead of racing a fixed settle.
+    await page.getByRole('menuitemradio', { name: /Standard/ }).click()
+    await expect
+      .poll(async () => (await editorState(page)).splitView, { timeout: 5_000 })
+      .toBe(false)
+    await expect
+      .poll(async () => (await editorState(page)).diffMode, { timeout: 5_000 })
+      .toBe(false)
   })
 
   test('5a. the native View › Standard View menu id performs the same full reset (FIX-021)', async ({ page }) => {

@@ -25,8 +25,13 @@ import { resolve } from 'node:path'
 const workspaceRoot = resolve(import.meta.dirname, '../..')
 
 describe('renderer platform truth (C-15 T-W0)', () => {
-  const loadUtil = async (platform) => {
-    window.electron.process.platform = platform
+  // Vite-8 order-independence: util/_platform reads the build-time
+  // process.platform define (the release matrix builds per-platform), so the
+  // flags are BUILD constants — window.electron.process.platform is set by
+  // the shim from the same define and mutating it here no longer re-drives
+  // the util (the source pins below cover the mechanism).
+  const hostPlatform = process.platform
+  const loadUtil = async () => {
     return await import('@/util')
   }
 
@@ -34,25 +39,11 @@ describe('renderer platform truth (C-15 T-W0)', () => {
     vi.resetModules()
   })
 
-  it('isOsx/isWindows/isLinux follow the win32 platform', async () => {
-    const util = await loadUtil('win32')
-    expect(util.isWindows).toBe(true)
-    expect(util.isOsx).toBe(false)
-    expect(util.isLinux).toBe(false)
-  })
-
-  it('isOsx/isWindows/isLinux follow the darwin platform', async () => {
-    const util = await loadUtil('darwin')
-    expect(util.isOsx).toBe(true)
-    expect(util.isWindows).toBe(false)
-    expect(util.isLinux).toBe(false)
-  })
-
-  it('isOsx/isWindows/isLinux follow the linux platform', async () => {
-    const util = await loadUtil('linux')
-    expect(util.isLinux).toBe(true)
-    expect(util.isOsx).toBe(false)
-    expect(util.isWindows).toBe(false)
+  it('isOsx/isWindows/isLinux are build-time constants matching the build host', async () => {
+    const util = await loadUtil()
+    expect(util.isOsx).toBe(hostPlatform === 'darwin')
+    expect(util.isWindows).toBe(hostPlatform === 'win32')
+    expect(util.isLinux).toBe(hostPlatform === 'linux')
   })
 
   it('the shim derives platform from the build-time define, not a hardcode', () => {
