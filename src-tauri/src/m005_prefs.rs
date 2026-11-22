@@ -10,6 +10,10 @@
 //            corrupt the existing file. mt_prefs_set_many applies a whole
 //            key/value batch (the renderer session profile) as one
 //            transaction: one mutex acquisition, one save, one broadcast.
+//            C-SESSION-DURABILITY: mt_prefs_get_many is the read-batch
+//            mirror — one mutex acquisition, absent keys as null,
+//            strictly read-only (no save, no generation change, no
+//            broadcast; a read never fans out).
 //            Corrupt file → quarantine to a preferences.json.corrupt
 //            sibling (BLOCK_PREFS_QUARANTINED / BLOCK_PREFS_QUARANTINE_FAILED)
 //            then empty defaults + stable MT_PREFS_CORRUPT marker.
@@ -45,6 +49,15 @@
 //     empty-defaults fallback (BLOCK_PREFS_QUARANTINED on success,
 //     BLOCK_PREFS_QUARANTINE_FAILED otherwise), preserving the evidence
 //     bytes instead of letting the next save silently overwrite them.
+//   - 2026-11-23 C-SESSION-DURABILITY T-002: add the read batch —
+//     PrefsState::get_many (one mutex acquisition, every absent key as
+//     Value::Null, strictly read-only: no insert, no save, no generation
+//     change, no broadcast) behind the new mt_prefs_get_many command
+//     with the [Prefs][get_many][BLOCK_INVOKED] marker, registered in
+//     main.rs beside mt_prefs_set_many; the read/write asymmetry is
+//     deliberate (a read never fans out). Pinned by
+//     get_many_returns_requested_keys_without_persisting (raw-bytes
+//     byte-identity + no .tmp sibling).
 
 use crate::m013b::SecurityCtx;
 use crate::mt_paths;

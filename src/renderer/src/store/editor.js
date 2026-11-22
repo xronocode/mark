@@ -2673,6 +2673,15 @@ export const useEditorStore = defineStore('editor', {
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 C-SESSION-DURABILITY: the restore read hygiene — the
+//     live RESTORE_SESSION and the BOOT_SESSION cold-start capture read
+//     the four-key profile as ONE batched ipcPrefs.getMany request
+//     (strictly read-only backend batch), all folder/file existence
+//     checks run as ONE concurrent stat pass BEFORE the first open, and
+//     the per-tab format lookup is an O(1) Map.get keyed by pathname
+//     (behavior-preserving by the captureSessionFormats pathname dedup).
+//     The frozen-payload restore, the write path, the bounded close and
+//     GET_SESSION_PATHS are unchanged.
 //   - 2026-11-21 C-DOCS-SYNC: C-EXTERNAL-RELOAD-OPERATION link repointed to .grace/changes/archive/ (the change archived); no behavior change.
 //   EXPORT: 2026-11-20 C-EXTERNAL-RELOAD-OPERATION: one util/externalReload owner for reload admission, settle/read and the replacement commit; APPLY_FILE_CHANGE and loadChange stay compatible thin adapters.
 //   CURRENT: 2026-11-12 C-EXPORT-SETTINGS-SECTION: snapshot current appearance/page defaults before export and preserve them across Word Save; print retains native-panel geometry.

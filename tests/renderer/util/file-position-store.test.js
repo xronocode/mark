@@ -1,5 +1,5 @@
 // FILE: tests/renderer/util/file-position-store.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin util/filePositionStore.js — the C-FILE-POSITION-MEMORY per-file reading position store: pure transforms (sanitize/normalize/cap/move/clamp), the numbers-only payload schema (corner C-8) and the IO flows with a fake prefs IO (prune/cap write-back, save, rename move — corners C-5/C-6).
 //   SCOPE: The module's exports; every rule is pure-object or fake-IO pinned, mirroring table-layout-store.test.js.
@@ -17,6 +17,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 v1.1.0 C-SESSION-DURABILITY: saveFilePosition_caps_the_
+//   store_to_MAX_POSITION_FILES — a save into a store seeded beyond the
+//   cap persists at most MAX_POSITION_FILES entries (the just-saved
+//   entry survives as newest, the oldest evicted, an at-cap replace is
+//   a no-cap no-op) while every existing read-path cap/prune/queue and
+//   tri-state pin stays green unchanged.
 //   LAST_CHANGE: v1.1.0 - 2026-10-26 C-FILE-POSITION-MEMORY review wave:
 //                pins the serialized mutation queue (two interleaved saves
 //                both survive), the tri-state stat verdict (only confirmed

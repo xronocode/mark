@@ -1,5 +1,5 @@
 // FILE: tests/renderer/store/session-restore.test.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-69 session restore of store/editor.js — the snapshot (tab paths in order, active tab, project roots), the boot gate (restore only on a cold launch without files and with restoreSessionOnLaunch on; the debounced autosave starts only after it), the restore order (folders → files through mt::open-file → active tab) and the skip of missing paths.
 //   SCOPE: _sessionSnapshot, _saveSessionState, START_SESSION_AUTOSAVE, BOOT_SESSION, RESTORE_SESSION, the APPLY_BOOTSTRAP_EDITOR hook.
@@ -23,6 +23,16 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 v1.2.0 C-SESSION-DURABILITY: the in-memory ipcPrefs mock
+//   gains getMany (same PREFS map, same absent-to-null semantics) and
+//   three pins prove the restore read hygiene — exactly ONE batched
+//   getMany carrying the four lastSession* keys with NO per-key
+//   ipcPrefs.get (restore_reads_the_session_profile_in_one_batched_get_many),
+//   every folder/file stat issued in ONE pass BEFORE the first mt::open-file
+//   (restore_checks_all_saved_paths_in_one_stat_pass_before_the_first_open,
+//   per-call invocationCallOrder) and the frozen-payload restore reading
+//   no preferences (a_frozen_payload_restore_reads_no_preferences,
+//   green-by-design preservation pin).
 //   LAST_CHANGE: v1.1.0 - 2026-11-21 C-SESSION-WRITE-ATOMICITY: the
 //   in-memory ipcPrefs mock gains setMany (same PREFS map semantics) and
 //   new pins prove _saveSessionState issues exactly ONE batched write

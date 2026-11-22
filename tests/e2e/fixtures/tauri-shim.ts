@@ -21,6 +21,12 @@
  * NOTE: This is renderer-only. No real Tauri IPC, no cross-window flow.
  * Multi-window features (theme broadcast to settings window etc.) WILL
  * NOT exercise — that's Phase-7 CI on a Linux runner with `tauri dev`.
+ *
+ * 2026-11-23 C-SESSION-DURABILITY: a default mt_prefs_get_many fanout
+ * handler rides beside the mt_prefs_set_many one — a get_many without
+ * its own override fans each requested key through the resolved
+ * mt_prefs_get handler, so specs seeding the lastSession* keys via
+ * mt_prefs_get keep working unchanged (unanswered keys map to null).
  */
 
 import type { Page } from '@playwright/test'
