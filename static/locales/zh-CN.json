@@ -1754,6 +1754,12 @@
     "prefsSkippedTitle": "回退完成",
     "prefsSkippedBody": "上一个版本已恢复，但已保存的设置未能恢复——部分设置可能已重置为默认值。"
   },
+  "updater": {
+    "failureTitle": "更新失败",
+    "failureBody": "无法完成更新 — Mark 保持不变，未残留任何不完整的安装。详情请查看日志。",
+    "inProgressTitle": "更新已在进行中",
+    "inProgressBody": "已有更新正在进行 — 请等待其完成后再开始新的更新。"
+  },
   "quickSettings": {
     "title": "快速设置",
     "openSettings": "打开设置…",

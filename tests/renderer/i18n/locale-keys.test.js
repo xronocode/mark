@@ -1,5 +1,5 @@
 // FILE: tests/renderer/i18n/locale-keys.test.js
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-TITLEBAR-MODE-CHIPS T-003 pin — the titleBar.modeChips
 //            namespace carries exactly fifteen families in all ten
@@ -23,11 +23,17 @@
 //   LOCALES - the ten shipped locale codes.
 //   FAMILIES - the fifteen modeChips keys R-4 inventories.
 //   FEEDBACK_KEYS - rollback and extension-disable feedback dotted key paths.
+//   UPDATER_KEYS - updater failure/in-progress dotted key paths.
 //   readTable - parse one locale file.
 //   readKey - resolve one dotted key path inside a locale table.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 v1.4.0 C-UPDATER-NET-BOUNDS T-003: the updater
+//     install-feedback pin — updater.failureTitle/Body and
+//     updater.inProgressTitle/Body present and non-empty in all ten
+//     locale tables (the shared install flow's localized failure and
+//     in-progress-refusal voice).
 //   - 2026-11-09 v1.3.0 C-SEC-AUDIT-FIXES T-004: require localized extension-disable failure feedback.
 //   LAST_CHANGE: v1.2.0 - 2026-11-03 C-RENDER-REVIEW-FIXES: the
 //   rollback-feedback pin — rollback.restoreFailedTitle/Body,
@@ -61,6 +67,10 @@ const FEEDBACK_KEYS = [
   'notifications.actionFailedTitle', 'notifications.actionFailedBody',
   'notifications.source.rollback',
   'extensions.disableFailed'
+]
+const UPDATER_KEYS = [
+  'updater.failureTitle', 'updater.failureBody',
+  'updater.inProgressTitle', 'updater.inProgressBody'
 ]
 
 const readTable = (locale) =>
@@ -154,6 +164,26 @@ describe('rollback and extension feedback locale keys', () => {
       wrapper.unmount()
       vi.doUnmock('@tauri-apps/api/core')
       vi.doUnmock('vue-i18n')
+    }
+  })
+})
+
+describe('updater install-feedback locale keys (C-UPDATER-NET-BOUNDS T-003)', () => {
+  it('carries the updater feedback keys in every locale', () => {
+    for (const locale of LOCALES) {
+      const table = readTable(locale)
+      for (const key of UPDATER_KEYS) {
+        expect(readKey(table, key), `${locale}.${key}`).toBeTypeOf('string')
+      }
+    }
+  })
+
+  it('writes non-empty native copy everywhere', () => {
+    for (const locale of LOCALES) {
+      const table = readTable(locale)
+      for (const key of UPDATER_KEYS) {
+        expect(readKey(table, key).trim().length, `${locale}.${key}`).toBeGreaterThan(0)
+      }
     }
   })
 })

@@ -1754,6 +1754,12 @@
     "prefsSkippedTitle": "ロールバックが完了しました",
     "prefsSkippedBody": "以前のバージョンは復元されましたが、保存されていた設定を復元できませんでした。一部の設定はデフォルトに戻っている場合があります。"
   },
+  "updater": {
+    "failureTitle": "アップデートに失敗しました",
+    "failureBody": "アップデートを完了できませんでした — Mark は変更されず、不完全なインストールは残っていません。詳細はログを確認してください。",
+    "inProgressTitle": "アップデートは既に実行中です",
+    "inProgressBody": "アップデートは既に実行中です — 終わってから次を開始してください。"
+  },
   "quickSettings": {
     "title": "クイック設定",
     "openSettings": "設定を開く…",

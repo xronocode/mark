@@ -1778,6 +1778,12 @@
     "prefsSkippedTitle": "Rollback finished",
     "prefsSkippedBody": "The previous version was restored, but the saved settings could not be brought back — some settings may be back at their defaults."
   },
+  "updater": {
+    "failureTitle": "Update failed",
+    "failureBody": "The update could not be completed — Mark is unchanged and no partial install remains. Details are in the log.",
+    "inProgressTitle": "Update already in progress",
+    "inProgressBody": "An update is already running — wait for it to finish before starting another one."
+  },
   "quickSettings": {
     "title": "Quick settings",
     "openSettings": "Open Settings…",

@@ -1762,6 +1762,12 @@
     "prefsSkippedTitle": "Reversión completada",
     "prefsSkippedBody": "La versión anterior se restauró, pero no se pudieron recuperar los ajustes guardados: es posible que algunos ajustes hayan vuelto a los valores predeterminados."
   },
+  "updater": {
+    "failureTitle": "La actualización falló",
+    "failureBody": "No se pudo completar la actualización — Mark permanece igual y no queda ninguna instalación parcial. Los detalles están en el registro.",
+    "inProgressTitle": "Ya hay una actualización en curso",
+    "inProgressBody": "Ya se está ejecutando una actualización — espera a que termine antes de iniciar otra."
+  },
   "quickSettings": {
     "title": "Ajustes rápidos",
     "openSettings": "Abrir ajustes…",

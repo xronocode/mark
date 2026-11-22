@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/commands/index.js
-// VERSION: 2.8.0
+// VERSION: 2.9.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Register renderer commands and route each command to its typed store, event-bus, or Tauri integration.
 //   SCOPE: Static command definitions, platform-gated commands, and user-visible command outcomes; backend implementation is out of scope.
@@ -13,7 +13,7 @@
 //   RootCommand - Command-palette root and subcommand coordinator.
 //   file.open-from-clipboard - File › Open from Clipboard (⌥⌘V): resolver opens a clipboard folder as the workspace (replace) or a Markdown file in a tab (C-52).
 //   file.check-update - Checks the signed feed and applies an available update entirely in app.
-//   installSignedUpdate - Shared signed install flow (C-66): rollback-snapshot prepare → plugin check → downloadAndInstall → relaunch, with toasts and the «Update failed» catch; used by file.check-update and the autoUpdates notice (C-UPDATER-ROLLBACK adds the fail-closed prepare step).
+//   installSignedUpdate - Shared signed install flow (C-66): rollback-snapshot prepare → plugin check → downloadAndInstall → relaunch, with fresh-recheck toasts, localized failure/in-progress notices and the module-scope single-flight guard; used by file.check-update and the autoUpdates notice (C-UPDATER-ROLLBACK adds the fail-closed prepare step; C-UPDATER-NET-BOUNDS adds the deadlines, the guard and the fresh-data toasts).
 //   help.rollback - Opens the rollback confirmation card when a valid snapshot exists (C-UPDATER-ROLLBACK; desktop builds only).
 //   edit.copy-as-html - Copies selection (or whole document) as rich text/html for email paste (C-3).
 //   edit.copy-as-plain-text - Copies selection (or whole document) as markup-free plain text (C-12).
@@ -43,6 +43,25 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 v2.9.0 C-UPDATER-NET-BOUNDS T-002: the shared install
+//     flow (START_BLOCK_INSTALL_SIGNED_UPDATE) carries named deadlines
+//     through the plugin's own timeout seams — check({
+//     timeout: UPDATER_CHECK_TIMEOUT_MS }) with 15000 ms (metadata-only
+//     feed, per-request bound, rollback connect-deadline mirror) and
+//     downloadAndInstall(undefined, { timeout:
+//     UPDATER_DOWNLOAD_TIMEOUT_MS }) with 300000 ms (whole-request
+//     bound; measured v2.8.2 artifacts 14.4 MB / 9.5 MB at ≈ 1 Mbit/s ≈
+//     120 s — the ROLLBACK_FETCH_DEADLINE_SECS parity); a module-scope
+//     single-flight guard (installInFlight) makes a second overlapping
+//     invocation a localized refusal that invokes nothing and re-arms
+//     after the live attempt settles; the progress toast names
+//     update.version from the flow's own fresh re-check and
+//     the stale snapshot's version field reaches no user-visible string; the terminal
+//     failure surfaces exactly one localized notice
+//     (updater.failureTitle/Body) with the raw error demoted to the
+//     console marker (BLOCK_INSTALL_FAILED). F-008's renderer half
+//     (single-flight) discharged; the m068 prepare_inner half lands in
+//     the same change's Rust tasks.
 //   - 2026-11-12 C-EXPORT-SETTINGS-SECTION: PDF/HTML commands dispatch current remembered options directly to Save.
 //   - 2026-11-09 C-STABILIZE-SPLIT-DUAL-EDIT: Preserve the remembered focused split pane through a synchronous owner request; ordinary command timers stay unchanged.
 //   - 2026-11-02 C-PAGE-WIDTH-TABLES T-010: the View › Page Width
@@ -1306,49 +1325,99 @@ const commands = [
 // C-66: the single signed install flow shared by the manual
 // file.check-update command and the automatic-check notice
 // (store/autoUpdates INSTALL_UPDATE). `status` is a fresh
-// mt_updater_check answer; the plugin re-checks before installing, so a
-// stale status can only mislabel a toast, never install the wrong build.
-// Errors surface as the same «Update failed» warning the manual path
-// always showed — both callers get identical behaviour by construction.
+// mt_updater_check answer; the flow still re-checks before installing
+// and every user-visible version string is derived from that fresh
+// re-check (C-UPDATER-NET-BOUNDS R-6) — the queued snapshot's
+// latestVersion never reaches a toast.
+// C-UPDATER-NET-BOUNDS R-1: the check deadline travels through the
+// plugin's own CheckOptions seam (a per-request bound over a
+// metadata-only latest.json feed — well under 10 KB). Two endpoints
+// make the honest worst sweep ≈ 30 s, which the 24 h-throttled launch
+// check tolerates and the manual command turns into bounded feedback;
+// the value mirrors the zone's rollback connect deadline
+// (ROLLBACK_CONNECT_TIMEOUT_SECS = 10, m068_rollback.rs).
+const UPDATER_CHECK_TIMEOUT_MS = 15_000
+// C-UPDATER-NET-BOUNDS R-2: the download deadline is the plugin's
+// whole-request bound (connect + response metadata + body). Measured against the
+// shipped v2.8.2 artifacts (2026-11-23, GitHub release assets):
+// Mark_2.8.2_aarch64.app.tar.gz = 15,050,816 B (14.4 MB),
+// Mark_2.8.2_x64-setup.exe = 9,940,828 B (9.5 MB) — at ≈ 1 Mbit/s the
+// worst artifact needs ≈ 120 s, so 300 s covers slow-but-progressing
+// links without false-failing (parity with the rollback fetch deadline
+// ROLLBACK_FETCH_DEADLINE_SECS = 300, m068_rollback.rs, plus headroom
+// for artifact growth).
+const UPDATER_DOWNLOAD_TIMEOUT_MS = 300_000
+// C-UPDATER-NET-BOUNDS R-3: module-scope single-flight guard. Both
+// entries (file.check-update and the notice's INSTALL_UPDATE) converge
+// on installSignedUpdate in this JS context, so one live promise
+// serializes them: a second overlapping invocation refuses with the
+// localized in-progress notice, invokes nothing, and the guard clears
+// when the live attempt settles so a retry works as before. The
+// Settings window is a separate webview context with its own module
+// instance — cross-context overlap stays the recorded escalation path
+// (a Rust-level choke point, only if it ever matters).
+let installInFlight = null
 export const installSignedUpdate = async (status) => {
   const notice = (await import('../services/notification')).default
-  try {
-    // C-UPDATER-ROLLBACK: fail-closed prepare — snapshot the running
-    // version BEFORE anything downloads. A prepare failure cancels the
-    // update (the running version is untouched); the staged set is
-    // promoted to the live set only after the update is applied (boot
-    // reconciliation in main.rs), so a failed download never destroys
-    // the previous escape hatch.
-    const { invoke } = await import('@tauri-apps/api/core')
+  if (installInFlight) {
+    console.warn('[commands][install][BLOCK_INSTALL_IN_PROGRESS]')
+    notice.notify({
+      title: t('updater.inProgressTitle'),
+      message: t('updater.inProgressBody'),
+      type: 'warning'
+    })
+    return
+  }
+  installInFlight = (async () => {
     try {
-      await invoke('mt_rollback_prepare')
+      // C-UPDATER-ROLLBACK: fail-closed prepare — snapshot the running
+      // version BEFORE anything downloads. A prepare failure cancels the
+      // update (the running version is untouched); the staged set is
+      // promoted to the live set only after the update is applied (boot
+      // reconciliation in main.rs), so a failed download never destroys
+      // the previous escape hatch.
+      const { invoke } = await import('@tauri-apps/api/core')
+      try {
+        await invoke('mt_rollback_prepare')
+      } catch (e) {
+        notice.notify({
+          title: 'Update cancelled',
+          message: `Could not prepare a rollback snapshot: ${String(e)}`,
+          type: 'warning'
+        })
+        return
+      }
+      const { check } = await import('@tauri-apps/plugin-updater')
+      const update = await check({ timeout: UPDATER_CHECK_TIMEOUT_MS })
+      if (update) {
+        notice.notify({
+          title: `Updating to Mark ${update.version}…`,
+          type: 'info'
+        })
+        await update.downloadAndInstall(undefined, { timeout: UPDATER_DOWNLOAD_TIMEOUT_MS })
+        const { relaunch } = await import('@tauri-apps/plugin-process')
+        await relaunch()
+      } else {
+        notice.notify({
+          title: `Mark ${status.currentVersion} is up to date`,
+          type: 'info'
+        })
+      }
     } catch (e) {
+      // C-UPDATER-NET-BOUNDS R-4: one localized failure notice; the raw
+      // error stays console-only (the C-RENDER-REVIEW-FIXES voice) — a
+      // deadline exhaustion is a real failure, never «is up to date».
+      console.error('[commands][install][BLOCK_INSTALL_FAILED]', e)
       notice.notify({
-        title: 'Update cancelled',
-        message: `Could not prepare a rollback snapshot: ${String(e)}`,
+        title: t('updater.failureTitle'),
+        message: t('updater.failureBody'),
         type: 'warning'
       })
-      return
+    } finally {
+      installInFlight = null
     }
-    const { check } = await import('@tauri-apps/plugin-updater')
-    const update = await check()
-    if (update) {
-      notice.notify({
-        title: `Updating to Mark ${status.latestVersion}…`,
-        type: 'info'
-      })
-      await update.downloadAndInstall()
-      const { relaunch } = await import('@tauri-apps/plugin-process')
-      await relaunch()
-    } else {
-      notice.notify({
-        title: `Mark ${status.currentVersion} is up to date`,
-        type: 'info'
-      })
-    }
-  } catch (e) {
-    notice.notify({ title: 'Update failed', message: String(e), type: 'warning' })
-  }
+  })()
+  await installInFlight
 }
 // END_BLOCK_INSTALL_SIGNED_UPDATE
 

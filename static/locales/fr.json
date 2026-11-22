@@ -1763,6 +1763,12 @@
     "prefsSkippedTitle": "Retour arrière terminé",
     "prefsSkippedBody": "La version précédente a été restaurée, mais les réglages enregistrés n’ont pas pu être récupérés — certains réglages ont peut-être été rétablis à leurs valeurs par défaut."
   },
+  "updater": {
+    "failureTitle": "Échec de la mise à jour",
+    "failureBody": "La mise à jour n'a pas pu être terminée — Mark est inchangé et aucune installation partielle ne subsiste. Les détails sont dans le journal.",
+    "inProgressTitle": "Une mise à jour est déjà en cours",
+    "inProgressBody": "Une mise à jour est déjà en cours — attends qu'elle se termine avant d'en lancer une autre."
+  },
   "quickSettings": {
     "title": "Réglages rapides",
     "openSettings": "Ouvrir les réglages…",

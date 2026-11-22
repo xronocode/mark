@@ -1,0 +1,251 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-UPDATER-NET-BOUNDS>
+    <Name>Bounded, serialized forward-update path — implementation plan</Name>
+    <ChangeRef>C-UPDATER-NET-BOUNDS</ChangeRef>
+    <Created>2026-11-22</Created>
+    <Spec>C-UPDATER-NET-BOUNDS</Spec>
+
+    <IntentSummary>Implement the approved spec in seven sequential tasks in the green-upd1 worktree, no product behavior beyond R-1..R-8: (T-001→T-002 renderer) the shared install flow installSignedUpdate carries named deadlines through the plugin's own timeout seams — check({ timeout: UPDATER_CHECK_TIMEOUT_MS }) with UPDATER_CHECK_TIMEOUT_MS = 15_000 and update.downloadAndInstall(undefined, { timeout: UPDATER_DOWNLOAD_TIMEOUT_MS }) with UPDATER_DOWNLOAD_TIMEOUT_MS = 300_000 (the zone's rollback fetch-deadline parity, ROLLBACK_FETCH_DEADLINE_SECS = 300, m068_rollback.rs:129); a module-scope single-flight guard (installInFlight) makes a second overlapping invocation an explicit localized refusal that invokes nothing and re-arms after the live attempt settles; the progress toast names update.version from the flow's own fresh re-check and status.latestVersion leaves every user-visible string; the terminal failure surfaces exactly one localized notice (new updater.failureTitle/Body keys) with the raw error demoted to the console marker; (T-003) the four updater.* keys land in all ten locales gated by tests/renderer/i18n/locale-keys.test.js; (T-004→T-005 Rust) mt_updater_check builds through UpdaterBuilder::timeout(std::time::Duration::from_secs(UPDATER_CHECK_TIMEOUT_SECS)) with UPDATER_CHECK_TIMEOUT_SECS = 15 preserving the Err→statusNote squash, and prepare becomes idempotent: a root-explicit prepare_inner_at(root, bundle) seam (the load_valid_live_at convention) reuses an intact staging set of the running version (schema + previous_version == running + platform + digest re-verification — the mirrored inverse of validate's rollback-to-self rejection at :288-290, deliberately NOT routed through load_valid_live, whose validate() would reject exactly that set) and wipes-and-reprepares on any other state, keeping mt_rollback_prepare's spawn_blocking body and the fail-closed ordering untouched — discharging the F-008 cut; (T-006) the mandatory Rust backup-channel stand: the real plugin over a controlled local two-endpoint fixture (hung primary → mirror latest.json → a gateway-imitating /pkg route serving minisign-verified payload bytes) driven through UpdaterBuilder's endpoint/pubkey/timeout/target seams on a tauri::test mock app, zero external network, proving the package bytes arrive via the feed-carried URL under the builder deadline; (T-007) the e2e freshness scenario over plugin:updater|* shim handlers plus the graph/verification deltas (M-016/M-068 SummaryDelta, V-M-016/V-M-068 scenarios+commands) and the VERSION/CHANGE_SUMMARY sync. Plan-time corrections recorded in ReferenceState: the root Cargo.lock exists in this worktree and pins tauri-plugin-updater 2.14.1 (the spec's no-lock assumption is outdated — cargo gates keep --locked --offline per the spec's own ExpectedCommands); V-M-016 lives in .grace/verification/runtime.xml (the spec's write-scope file list gains it); a third installSignedUpdate entry exists in the Settings window's General tab (prefComponents/tabs/general/index.vue:277-288, read-only) — the module-scope guard serializes all entries within each webview context and the cross-window residual rides the spec's own recorded escalation path. No Cargo.toml/Cargo.lock change, no dependency change, no plugin source change, no store/autoUpdates.js or tauri.conf.json change (both read-only), no grace-lint command inside this plan (the orchestrator runs the current/target/final lifecycle gates), and no release or train admission.</IntentSummary>
+
+    <ReferenceState>Authored 2026-11-22 as a draft against the read-only current state of the green-upd1 worktree (branch spec/updater-net-bounds, base 689df8aa); the drafting session has no shell, so the worktree commit hash is not recorded here and the coordinator instruction to self-compute SpecSha256 (shasum -a 256) cannot be executed — per the C-PREFS-TRUTH/C-SEARCH-ERROR-VISIBILITY drafting precedent this draft names the spec by the Spec element, pins no SpecSha256, and the orchestrator pins SpecSha256 = 1316b9eb665c934814e9fbca80cc29619ca8cf433a5b46730fd8e9e4fc78cd86 (shasum -a 256 of the approved spec.xml, verified at admission 2026-11-22); every anchor below was verified directly against this tree. Renderer defects: commands/index.js START_BLOCK_INSTALL_SIGNED_UPDATE :1305-1353 — installSignedUpdate :1313 with the fail-closed mt_rollback_prepare at :1324 (prepare failure → «Update cancelled» warning, return), bare plugin check at :1333-1334 (const { check } = await import('@tauri-apps/plugin-updater'); const update = await check()), snapshot-built toasts at :1337 (`Updating to Mark ${status.latestVersion}…`) and :1345 (`Mark ${status.currentVersion} is up to date`), bare downloadAndInstall at :1340, the English catch at :1349-1351 (title 'Update failed', message String(e)); file.check-update :1355-1380 is the independent second entry (fresh invoke('mt_updater_check') at :1362, statusNote warning at :1364-1365, its own English catch at :1375-1377 which the Honesty bar keeps untouched). m016_updater.rs: mt_updater_check :61 with the bare `match updater.check().await` at :76, the Err→statusNote squash :94-101, the app-store stub :104-114, the existing #[cfg(test)] mod tests :116-129, and no "timeout" anywhere in the file. m068_rollback.rs: prepare_inner :460-537 with the unconditional wipe at :466-472 (staging.exists() → remove_dir_all), the macOS copy at :498-508, the digest readback at :515-528; the mt_rollback_prepare command body :2406-2412 is spawn_blocking(prepare_inner) with no lock; validate's rollback-to-self rejection :288-290; the root-override seam load_valid_live_at :362-367; the zone deadlines :125-133 (connect 10, fetch 300, restore 660) and their pins :2892-2927 (rollback_fetch_deadline_lives_in_the_client_builder source scan, rollback_deadline_and_window_constants_are_pinned); the F-008 cut record :66-67; the existing staging_is_atomic_and_cleans_stale_temp test :2578-2592 explicitly notes prepare_inner is not drivable on temp roots — exactly the seam this change adds; the Fetch trait + CountingFetch :1208-1222. store/autoUpdates.js: the launch check invoke at :279 (never settles while the Rust check hangs), the snapshot handoff at :302 (notice = { visible, version, status }), INSTALL_UPDATE :346-359. Third entry (plan-time discovery, read-only): prefComponents/tabs/general/index.vue :277-288 — the Settings window's Updates row lazy-imports installSignedUpdate with its own updateStatus snapshot; the Settings webview (m_v1_compat.rs :852-878, index.html?type=settings) runs the same renderer bundle as a separate JS context, so a module-scope guard is per-context: within each context all entries serialize; the cross-window overlap residual is the spec's recorded escalation path (Rust-level choke point, not built now; the plugin command stays untouched per the fix-direction constraint). tauri.conf.json plugins.updater :78-88 with the two endpoints :80-83 (gateway feed + the GitHub latest.json mirror at :82) and no timeout key; the static window topology is the single "main" window (:13-28). tests/e2e/fixtures/tauri-shim.ts invoke seam :205-239 (__mockInvoke overrides + __invokeLog order trace); tests/e2e/update-notice.spec.ts installUpdateNoticeShim :61-123 re-reads the feed from localStorage 'mark-e2e-feed' on every mt_updater_check call (the freshness mechanism the new scenario reuses). Locale precedent: static/locales/en.json rollback.* :1771-1780; tests/renderer/i18n/locale-keys.test.js with the ten-code LOCALES list :50 and the dotted-key FEEDBACK_KEYS presence pattern :58+. Existing renderer pins: tests/renderer/commands/updater.test.js — the prepare-before-check invocationCallOrder pin :311-330, the prepare-failure cancel pin :332-348, the English-catch pin to be superseded :279-297 («Update failed» from a rejected check), the manual-path English catch pin :207-217 which stays; tests/renderer/store/autoUpdates.test.js exists. Graph/verification homes: M-016 full entry .grace/graph/runtime.xml :6227-6428 (VerificationRef V-M-016, no SummaryDelta yet); M-068 .grace/graph/features.xml :3060-3146 (multi-SummaryDelta precedent); V-M-016 .grace/verification/runtime.xml :10053-10509 (Commands incl. the app-store cargo check; Scenarios 1-9) — this file is absent from the spec's write-scope list and is added to this plan's ObservedWriteScope (recorded correction); V-M-068 .grace/verification/features.xml :2827-2845. Cargo: the workspace root Cargo.toml and Cargo.lock EXIST in this worktree and the lock pins tauri-plugin-updater 2.14.1 (Cargo.lock :5153-5154) — the spec assumption "No Cargo.lock exists in the tree" is outdated; cargo commands keep --locked --offline per the spec's ExpectedCommands and the zone canon (C-WIN-ROLLBACK-PANIC); dev-dependencies already carry tauri[test], tempfile, tokio[macros,rt,time] (src-tauri/Cargo.toml :85-89) — the stand needs no dependency change, and Cargo.toml stays read-only. Plugin facts verified: cargo cache tauri-plugin-updater-2.14.1 — UpdaterBuilder::timeout :328-333 ("When it is not set, the requests do not time out"), applied as the reqwest per-request timeout at :591-593 (check) and :849-851 (download); the endpoint failover loop :545-658 (per-endpoint continue on any failure including non-deserializable bodies :636-640, success breaks :634); the download uses self.download_url verbatim :863 and verifies the fetched bytes :891; UpdaterExt::updater_builder (lib.rs :58/:79) reads state&lt;UpdaterState&gt; and panics without the registered plugin, so the stand registers the plugin on its mock app; UpdaterBuilder endpoints() :277 (debug/test profile permits http endpoints :274-276), target() :262, pubkey() :350; the plugin's own offline_tests embed precomputed minisign constants (:2117-2123) — the stand's fixture-signature precedent; installed @tauri-apps/plugin-updater dist-js: CheckOptions.timeout index.d.ts :17, DownloadOptions.timeout :36, downloadAndInstall(onEvent?, options?) :187, invoke names plugin:updater|check :189 / plugin:updater|download_and_install :143 / plugin:updater|download :71 / plugin:updater|install :107. This worktree has NO node_modules — every vitest/playwright gate runs only after `npm ci` (Environment). Approval of the spec alone does not approve this plan, execution, apply/archive, commit/push or any release.</ReferenceState>
+
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src/renderer/src/commands/index.js</Value>
+        <Value>src-tauri/src/m016_updater.rs</Value>
+        <Value>src-tauri/src/m068_rollback.rs</Value>
+        <Value>src/renderer/src/store/autoUpdates.js</Value>
+        <Value>src-tauri/tauri.conf.json</Value>
+        <Value>tests/renderer/commands/updater.test.js</Value>
+        <Value>tests/renderer/store/autoUpdates.test.js</Value>
+        <Value>tests/renderer/i18n/locale-keys.test.js</Value>
+        <Value>tests/e2e/update-notice.spec.ts</Value>
+        <Value>tests/e2e/fixtures/tauri-shim.ts</Value>
+        <Value>static/locales/en.json</Value>
+        <Value>Cargo.lock</Value>
+      </MustExist>
+      <MustContain><File>src/renderer/src/commands/index.js</File><Text>// START_BLOCK_INSTALL_SIGNED_UPDATE</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/index.js</File><Text>await invoke('mt_rollback_prepare')</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/index.js</File><Text>const update = await check()</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/index.js</File><Text>await update.downloadAndInstall()</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/index.js</File><Text>title: `Updating to Mark ${status.latestVersion}…`</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/index.js</File><Text>title: 'Update failed', message: String(e)</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/index.js</File><Text>id: 'file.check-update'</Text></MustContain>
+      <MustContain><File>src-tauri/src/m016_updater.rs</File><Text>match updater.check().await {</Text></MustContain>
+      <MustNotContain><File>src-tauri/src/m016_updater.rs</File><Text>timeout</Text></MustNotContain>
+      <MustContain><File>src-tauri/src/m016_updater.rs</File><Text>Updates are managed by the App Store</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>F-008 stays cut:</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>pub fn prepare_inner() -&gt; Result&lt;(), String&gt; {</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>std::fs::remove_dir_all(&amp;staging)</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>pub fn load_valid_live_at(base: &amp;Path, running: &amp;str)</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>if self.previous_version == running {</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>const ROLLBACK_FETCH_DEADLINE_SECS: u64 = 300;</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>fn rollback_fetch_deadline_lives_in_the_client_builder</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/autoUpdates.js</File><Text>status = await invoke('mt_updater_check')</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/autoUpdates.js</File><Text>const status = this.notice.status</Text></MustContain>
+      <MustContain><File>src-tauri/tauri.conf.json</File><Text>https://github.com/xronocode/mark/releases/latest/download/latest.json</Text></MustContain>
+      <MustNotContain><File>src-tauri/tauri.conf.json</File><Text>"timeout"</Text></MustNotContain>
+      <MustContain><File>tests/renderer/commands/updater.test.js</File><Text>installSignedUpdate invokes mt_rollback_prepare before check/downloadAndInstall</Text></MustContain>
+      <MustContain><File>tests/renderer/commands/updater.test.js</File><Text>invocationCallOrder</Text></MustContain>
+      <MustContain><File>tests/renderer/commands/updater.test.js</File><Text>installSignedUpdate owns its «Update failed» catch (shared by both callers)</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>"rollback": {</Text></MustContain>
+      <MustContain><File>tests/e2e/update-notice.spec.ts</File><Text>mark-e2e-feed</Text></MustContain>
+      <MustContain><File>tests/e2e/fixtures/tauri-shim.ts</File><Text>invoke: async (cmd: string, args: unknown) =&gt; {</Text></MustContain>
+      <MustContain><File>tests/renderer/i18n/locale-keys.test.js</File><Text>const LOCALES = ['de', 'en', 'es', 'fr', 'ja', 'ko', 'pt', 'ru', 'zh-CN', 'zh-TW']</Text></MustContain>
+    </BaselineAssertions>
+
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-016</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-068</Module>
+      </MustVerify>
+      <MustContain><File>src/renderer/src/commands/index.js</File><Text>UPDATER_CHECK_TIMEOUT_MS</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/index.js</File><Text>UPDATER_DOWNLOAD_TIMEOUT_MS</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/index.js</File><Text>check({ timeout: UPDATER_CHECK_TIMEOUT_MS })</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/index.js</File><Text>downloadAndInstall(undefined, { timeout: UPDATER_DOWNLOAD_TIMEOUT_MS })</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/index.js</File><Text>installInFlight</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/index.js</File><Text>t('updater.inProgressTitle')</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/index.js</File><Text>t('updater.failureTitle')</Text></MustContain>
+      <MustNotContain><File>src/renderer/src/commands/index.js</File><Text>status.latestVersion</Text></MustNotContain>
+      <MustContain><File>src-tauri/src/m016_updater.rs</File><Text>UPDATER_CHECK_TIMEOUT_SECS</Text></MustContain>
+      <MustContain><File>src-tauri/src/m016_updater.rs</File><Text>.timeout(std::time::Duration::from_secs(UPDATER_CHECK_TIMEOUT_SECS))</Text></MustContain>
+      <MustContain><File>src-tauri/src/m016_updater.rs</File><Text>updater_builder()</Text></MustContain>
+      <MustContain><File>src-tauri/src/m016_updater.rs</File><Text>assert_eq!(UPDATER_CHECK_TIMEOUT_SECS, 15);</Text></MustContain>
+      <MustContain><File>src-tauri/src/m016_updater.rs</File><Text>fn updater_check_deadline_lives_in_the_builder</Text></MustContain>
+      <MustContain><File>src-tauri/src/m016_updater.rs</File><Text>mod updater_backup_channel</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>fn prepare_inner_at(root: &amp;Path, bundle: Option&lt;&amp;Path&gt;) -&gt; Result&lt;(), String&gt;</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>fn prepare_reuse_skips_recopy_when_staging_reverifies</Text></MustContain>
+      <MustContain><File>src-tauri/src/m068_rollback.rs</File><Text>fn prepare_recopies_on_torn_or_foreign_staging</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>"updater": {</Text></MustContain>
+      <MustContain><File>tests/renderer/commands/updater.test.js</File><Text>install_passes_the_check_deadline</Text></MustContain>
+      <MustContain><File>tests/renderer/commands/updater.test.js</File><Text>install_passes_the_download_deadline</Text></MustContain>
+      <MustContain><File>tests/renderer/commands/updater.test.js</File><Text>install_is_single_flight</Text></MustContain>
+      <MustContain><File>tests/renderer/commands/updater.test.js</File><Text>install_toasts_come_from_the_fresh_recheck</Text></MustContain>
+      <MustContain><File>tests/renderer/commands/updater.test.js</File><Text>install_failure_is_localized_and_console_only</Text></MustContain>
+      <MustContain><File>tests/renderer/commands/updater.test.js</File><Text>install_flow_passes_no_url_and_only_timeout_options</Text></MustContain>
+      <MustContain><File>tests/renderer/i18n/locale-keys.test.js</File><Text>updater.failureTitle</Text></MustContain>
+      <MustContain><File>tests/renderer/i18n/locale-keys.test.js</File><Text>updater.inProgressTitle</Text></MustContain>
+      <MustContain><File>tests/e2e/update-notice.spec.ts</File><Text>plugin:updater|check</Text></MustContain>
+      <MustContain><File>tests/e2e/update-notice.spec.ts</File><Text>plugin:updater|download_and_install</Text></MustContain>
+      <MustContain><File>tests/e2e/update-notice.spec.ts</File><Text>mt_rollback_prepare</Text></MustContain>
+      <MustNotContain><File>src-tauri/tauri.conf.json</File><Text>"timeout"</Text></MustNotContain>
+      <MustPassCommand>
+        <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --bin mark m016_updater::</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --bin mark m068_rollback::rollback_core</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --no-default-features --features app-store --bin mark m068_rollback::rollback_store_stubs</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="900">cargo check --manifest-path src-tauri/Cargo.toml --offline --no-default-features --features app-store</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="240">npx vitest run tests/renderer/commands/updater.test.js tests/renderer/store/autoUpdates.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">npx playwright test tests/e2e/update-notice.spec.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+
+    <DurableScope>
+      <GraphAnchors>
+        <M-016 />
+        <M-068 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-016 />
+        <V-M-068 />
+      </VerificationAnchors>
+    </DurableScope>
+
+    <ObservedWriteScope>
+      <File>src/renderer/src/commands/index.js</File>
+      <File>src-tauri/src/m016_updater.rs</File>
+      <File>src-tauri/src/m068_rollback.rs</File>
+      <File>static/locales/en.json</File>
+      <File>static/locales/de.json</File>
+      <File>static/locales/es.json</File>
+      <File>static/locales/fr.json</File>
+      <File>static/locales/ja.json</File>
+      <File>static/locales/ko.json</File>
+      <File>static/locales/pt.json</File>
+      <File>static/locales/ru.json</File>
+      <File>static/locales/zh-CN.json</File>
+      <File>static/locales/zh-TW.json</File>
+      <File>tests/renderer/commands/updater.test.js</File>
+      <File>tests/renderer/i18n/locale-keys.test.js</File>
+      <File>tests/e2e/update-notice.spec.ts</File>
+      <File>tests/e2e/fixtures/tauri-shim.ts (only if a default handler proves necessary — expected diff: none; per-spec __mockInvoke overrides preferred)</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/features.xml</File>
+      <File>.grace/verification/runtime.xml (plan-time correction: V-M-016 lives here, not in verification/features.xml)</File>
+    </ObservedWriteScope>
+
+    <ImplementationPlan>
+      <T-001>
+        <Title>Failing-first renderer pins: deadlines, single-flight, fresh toasts, localized failure (tests only, zero product-code edits)</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/renderer/commands/updater.test.js gains the spec-named failing-first pins, each red on the pre-change tree for the right reason, with the red receipts recorded before T-002 touches code: install_passes_the_check_deadline — a successful installSignedUpdate run passes the check deadline to the plugin: checkMock asserted called with exactly { timeout: 15000 } (argument assertion; the pre-change tree calls check() bare); install_passes_the_download_deadline — downloadAndInstallMock asserted called with exactly (undefined, { timeout: 300000 }) (the pre-change tree calls downloadAndInstall() bare); install_is_single_flight — the first invocation is held in-flight by a pending downloadAndInstallMock promise, a second overlapping invocation settles immediately having invoked nothing (no second mt_rollback_prepare — invoke call count stays 1, checkMock and downloadAndInstallMock each called exactly once) and surfaced the localized in-progress refusal (notify with title 't:updater.inProgressTitle' under the suite's t(key) =&gt; `t:${key}` mock), and after the live attempt settles into failure a fresh third invocation runs the normal flow (retry-after-failure preserved); install_toasts_come_from_the_fresh_recheck — the queued status snapshot says 2.6.0 while checkMock resolves an update whose version is 2.7.0, and the progress toast title is `Updating to Mark 2.7.0…` with no notify call anywhere carrying 2.6.0; the up-to-date branch keeps naming the running version (the existing 'reports up-to-date' pin stays green unchanged); install_failure_is_localized_and_console_only — a rejected check settles into exactly one notify with title 't:updater.failureTitle' and a non-empty localized body that does not contain the raw error text, no relaunch; install_flow_passes_no_url_and_only_timeout_options — a source scan of the START_BLOCK_INSTALL_SIGNED_UPDATE block asserting the flow passes only timeout options to check()/downloadAndInstall() and constructs, rewrites or overrides no URL anywhere (no fetch call, no http string, no headers argument in the block — the R-7 renderer pin).</Criterion>
+          <Criterion>The superseded English-toast pin is updated in the same suite without weakening its settle-and-no-relaunch assertions: 'installSignedUpdate owns its «Update failed» catch (shared by both callers)' becomes the localized-failure pin (title from the updater.* keys, raw error console-only); the manual path's own English catch pin ('shows warning on error', file.check-update) stays green and untouched (the Honesty bar keeps pre-existing English strings this change does not own); the C-66/C-UPDATER-ROLLBACK pins (invocationCallOrder prepare-before-check, prepare-failure cancels, help.rollback registration, the static no-skippedUpdateVersion scan) keep their bodies.</Criterion>
+          <Criterion>T-001's gate is the recorded red state: `npx vitest run tests/renderer/commands/updater.test.js` must fail with exactly the new pins and nothing else — the receipts (failing test names + assertion messages) are recorded in the task log; the same command turns green at T-002's exit and becomes the standing gate.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="240">npx vitest run tests/renderer/commands/updater.test.js</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Renderer implementation: timeout plumbing, module-scope single-flight, fresh-data toasts, localized failure classes — inside START_BLOCK_INSTALL_SIGNED_UPDATE only</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Deadline constants with the spec's justification in comments, named exactly: const UPDATER_CHECK_TIMEOUT_MS = 15_000 (metadata-only latest.json feed, per-request bound, the two-endpoint sweep worst case ≈ 30 s tolerated by the 24 h launch check and turned into bounded feedback on the manual path; the rollback connect-deadline mirror at m068 :125) and const UPDATER_DOWNLOAD_TIMEOUT_MS = 300_000 (the plugin's whole-request bound covering connect+headers+body; sized for the ~31 MB Windows installer / ~14 MB macOS archive at ≈ 1 Mbit/s ≈ 248 s — the ROLLBACK_FETCH_DEADLINE_SECS parity, m068 :129); before pinning, the implementer re-measures the current release artifact sizes (the shipped latest.json / release assets) and records the measured numbers in the constant's comment — a measurement that contradicts the 300 s justification is a recorded deviation, never a silent value change. The only plugin-call shapes: const update = await check({ timeout: UPDATER_CHECK_TIMEOUT_MS }) and await update.downloadAndInstall(undefined, { timeout: UPDATER_DOWNLOAD_TIMEOUT_MS }) — no headers, no proxy, no URL material anywhere in the flow (F-UPDATER-PROGRESS-UI stays out; no onEvent callback is added).</Criterion>
+          <Criterion>Module-scope single-flight in commands/index.js (outside the command array; both the file.check-update entry and the notice's INSTALL_UPDATE converge on installSignedUpdate by construction): let installInFlight = null; on entry, if (installInFlight) the flow surfaces exactly one localized refusal (title t('updater.inProgressTitle'), body t('updater.inProgressBody')), logs a console marker, invokes nothing (no second mt_rollback_prepare, no check, no downloadAndInstall) and returns; otherwise the whole body (prepare → check → download → relaunch / up-to-date) runs under installInFlight, which clears to null when the attempt settles (success or failure) so a retry works as today; the prepare-failure early return also clears the guard. Cross-window residual recorded, not built: the Settings window's General tab (prefComponents/tabs/general/index.vue :277-288, read-only) is a second webview context with its own module instance — the guard serializes all entries within each context, and cross-context overlap is re-established at a Rust-level choke point only if it ever matters (the spec's recorded escalation path; the plugin command stays untouched).</Criterion>
+          <Criterion>Fresh-data toasts (R-6): the progress toast names update.version from the re-check that actually drives the install — `Updating to Mark ${update.version}…`; the up-to-date branch keeps `Mark ${status.currentVersion} is up to date` (the running version cannot change within a session); status.latestVersion no longer reaches any user-visible string (pinned by T-001's fresh-recheck test and the MustNotContain target pin); INSTALL_UPDATE's handoff shape is unchanged (store/autoUpdates.js read-only, expected diff: none).</Criterion>
+          <Criterion>Localized failure states (R-4, the C-SEARCH-ERROR-VISIBILITY voice): the shared flow's terminal catch surfaces exactly one notice with title t('updater.failureTitle') and body t('updater.failureBody'); the raw error string goes only to a console.error marker in the file's BLOCK convention (e.g. [commands][install][BLOCK_INSTALL_FAILED]) and never into the notify payload; nothing renders a deadline exhaustion as «is up to date»; the manual path's English catch (:1375-1377) and statusNote rendering stay as they are.</Criterion>
+          <Criterion>The START_BLOCK_INSTALL_SIGNED_UPDATE / END_BLOCK_INSTALL_SIGNED_UPDATE pair stays unique and load-bearing; commands/index.js gets its VERSION bump + CHANGE_SUMMARY entry recording the four changes and the F-008 renderer half-discharge; the C-66/C-UPDATER-ROLLBACK ordering/cancel pins and tests/renderer/store/autoUpdates.test.js stay green unweakened.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="240">npx vitest run tests/renderer/commands/updater.test.js tests/renderer/store/autoUpdates.test.js</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Locale sync: updater.failureTitle/Body + updater.inProgressTitle/Body in all ten locales plus the locale-keys pin</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>New "updater" namespace in all ten static/locales files (en, de, es, fr, ja, ko, pt, ru, zh-CN, zh-TW) with exactly four keys, native copy per locale in the rollback.* precedent voice (static/locales/en.json:1771-1780) — short title, a body naming the state and pointing to the log, no raw-error placeholder, no English calques outside en; en reference copy: failureTitle "Update failed", failureBody "The update could not be completed — Mark is unchanged and no partial install remains. Details are in the log.", inProgressTitle "Update already in progress", inProgressBody "An update is already running — wait for it to finish before starting another one."; no other namespace and no existing key is touched.</Criterion>
+          <Criterion>tests/renderer/i18n/locale-keys.test.js extends the dotted-key presence/non-empty pin (the FEEDBACK_KEYS pattern) with updater.failureTitle, updater.failureBody, updater.inProgressTitle, updater.inProgressBody across all ten LOCALES; the gate file gets its VERSION bump + CHANGE_SUMMARY entry; static/locales/*.json carry no markers (pure JSON, no VERSION headers).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="240">npx vitest run tests/renderer/i18n/locale-keys.test.js tests/renderer/commands/updater.test.js</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Failing-first Rust pins: the m016 builder-deadline scan + constants pin, the m068 reuse/recopy matrix on temp fixtures (tests only)</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>m016_updater.rs inline #[cfg(all(test, not(feature = "app-store")))] mod tests gains: updater_check_deadline_lives_in_the_builder — a source-scan pin (include_str!("m016_updater.rs"), the rollback_fetch_deadline_lives_in_the_client_builder precedent, m068 :2892-2918) over the mt_updater_check body region asserting updater_builder() and .timeout(std::time::Duration::from_secs(UPDATER_CHECK_TIMEOUT_SECS)) present between the fn signature and the app-store stub section — red at runtime on the pre-change tree (no timeout anywhere in the file, verified baseline); updater_check_deadline_constant_is_pinned — assert_eq!(UPDATER_CHECK_TIMEOUT_SECS, 15); whose pre-change red state is the honest compile failure (the constant does not exist yet) — the receipts recorded.</Criterion>
+          <Criterion>m068_rollback.rs rollback_core gains the spec-named pair through the root-explicit seam (the seam itself lands in T-005, so the m068 pins' pre-change red state is the honest compile failure — recorded receipts; the m016 pins compile and fail at runtime in the same window): prepare_reuse_skips_recopy_when_staging_reverifies — a temp root whose staging.tmp holds a valid set of the RUNNING version (manifest at the current MANIFEST_SCHEMA, previous_version = current_version(), platform = platform_key(), prefs snapshot whose recorded digest re-verifies, macOS: a synthetic bundle fixture with Contents/MacOS/mark whose digest matches — the rollback_swap synthetic-fixture pattern) survives prepare_inner_at(&amp;root, bundle) unchanged: a canary file planted inside staging.tmp is still present after the call (a wipe-and-recopy would delete it), the call returns Ok, and no live/ set appears in the temp root; the test passing at all is itself the mirrored-criterion proof — validate() would reject this exact set (previous_version == running, :288-290), so the reuse path demonstrably does not route through load_valid_live/load_valid_live_at; prepare_recopies_on_torn_or_foreign_staging — three planted states (unparseable/missing manifest; a foreign previous_version; a digest mismatch between the recorded digests and the staged bytes) each wipe and re-prepare exactly as today: the canary is gone, the staging set is rebuilt from the injected prefs/bundle fixtures, the manifest is rewritten, the call returns Ok.</Criterion>
+          <Criterion>The existing rollback_core pins keep their bodies green (manifest_valid_rejects_equals_running_version, promote_only_after_success, digests_recorded_in_manifest, validation_rejects_unknown_schema_and_platform_and_semver and the rest) — the live-set validation rules are unchanged by this task.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --bin mark m016_updater::</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Rust implementation: UpdaterBuilder::timeout in mt_updater_check, root-explicit idempotent prepare_inner_at (F-008 discharge)</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>m016_updater.rs: named constant UPDATER_CHECK_TIMEOUT_SECS: u64 = 15 (the m068 constants convention, cfg-gated with the desktop command) justified in a comment per spec R-1; mt_updater_check builds through the seam — let updater = match app.updater_builder().timeout(std::time::Duration::from_secs(UPDATER_CHECK_TIMEOUT_SECS)).build() { Ok(u) =&gt; u, Err(e) =&gt; the existing BLOCK_PLUGIN_UNAVAILABLE/statusNote squash } — so a builder failure joins the same quiet-with-statusNote path, never a panic; the Ok(Some)/Ok(None)/Err arms and their BLOCK markers stay byte-identical; the app-store stub branch (:104-114) untouched; the deadline changes how soon the launch path settles, not whether it is silent (autoUpdates.js :285-291 keeps the quiet no-stamp corner-2), and the manual path keeps showing the statusNote warning.</Criterion>
+          <Criterion>m068_rollback.rs: pub fn prepare_inner_at(root: &amp;Path, bundle: Option&lt;&amp;Path&gt;) -&gt; Result&lt;(), String&gt; becomes the prepare core; prepare_inner() keeps its no-arg production shape (resolve rollback_root, on macOS resolve current_app_bundle with today's error propagation, delegate with Some(&amp;bundle) on macOS / None elsewhere); the reuse-first criterion checked BEFORE any wipe — the staging manifest parses with the current MANIFEST_SCHEMA, previous_version == current_version(), platform == platform_key(), the recorded prefs digest re-verifies against the staged prefs file and (macOS) the recorded bundle digest re-verifies against the staged binary (the same readback discipline as :515-528) — reuse returns Ok(()) with a BLOCK_ROLLBACK_PREPARE marker naming reused=true, performs no copy, and never touches the live set; any other state (missing/unparseable manifest, foreign version, platform mismatch, digest mismatch, torn staging) runs the exact today's wipe-and-copy path with the injected bundle and today's digest readback; a code comment records why the criterion deliberately does not route through load_valid_live (validate() rejects previous_version == running — the mirrored inverse); clear_restore_outcome(&amp;root) stays the first step on both paths; mt_rollback_prepare's spawn_blocking body (:2406-2412) and the fail-closed ordering are untouched; the m068 header CHANGE_SUMMARY records the F-008 discharge ("prepare_inner and installSignedUpdate untouched" is superseded by this change — installSignedUpdate's half discharged in T-002), plus the VERSION bump and MODULE_MAP update (prepare_inner_at); m016 gets its VERSION bump + CHANGE_SUMMARY.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --bin mark m068_rollback::rollback_core</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>The mandatory backup-channel stand: the real plugin over a local two-endpoint fixture — hung primary, mirror latest.json, gateway-imitating package route — zero external network</Title>
+        <DependsOn>T-005</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>A dedicated #[cfg(all(test, not(feature = "app-store")))] mod updater_backup_channel in m016_updater.rs drives the real tauri-plugin-updater over a controlled local fixture: a std::net::TcpListener bound to 127.0.0.1:0 in a spawned thread serving hand-rolled HTTP/1.1 with three routes — GET /feed-hang (the failing primary: accepted, never answered), GET /latest.json (the mirror: a static manifest {"version": "999.0.0", "platforms": {"test-target": {"url": "http://127.0.0.1:&lt;port&gt;/pkg/darwin-aarch64/999.0.0", "signature": &lt;fixture signature&gt;}}} carrying the package URL exactly as a real feed does), GET /pkg/... (the gateway-imitating route serving the fixture payload bytes) — with every request line recorded into a shared mutex Vec for the evidence assertions; the fixture minisign constants (throwaway keypair + the signature of the fixture payload) are embedded as constants generated at implementation time with the tauri signer CLI (the plugin's own offline_tests precedent, updater.rs :2117-2123); no new dependency (Cargo.toml/Cargo.lock untouched — tauri[test], tempfile and tokio are already dev-deps) and no external network (the test fails if the recorded request log contains anything but 127.0.0.1 routes).</Criterion>
+          <Criterion>The stand registers the plugin on a tauri::test mock app (updater_builder() requires the registered plugin state — the state&lt;UpdaterState&gt; read at lib.rs :79-88) and drives only the plugin's own injectable UpdaterBuilder seams: handle.updater_builder().endpoints(vec![primary, mirror]).unwrap().target("test-target").pubkey(&lt;fixture pubkey&gt;).timeout(Duration::from_secs(15)).build().unwrap().check().await must deliver Ok(Some(update)) from the MIRROR despite the hung primary (the failover loop, updater.rs :545-658), with the elapsed time ≥ the builder timeout on the primary so the deadline provably engaged rather than instant-failed; update.download(...) then fetches and verifies the payload (Update::download verifies the fetched bytes, updater.rs :891); the recorded request log is asserted to show the package bytes served on the feed-carried /pkg route — the Wave-4 criterion "for the backup channel, verify obtaining the package itself" discharged with the real plugin and no stand-in; the named test (backup_feed_channel_delivers_the_package_via_the_feed_carried_url_under_the_deadline) stays inside the m016_updater:: filter.</Criterion>
+          <Criterion>The seam-failure escape hatch is named, never silent: if a concrete tauri::test/plugin seam proves unusable (e.g. the mock runtime rejects the plugin's macOS main-thread dispatch), the downgrade is admissible only as an individually justified, explicitly recorded gap in the V-M-016 scenario (the exact failing seam + the retained evidence: the JS timeout pins, the URL-as-is pins, the installed-plugin source citation for the failover loop) per the spec's Backup-channel criterion — never a blanket or silent fallback.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --bin mark m016_updater::</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>e2e freshness scenario over plugin:updater|* shim handlers, graph and verification deltas, governance sync</Title>
+        <DependsOn>T-003, T-005, T-006</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/e2e/update-notice.spec.ts: installUpdateNoticeShim's __mockInvoke table gains the handlers the install flow needs (tauri-shim.ts itself stays untouched — expected diff none): mt_rollback_prepare (resolve undefined), plugin:updater|check (re-reads the same 'mark-e2e-feed' localStorage on every call — the freshness mechanism; returns { rid: 1, currentVersion: running, version: answer.latestVersion, body: null, date: null, rawJson: {} } when available, null otherwise), plugin:updater|download_and_install (resolve null — the invoke is already traced in __invokeLog), plugin:process|relaunch (resolve null); the C-66 matrix (offline silence without clock advance, throttle, skip, deferral, store gate, switch off) keeps its body and stays green.</Criterion>
+          <Criterion>The new freshness spec, named feed_move_between_notice_and_click_toasts_the_fresh_version: the notice queues on version A (2.6.0) from the launch check; the test flips localStorage 'mark-e2e-feed' to version B (2.7.0) before clicking Update; the flow's fresh plugin re-check (the shim's plugin:updater|check) answers B; the visible progress toast in the notification stack names `Updating to Mark 2.7.0…` and no visible string names 2.6.0; exactly one plugin:updater|download_and_install invoke is observed in __invokeLog; no relaunch happens in the shim run.</Criterion>
+          <Criterion>Governance sync in the same bundle as the code: every touched governed file carries its VERSION bump + CHANGE_SUMMARY entry (commands/index.js, m016_updater.rs, m068_rollback.rs, tests/renderer/commands/updater.test.js, tests/e2e/update-notice.spec.ts, tests/renderer/i18n/locale-keys.test.js); .grace/graph/features.xml gains an M-068 SummaryDelta and .grace/graph/runtime.xml an M-016 SummaryDelta recording the now-true guarantees (bounded check at both layers, bounded download, per-context serialized installs with the recorded cross-window residual, idempotent prepare via the root-explicit seam, fresh-data toasts, the localized failure voice) touching no other module's entry; .grace/verification/runtime.xml V-M-016 gains a scenario naming the new tests (updater_check_deadline_lives_in_the_builder, the constants pin, the backup-channel stand with its evidence contract and any recorded seam gap, the five updater.test.js pins, the e2e freshness scenario) and adds the missing locale-keys command to its Commands; .grace/verification/features.xml V-M-068 gains a scenario naming prepare_reuse_skips_recopy_when_staging_reverifies / prepare_recopies_on_torn_or_foreign_staging, the prepare_inner_at seam and the F-008 discharge, with the rollback-to-self live-set rule restated unchanged — strictly on the M-016/M-068/V-M-016/V-M-068 entries, unrelated XML untouched.</Criterion>
+          <Criterion>XML sanity gate over the four graph/verification files (the C-WIN-ROLLBACK-PANIC T-004 python3-parse precedent) plus the targeted suites green: the vitest trio, the m016/m068 cargo filters, the app-store store-stub suite and compile check, and the playwright update-notice run.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">npx playwright test tests/e2e/update-notice.spec.ts</Command>
+          <Command budgetSeconds="30">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/features.xml'); ET.parse('.grace/graph/runtime.xml'); ET.parse('.grace/verification/features.xml'); ET.parse('.grace/verification/runtime.xml')"</Command>
+          <Command budgetSeconds="240">npx vitest run tests/renderer/commands/updater.test.js tests/renderer/store/autoUpdates.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+          <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --bin mark m016_updater::</Command>
+          <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --bin mark m068_rollback::rollback_core</Command>
+        </Verification>
+      </T-007>
+    </ImplementationPlan>
+
+    <AcceptanceVerification>
+      <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --bin mark m016_updater::</Command>
+      <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --bin mark m068_rollback::rollback_core</Command>
+      <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --locked --offline --no-default-features --features app-store --bin mark m068_rollback::rollback_store_stubs</Command>
+      <Command budgetSeconds="900">cargo check --manifest-path src-tauri/Cargo.toml --offline --no-default-features --features app-store</Command>
+      <Command budgetSeconds="240">npx vitest run tests/renderer/commands/updater.test.js tests/renderer/store/autoUpdates.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+      <Command budgetSeconds="600">npx playwright test tests/e2e/update-notice.spec.ts</Command>
+      <Environment>Execution is strictly sequential T-001→T-007 in the green-upd1 worktree (single-writer per file; the renderer track T-001..T-003, the Rust track T-004..T-006, governance last). Environment prerequisites the orchestrator/implementer runs — this plan does not: `npm ci` FIRST (the worktree has no node_modules; every vitest/playwright gate depends on it); cargo rides the existing offline cache, and the root Cargo.lock present in the tree pins tauri-plugin-updater 2.14.1 so every cargo gate keeps --locked --offline (the spec's "no Cargo.lock" assumption is recorded as outdated in ReferenceState). Failing-first semantics: T-001's renderer pins exit red with recorded receipts (green at T-002), T-004's m016 pins fail at runtime and the m068 pins fail to compile before T-005 (the honest red for a not-yet-existing seam) — both receipts recorded. The Rust stand binds 127.0.0.1 only and fails on any non-loopback request; its fixture signing constants are generated at implementation time with the tauri signer CLI and embedded as constants. The C-66 e2e matrix, the C-UPDATER-ROLLBACK ordering/cancel pins, the manual-path English catch pin, the m068 deadline/accounting suites and the app-store stub suites keep their bodies green and unweakened. grace lint runs only in the external lifecycle gates (current before editing — recorded as the pre-change baseline; target during implementation; final --run-commands before handoff) — this plan deliberately carries no self-referential grace-lint command, and the orchestrator pins SpecSha256 at admission (`shasum -a 256 .grace/changes/active/C-UPDATER-NET-BOUNDS/spec.xml`). All gates pass with no skips, retries, budget increases or weakened assertions; no apply/archive, commit/push, version release, tag or publication is authorized by this plan.</Environment>
+    </AcceptanceVerification>
+  </C-UPDATER-NET-BOUNDS>
+</GraceChangePlan>

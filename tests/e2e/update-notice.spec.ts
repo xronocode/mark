@@ -1,5 +1,5 @@
 // FILE: tests/e2e/update-notice.spec.ts
-// VERSION: 1.0.1
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-66 automatic update check end to end against a
 //            mocked mt_updater_check — the notice with its three buttons
@@ -18,7 +18,7 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   installUpdateNoticeShim - prefs + mt_updater_check + build mode over localStorage/__mockInvoke; the feed answer is re-read per call so a test can change it mid-flight.
+//   installUpdateNoticeShim - prefs + mt_updater_check + build mode over localStorage/__mockInvoke; the feed answer is re-read per call so a test can change it mid-flight; also carries the install-flow handlers (mt_rollback_prepare, plugin:updater|check re-reading 'mark-e2e-feed', plugin:updater|download_and_install, plugin:process|relaunch) over the same shim table.
 //   BOOT_URL - editor boot URL used across app-boot-style specs.
 //   waitForBoot - wait until the Vue app has rendered children.
 //   noticeCheckCount - per-load mt_updater_check invocations from __invokeLog.
@@ -28,6 +28,17 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 v1.1.0 C-UPDATER-NET-BOUNDS T-007: the shared install
+//     flow over the shim — __mockInvoke gains mt_rollback_prepare (the
+//     fail-closed first step), plugin:updater|check re-reading the same
+//     'mark-e2e-feed' key per call (the freshness mechanism),
+//     plugin:updater|download_and_install and an inert
+//     plugin:process|relaunch; the new freshness spec
+//     feed_move_between_notice_and_click_toasts_the_fresh_version pins
+//     that the progress toast names the version the flow's fresh plugin
+//     re-check answers (2.7.0) after the queued notice was built from an
+//     older feed (2.6.0), exactly one download_and_install invoke, and
+//     no real relaunch in the shim run. The C-66 matrix keeps its body.
 //   LAST_CHANGE: v1.0.1 - 2026-10-19 orchestrator review: fixed against real runs (async polls, reload-safe fakes, selectors).
 //   v1.0.0 - 2026-10-19 C-66 T-002: initial matrix — notice
 //   + three buttons, Later, Skip/next-version, 24 h throttle, offline
@@ -113,7 +124,28 @@ async function installUpdateNoticeShim(page: Page, opts: ShimOptions = {}) {
             downloadUrl: null,
             statusNote: answer.statusNote ?? null
           }
-        }
+        },
+        // C-UPDATER-NET-BOUNDS T-007: the shared install flow over the
+        // same shim table. plugin:updater|check re-reads the SAME
+        // 'mark-e2e-feed' key on every call — the freshness mechanism:
+        // the flow's fresh plugin re-check answers whatever the feed
+        // says NOW, not what queued the notice.
+        mt_rollback_prepare: () => null,
+        'plugin:updater|check': () => {
+          const raw = localStorage.getItem('mark-e2e-feed')
+          const answer: any = raw === null ? feed : JSON.parse(raw)
+          if (!answer.available) return null
+          return {
+            rid: 1,
+            currentVersion: running,
+            version: answer.latestVersion,
+            body: null,
+            date: null,
+            rawJson: {}
+          }
+        },
+        'plugin:updater|download_and_install': () => null,
+        'plugin:process|relaunch': () => null
       }
       if (buildMode) mock.mt_build_mode = () => buildMode
       ;(window as any).__mockInvoke = mock
@@ -337,5 +369,61 @@ test.describe('Automatic update check (C-66)', () => {
     await expect(page.locator('.notification-card .card-title')).toHaveText(
       'Mark 2.6.0 is available'
     )
+  })
+
+  // C-UPDATER-NET-BOUNDS T-007: the queued notice is built from the
+  // launch check's feed answer; the shared install flow re-checks
+  // fresh through the plugin (the shim's plugin:updater|check re-reads
+  // 'mark-e2e-feed' per call), so the visible progress toast names the
+  // feed's CURRENT version — never the stale queued one.
+  test('feed_move_between_notice_and_click_toasts_the_fresh_version', async ({ page }) => {
+    await installUpdateNoticeShim(page)
+    await page.goto(BOOT_URL)
+    const notice = page.locator('.notification-card')
+    await expect(notice).toBeVisible({ timeout: 15_000 })
+    await expect(notice.locator('.card-title')).toHaveText('Mark 2.6.0 is available')
+
+    // The feed moves between the queued notice and the click: what the
+    // notice queued (2.6.0) is no longer what the feed answers (2.7.0).
+    await page.evaluate(() =>
+      localStorage.setItem(
+        'mark-e2e-feed',
+        JSON.stringify({ available: true, latestVersion: '2.7.0' })
+      )
+    )
+
+    await notice.locator('.action-btn', { hasText: 'Update' }).click()
+    await expect(notice).toBeHidden()
+
+    // The flow's fresh plugin re-check answers B; the visible progress
+    // toast in the notification stack names 2.7.0 and no visible
+    // string names the stale 2.6.0.
+    const progressToast = page.locator('.notification-card .card-title', {
+      hasText: 'Updating to Mark 2.7.0…'
+    })
+    await expect(progressToast).toBeVisible({ timeout: 10_000 })
+    const visibleTitles = await page.locator('.notification-card .card-title').allTextContents()
+    for (const title of visibleTitles) {
+      expect(title, 'no visible string names the stale queued version').not.toContain('2.6.0')
+    }
+
+    // Exactly one download_and_install invoke for the whole click; the
+    // shim's relaunch handler stays a quiet no-op — nothing actually
+    // relaunches in the shim run (the page neither navigates nor
+    // reloads).
+    const invokeLog = await page.evaluate(() => (window as any).__invokeLog ?? [])
+    expect(
+      invokeLog.filter((cmd: string) => cmd === 'plugin:updater|download_and_install')
+    ).toHaveLength(1)
+    expect(invokeLog, 'the fail-closed prepare precedes the plugin check').toContain(
+      'mt_rollback_prepare'
+    )
+    expect(invokeLog.indexOf('mt_rollback_prepare')).toBeLessThan(
+      invokeLog.indexOf('plugin:updater|check')
+    )
+    // The shim's relaunch stays inert — the page neither navigates nor
+    // reloads (the boot document URL survives; the hash-router suffix
+    // the app itself appends is not a navigation).
+    expect(new URL(page.url()).pathname + new URL(page.url()).search).toBe(BOOT_URL)
   })
 })
