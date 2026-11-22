@@ -19,6 +19,7 @@
 //   i18n - GRACE 4 synchronized symbol
 //   lastMuyaOptions - GRACE 4 synchronized symbol
 //   logMock - GRACE 4 synchronized symbol
+//   tauriEventEmitMock - hoisted emit fn backing the @tauri-apps/api/event mock; captured and reset per verdict test.
 //   mockEditorInstance - Muya mock; verifies render ownership, activation recovery and grammar cache behavior.
 //   mockPrinter - GRACE 4 synchronized symbol
 //   mockSpellchecker - GRACE 4 synchronized symbol

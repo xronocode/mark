@@ -29,8 +29,8 @@
 //     parameter rides the established generic-runtime command shape of
 //     mt_ext_disable), and the now-unreachable emit path (emit_text_op
 //     with its mt::text::op emit, BLOCK_EMIT / BLOCK_EMIT_FAILED, the
-//     payload constructions and BLOCK_INSERT_OK / BLOCK_TRANSFORM_OK
-//     logs) is removed.
+//     payload constructions and the insert/transform OK log markers)
+//     is removed.
 //   - 2026-06-08 B4: initial text_ops module creation.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
