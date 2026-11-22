@@ -196,7 +196,7 @@ Diff view (⌘D) compares the file with Mark's own snapshot from the last reload
 
 ## Build from source
 
-Requirements: Node.js 22, stable Rust, and on macOS the Xcode command line tools.
+Requirements: Node.js 22.22.2 or newer, stable Rust, and on macOS the Xcode command line tools.
 
 ```sh
 git clone https://github.com/xronocode/mark.git && cd mark

@@ -31,7 +31,7 @@ The [engineering protocol](docs/engineering-protocol.md#modification-checklist) 
 
 ## Build
 
-Requirements: Node.js 22, Rust 1.99.0 (selected by the checked-in `rust-toolchain.toml` via [rustup](https://rustup.rs)), and on macOS the Xcode command line tools. On Linux, the Tauri system packages listed in [`.github/workflows/test.yml`](.github/workflows/test.yml) (WebKitGTK 4.1 and friends).
+Requirements: Node.js 22.22.2 or newer (exact minimum pinned in `.nvmrc`; CI runs the rolling latest 22.x), Rust 1.99.0 (selected by the checked-in `rust-toolchain.toml` via [rustup](https://rustup.rs)), and on macOS the Xcode command line tools. On Linux, the Tauri system packages listed in [`.github/workflows/test.yml`](.github/workflows/test.yml) (WebKitGTK 4.1 and friends).
 
 ```sh
 git clone https://github.com/xronocode/mark.git && cd mark
