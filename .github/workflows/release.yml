@@ -1,5 +1,5 @@
 # FILE: .github/workflows/release.yml
-# VERSION: 3.10.0
+# VERSION: 3.11.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Admit only an approved annotated release tag, build and sign its exact Ready seal, then stage one digest-verified draft release and expose it only after the owner approves the synchronous release environment gate.
 #   SCOPE: Named-test manual unsigned QA handoffs plus tag-only readiness, signing, notarization, artifact verification, owner-gated draft-first publication, and downstream Homebrew handoff.
@@ -12,14 +12,15 @@
 # START_MODULE_MAP
 #   authorize-tag - Reject any non-bot, lightweight, wrong-target, stale-check, or non-Ready release tag before secrets or candidate code execute. C-RELEASE-CANARY-PRERELEASE: hyphenated vX.Y.Z-beta.N/canary.N tags (base equal to the collecting train computedVersion) take the prerelease lane — payload-checks, strict admission, materials, preflight and the release-identity artifact are skipped for them while the tagger, annotated-tag and seal=HEAD checks stay. C-RELEASE-BETA-CHECKS-GATE: prerelease tags additionally collect check runs at the seal and require the pinned main set green before any signing lane runs.
 #   manual-build - Run unsigned build-only QA from an input-free manual dispatch.
-#   build - Build the release unsigned (no environment, no OIDC, no signing material) with the ignore-scripts install plus the single esbuild allowlist entry, re-run readiness, enforce smoke/supply-chain gates, and stage every artifact with a SHA-256 receipt sidecar for the sign job. C-RELEASE-SIGNING-SPLIT. C-RELEASE-CANARY-PRERELEASE: the admitted-evidence download, repeated strict admission, materials gate and metadata preflight are skipped for prerelease tags; packaging and smoke stay unconditional.
-#   sign - Sole holder of the release-signing environment, the APPLE_*/TAURI_SIGNING_* secrets and the id-token/attestations OIDC: verifies every staged artifact digest against the build's recorded receipts (refusing on BLOCK_SIGN_DIGEST_MISMATCH) and signs digest-verified staged artifacts without rebuilding — Apple re-sign/notarize/staple, Tauri updater signatures, SLSA provenance and keyless cosign — then uploads the signed set under the release artifact names.
+#   build - Build the release unsigned (no environment, no OIDC, no signing material) with the ignore-scripts install plus the single esbuild allowlist entry, re-run readiness, enforce smoke/supply-chain gates, and stage every artifact with a SHA-256 receipt sidecar for the sign job. C-RELEASE-SIGNING-SPLIT. C-RELEASE-CANARY-PRERELEASE: the admitted-evidence download, repeated strict admission, materials gate and metadata preflight are skipped for prerelease tags; packaging and smoke stay unconditional. C-RELEASE-SIGN-STAGED-SET: the Windows staged dir holds exactly the release files — the smoke screenshot lives outside it under RUNNER_TEMP\smoke, every staged file carries a SHA-256 receipt, and the Windows uploads name their files instead of release\* wildcards.
+#   sign - Sole holder of the release-signing environment, the APPLE_*/TAURI_SIGNING_* secrets and the id-token/attestations OIDC: verifies every staged artifact digest against the build's recorded receipts (refusing on BLOCK_SIGN_DIGEST_MISMATCH) and signs digest-verified staged artifacts without rebuilding — Apple re-sign/notarize/staple, Tauri updater signatures, SLSA provenance and keyless cosign — then uploads the signed set under the release artifact names. C-RELEASE-SIGN-STAGED-SET: the repackage step converts the signed DMG into the sign work dir and replaces the staged copy atomically — hdiutil convert refuses an existing output and the staged unsigned DMG already occupies the destination.
 #   prepare-publication - Render and digest the exact release body and asset set without write credentials. C-RELEASE-CANARY-PRERELEASE: prerelease tags get a generated body (automated verification block plus the external-tester notice) with no reviewed-notes extraction and no brew line.
 #   publish - Reconcile and verify an immutable asset set on a draft, then expose it as the final owner-gated step once the build lanes are green and the owner approves the release environment. C-RELEASE-CANARY-PRERELEASE: prerelease tags publish with isPrerelease=true and an assertion that releases/latest did NOT advance (updater feed untouched).
 #   publish-cask - Open or verify the exact downstream Homebrew cask update and schedule its required-check-gated auto-merge; skipped for prerelease tags. C-RELEASE-CASK-SIGNED-DIGEST: the cask sha256 is resolved only from the signed macOS release artifact by explicit path and coherence-checked against the signed DMG before any cask mutation.
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-11-22 v3.11.0 C-RELEASE-SIGN-STAGED-SET: fix two execution defects in the staged handoff — the macOS sign job converts the re-packaged DMG into its work dir and replaces the staged copy (hdiutil convert refuses an existing output and the verify step's copy had already occupied the destination), the Windows smoke screenshot moves outside the staged dir (RUNNER_TEMP\smoke), the Windows stage step receipts every staged file, and both Windows uploads name their files so an unreceipted or unexpected file can neither reach the sign job nor ride the signed set; tests/tools/sign-staged-handoff.test.mjs executes the extracted handoff shells against synthetic staged sets and was red on the pre-fix text.
 #   - 2026-11-22 v3.10.0 C-RELEASE-CASK-SIGNED-DIGEST: publish-cask resolves the Homebrew cask digest only from the signed macOS release artifact — the job downloads exactly mark-macos-arm64-release by name into its own path, addresses the .sha256 sidecar by that explicit artifact path (the unconstrained find/head selection over the all-artifact staged tree is gone), and coherence-checks the sidecar against a fresh hash of the signed DMG beside it, failing closed on [ReleaseCask][publish-cask][BLOCK_RELEASE_CASK_DIGEST_MISMATCH] before any cask mutation; the cask still carries the sidecar value per B2CR-3 and the prerelease skip stays byte-identical.
 #   - 2026-11-22 v3.9.0 C-RELEASE-SIGNING-SPLIT: split the privileged build job into an unsigned build and a digest-gated sign job — build drops its environment, id-token/attestations and every secrets reference, installs with npm ci --ignore-scripts plus the single approved install-script exception (esbuild), builds unsigned bundles (updater artifacts disabled per the release-tauri.yml precedent) staged with a SHA-256 receipt sidecar per artifact, and the new sign job — the sole holder of the release-signing environment, the APPLE_*/TAURI_SIGNING_* secrets and the OIDC attestation authority — verifies every staged digest against those receipts before any signing step (BLOCK_SIGN_DIGEST_MISMATCH), re-signs the staged macOS bundle without rebuilding, notarizes and staples it, signs the Tauri updater archives for both platforms, composes the signed feed fragments, moves the SLSA provenance and keyless cosign over the signed set, and prepare-publication is needs-chained on sign so publication is never upstream of signing; the prerelease lane and every tag path outside the split keep byte-identical behavior.
 #   - 2026-11-21 v3.8.0 C-RELEASE-BETA-CHECKS-GATE: the prerelease lane gains a fail-closed checks boundary inside authorize-tag — prerelease tags collect their commit's check runs at the seal (stable jq shape, latest attempt kept, fresh evidence on every re-run) and are rejected unless the pinned main required set (status check and release/governance, both GitHub Actions, derived from rulesets.main.requiredChecks minus this workflow's own tag-time check) is exactly-once green at that SHA; a failed, cancelled, missing, ambiguous or stale-SHA match stops the tag before the release-signing environment or any packaging job runs. The stable lane is byte-identical for non-hyphenated tags.
@@ -788,14 +789,14 @@ jobs:
           # the renderer paints (3s captured a blank white window).
           Start-Sleep -Seconds 10
           try {
-            New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP\release" | Out-Null
+            New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP\smoke" | Out-Null
             Add-Type -AssemblyName System.Windows.Forms
             Add-Type -AssemblyName System.Drawing
             $ws = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
             $bmp = New-Object System.Drawing.Bitmap $ws.Width, $ws.Height
             $g = [System.Drawing.Graphics]::FromImage($bmp)
             $g.CopyFromScreen($ws.Location, [System.Drawing.Point]::Empty, $ws.Size)
-            $bmp.Save("$env:RUNNER_TEMP\release\app-screenshot.png")
+            $bmp.Save("$env:RUNNER_TEMP\smoke\app-screenshot.png")
             Write-Host "screenshot saved"
           } catch {
             Write-Host "screenshot failed: $_"
@@ -877,9 +878,17 @@ jobs:
             cp "$EXE_SRC" "$EXE_DST"
           fi
           # node-based sha256 (shasum/perl availability differs on the
-          # Windows image; node is guaranteed).
-          HASH=$(node -e "const c=require('crypto'),f=require('fs');process.stdout.write(c.createHash('sha256').update(f.readFileSync(process.argv[1])).digest('hex'))" "$EXE_DST")
-          echo "$HASH" > "$EXE_DST.sha256"
+          # Windows image; node is guaranteed). C-RELEASE-SIGN-STAGED-SET:
+          # every staged file carries a receipt so the sign job's digest
+          # verifier accepts the set (sidecars skipped so re-runs stay
+          # correct).
+          for STAGED in "$STAGE_DIR"/*; do
+            case "$STAGED" in
+              *.sha256) continue ;;
+            esac
+            HASH=$(node -e "const c=require('crypto'),f=require('fs');process.stdout.write(c.createHash('sha256').update(f.readFileSync(process.argv[1])).digest('hex'))" "$STAGED")
+            echo "$HASH" > "$STAGED.sha256"
+          done
           ls -la "$STAGE_DIR"
 
       # ── upload staged unsigned artifacts for the sign job ────────
@@ -907,7 +916,11 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: mark-${{ matrix.platform.name }}-release-staged
-          path: ${{ runner.temp }}\release\*
+          path: |
+            ${{ runner.temp }}\release\Mark_*_x64-setup.exe
+            ${{ runner.temp }}\release\Mark_*_x64-setup.exe.sha256
+            ${{ runner.temp }}\release\latest-platform.json
+            ${{ runner.temp }}\release\latest-platform.json.sha256
           if-no-files-found: error
           retention-days: 30
 
@@ -1128,7 +1141,10 @@ jobs:
           cp -R "$APP_WORK/Mark.app" "$MOUNT/Mark.app"
           hdiutil detach "$MOUNT"
           DMG_DST="/tmp/release/Mark_${VER}_aarch64.dmg"
-          hdiutil convert "$RW_DMG" -format UDZO -o "$DMG_DST"
+          # C-RELEASE-SIGN-STAGED-SET: convert into the sign work dir and replace the destination atomically — the verify step's cp of the staged set already occupies /tmp/release/Mark_${VER}_aarch64.dmg, and hdiutil convert refuses an existing output.
+          SIGNED_OUT="$APP_WORK/Mark_${VER}_aarch64.dmg"
+          hdiutil convert "$RW_DMG" -format UDZO -o "$SIGNED_OUT"
+          mv -f "$SIGNED_OUT" "$DMG_DST"
           xcrun notarytool submit "$DMG_DST" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
           xcrun stapler staple "$DMG_DST"
 
@@ -1279,7 +1295,12 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: mark-${{ matrix.platform.name }}-release
-          path: ${{ runner.temp }}\release\*
+          path: |
+            ${{ runner.temp }}\release\Mark_*_x64-setup.exe
+            ${{ runner.temp }}\release\Mark_*_x64-setup.exe.sha256
+            ${{ runner.temp }}\release\Mark_*_x64-setup.exe.bundle
+            ${{ runner.temp }}\release\latest-platform.json
+            ${{ runner.temp }}\release\latest-platform.json.sha256
           if-no-files-found: error
           retention-days: 30
 
