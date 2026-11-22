@@ -97,6 +97,97 @@ describe('sideBar/searchResultItem.vue', () => {
   })
 })
 
+// ── C-SEARCH-RESULT-CONTRACT: open-at-match cursor pins ─────────────
+// Activating a match line (click AND keyboard — one shared open-at-match
+// code path) must invoke mt::open-file with the honest bounds cursor:
+// anchor ch = range[0][1], focus ch = range[1][1] — never undefined.
+// The array-form fixture pins stay green unchanged.
+describe('sideBar/searchResultItem.vue — open-at-match cursor pins (C-SEARCH-RESULT-CONTRACT)', () => {
+  let pinia
+
+  const cursorI18n = createI18n({ legacy: false, locale: 'en', messages: { en: {} } })
+
+  const makeResult = (overrides = {}) => ({
+    filePath: '/tmp/test.md',
+    matches: [{ lineText: 'Hello world test match', range: [[1, 6], [1, 11]] }],
+    ...overrides
+  })
+
+  beforeEach(async () => {
+    pinia = setupTestPinia()
+    const { useEditorStore } = await import('@/store/editor')
+    const editorStore = useEditorStore()
+    editorStore.currentFile = null
+    // No open tabs — every activation takes the mt::open-file invoke path.
+    editorStore.tabs = []
+  })
+
+  const mountItem = async (searchResult) => {
+    const SearchResultItem = (await import('@/components/sideBar/searchResultItem.vue')).default
+    return shallowMount(SearchResultItem, {
+      props: { searchResult },
+      global: { plugins: [pinia, cursorI18n] }
+    })
+  }
+
+  it('click activation invokes mt::open-file with the honest bounds cursor', async () => {
+    const wrapper = await mountItem(makeResult())
+    await wrapper.find('.matches ul li').trigger('click')
+    expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
+      'mt::open-file',
+      '/tmp/test.md',
+      {
+        cursor: {
+          // isCollapsed compares range ROWS (1 === 1), not columns.
+          isCollapsed: false,
+          anchor: { line: 1, ch: 6 },
+          focus: { line: 1, ch: 11 }
+        }
+      }
+    )
+  })
+
+  it('keyboard activation routes into the same open-at-match code path', async () => {
+    const wrapper = await mountItem(makeResult())
+    const row = wrapper.find('.matches ul li')
+    expect(row.attributes('tabindex')).toBe('0')
+    await row.trigger('keydown.enter')
+    expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
+      'mt::open-file',
+      '/tmp/test.md',
+      {
+        cursor: {
+          // isCollapsed compares range ROWS (1 === 1), not columns.
+          isCollapsed: false,
+          anchor: { line: 1, ch: 6 },
+          focus: { line: 1, ch: 11 }
+        }
+      }
+    )
+  })
+
+  it('the zero-pair fixture opens at line start with no highlight', async () => {
+    const wrapper = await mountItem(
+      makeResult({ matches: [{ lineText: 'bounds unavailable line', range: [[0, 0], [0, 0]] }] })
+    )
+    const row = wrapper.find('.matches ul li')
+    expect(row.find('.highlight').text()).toBe('')
+    await row.trigger('click')
+    expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
+      'mt::open-file',
+      '/tmp/test.md',
+      {
+        cursor: {
+          // isCollapsed compares range ROWS (0 === 0).
+          isCollapsed: false,
+          anchor: { line: 0, ch: 0 },
+          focus: { line: 0, ch: 0 }
+        }
+      }
+    )
+  })
+})
+
 // ── C-MULTI-SOURCE-WORKSPACE: owning-root label ────────────────────
 
 describe('sideBar/searchResultItem.vue — owning-root label (C-MULTI-SOURCE-WORKSPACE)', () => {

@@ -1,5 +1,5 @@
 <template>
-  <div v-if="showProjectSearch" class="project-search-overlay" @click.self="close">
+  <div v-if="showProjectSearch" class="project-search-overlay" @click.self="close" @keydown.escape="close">
     <div class="project-search-panel">
       <div class="panel-header">
         <div class="search-row">
@@ -56,7 +56,7 @@
           <span>{{ t('sideBar.search.noFolderOpen') }}</span>
         </div>
       </div>
-      <div v-if="results.length > 0" class="panel-results">
+      <div v-if="results.length > 0" ref="resultsEl" class="panel-results" @keydown="handleResultsKeydown">
         <search-result-item
           v-for="(item, index) of results"
           :key="index"
@@ -100,10 +100,13 @@
 //   open - Show the overlay and focus/select the input.
 //   close - Hide the overlay.
 //   toggle - Handle the existing bus visibility action.
-//   focusResults - Retain the current Enter-key placeholder behavior.
+//   selectedResultIndex - Roving selection index across the flattened match lines (commandPalette canon).
+//   focusResults - Real keyboard entry: Enter in the input moves focus into the results and initializes the roving selection.
+//   handleResultsKeydown - Delegated arrow-key roving on the results container (wrap-around, active class, scrollIntoView, focus follows).
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-11-21 - C-SEARCH-ERROR-VISIBILITY T-002: the error branch renders the localized failure line (sideBar.search.searchFailed) BEFORE the "No results found." empty branch, and a partial notice (sideBar.search.resultsPartial) accompanies a marked result set; a cancelled search shows neither.
+//   LAST_CHANGE: 2026-11-22 - C-SEARCH-RESULT-CONTRACT T-004: the overlay becomes keyboard-operable (START_BLOCK_KEYBOARD_NAVIGATION) — Enter in the input is the real focusResults entry into the results, selectedResultIndex drives a commandPalette-canon roving selection (active class + scrollIntoView + wrap-around arrows on the results container), Tab reaches the roving-focused rows, Enter on a row opens at the match through the click code path, and a panel-level Escape closes from both the input and the results; close resets the selection.
+//   PREVIOUS: 2026-11-21 - C-SEARCH-ERROR-VISIBILITY T-002: the error branch renders the localized failure line (sideBar.search.searchFailed) BEFORE the "No results found." empty branch, and a partial notice (sideBar.search.resultsPartial) accompanies a marked result set; a cancelled search shows neither failure nor partial.
 //   PREVIOUS: 2026-11-13 - Resolve active option text and borders through the established chrome accent.
 // END_CHANGE_SUMMARY
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
@@ -159,6 +162,9 @@ const open = () => {
 
 const close = () => {
   showProjectSearch.value = false
+  // C-SEARCH-RESULT-CONTRACT: a fresh overlay session starts with no
+  // roving selection.
+  selectedResultIndex.value = -1
 }
 
 const toggle = () => {
@@ -169,9 +175,76 @@ const toggle = () => {
   }
 }
 
-const focusResults = () => {
-  // Enter in input — no-op for now, results are below
+// START_BLOCK_KEYBOARD_NAVIGATION
+// C-SEARCH-RESULT-CONTRACT: the overlay is keyboard-operable following
+// the commandPalette zone canon — a selected index (selectedResultIndex)
+// plus an active class plus scrollIntoView, no new ARIA roles. Tab
+// choice (documented): rows are roving-focused — the selected match line
+// carries tabindex 0, all others -1, and Enter/arrow keys live on the
+// rows; Tab steps into the selected row and arrows keep moving the
+// selection. Enter on a row routes through the row's own
+// @keydown.enter → handleSearchResultClick, the same code path as
+// click. Escape closes from both contexts through the panel-level
+// @keydown.escape on the overlay root (the input's own binding stays).
+const resultsEl = ref(null)
+const selectedResultIndex = ref(-1)
+
+const matchRowEls = () => {
+  const root = resultsEl.value
+  if (!root) return []
+  return Array.from(root.querySelectorAll('.matches ul li'))
 }
+
+const applyRovingSelection = async () => {
+  await nextTick()
+  const rows = matchRowEls()
+  if (!rows.length) return
+  if (selectedResultIndex.value < 0 || selectedResultIndex.value >= rows.length) {
+    selectedResultIndex.value = 0
+  }
+  rows.forEach((row, i) => {
+    row.tabIndex = i === selectedResultIndex.value ? 0 : -1
+    row.classList.toggle('active', i === selectedResultIndex.value)
+  })
+  rows[selectedResultIndex.value].scrollIntoView({ block: 'end' })
+}
+
+const focusResults = () => {
+  // Enter in the input is the real entry into the results region.
+  if (!resultsEl.value) return
+  applyRovingSelection().then(() => {
+    const rows = matchRowEls()
+    const selected = rows[selectedResultIndex.value]
+    if (selected && document.activeElement !== selected) {
+      selected.focus()
+    }
+  })
+}
+
+const moveSelection = (delta) => {
+  const rows = matchRowEls()
+  if (!rows.length) return
+  if (selectedResultIndex.value < 0) {
+    selectedResultIndex.value = 0
+  } else {
+    selectedResultIndex.value =
+      (selectedResultIndex.value + delta + rows.length) % rows.length
+  }
+  applyRovingSelection().then(() => {
+    matchRowEls()[selectedResultIndex.value]?.focus()
+  })
+}
+
+const handleResultsKeydown = (event) => {
+  if (event.key === 'ArrowDown') {
+    event.preventDefault()
+    moveSelection(1)
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault()
+    moveSelection(-1)
+  }
+}
+// END_BLOCK_KEYBOARD_NAVIGATION
 
 watch(showProjectSearch, (val) => {
   if (val) {

@@ -29,7 +29,9 @@
           :key="index"
           class="text-overflow"
           :title="searchMatch.lineText"
+          tabindex="0"
           @click="handleSearchResultClick(searchMatch)"
+          @keydown.enter="handleSearchResultClick(searchMatch)"
         >
           <!-- <span class="line-number">{{ searchMatch.range[0][0] }}</span> -->
           <span>{{
@@ -58,6 +60,11 @@
 //     restored as the owning-root label — root name plus the relative
 //     directory (`Notes/2026`), hidden when no open root owns the file, so
 //     multi-root search results are attributable at a glance.
+//   - 2026-11-22 C-SEARCH-RESULT-CONTRACT T-004: the match line becomes
+//     keyboard-activatable — the li gains a tabindex binding and
+//     @keydown.enter routing into the existing handleSearchResultClick,
+//     so click and keyboard share one open-at-match code path (mt::open-file
+//     with the cursor built from the honest array-pair range).
 // END_CHANGE_SUMMARY
 import { ref, computed } from 'vue'
 import { useEditorStore } from '@/store/editor'
