@@ -27,6 +27,12 @@ import { captureDocumentSnapshot, inspectDocumentComposition } from '@/util/docu
 import notice from '@/services/notification'
 import { setupTestPinia } from '../pinia'
 
+// The suite's path contract is POSIX (the setup shim installs a posix
+// window.path); under the vite-8 define config.PATH_SEPARATOR follows the
+// BUILD host, which on the Windows CI runner is '\\' and would defeat the
+// trailing-slash canonicalization pins. Pin the separator to the shim's.
+vi.mock('@/config', () => ({ PATH_SEPARATOR: '/' }))
+
 vi.mock('@/services/notification', () => ({
   default: {
     notify: vi.fn(async (_opts: unknown) => undefined)
