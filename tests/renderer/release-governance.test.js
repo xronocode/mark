@@ -913,7 +913,7 @@ describe('release governance', () => {
     // The build hands over a -staged artifact; sign uploads the signed set
     // under the unchanged release artifact names.
     expect(buildJob).toContain('mark-${{ matrix.platform.name }}-release-staged')
-    expect(signJob).toContain('name: mark-${{ matrix.platform.name }}-release\n')
+    expect(signJob).toMatch(/name: mark-\$\{\{ matrix\.platform\.name \}\}-release\r?\n/)
   })
 
   it('fails closed on in-memory mutations of the split boundary', () => {
@@ -1096,7 +1096,7 @@ describe('release governance', () => {
     expect(() =>
       assertSplitPrereleaseEquivalence(
         releaseWorkflow.replace(
-          /^      - name: download admitted check evidence\n        if: needs\.authorize-tag\.outputs\.prerelease != 'true'\r?\n/m,
+          /^      - name: download admitted check evidence\r?\n        if: needs\.authorize-tag\.outputs\.prerelease != 'true'\r?\n/m,
           '      - name: download admitted check evidence\n'
         )
       )
