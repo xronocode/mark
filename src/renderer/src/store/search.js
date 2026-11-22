@@ -34,8 +34,8 @@ import RipgrepDirectorySearcher from '../node/ripgrepSearcher'
 
 // v1.3.0: search lifecycle — one generation claim per runSearch
 // invocation (every early return supersedes) and an honest
-// delivered-match cap in the partial voice; the dead didSearchPaths
-// wire limits are removed (C-SEARCH-LIFECYCLE-DISCARD).
+// delivered-match cap in the partial voice; the dead path-count wire
+// limits are removed (C-SEARCH-LIFECYCLE-DISCARD).
 //
 // START_CHANGE_SUMMARY
 //   LAST_CHANGE: 2026-11-23 - C-SEARCH-LIFECYCLE-DISCARD T-002:
@@ -44,9 +44,9 @@ import RipgrepDirectorySearcher from '../node/ripgrepSearcher'
 //     an invalid max file size now supersedes an in-flight generation,
 //     so its late completion can never resurrect cleared results (the
 //     empty-keyword reset also clears partialResults). The unreachable
-//     didSearchPaths limit (the searchedPaths event never exists on the
-//     wire; the hardcoded English promise wrote the failure voice) is
-//     replaced by an honest delivered-match cap: SEARCH_RESULT_CAP = 100
+//     path-count wire limit (the searchedPaths event never exists on
+//     the wire; the hardcoded English promise wrote the failure voice)
+//     is replaced by an honest delivered-match cap: SEARCH_RESULT_CAP = 100
 //     delivered matches, the crossing envelope sliced to the exact
 //     remaining count, the walk cancelled through the existing
 //     raw-promise seam, and the truncated set marked partial through
