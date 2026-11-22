@@ -1369,6 +1369,9 @@
         <Scenario>
           scenario-msw-cloud-followup (C-MULTI-SOURCE-WORKSPACE fix wave, owner manual acceptance 2026-10-22): walk events coalesce — bootstrap-ipc forwards mt::update-object-tree to ENQUEUE_TREE_EVENT and the store folds batches (timer flush ≤120 ms or 400-event immediate flush; marker BLOCK_TREE_EVENT_BATCH) so adding a whole cloud drive no longer freezes the webview (pre-fix ~30k per-event folds); cloud roots display pretty labels via displayRootName (iCloudDrive-*/com~apple~CloudDocs → «iCloud Drive», OneDrive-* → «OneDrive») and the first add of a cloud root shows the once-per-root online-files hint (workspace.cloudRootHint*, ten locales) — project-workspace.test.ts «cloud follow-up» + bootstrap-ipc.test.ts coalescer forwarding.
         </Scenario>
+        <Scenario>
+          scenario-folder-close-beats-subscribe (C-SEARCH-LIFECYCLE-DISCARD): a folder close racing the watcher subscription cannot leak the renderer listener — ADD_PROJECT mints a per-subscription monotonic token (one module counter, never reset per root) into a token map before subscribing; when CLOSE_PROJECT lands before the subscribe resolves, the late .then re-checks identity, invokes the stale disposer exactly once itself and stores no disposer-map entry for the closed root; a re-opened root's fresh subscription stores its own disposer while open, and a later CLOSE_PROJECT invokes exactly that disposer once while the stale one is never invoked a second time; a subscription resolving while the root is still open stores as before (C-1 pins green) — pinned on the ipcWatchSubscribeMock seam (project.test.ts).
+        </Scenario>
       </Scenarios>
       <Markers>
         <Marker>[ProjectStore][OPEN_FOLDER][BLOCK_OPEN_FOLDER_RESOLVED]</Marker>
