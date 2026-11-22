@@ -148,6 +148,19 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   2026-11-22 C-EXT-EDIT-PROOF: every request-tagged ext mutation answers
+//   one ack/nack verdict through the additive renderer-to-backend Tauri
+//   event mt::ext::text_op_ack ({request_id, op_index, applied, reason},
+//   emitted via the dynamic @tauri-apps/api/event import, like the context
+//   response). The unchanged extBindingMatchesRendered gate stays the
+//   single fail-closed authority: a refused event (foreign/stale/null/
+//   absent binding, no rendered identity, or the diff guard drop — the ext
+//   handlers ride a guard variant that answers) nacks with the stable
+//   content-free reason "targeting_gate_refused"; a Muya apply exception
+//   nacks with "apply_failed", never raw error text; the applied ack
+//   follows the Muya call, never precedes it; an event without requestId
+//   behaves exactly as before with no ack. The verdict correlation pair
+//   (requestId/opIndex) arrives through the textOps relay.
 //   2026-11-21 C-PREFS-TRUTH (frontend F-004): the pinned per-document
 //   theme stays on the document. applyDocumentSurfaceTheme no longer runs
 //   the global addThemeStyle shell path for the pinned id — the pin
@@ -3391,6 +3404,31 @@ const extBindingMatchesRendered = ({ documentId, documentGeneration }) =>
   renderedDocumentOwner.documentToken === documentGeneration
 
 /**
+ * C-EXT-EDIT-PROOF: answer the backend's verdict channel for one ext
+ * mutation. The ack travels renderer-to-backend like the context response
+ * (the mt::ext::text_op_ack listener lives in start_live_server). An event
+ * without a requestId behaves exactly as before — no ack. Reasons are
+ * stable content-free classes: "targeting_gate_refused" for any
+ * pre-mutation refusal and "apply_failed" for a Muya failure — never raw
+ * error text.
+ */
+const emitTextOpAck = async ({ requestId, opIndex }, applied, reason) => {
+  if (requestId == null) return
+  try {
+    const { emit: tauriEmit } = await import('@tauri-apps/api/event')
+    await tauriEmit('mt::ext::text_op_ack', {
+      request_id: requestId,
+      op_index: opIndex,
+      applied,
+      reason
+    })
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[Editor][BLOCK_EXT_TEXT_OP_ACK_FAILED]', err)
+  }
+}
+
+/**
  * Handle extension text.insert: insert text at cursor position.
  * Emitted by textOps.js via bus when the backend receives
  * mt_ext_text_insert from an extension.
@@ -3399,21 +3437,25 @@ const extBindingMatchesRendered = ({ documentId, documentGeneration }) =>
  * provided markdown content. Muya's insertParagraph('after', text, true)
  * inserts a block after the currently focused block.
  */
-const handleExtTextInsert = ({ text, documentId, documentGeneration }) => {
+const handleExtTextInsert = ({ text, requestId, opIndex, documentId, documentGeneration }) => {
   if (!extBindingMatchesRendered({ documentId, documentGeneration })) {
     // eslint-disable-next-line no-console
     console.warn('[Editor][BLOCK_EXT_TARGETING_MISMATCH op=insert]')
+    emitTextOpAck({ requestId, opIndex }, false, 'targeting_gate_refused')
     return
   }
   if (routeSource('insert', text)) return
   if (!editor.value || typeof text !== 'string') return
   try {
     editor.value.insertParagraph('after', text, true)
+    // C-EXT-EDIT-PROOF: the applied ack follows the Muya call, never precedes it.
+    emitTextOpAck({ requestId, opIndex }, true, '')
     // eslint-disable-next-line no-console
     console.log(`[Editor][BLOCK_EXT_TEXT_INSERT_OK len=${text.length}]`)
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('[Editor][BLOCK_EXT_TEXT_INSERT_FAILED]', err)
+    emitTextOpAck({ requestId, opIndex }, false, 'apply_failed')
   }
 }
 
@@ -3425,13 +3467,14 @@ const handleExtTextInsert = ({ text, documentId, documentGeneration }) => {
  * Strategy: get the current selection, use Muya's replace mechanism to
  * substitute the selected text. If nothing is selected, insert at cursor.
  */
-const handleExtTextTransform = ({ text, documentId, documentGeneration }) => {
+const handleExtTextTransform = ({ text, requestId, opIndex, documentId, documentGeneration }) => {
   // C-SEC-EDIT-TARGETING: gate BEFORE the selection/replace branch and
   // before the whole-document setMarkdown fallback below — that fallback
   // is the dangerous path for a mis-targeted apply.
   if (!extBindingMatchesRendered({ documentId, documentGeneration })) {
     // eslint-disable-next-line no-console
     console.warn('[Editor][BLOCK_EXT_TARGETING_MISMATCH op=transform]')
+    emitTextOpAck({ requestId, opIndex }, false, 'targeting_gate_refused')
     return
   }
   if (typeof text === 'string' && routeSource('transform', text)) return
@@ -3449,11 +3492,14 @@ const handleExtTextTransform = ({ text, documentId, documentGeneration }) => {
       // No selection — replace entire document (Edit Agent sends full markdown).
       editor.value.setMarkdown(text)
     }
+    // C-EXT-EDIT-PROOF: the applied ack follows the Muya call, never precedes it.
+    emitTextOpAck({ requestId, opIndex }, true, '')
     // eslint-disable-next-line no-console
     console.log(`[Editor][BLOCK_EXT_TEXT_TRANSFORM_OK len=${text.length} hadSelection=${!!(selection && selection.selectedText)}]`)
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('[Editor][BLOCK_EXT_TEXT_TRANSFORM_FAILED]', err)
+    emitTextOpAck({ requestId, opIndex }, false, 'apply_failed')
   }
 }
 
@@ -3461,20 +3507,24 @@ const handleExtTextTransform = ({ text, documentId, documentGeneration }) => {
  * Handle undo request from an extension.
  * E1a: triggered by TokMo EditAgent "Марк, отмена" command.
  */
-const handleExtUndo = ({ extensionId, documentId, documentGeneration }) => {
+const handleExtUndo = ({ extensionId, requestId, opIndex, documentId, documentGeneration }) => {
   if (!extBindingMatchesRendered({ documentId, documentGeneration })) {
     // eslint-disable-next-line no-console
     console.warn('[Editor][BLOCK_EXT_TARGETING_MISMATCH op=undo]')
+    emitTextOpAck({ requestId, opIndex }, false, 'targeting_gate_refused')
     return
   }
   if (!editor.value) return
   try {
     handleUndo()
+    // C-EXT-EDIT-PROOF: the applied ack follows the Muya call, never precedes it.
+    emitTextOpAck({ requestId, opIndex }, true, '')
     // eslint-disable-next-line no-console
     console.log(`[Editor][BLOCK_EXT_UNDO_OK ext=${extensionId}]`)
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('[Editor][BLOCK_EXT_UNDO_FAILED]', err)
+    emitTextOpAck({ requestId, opIndex }, false, 'apply_failed')
   }
 }
 
@@ -3679,12 +3729,25 @@ const guardDiff = (name, handler) => (...args) => {
   }
   return handler(...args)
 }
+// C-EXT-EDIT-PROOF: the three ext mutation handlers answer their verdict
+// channel even when the guard drops them — a refused event must still
+// answer, never silently hang its batch to timeout. The nack carries the
+// same stable content-free class as a gate refusal.
+const guardDiffAnsweringExt = (name, handler) => (...args) => {
+  if (isDiffMode.value || isReadOnlySurface.value) {
+    console.warn(`[Editor][diffGuarded][BLOCK_DIFF_EDIT_BLOCKED] ${name} ignored while the diff view is open`)
+    emitTextOpAck(args[0] || {}, false, 'targeting_gate_refused')
+    return
+  }
+  return handler(...args)
+}
+const extAnsweringHandlers = new Set(['handleExtTextInsert', 'handleExtTextTransform', 'handleExtUndo'])
 const diffGuarded = Object.fromEntries(
   Object.entries({
     handleUndo, handleRedo, handleEditParagraph, handleInlineFormat, handReplace, insertImage,
     handleUploadedImage, handleCopyPaste, handleParagraph, handleInsertParagraph, handleScreenShot,
     replaceMisspelling, handleExtTextInsert, handleExtTextTransform, handleExtUndo, handleFormatDocument
-  }).map(([name, handler]) => [name, guardDiff(name, handler)])
+  }).map(([name, handler]) => [name, extAnsweringHandlers.has(name) ? guardDiffAnsweringExt(name, handler) : guardDiff(name, handler)])
 )
 
 // END_BLOCK_DIFF_EDIT_GUARD

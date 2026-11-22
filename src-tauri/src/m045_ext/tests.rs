@@ -18,6 +18,47 @@
 // END_MODULE_MAP
 
 // START_CHANGE_SUMMARY
+//   - 2026-11-22 C-EXT-EDIT-PROOF T-006: honest retries — the loopback
+//     scripted-response fixture serve_scripted drives the new invoke pins
+//     invoke_carries_stable_idempotency_key_across_retries (a 503 then a
+//     200 both carry the same idempotency-key header),
+//     invoke_retries_429_once_honoring_retry_after (429 with a small
+//     Retry-After is retried once within the existing attempt budget with
+//     the honored wait) and invoke_retry_after_over_ceiling_waits_no_
+//     longer_than_ceiling (a hostile Retry-After is clamped to the named
+//     ceiling); stream_budget_patch_refuses_over_rate additionally pins
+//     the budget 429's retry-after header (integer seconds, bounded by the
+//     refill period).
+//   - 2026-11-22 C-EXT-EDIT-PROOF T-003: failing-first /ext/apply verdict
+//     and idempotency family — ext_apply_unknown_op_refused_with_zero_events
+//     (400, zero events, no applied:true), the ack verdict legs
+//     ext_apply_acks_applied_batch_200 / ext_apply_gate_cut_nack_answers_
+//     409_with_failed_index / ext_apply_ack_timeout_answers_504 driven by
+//     the new install_ack_responder fixture helper (watches the batch's
+//     mt::text::op events and answers mt::ext::text_op_ack per a script,
+//     silent on a missing entry) and the idempotency family
+//     ext_apply_same_key_replay_returns_recorded_verdict (including a
+//     refusal replay and the dedup-before-fence order proof),
+//     ext_apply_same_key_in_flight_coalesces,
+//     ext_apply_different_keys_apply_independently and
+//     ext_apply_keyless_applies_once — all driven through the wire-faithful
+//     apply_raw JSON path so the optional request_id field rides the same
+//     deserialization a real client uses.
+//   - 2026-11-22 C-EXT-EDIT-PROOF T-001: failing-first dead-route refusal
+//     pins — text_insert_authorized_emits_with_requester_identity moves to
+//     text_insert_authorized_request_refused_not_implemented (an authorized
+//     /ext/text-insert answers 501 with the stable deprecated-route reason
+//     naming the /ext/context + /ext/apply alternative, zero events) and
+//     text_insert_authorized_old_shape_body_emits to
+//     text_insert_authorized_old_shape_body_still_parses (the v1 body still
+//     parses through TextInsertRequest; the honest 501 refusal); the four
+//     401 gate pins stay green unchanged; the new command pins
+//     mt_ext_text_insert_refuses_when_enabled and
+//     mt_ext_text_transform_refuses_when_enabled drive the commands through
+//     the mock-runtime fixture registry (stable ext_text_op_refused, zero
+//     mt::text::op events) with the get_manifest-refusal companions
+//     mt_ext_text_insert_refuses_when_disabled and
+//     mt_ext_text_transform_refuses_when_unregistered kept green.
 //   - 2026-11-21 C-SEC-EXT-GRANT-BOUND T-004: grant-matrix regressions — the fixture establishes the pairing grant beside the injected secret (plus a grant-less legacy-shape variant), the migrated pin enabled_extension_passes_only_declared_capability_routes keeps name/statuses/event counts while its stream 200 becomes grant-derived and gains a grant-less stream 401, and the new pins pairing_persists_the_captured_grant, grow_after_pairing_enable_is_refused_to_reapproval, stream_requires_stored_stream_document_grant, legacy_credential_without_grant_fails_closed, rebind_refused_when_new_key_fails_verification and pair_keychain_read_error_is_a_distinct_refusal cover F-001/F-002/F-03 fail-closed, grow-refusal and honest-replace semantics; DummyCredential gains a fail_write mode and cleanup clears grants.
 //   - 2026-11-20 C-SEC-EDIT-TARGETING: document-bound context/apply matrix — the fixture context responder hands tab-{id} plus a fresh per-request document-gen-N generation and records the last handed pair on the fixture, the apply request literals gain explicit binding arguments (apply_bound beside the unbound apply_fixture), four new pins (context_response_carries_document_binding, apply_requires_binding_fields 400, apply_requires_matching_context_binding 409/200 with the binding inside the op payload, apply_stale_instance_binding_refused), and the C-SEC-STREAM-SCOPE family reconciled without weakening: apply_requires_text_edit_capability and fresh_pairing_restores_access move every apply-200 expectation onto dual-capability (context.read + text.edit) fixtures that read context first, single-capability text.edit applies pin the fence statuses (400/409, zero events), and every auth/capability 401 keeps its status.
 //   - 2026-11-20 C-SEC-STREAM-SCOPE: capability-scoped incoming routes — flipped the over-grant pin to per-route denial, added the context/apply permission matrix, the pairing-grant-description unit pin and capability-scoped fresh-pairing restoral.
@@ -924,7 +965,7 @@ fn extension_dirs_include_config() {
 // START_BLOCK_INCOMING_DATA_TESTS
 use axum::{extract::State, http::{HeaderMap, StatusCode}, response::IntoResponse, Json};
 use std::sync::{Arc, Mutex};
-use tauri::{Listener, Manager};
+use tauri::{Emitter, Listener, Manager};
 
 struct IncomingFixture {
     app: tauri::App<tauri::test::MockRuntime>,
@@ -1082,27 +1123,96 @@ async fn text_insert_refuses_missing_capability() {
     assert_eq!(f.credential.reads.load(std::sync::atomic::Ordering::Relaxed), 0);
 }
 
+// C-EXT-EDIT-PROOF: the authorized /ext/text-insert request is refused at
+// the source — the deprecated unbound route answers 501 NOT_IMPLEMENTED
+// with a stable machine reason naming the live /ext/context read plus
+// /ext/apply alternative and emits no mt::text::op event the editor
+// targeting gate would drop anyway.
+
 #[tokio::test]
-async fn text_insert_authorized_emits_with_requester_identity() {
+async fn text_insert_authorized_request_refused_not_implemented() {
     let f = incoming_fixture(true, "text.insert");
-    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::OK);
-    let events = f.events.lock().unwrap();
-    assert_eq!(events.len(), 1);
-    assert_eq!(events[0]["extension_id"], f.id);
-    assert_eq!(events[0]["payload"]["text"], "fixture text");
+    let response = super::live_server::handle_text_insert(State(f.state.clone()), bearer_headers(Some(&f.token)),
+        Json(serde_json::from_value(serde_json::json!({"text": "fixture text", "source": "fixture"})).unwrap()))
+        .await.into_response();
+    assert_eq!(response.status(), StatusCode::NOT_IMPLEMENTED);
+    let bytes = axum::body::to_bytes(response.into_body(), 8192).await.unwrap();
+    let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    let error = body["error"].as_str().unwrap().to_string();
+    assert!(error.contains("text-insert route deprecated"), "error must name the deprecated route: {error}");
+    assert!(error.contains("/ext/context"), "error must name the live read alternative: {error}");
+    assert!(error.contains("/ext/apply"), "error must name the live apply alternative: {error}");
+    assert!(f.events.lock().unwrap().is_empty(), "zero mt::text::op events on the route refusal");
     assert_eq!(f.credential.reads.load(std::sync::atomic::Ordering::Relaxed), 1);
 }
 
 #[tokio::test]
-async fn text_insert_authorized_old_shape_body_emits() {
+async fn text_insert_authorized_old_shape_body_still_parses() {
     let f = incoming_fixture(true, "text.insert");
-    // The actual server schema deserializes the v1 body without an id field.
+    // The actual server schema still deserializes the v1 body without an id
+    // field — the request shape stays frozen; only the honest refusal moves.
     let req: super::live_server::TextInsertRequest = serde_json::from_str(r#"{"text":"old body","source":"paired fixture"}"#).unwrap();
-    let status = super::live_server::handle_text_insert(State(f.state.clone()), bearer_headers(Some(&f.token)), Json(req))
-        .await.into_response().status();
-    assert_eq!(status, StatusCode::OK);
-    assert_eq!(f.events.lock().unwrap()[0]["payload"]["text"], "old body");
+    let response = super::live_server::handle_text_insert(State(f.state.clone()), bearer_headers(Some(&f.token)), Json(req))
+        .await.into_response();
+    assert_eq!(response.status(), StatusCode::NOT_IMPLEMENTED);
+    let bytes = axum::body::to_bytes(response.into_body(), 8192).await.unwrap();
+    let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert!(body["error"].as_str().unwrap().contains("text-insert route deprecated"));
+    assert!(f.events.lock().unwrap().is_empty());
+    assert_eq!(f.credential.reads.load(std::sync::atomic::Ordering::Relaxed), 1);
 }
+
+// START_BLOCK_EXT_TEXT_OPS_COMMAND_TESTS
+// C-EXT-EDIT-PROOF: the mt_ext_text_insert / mt_ext_text_transform commands
+// refuse on a registered, enabled extension — their unbound events are
+// dropped by the editor targeting gate, so the dead command routes answer
+// the stable string-code refusal instead of emitting; the registry
+// get_manifest refusals (disabled / unregistered) keep their existing
+// semantics unchanged.
+
+#[tokio::test]
+async fn mt_ext_text_insert_refuses_when_enabled() {
+    let f = incoming_fixture(true, "text.insert");
+    let error = super::mt_ext_text_insert(
+        f.app.handle().clone(), f.id.clone(), "fixture text".to_string(), None, f.app.state::<ExtRegistry>(),
+    ).await.unwrap_err();
+    assert_eq!(error, "ext_text_op_refused");
+    assert!(f.events.lock().unwrap().is_empty(), "zero mt::text::op events on the command refusal");
+    assert_eq!(f.credential.reads.load(std::sync::atomic::Ordering::Relaxed), 0);
+}
+
+#[tokio::test]
+async fn mt_ext_text_transform_refuses_when_enabled() {
+    let f = incoming_fixture(true, "text.insert");
+    let error = super::mt_ext_text_transform(
+        f.app.handle().clone(), f.id.clone(), "fixture text".to_string(), f.app.state::<ExtRegistry>(),
+    ).await.unwrap_err();
+    assert_eq!(error, "ext_text_op_refused");
+    assert!(f.events.lock().unwrap().is_empty(), "zero mt::text::op events on the command refusal");
+    assert_eq!(f.credential.reads.load(std::sync::atomic::Ordering::Relaxed), 0);
+}
+
+#[tokio::test]
+async fn mt_ext_text_insert_refuses_when_disabled() {
+    let f = incoming_fixture(false, "text.insert");
+    let error = super::mt_ext_text_insert(
+        f.app.handle().clone(), f.id.clone(), "fixture text".to_string(), None, f.app.state::<ExtRegistry>(),
+    ).await.unwrap_err();
+    assert!(error.contains("disabled"), "{error}");
+    assert!(f.events.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn mt_ext_text_transform_refuses_when_unregistered() {
+    let f = incoming_fixture(true, "text.insert");
+    let missing = format!("{}-never-registered", f.id);
+    let error = super::mt_ext_text_transform(
+        f.app.handle().clone(), missing, "fixture text".to_string(), f.app.state::<ExtRegistry>(),
+    ).await.unwrap_err();
+    assert!(error.contains("not found"), "{error}");
+    assert!(f.events.lock().unwrap().is_empty());
+}
+// END_BLOCK_EXT_TEXT_OPS_COMMAND_TESTS
 
 #[tokio::test]
 async fn context_requires_context_read_capability() {
@@ -1124,6 +1234,9 @@ async fn apply_requires_text_edit_capability() {
     // through.
     let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
     assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    // C-EXT-EDIT-PROOF: the apply 200 is verdict-backed — the fixture acks
+    // the batch applied.
+    install_ack_responder(&f, ack_script(&[(0, true, "")]));
     let (document_id, document_generation) = handed_binding(&f);
     assert_eq!(apply_bound(&f, &f.token, Some(document_id), Some(document_generation)).await, StatusCode::OK);
     {
@@ -1197,6 +1310,8 @@ async fn apply_requires_matching_context_binding() {
     // After the context read the exact handed pair is accepted, and the
     // binding travels inside the emitted op payload.
     assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    // C-EXT-EDIT-PROOF: the verdict-backed 200 — the fixture acks applied.
+    install_ack_responder(&f, ack_script(&[(0, true, "")]));
     let (document_id, document_generation) = handed_binding(&f);
     assert_eq!(apply_bound(&f, &f.token, Some(document_id.clone()), Some(document_generation.clone())).await, StatusCode::OK);
     let events = f.events.lock().unwrap();
@@ -1212,6 +1327,9 @@ async fn apply_stale_instance_binding_refused() {
     let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
     // First instance: gen-1 is handed and the matching apply is applied.
     assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    // C-EXT-EDIT-PROOF: both matched applies below are verdict-backed; the
+    // fence-refused applies stay event-free without any responder.
+    install_ack_responder(&f, ack_script(&[(0, true, "")]));
     let (document_id, generation_1) = handed_binding(&f);
     assert_eq!(generation_1, "document-gen-1");
     assert_eq!(apply_bound(&f, &f.token, Some(document_id.clone()), Some(generation_1.clone())).await, StatusCode::OK);
@@ -1237,6 +1355,309 @@ impl Drop for IncomingFixture {
         super::auth::clear_test_grant(&self.id);
     }
 }
+
+// START_BLOCK_EXT_APPLY_VERDICT_TESTS
+// C-EXT-EDIT-PROOF: /ext/apply answers by fact — the op set is validated
+// before any emission, every emitted payload carries the server-issued
+// batch request id and its op index, and the handler answers by the
+// renderer's ack verdicts (200 applied / 409 failed index with the applied
+// prefix / 504 bounded ack timeout). Apply batches are idempotent by the
+// optional client request id: a replay answers the recorded first verdict
+// with an additive duplicate marker and re-emits nothing, a same-key
+// in-flight retry coalesces onto the pending verdict, and a keyless batch
+// applies with no dedup promise. The binding fence stays ahead of every
+// event; the dedup short-circuit sits after authentication and before the
+// fence.
+
+/// The per-op ack script: op_index -> Some((applied, reason)); a missing
+/// index or a None entry stays silent, modeling a swallowed verdict or a
+/// torn-down renderer listener.
+type AckScript = Arc<Mutex<std::collections::HashMap<u64, Option<(bool, String)>>>>;
+
+/// C-EXT-EDIT-PROOF: the renderer-side ack responder beside the
+/// mt::ext::context_request responder. It watches the batch's mt::text::op
+/// events and, per the script, answers mt::ext::text_op_ack
+/// {request_id, op_index, applied, reason}; silence is the default, so all
+/// verdict legs (200/409/504) are drivable headlessly.
+fn install_ack_responder(f: &IncomingFixture, script: AckScript) {
+    let handle = f.app.handle().clone();
+    f.app.listen("mt::text::op", move |event| {
+        let payload: serde_json::Value = serde_json::from_str(event.payload()).unwrap();
+        let request_id = payload["payload"]["request_id"].as_str().map(str::to_string);
+        let op_index = payload["payload"]["op_index"].as_u64();
+        let (Some(request_id), Some(op_index)) = (request_id, op_index) else { return };
+        let answer = script.lock().unwrap().get(&op_index).cloned().flatten();
+        if let Some((applied, reason)) = answer {
+            handle.emit("mt::ext::text_op_ack", serde_json::json!({
+                "request_id": request_id,
+                "op_index": op_index,
+                "applied": applied,
+                "reason": reason,
+            })).unwrap();
+        }
+    });
+    // The test fixture bridges the emitted ack event into the production
+    // resolution entry — the same function the start_live_server listener
+    // calls, mirroring how the context responder replaces the production
+    // listener wiring.
+    f.app.listen("mt::ext::text_op_ack", |event| {
+        super::live_server::resolve_text_op_ack(event.payload());
+    });
+}
+
+fn ack_script(entries: &[(u64, bool, &str)]) -> AckScript {
+    Arc::new(Mutex::new(entries.iter()
+        .map(|(index, applied, reason)| (*index, Some((*applied, (*reason).to_string()))))
+        .collect::<std::collections::HashMap<_, _>>()))
+}
+
+/// Drive /ext/apply with a raw JSON request body — wire-faithful: the
+/// optional request id rides the same deserialization a real client uses
+/// (a field this build does not know is ignored by serde), and the handler
+/// runs concurrently so the fixture ack responder owns the verdict channel
+/// while the batch is pending.
+async fn apply_raw(f: &IncomingFixture, token: &str, request: serde_json::Value) -> (StatusCode, serde_json::Value) {
+    let state = f.state.clone();
+    let headers = bearer_headers(Some(token));
+    let req: super::live_server::ExtApplyRequest = serde_json::from_value(request).unwrap();
+    let pending = tokio::spawn(async move {
+        super::live_server::handle_ext_apply(State(state), headers, Json(req)).await.into_response()
+    });
+    let response = tokio::time::timeout(std::time::Duration::from_secs(60), pending)
+        .await
+        .expect("apply round trip must finish well within the fixture budget")
+        .unwrap();
+    let status = response.status();
+    let bytes = axum::body::to_bytes(response.into_body(), 65536).await.unwrap();
+    let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap_or(serde_json::Value::Null);
+    (status, body)
+}
+
+async fn bound_apply_request(f: &IncomingFixture, operations: serde_json::Value) -> serde_json::Value {
+    let (document_id, document_generation) = handed_binding(f);
+    serde_json::json!({
+        "extension_id": f.id.clone(),
+        "document_id": document_id,
+        "document_generation": document_generation,
+        "operations": operations,
+    })
+}
+
+#[tokio::test]
+async fn ext_apply_unknown_op_refused_with_zero_events() {
+    let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    let request = bound_apply_request(&f, serde_json::json!([
+        {"op_type": "insert_at_cursor", "content": "valid op"},
+        {"op_type": "op_type_the_wire_never_defined", "content": "??"}
+    ])).await;
+    let (status, body) = apply_raw(&f, &f.token, request).await;
+    // The unknown op refuses the whole batch before any emission — never
+    // the skipped-and-counted 200 the predecessor answered.
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert!(body.get("applied").is_none(), "a refused batch never answers applied: {body}");
+    assert!(f.events.lock().unwrap().is_empty(), "zero events: an unvalidated op never emits");
+}
+
+#[tokio::test]
+async fn ext_apply_acks_applied_batch_200() {
+    let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    install_ack_responder(&f, ack_script(&[(0, true, ""), (1, true, "")]));
+    let request = bound_apply_request(&f, serde_json::json!([
+        {"op_type": "insert_at_cursor", "content": "first"},
+        {"op_type": "replace_selection", "content": "second"}
+    ])).await;
+    let (status, body) = apply_raw(&f, &f.token, request).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["applied"], true);
+    assert_eq!(body["operations_count"], 2);
+    let events = f.events.lock().unwrap();
+    assert_eq!(events.len(), 2);
+    // Every emitted payload names the server-issued batch request id and
+    // the op index; both ops of one batch share the request id and the
+    // binding still rides the payload.
+    let request_id = events[0]["payload"]["request_id"].as_str().unwrap().to_string();
+    assert!(!request_id.is_empty(), "the batch request id is server-issued and non-empty");
+    assert_eq!(events[0]["payload"]["op_index"], 0);
+    assert_eq!(events[1]["payload"]["op_index"], 1);
+    assert_eq!(events[1]["payload"]["request_id"], request_id.as_str());
+    assert_eq!(events[0]["payload"]["document_generation"], handed_binding(&f).1);
+}
+
+#[tokio::test]
+async fn ext_apply_gate_cut_nack_answers_409_with_failed_index() {
+    let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    // Op 0 applies, op 1 is cut by the targeting gate class.
+    install_ack_responder(&f, ack_script(&[(0, true, ""), (1, false, "targeting_gate_refused")]));
+    let request = bound_apply_request(&f, serde_json::json!([
+        {"op_type": "insert_at_cursor", "content": "applies"},
+        {"op_type": "replace_selection", "content": "cut"}
+    ])).await;
+    let (status, body) = apply_raw(&f, &f.token, request).await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    let error = body["error"].as_str().unwrap().to_string();
+    assert!(error.contains("1"), "the error names the failed op index: {error}");
+    assert!(error.contains("1 of 1 earlier operations applied"), "the error names the applied prefix: {error}");
+    assert!(body.get("applied").is_none(), "a refused batch never answers applied: {body}");
+    // Zero further events: emission stops at the nacked op.
+    assert_eq!(f.events.lock().unwrap().len(), 2, "op 0 emitted, the nacked op emitted, nothing further");
+}
+
+#[tokio::test]
+async fn ext_apply_ack_timeout_answers_504() {
+    let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    // A silent renderer: the ack script holds no entry.
+    install_ack_responder(&f, ack_script(&[]));
+    let request = bound_apply_request(&f, serde_json::json!([
+        {"op_type": "insert_at_cursor", "content": "never acknowledged"}
+    ])).await;
+    let (status, body) = apply_raw(&f, &f.token, request).await;
+    assert_eq!(status, StatusCode::GATEWAY_TIMEOUT);
+    let error = body["error"].as_str().unwrap().to_string();
+    assert!(error.contains("ack timeout"), "the timeout reason is stable: {error}");
+    assert!(body.get("applied").is_none(), "a timed-out batch never answers applied: {body}");
+}
+
+#[tokio::test]
+async fn ext_apply_same_key_replay_returns_recorded_verdict() {
+    // Applied leg: two posts with the same request id emit exactly once and
+    // the second response equals the recorded first verdict with an
+    // additive duplicate marker.
+    let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    install_ack_responder(&f, ack_script(&[(0, true, "")]));
+    let request = bound_apply_request(&f, serde_json::json!([
+        {"op_type": "insert_at_cursor", "content": "idempotent"}
+    ])).await;
+    let mut keyed = request.clone();
+    keyed["request_id"] = serde_json::json!("key-replay-applied");
+    let (status_1, body_1) = apply_raw(&f, &f.token, keyed.clone()).await;
+    assert_eq!(status_1, StatusCode::OK);
+    assert_eq!(body_1["applied"], true);
+    let (status_2, body_2) = apply_raw(&f, &f.token, keyed).await;
+    assert_eq!(status_2, status_1);
+    assert_eq!(body_2["applied"], body_1["applied"]);
+    assert_eq!(body_2["operations_count"], body_1["operations_count"]);
+    assert_eq!(body_2["duplicate"], true, "the replay carries the additive duplicate marker");
+    assert_eq!(f.events.lock().unwrap().len(), 1, "the replay re-emits nothing");
+
+    // Refusal leg: a recorded refusal verdict replays the same way.
+    let refused = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    assert_eq!(context_fixture(&refused, &refused.token).await, StatusCode::OK);
+    install_ack_responder(&refused, ack_script(&[(0, false, "targeting_gate_refused")]));
+    let request = bound_apply_request(&refused, serde_json::json!([
+        {"op_type": "replace_selection", "content": "refused"}
+    ])).await;
+    let mut keyed_refusal = request.clone();
+    keyed_refusal["request_id"] = serde_json::json!("key-replay-refused");
+    let (refused_status_1, refused_body_1) = apply_raw(&refused, &refused.token, keyed_refusal.clone()).await;
+    assert_eq!(refused_status_1, StatusCode::CONFLICT);
+    let (refused_status_2, refused_body_2) = apply_raw(&refused, &refused.token, keyed_refusal).await;
+    assert_eq!(refused_status_2, refused_status_1);
+    assert_eq!(refused_body_2["error"], refused_body_1["error"]);
+    assert_eq!(refused_body_2["duplicate"], true);
+    assert_eq!(refused.events.lock().unwrap().len(), 1);
+
+    // Fence-order proof: a context re-read replaces the remembered
+    // generation, so the replay echoes a binding the fence would now
+    // refuse — yet the dedup short-circuit (which sits after
+    // authentication and before the fence) answers the recorded verdict.
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    let (stale_status, stale_body) = apply_raw(&f, &f.token, keyed_clone_of(&f, "key-replay-applied")).await;
+    assert_eq!(stale_status, status_1, "the dedup hit precedes the binding fence");
+    assert_eq!(stale_body["duplicate"], true);
+    assert_eq!(f.events.lock().unwrap().len(), 1, "the replay through the stale binding re-emits nothing");
+}
+
+/// Rebuild the bound apply request with the stale first-read generation and
+/// the named request key — the replay the dedup must answer ahead of the
+/// fence.
+fn keyed_clone_of(f: &IncomingFixture, key: &str) -> serde_json::Value {
+    let (document_id, _) = handed_binding(f);
+    let first_generation = "document-gen-1".to_string();
+    serde_json::json!({
+        "extension_id": f.id.clone(),
+        "request_id": key,
+        "document_id": document_id,
+        "document_generation": first_generation,
+        "operations": [{"op_type": "insert_at_cursor", "content": "idempotent"}],
+    })
+}
+
+#[tokio::test]
+async fn ext_apply_same_key_in_flight_coalesces() {
+    let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    install_ack_responder(&f, ack_script(&[(0, true, "")]));
+    let mut request = bound_apply_request(&f, serde_json::json!([
+        {"op_type": "insert_at_cursor", "content": "coalesced"}
+    ])).await;
+    request["request_id"] = serde_json::json!("key-in-flight");
+    let (status_a, body_a) = apply_raw(&f, &f.token, request.clone()).await;
+    let (status_b, body_b) = apply_raw(&f, &f.token, request).await;
+    // Both callers share the pending verdict; whichever arrived second (an
+    // in-flight coalesce or a terminal replay) answers the verdict with the
+    // duplicate marker instead of emitting again.
+    assert_eq!(status_a, StatusCode::OK);
+    assert_eq!(status_b, status_a);
+    assert_eq!(body_a["applied"], true);
+    assert_eq!(body_b["applied"], true);
+    let duplicate_marks = [body_a.get("duplicate"), body_b.get("duplicate")];
+    assert_eq!(
+        duplicate_marks.iter().filter(|mark| mark.is_some_and(|value| value.as_bool() == Some(true))).count(),
+        1,
+        "exactly one of the same-key pair answers as the duplicate: {body_a} / {body_b}",
+    );
+    assert_eq!(f.events.lock().unwrap().len(), 1, "one emit for the same-key pair");
+}
+
+#[tokio::test]
+async fn ext_apply_different_keys_apply_independently() {
+    let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    install_ack_responder(&f, ack_script(&[(0, true, "")]));
+    let request = bound_apply_request(&f, serde_json::json!([
+        {"op_type": "insert_at_cursor", "content": "independent"}
+    ])).await;
+    let mut first = request.clone();
+    first["request_id"] = serde_json::json!("key-independent-a");
+    let mut second = request;
+    second["request_id"] = serde_json::json!("key-independent-b");
+    let (status_a, body_a) = apply_raw(&f, &f.token, first).await;
+    let (status_b, body_b) = apply_raw(&f, &f.token, second).await;
+    assert_eq!(status_a, StatusCode::OK);
+    assert_eq!(status_b, StatusCode::OK);
+    assert_eq!(body_a["applied"], true);
+    assert_eq!(body_b["applied"], true);
+    assert!(body_a.get("duplicate").is_none(), "a distinct-key apply is not a duplicate: {body_a}");
+    assert!(body_b.get("duplicate").is_none(), "a distinct-key apply is not a duplicate: {body_b}");
+    assert_eq!(f.events.lock().unwrap().len(), 2, "distinct keys emit independently");
+}
+
+#[tokio::test]
+async fn ext_apply_keyless_applies_once() {
+    let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    install_ack_responder(&f, ack_script(&[(0, true, "")]));
+    // An absent key applies once per post — the server mints its ack
+    // correlation id and makes no dedup promise, so no legacy caller is
+    // refused and no duplicate marker appears.
+    let request = bound_apply_request(&f, serde_json::json!([
+        {"op_type": "insert_at_cursor", "content": "keyless"}
+    ])).await;
+    let (status_a, body_a) = apply_raw(&f, &f.token, request.clone()).await;
+    let (status_b, body_b) = apply_raw(&f, &f.token, request).await;
+    assert_eq!(status_a, StatusCode::OK);
+    assert_eq!(status_b, StatusCode::OK);
+    assert_eq!(body_a["applied"], true);
+    assert_eq!(body_b["applied"], true);
+    assert!(body_a.get("duplicate").is_none(), "a keyless post holds no dedup promise: {body_a}");
+    assert_eq!(f.events.lock().unwrap().len(), 2, "each keyless post emits its batch exactly once");
+}
+// END_BLOCK_EXT_APPLY_VERDICT_TESTS
 
 // START_BLOCK_DISABLE_AUTH_TESTS
 #[derive(Default)]
@@ -1305,7 +1726,7 @@ async fn apply_bound(
 ) -> StatusCode {
     super::live_server::handle_ext_apply(State(f.state.clone()), bearer_headers(Some(token)),
         Json(super::live_server::ExtApplyRequest {
-            extension_id: f.id.clone(), undo_label: None,
+            extension_id: f.id.clone(), undo_label: None, request_id: None,
             document_id, document_generation,
             operations: vec![super::live_server::EditOperation { op_type: "insert_at_cursor".to_string(), content: Some("fixture edit".to_string()) }],
         })).await.into_response().status()
@@ -1372,8 +1793,11 @@ async fn enabled_extension_passes_only_declared_capability_routes() {
     let f = incoming_fixture(true, "text.insert");
     assert_eq!(context_fixture(&f, &f.token).await, StatusCode::UNAUTHORIZED);
     assert_eq!(apply_fixture(&f, &f.token).await, StatusCode::UNAUTHORIZED);
-    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::OK);
-    assert_eq!(f.events.lock().unwrap().len(), 1);
+    // C-EXT-EDIT-PROOF: the declared route still admits the caller past the
+    // gate — where the deprecated insert route answers the honest 501 with
+    // zero events instead of the removed ok:true emission.
+    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::NOT_IMPLEMENTED);
+    assert!(f.events.lock().unwrap().is_empty());
     let other = incoming_fixture(true, "stream.document");
     assert_eq!(context_fixture(&other, &other.token).await, StatusCode::UNAUTHORIZED);
     assert_eq!(apply_fixture(&other, &other.token).await, StatusCode::UNAUTHORIZED);
@@ -1462,6 +1886,8 @@ async fn fresh_pairing_restores_access() {
     super::mt_ext_enable(editor.id.clone(), editor.app.state()).await.unwrap();
     assert_eq!(apply_fixture(&editor, &editor.token).await, StatusCode::UNAUTHORIZED);
     assert_eq!(context_fixture(&editor, &fresh_edit).await, StatusCode::OK);
+    // C-EXT-EDIT-PROOF: the verdict-backed apply 200 — the fixture acks applied.
+    install_ack_responder(&editor, ack_script(&[(0, true, "")]));
     let (document_id, document_generation) = handed_binding(&editor);
     assert_eq!(apply_bound(&editor, &fresh_edit, Some(document_id), Some(document_generation)).await, StatusCode::OK);
     assert_eq!(editor.events.lock().unwrap().len(), 1);
@@ -1478,14 +1904,16 @@ async fn fresh_pairing_restores_access() {
     assert_eq!(apply_fixture(&reader, &fresh_read).await, StatusCode::UNAUTHORIZED);
     assert_eq!(insert_fixture(&reader, Some(&fresh_read)).await, StatusCode::UNAUTHORIZED);
 
-    // A text.insert pairing restores exactly the insert route.
+    // A text.insert pairing restores exactly the insert route: the fresh
+    // token is admitted past the gate, where C-EXT-EDIT-PROOF answers the
+    // honest 501 route refusal with zero events; the old token stays fenced.
     let inserter = incoming_fixture(true, "text.insert");
     super::mt_ext_disable(inserter.id.clone(), inserter.app.state(), inserter.app.handle().clone()).await.unwrap();
     assert_old_token_fenced(&inserter).await;
     let fresh_insert = fresh_pair_secret(&inserter).await;
     super::mt_ext_enable(inserter.id.clone(), inserter.app.state()).await.unwrap();
-    assert_eq!(insert_fixture(&inserter, Some(&fresh_insert)).await, StatusCode::OK);
-    assert_eq!(inserter.events.lock().unwrap().len(), 1);
+    assert_eq!(insert_fixture(&inserter, Some(&fresh_insert)).await, StatusCode::NOT_IMPLEMENTED);
+    assert!(inserter.events.lock().unwrap().is_empty());
     assert_eq!(context_fixture(&inserter, &fresh_insert).await, StatusCode::UNAUTHORIZED);
     assert_eq!(apply_fixture(&inserter, &fresh_insert).await, StatusCode::UNAUTHORIZED);
     assert_eq!(insert_fixture(&inserter, Some(&inserter.token)).await, StatusCode::UNAUTHORIZED);
@@ -1851,6 +2279,144 @@ async fn invoke_redirect_response_not_followed() {
     assert!(origin_server.join().unwrap().is_some());
     assert!(target_server.join().unwrap().is_none(), "health probe followed its redirect");
 }
+
+/// C-EXT-EDIT-PROOF: serve a scripted sequence of responses, one per
+/// incoming connection on the SAME loopback listener, collecting each
+/// observed request — the honest-retry fixture for the invoke pins (the
+/// internal retries reuse one URL, so both attempts land here).
+fn serve_scripted(
+    listener: std::net::TcpListener,
+    responses: Vec<(&'static str, String, &'static str)>,
+    wait_ms: u64,
+) -> std::thread::JoinHandle<Vec<String>> {
+    use std::io::{Read, Write};
+    listener.set_nonblocking(true).unwrap();
+    std::thread::spawn(move || {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_millis(wait_ms);
+        let mut observed = Vec::new();
+        for (status, headers, body) in responses {
+            let response = format!("HTTP/1.1 {status}\r\nContent-Length: {}\r\nConnection: close\r\n{headers}\r\n{body}", body.len());
+            let mut stream = loop {
+                match listener.accept() {
+                    Ok((stream, _)) => break stream,
+                    Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                        if std::time::Instant::now() >= deadline { return observed; }
+                        std::thread::sleep(std::time::Duration::from_millis(5));
+                    },
+                    Err(e) => panic!("fixture accept failed: {e}"),
+                }
+            };
+            stream.set_nonblocking(false).unwrap();
+            stream.set_read_timeout(Some(std::time::Duration::from_secs(2))).unwrap();
+            let mut request = Vec::new();
+            loop {
+                let mut bytes = [0u8; 4096];
+                let len = stream.read(&mut bytes).unwrap();
+                if len == 0 { break; }
+                request.extend_from_slice(&bytes[..len]);
+                assert!(request.len() < 16384, "fixture request bound");
+                if let Some(end) = request.windows(4).position(|part| part == b"\r\n\r\n") {
+                    let text = String::from_utf8_lossy(&request[..end]);
+                    let content_length = text.lines().find_map(|line| {
+                        let (name, value) = line.split_once(':')?;
+                        name.eq_ignore_ascii_case("content-length").then(|| value.trim().parse::<usize>().unwrap())
+                    }).unwrap_or(0);
+                    if request.len() >= end + 4 + content_length { break; }
+                }
+            }
+            stream.write_all(response.as_bytes()).unwrap();
+            observed.push(String::from_utf8(request).unwrap());
+        }
+        observed
+    })
+}
+
+fn observed_header(request: &str, header: &str) -> Option<String> {
+    request.to_ascii_lowercase().lines().find_map(|line| {
+        line.strip_prefix(&format!("{header}: ")).map(str::trim).map(str::to_string)
+    })
+}
+
+#[tokio::test]
+async fn invoke_carries_stable_idempotency_key_across_retries() {
+    let listener = fixture_listener("INVOKE_IDEMPOTENCY");
+    let mut manifest = test_manifest("idempotency-invoke-fixture");
+    manifest.discovery.base_url = format!("http://{}", listener.local_addr().unwrap());
+    manifest.invoke.timeout_secs = 5;
+    let server = serve_scripted(listener, vec![
+        ("503 Service Unavailable", String::new(), "unavailable"),
+        ("200 OK", String::new(), r#"{"fixture":"ok"}"#),
+    ], 5000);
+    let result = super::invoke::invoke_extension(&manifest, "text.insert", serde_json::json!({"text":"dummy body"}), Some("dummy-fixture-bearer"))
+        .await.unwrap();
+    assert_eq!(result["fixture"], "ok");
+    let requests = server.join().unwrap();
+    assert_eq!(requests.len(), 2, "the 503 was retried once");
+    let keys: Vec<Option<String>> = requests.iter()
+        .map(|request| observed_header(request, "idempotency-key"))
+        .collect();
+    let first = keys[0].clone().expect("every attempt carries the idempotency-key header");
+    assert!(!first.is_empty(), "the key is generated per logical call: {first}");
+    assert_eq!(keys[1], Some(first), "the same logical call reuses one key across retries");
+}
+
+#[tokio::test]
+async fn invoke_retries_429_once_honoring_retry_after() {
+    let listener = fixture_listener("INVOKE_429_RETRY");
+    let mut manifest = test_manifest("retry-429-invoke-fixture");
+    manifest.discovery.base_url = format!("http://{}", listener.local_addr().unwrap());
+    manifest.invoke.timeout_secs = 5;
+    let server = serve_scripted(listener, vec![
+        ("429 Too Many Requests", "retry-after: 1\r\n".to_string(), "slow down"),
+        ("200 OK", String::new(), r#"{"fixture":"ok"}"#),
+    ], 5000);
+    let started = std::time::Instant::now();
+    let result = super::invoke::invoke_extension(&manifest, "text.insert", serde_json::json!({"text":"dummy body"}), Some("dummy-fixture-bearer"))
+        .await.unwrap();
+    assert_eq!(result["fixture"], "ok");
+    let requests = server.join().unwrap();
+    assert_eq!(requests.len(), 2, "the 429 joined the existing single-retry budget");
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed >= std::time::Duration::from_millis(900),
+        "the wait honored the Retry-After header: {elapsed:?}"
+    );
+    assert!(
+        elapsed < std::time::Duration::from_secs(4),
+        "the honored wait stays bounded: {elapsed:?}"
+    );
+}
+
+#[tokio::test]
+async fn invoke_retry_after_over_ceiling_waits_no_longer_than_ceiling() {
+    let listener = fixture_listener("INVOKE_429_CEILING");
+    let mut manifest = test_manifest("ceiling-invoke-fixture");
+    manifest.discovery.base_url = format!("http://{}", listener.local_addr().unwrap());
+    manifest.invoke.timeout_secs = 5;
+    // A hostile Retry-After of 30 s must be clamped to the named ceiling.
+    let server = serve_scripted(listener, vec![
+        ("429 Too Many Requests", "retry-after: 30\r\n".to_string(), "slow down"),
+        ("200 OK", String::new(), r#"{"fixture":"ok"}"#),
+    ], 8000);
+    let started = std::time::Instant::now();
+    let result = super::invoke::invoke_extension(&manifest, "text.insert", serde_json::json!({"text":"dummy body"}), Some("dummy-fixture-bearer"))
+        .await.unwrap();
+    assert_eq!(result["fixture"], "ok");
+    let requests = server.join().unwrap();
+    assert_eq!(requests.len(), 2, "the clamped 429 was still retried once");
+    let elapsed = started.elapsed();
+    // The named ceiling: INVOKE_RETRY_MAX_WAIT = Duration::from_millis(2000)
+    // (pinned by the plan; the implementation declares the same constant).
+    let ceiling = std::time::Duration::from_millis(2000);
+    assert!(
+        elapsed >= ceiling - std::time::Duration::from_millis(100),
+        "the honored wait fills up to the ceiling: {elapsed:?} vs {ceiling:?}"
+    );
+    assert!(
+        elapsed < ceiling + std::time::Duration::from_millis(1100),
+        "a Retry-After over the ceiling never stalls the invoke: {elapsed:?} vs {ceiling:?}"
+    );
+}
 // END_BLOCK_LOOPBACK_URL_TESTS
 
 // START_BLOCK_STREAM_SECURITY_TESTS
@@ -2148,9 +2714,18 @@ async fn stream_budget_patch_refuses_over_rate() {
     let events_before = f.live_events.lock().unwrap().len();
 
     // A new-seq patch on the current base revision hits the exhausted
-    // bucket: 429 with the rate budget named.
+    // bucket: 429 with the rate budget named and the honest Retry-After
+    // header (integer seconds, bounded by the refill period).
     let response = budget_patch(&f, "session-budget-rate", 2, 2, "delta-2").await;
     assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+    let retry_after = response.headers().get("retry-after")
+        .expect("the budget 429 sends Retry-After")
+        .to_str().unwrap();
+    let retry_seconds: u64 = retry_after.parse().expect("integer seconds: {retry_after}");
+    assert!(
+        retry_seconds > 0 && retry_seconds <= super::live_server::STREAM_BUDGET_REFILL_SECS,
+        "Retry-After is bounded by STREAM_BUDGET_REFILL_SECS: {retry_seconds}"
+    );
     let body = budget_body(response).await;
     let error = body["error"].as_str().unwrap().to_string();
     assert!(error.contains("STREAM_BUDGET_RATE_PER_MINUTE"), "error must name the rate budget: {error}");

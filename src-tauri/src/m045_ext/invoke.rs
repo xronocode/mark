@@ -21,12 +21,33 @@
 // END_MODULE_MAP
 
 // START_CHANGE_SUMMARY
+//   - 2026-11-22 C-EXT-EDIT-PROOF T-006: honest retries — invoke_extension
+//     generates one idempotency key per logical call (in-tree secret
+//     generator) and attaches the idempotency-key header to every attempt;
+//     the retry policy reads the retry-after header (integer seconds) on
+//     503 and 429 and sleeps the honored value clamped to the bounded
+//     ceiling INVOKE_RETRY_MAX_WAIT = 2s (a missing or unparsable header
+//     falls back to the short default pause), with 429 joining the
+//     existing single-retry budget so the total attempt count stays two;
+//     the fixed unconditional sleeps are gone. The loopback-only binding,
+//     no-proxy, no-redirect, redirect-not-followed contract, capability
+//     check, URL validation and the InvokeRequest wire body are unchanged.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES T-005: parsed loopback recipients and no redirect/proxy escape.
 // END_CHANGE_SUMMARY
 
 use crate::m045_ext::manifest::ExtensionManifest;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
+
+/// C-EXT-EDIT-PROOF: the bounded ceiling on any Retry-After-honored wait —
+/// a hostile or broken header can never stall the invoke beyond this bound
+/// (the same order as the previous fixed pause).
+pub const INVOKE_RETRY_MAX_WAIT: Duration = Duration::from_millis(2000);
+
+/// C-EXT-EDIT-PROOF: the short pause when no usable Retry-After arrives —
+/// the same short pause the retry loop always used, still clamped below
+/// INVOKE_RETRY_MAX_WAIT.
+const INVOKE_DEFAULT_RETRY_WAIT_MS: u64 = 500;
 
 // START_BLOCK_INVOKE_ERROR
 #[derive(Debug, Serialize, Deserialize)]
@@ -63,8 +84,28 @@ struct InvokeRequest<'a> {
 // END_BLOCK_INVOKE_REQUEST
 
 // START_BLOCK_INVOKE
-/// Invoke an extension capability via HTTP POST. Retries once on 503
-/// (Service Unavailable). Timeout is taken from manifest.invoke.timeout_secs.
+/// C-EXT-EDIT-PROOF: read the retry-after header (integer seconds) and
+/// sleep the honored value clamped to INVOKE_RETRY_MAX_WAIT — a hostile or
+/// broken header can never stall the invoke; a missing or unparsable
+/// header falls back to the short default pause (itself bounded by the
+/// ceiling).
+fn retry_after_wait(headers: &reqwest::header::HeaderMap) -> Duration {
+    let requested = headers
+        .get("retry-after")
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.trim().parse::<u64>().ok())
+        .map(Duration::from_secs)
+        .unwrap_or(Duration::from_millis(INVOKE_DEFAULT_RETRY_WAIT_MS));
+    requested.min(INVOKE_RETRY_MAX_WAIT)
+}
+
+/// Invoke an extension capability via HTTP POST. Retries once on 503 and
+/// once on 429 (the same single-retry budget — the total attempt count
+/// stays two), honoring a bounded Retry-After wait. C-EXT-EDIT-PROOF: one
+/// idempotency-key header value per logical call, reused across the
+/// internal retries so a retried request is recognizable as the same
+/// operation by the extension. Timeout is taken from
+/// manifest.invoke.timeout_secs.
 pub async fn invoke_extension(
     manifest: &ExtensionManifest,
     capability: &str,
@@ -118,9 +159,16 @@ pub async fn invoke_extension(
         payload: &payload,
     };
 
-    // First attempt + one retry on 503.
+    // C-EXT-EDIT-PROOF: one key per logical call — every attempt of this
+    // loop carries the same value.
+    let idempotency_key = super::auth::generate_secret();
+
+    // First attempt + one retry on 503 or 429.
     for attempt in 0..2u8 {
-        let mut req = client.post(url.clone()).json(&body);
+        let mut req = client
+            .post(url.clone())
+            .header("idempotency-key", idempotency_key.as_str())
+            .json(&body);
         if let Some(token) = auth_token {
             req = req.bearer_auth(token);
         }
@@ -144,12 +192,26 @@ pub async fn invoke_extension(
                 return Ok(json);
             }
             Ok(resp) if resp.status().as_u16() == 503 && attempt == 0 => {
+                let wait = retry_after_wait(resp.headers());
                 safe_eprintln!(
-                    "[ExtHost][invoke][BLOCK_503_RETRY id={} cap={capability}]",
-                    manifest.id
+                    "[ExtHost][invoke][BLOCK_503_RETRY id={} cap={capability} wait_ms={}]",
+                    manifest.id,
+                    wait.as_millis()
                 );
-                // Brief pause before retry.
-                tokio::time::sleep(Duration::from_millis(500)).await;
+                // Honored, bounded pause before retry.
+                tokio::time::sleep(wait).await;
+                continue;
+            }
+            Ok(resp) if resp.status().as_u16() == 429 && attempt == 0 => {
+                let wait = retry_after_wait(resp.headers());
+                safe_eprintln!(
+                    "[ExtHost][invoke][BLOCK_429_RETRY id={} cap={capability} wait_ms={}]",
+                    manifest.id,
+                    wait.as_millis()
+                );
+                // Honored, bounded pause; 429 joins the existing
+                // single-retry budget (attempt count stays two).
+                tokio::time::sleep(wait).await;
                 continue;
             }
             Ok(resp) => {
@@ -170,8 +232,9 @@ pub async fn invoke_extension(
                     manifest.id
                 );
                 if attempt == 0 && e.is_connect() {
-                    // Retry once on connection error.
-                    tokio::time::sleep(Duration::from_millis(500)).await;
+                    // Retry once on connection error with the short
+                    // bounded pause.
+                    tokio::time::sleep(Duration::from_millis(INVOKE_DEFAULT_RETRY_WAIT_MS)).await;
                     continue;
                 }
                 return Err(InvokeError {

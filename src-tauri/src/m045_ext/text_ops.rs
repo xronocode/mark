@@ -2,20 +2,35 @@
 // START_MODULE_CONTRACT
 //   PURPOSE: M-045 text operation capabilities for extensions.
 //            Provides text.insert and text.transform commands that
-//            extensions can invoke to modify the active editor document.
-//            Backend receives the payload and emits Tauri events to the
-//            frontend, where the editor (Muya) applies the changes.
+//            extensions could invoke to modify the active editor document.
+//            C-EXT-EDIT-PROOF: both commands refuse — their unbound
+//            mt::text::op events were always dropped by the editor
+//            targeting gate, so the routes answer the stable refusal code
+//            instead of emitting; /ext/apply under the binding gate is the
+//            one live mutation path.
 //   SCOPE:   Two Tauri commands: mt_ext_text_insert and
 //            mt_ext_text_transform. Each validates the calling extension
-//            is enabled, then emits a typed event to the renderer.
-//            Actual text manipulation happens in the frontend via Muya API.
-//   DEPENDS: tauri (AppHandle, Emitter), serde/serde_json, ExtRegistry.
+//            is registered and enabled, then refuses with the stable
+//            ext_text_op_refused string code (no event). The document-
+//            bound mutation path is POST /ext/apply (live_server.rs).
+//   DEPENDS: tauri (AppHandle), serde/serde_json, ExtRegistry.
 //   LINKS:   .grace/graph/features.xml M-045;
 //            .grace/graph/features.xml M-045 (PhaseRef Phase-B4);
 //            ROADMAP.md Decision D1 (HTTP POST IPC).
-//   STATUS:  Phase-B4 initial — text.insert + text.transform.
+//   STATUS:  C-EXT-EDIT-PROOF — commands refuse at the source.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-22 C-EXT-EDIT-PROOF T-002: the dead command routes refuse at
+//     the source — mt_ext_text_insert and mt_ext_text_transform answer the
+//     stable Err("ext_text_op_refused") (BLOCK_TEXT_INSERT_REFUSED /
+//     BLOCK_TEXT_TRANSFORM_REFUSED) after the unchanged registry
+//     get_manifest refusal and emit no mt::text::op; names, parameters,
+//     parameter order and allowlist entries stay byte-identical (the app
+//     parameter rides the established generic-runtime command shape of
+//     mt_ext_disable), and the now-unreachable emit path (emit_text_op
+//     with its mt::text::op emit, BLOCK_EMIT / BLOCK_EMIT_FAILED, the
+//     payload constructions and the insert/transform OK log markers)
+//     is removed.
 //   - 2026-06-08 B4: initial text_ops module creation.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
@@ -26,22 +41,11 @@
 // END_MODULE_MAP
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Emitter};
+use tauri::AppHandle;
 
 use super::registry::ExtRegistry;
 
 // START_BLOCK_TYPES
-
-/// Payload for the text.insert operation. Extensions send text to be
-/// inserted at the current cursor position (or at an explicit position
-/// if provided).
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TextInsertPayload {
-    /// The text (Markdown) to insert.
-    pub text: String,
-    /// Optional cursor position. If None, insert at current cursor.
-    pub position: Option<CursorPosition>,
-}
 
 /// Cursor position descriptor. Matches Muya's cursor coordinate model.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -52,16 +56,10 @@ pub struct CursorPosition {
     pub ch: u32,
 }
 
-/// Payload for the text.transform operation. Extensions send replacement
-/// text for the current selection.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TextTransformPayload {
-    /// Replacement text for the current selection.
-    pub text: String,
-}
-
 /// Event payload emitted to the frontend for text operations.
 /// The frontend textOps listener discriminates on `op_type`.
+/// C-EXT-EDIT-PROOF: only the document-bound /ext/apply emit in
+/// live_server.rs still constructs this event.
 #[derive(Debug, Clone, Serialize)]
 pub struct TextOpEvent {
     /// Operation type: "insert" or "transform".
@@ -74,41 +72,21 @@ pub struct TextOpEvent {
 
 // END_BLOCK_TYPES
 
-// START_BLOCK_EMIT
-
-/// Emit a text operation event to the frontend.
-///
-/// Event name `mt::text::op` follows the project convention established
-/// in bootstrap-ipc.js (all Tauri events use `mt::` prefix).
-fn emit_text_op(app: &AppHandle, event: TextOpEvent) -> Result<(), String> {
-    safe_eprintln!(
-        "[ExtHost][text_ops][BLOCK_EMIT op_type={} ext={}]",
-        event.op_type,
-        event.extension_id,
-    );
-
-    app.emit("mt::text::op", &event)
-        .map_err(|e| {
-            safe_eprintln!(
-                "[ExtHost][text_ops][BLOCK_EMIT_FAILED op_type={} reason={e}]",
-                event.op_type,
-            );
-            e.to_string()
-        })
-}
-
-// END_BLOCK_EMIT
-
 // START_BLOCK_TAURI_COMMANDS
 
 /// Insert text at the cursor position in the active editor.
 ///
-/// The extension must be enabled and registered. The actual text insertion
-/// is performed by the frontend Muya instance — this command only validates
-/// and relays the payload as a Tauri event.
+/// C-EXT-EDIT-PROOF: this route refuses at the source. The unbound
+/// mt::text::op event it used to emit is dropped by the editor targeting
+/// gate (an unbound event never matches the rendered document), so the
+/// honest answer is the stable string-code refusal instead of a success
+/// for an operation that can never be applied. The extension must still be
+/// registered and enabled — the registry.get_manifest refusal keeps its
+/// existing error.
 #[tauri::command]
-pub async fn mt_ext_text_insert(
-    app: AppHandle,
+#[allow(unused_variables)]
+pub async fn mt_ext_text_insert<R: tauri::Runtime>(
+    app: AppHandle<R>,
     extension_id: String,
     text: String,
     position: Option<CursorPosition>,
@@ -117,37 +95,23 @@ pub async fn mt_ext_text_insert(
     // Verify the extension is registered and enabled.
     let _manifest = registry.get_manifest(&extension_id)?;
 
-    let payload = TextInsertPayload {
-        text: text.clone(),
-        position: position.clone(),
-    };
-
-    emit_text_op(&app, TextOpEvent {
-        op_type: "insert".to_string(),
-        payload: serde_json::to_value(&payload).map_err(|e| {
-            safe_eprintln!(
-                "[ExtHost][text_ops][BLOCK_SERIALIZE_FAILED op=insert reason={e}]"
-            );
-            format!("serialize payload: {e}")
-        })?,
-        extension_id: extension_id.clone(),
-    })?;
-
     safe_eprintln!(
-        "[ExtHost][text_ops][BLOCK_INSERT_OK ext={extension_id} len={}]",
+        "[ExtHost][text_ops][BLOCK_TEXT_INSERT_REFUSED ext={extension_id} len={}]",
         text.len()
     );
-    Ok(())
+    Err("ext_text_op_refused".to_string())
 }
 
 /// Transform (replace) the currently selected text in the active editor.
 ///
-/// The extension must be enabled and registered. The actual text replacement
-/// is performed by the frontend Muya instance — this command only validates
-/// and relays the payload as a Tauri event.
+/// C-EXT-EDIT-PROOF: this route refuses at the source, mirroring
+/// mt_ext_text_insert — the stable string-code refusal replaces the
+/// unbound event emission the targeting gate always dropped; the
+/// registry.get_manifest refusal keeps its existing error.
 #[tauri::command]
-pub async fn mt_ext_text_transform(
-    app: AppHandle,
+#[allow(unused_variables)]
+pub async fn mt_ext_text_transform<R: tauri::Runtime>(
+    app: AppHandle<R>,
     extension_id: String,
     text: String,
     registry: tauri::State<'_, ExtRegistry>,
@@ -155,26 +119,11 @@ pub async fn mt_ext_text_transform(
     // Verify the extension is registered and enabled.
     let _manifest = registry.get_manifest(&extension_id)?;
 
-    let payload = TextTransformPayload {
-        text: text.clone(),
-    };
-
-    emit_text_op(&app, TextOpEvent {
-        op_type: "transform".to_string(),
-        payload: serde_json::to_value(&payload).map_err(|e| {
-            safe_eprintln!(
-                "[ExtHost][text_ops][BLOCK_SERIALIZE_FAILED op=transform reason={e}]"
-            );
-            format!("serialize payload: {e}")
-        })?,
-        extension_id: extension_id.clone(),
-    })?;
-
     safe_eprintln!(
-        "[ExtHost][text_ops][BLOCK_TRANSFORM_OK ext={extension_id} len={}]",
+        "[ExtHost][text_ops][BLOCK_TEXT_TRANSFORM_REFUSED ext={extension_id} len={}]",
         text.len()
     );
-    Ok(())
+    Err("ext_text_op_refused".to_string())
 }
 
 // END_BLOCK_TAURI_COMMANDS

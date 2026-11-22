@@ -334,6 +334,102 @@ describe('textOps listener – extended coverage', () => {
     })
   })
 
+  // ── requestId/opIndex relay (C-EXT-EDIT-PROOF) ──────────────
+
+  it('forwards requestId/opIndex on the ext-text-insert emit', async () => {
+    await initTextOpsListener()
+    eventHandler({
+      payload: {
+        op_type: 'insert',
+        payload: { text: 'hello', position: 5, request_id: 'apply-1', op_index: 0 },
+        extension_id: 'ext1'
+      }
+    })
+    expect(busMock.emit).toHaveBeenCalledWith('ext-text-insert', {
+      text: 'hello',
+      position: 5,
+      extensionId: 'ext1',
+      requestId: 'apply-1',
+      opIndex: 0
+    })
+  })
+
+  it('forwards requestId/opIndex on the ext-text-transform emit', async () => {
+    await initTextOpsListener()
+    eventHandler({
+      payload: {
+        op_type: 'transform',
+        payload: { text: 'UPPER', request_id: 'apply-2', op_index: 1 },
+        extension_id: 'ext2'
+      }
+    })
+    expect(busMock.emit).toHaveBeenCalledWith('ext-text-transform', {
+      text: 'UPPER',
+      extensionId: 'ext2',
+      requestId: 'apply-2',
+      opIndex: 1
+    })
+  })
+
+  it('forwards requestId/opIndex on the ext-undo emit', async () => {
+    await initTextOpsListener()
+    eventHandler({
+      payload: {
+        op_type: 'undo',
+        payload: { request_id: 'apply-3', op_index: 2 },
+        extension_id: 'ext3'
+      }
+    })
+    expect(busMock.emit).toHaveBeenCalledWith('ext-undo', {
+      extensionId: 'ext3',
+      requestId: 'apply-3',
+      opIndex: 2
+    })
+  })
+
+  it('a payload without request fields forwards undefined requestId/opIndex', async () => {
+    await initTextOpsListener()
+    eventHandler({
+      payload: {
+        op_type: 'insert',
+        payload: { text: 'keyless', position: null },
+        extension_id: 'ext1'
+      }
+    })
+    eventHandler({
+      payload: {
+        op_type: 'transform',
+        payload: { text: 'keyless' },
+        extension_id: 'ext2'
+      }
+    })
+    eventHandler({
+      payload: {
+        op_type: 'undo',
+        payload: {},
+        extension_id: 'ext3'
+      }
+    })
+    expect(busMock.emit).toHaveBeenNthCalledWith(1, 'ext-text-insert', {
+      text: 'keyless',
+      position: null,
+      extensionId: 'ext1',
+      requestId: undefined,
+      opIndex: undefined
+    })
+    expect(busMock.emit).toHaveBeenNthCalledWith(2, 'ext-text-transform', {
+      text: 'keyless',
+      extensionId: 'ext2',
+      requestId: undefined,
+      opIndex: undefined
+    })
+    expect(busMock.emit).toHaveBeenNthCalledWith(3, 'ext-undo', {
+      extensionId: 'ext3',
+      requestId: undefined,
+      opIndex: undefined
+    })
+  })
+
   // ── Context request ─────────────────────────────────────────
 
   it('handles context_request event — emits ext-context-request', async () => {

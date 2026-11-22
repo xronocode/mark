@@ -1,0 +1,466 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-EXT-EDIT-PROOF>
+    <ChangeRef>C-EXT-EDIT-PROOF</ChangeRef>
+    <Created>2026-11-22</Created>
+    <IntentSummary>Make the M-045 extension edit pipeline answer by fact: the two dead unbound insertion routes refuse at the source — POST /ext/text-insert answers 501 Not Implemented with a stable machine reason naming the deprecated route and the live /ext/context read + /ext/apply alternative, and the mt_ext_text_insert/mt_ext_text_transform commands refuse with a stable Err code — so no mt::text::op event is emitted for an insert the editor targeting gate always drops; /ext/apply validates the operation set before any emission (unknown op_type refuses the whole batch 400 with zero events), every emitted operation payload carries a server-issued batch request id and op index, the renderer answers through one new additive Tauri event mt::ext::text_op_ack ({request_id, op_index, applied, reason}) with the gate staying the single fail-closed authority, and the handler answers 200 {applied, operations_count} only on a fully ack'd batch, 409 naming the failed op index and applied prefix on a nack, 504 on a bounded per-batch ack timeout; apply batches become idempotent by an optional client request id backed by a bounded process-local dedup whose registration atomically precedes the first emit (a replay returns the recorded verdict with a duplicate marker, a same-key in-flight retry coalesces); the outbound invoke carries a stable Idempotency-Key across its internal retries, honors Retry-After on 503 and 429 with a bounded named ceiling while 429 joins the existing single-retry budget, and Mark's own budget rate 429 starts sending Retry-After derived from the bucket refill. Proven by moved and new failing-first cargo m045_ext tests (dead-route refusal, command refusal, unknown-op 400, ack legs 200/409/504, key idempotency, invoke key-and-Retry-After, budget 429 header) and the renderer suites (textOps relay requestId/opIndex pins, editor_ext_targeting verdict pins with the new event-emit mock), with the C-SEC-EDIT-TARGETING binding matrix, capability/grant suites, rebind, stream-auth and C-STREAM-BUDGET budgets passing unchanged in meaning and exactly two text-insert pins moved as the spec names them.</IntentSummary>
+    <ReferenceState>SpecSha256 = 24e7e72da2b92436109dad738b8c9d991767f9ab9d82226b22e93ca551908e89 (pinned over the approved spec.xml at admission; the orchestrator computes and replaces this placeholder from the approved spec bytes). Authored 2026-11-22 against the current read-only state of the green-ext1 worktree (branch spec/ext-edit-proof, base bb68fd6c), post C-SEC-EDIT-TARGETING / C-SEC-STREAM-SCOPE / C-SEC-PAIR-REBIND / C-SEC-EXT-GRANT-BOUND / C-STREAM-BUDGET. src-tauri/src/m045_ext/live_server.rs: LiveServerState (161-169: session, next_epoch, app_handle, pending_context std::sync::Mutex&lt;HashMap&lt;String, oneshot::Sender&lt;ExtContextResponse&gt;&gt;&gt;); CONTEXT_REQUEST_COUNTER (268); the C-SEC-EDIT-TARGETING process-global EXT_DOCUMENT_BINDINGS static (281-288) whose doc comment states the pattern "deliberately NOT a LiveServerState field, so the struct literal in src-tauri/src/main.rs stays untouched"; TextInsertRequest (260-264, v1 {text, source}); ExtApplyRequest (331-343: extension_id, operations, undo_label, document_id, document_generation — no request key); EditOperation (345-350: op_type, content); ExtApplyResponse (352-356: applied, operations_count); authenticate_incoming (686-711, grant-derived per #298); router (1906-1914: /ext/pair, /ext/text-insert 1908, /ext/context 1909, /ext/apply 1910, /stream/*); handle_text_insert (1542-1587: authenticate_incoming TextInsert 1547, BLOCK_TEXT_INSERT 1551-1555, payload json!({"text", "position": null}) 1557-1560, direct app_handle.emit("mt::text::op") 1568 with a 500 emit-failure branch 1569-1576, BLOCK_TEXT_INSERT_OK 1578-1581, {"ok": true} answer 1583-1586); handle_ext_context (1593-1680: request_id "ctx_{n}" 1607-1610, pending_context oneshot 1612-1617, live_bridge::emit_context_request 1619-1633, 5 s timeout 1635, 504 GATEWAY_TIMEOUT {"error": "frontend did not respond within 5s"} 1674-1677 with BLOCK_EXT_CONTEXT_TIMEOUT); handle_ext_apply (1689-1811: capability gate 1694-1696, 400 missing-binding fence 1705-1714, 409 mismatch fence 1716-1737, emit loop 1745-1796 building payloads with document_id/document_generation and skipping unknown op_type with continue 1771-1776 (BLOCK_EXT_APPLY_UNKNOWN_OP), 500 emit-failure branch 1785-1795, unconditional 200 ExtApplyResponse {applied: true, operations_count: req.operations.len()} 1798-1810); /stream/patch seq dedup precedent (1218-1240: req.seq &lt;= session.last_seq short-circuits 200 duplicate:true BEFORE validation and apply); budget rate refusal (1303-1328: decide_rate_admission, BLOCK_STREAM_BUDGET_RATE_EXCEEDED 1310-1316, 429 TOO_MANY_REQUESTS error body 1317-1327 with NO Retry-After header; constants STREAM_BUDGET_RATE_PER_MINUTE/STREAM_BUDGET_RATE_BURST/STREAM_BUDGET_REFILL_SECS at 95-102); SERVER_BOOT block (1888-1974) with the mt::ext::context_response listener registered in start_live_server (1949-1969) — the precedent the ack listener joins. src-tauri/src/m045_ext/text_ops.rs: MODULE_CONTRACT (2-22), TextInsertPayload (38-44, no binding), TextTransformPayload (57-61), TextOpEvent (65-73), emit_text_op emitting "mt::text::op" (83-98), mt_ext_text_insert (109-141: registry.get_manifest refusal 118, payload 120-123, emit 125-134, BLOCK_INSERT_OK 136-139, Ok(())), mt_ext_text_transform (148-178, same shape, BLOCK_TRANSFORM_OK 173-176); the commands are registered (src-tauri/src/main.rs:971-972) and allowlisted (src-tauri/src/m001_validate.rs:103-104) with no renderer caller in src. src-tauri/src/m045_ext/invoke.rs: MODULE_CONTRACT (2-17) and CHANGE_SUMMARY (23-25); InvokeRequest {capability, payload} (58-62, no key); invoke_extension (68-190): capability check 74-91, loopback URL BLOCK_URL_REFUSED 93-97, client builder .no_proxy() + redirect::Policy::none() + manifest timeout (100-114), retry loop "for attempt in 0..2u8" (122-183): bearer_auth 124-126, success BLOCK_INVOKE_OK 129-144, single 503 retry 146-154 with the fixed tokio::time::sleep(Duration::from_millis(500)) at 152, terminal BadStatus BLOCK_BAD_STATUS 155-166, single connect-error retry 167-176 with the fixed sleep at 174; no Idempotency-Key header anywhere and "Retry-After" absent from src-tauri (repo grep empty). src-tauri/src/m045_ext/tests.rs: fixture family (924-1039: incoming_fixture 942, incoming_fixture_caps 950, incoming_fixture_grantless 957, incoming_fixture_with_grant 961-1035 with the mt::text::op event recorder 995-997, the mt::live::update recorder 1007-1009 and the mt::ext::context_request responder 1019-1033 handing tab-{id}/document-gen-{n}); insert_fixture (1049-1053, v1 body); the four 401 gate pins (1056-1083); text_insert_authorized_emits_with_requester_identity (1086-1094, today 200 + exactly one event) and text_insert_authorized_old_shape_body_emits (1097-1105, today 200 + event, v1 deserialization pin inside); the C-SEC-EDIT-TARGETING binding matrix (1158-1231); DummyCredential (1243-1251 with fail_read/fail_write/keep_after_delete); the GRANT_BOUND block (1495-1678); the invoke loopback harness — fixture_listener (1741-1750) and serve_fixture (1753-1796) — with invoke_honest_loopback_ok (1798-1812), probe_health_honest_loopback_ok (1814-1824) and invoke_redirect_response_not_followed (1826-1853); the budget suite (2055-2395) including stream_budget_patch_refuses_over_rate (2124-2187). src/renderer/src/components/editorWithTabs/editor.vue: START_BLOCK_EXT_TEXT_OPS (3375-3479) — the gate doc comment naming /ext/text-insert and the text_ops.rs commands as dropped unbound events (3384-3386), extBindingMatchesRendered (3388-3391), handleExtTextInsert (3402-3418: gate 3403-3407, insertParagraph 3411, catch 3414-3417), handleExtTextTransform (3428-3458: gate 3432-3436, setMarkdown fallback 3450, catch 3454-3457), handleExtUndo (3464-3479: gate 3465-3469); bus.on registrations ext-text-insert/ext-text-transform/ext-undo/ext-context-request (3865-3868) and bus.off (4122-4125); the context response emit via dynamic import("@tauri-apps/api/event") then tauriEmit("mt::ext::context_response", {request_id, context}) (3606-3617). src/renderer/src/components/extensionGallery/textOps.js: the pure relay (MODULE_CONTRACT 2-29) — handleTextOp (68-85), handleInsert (96-116, bus.emit ext-text-insert 104-110), handleTransform (124-143, emit 132-137), handleUndo (152-161, emit 153-157) forwarding only extensionId/documentId/documentGeneration — no request_id or op_index relay exists. tests/renderer/components/textOps.test.js: the base relay suite whose exact-object emit pins (42-52) keep passing under added undefined fields because vitest toEqual ignores undefined properties. tests/renderer/components/extensionGallery/textOps.test.js: the extended relay suite with binding-forwarding pins (243-335) including the undefined-forward pin (294-335). tests/renderer/components/editor-coverage.test.js: the editor_ext_targeting describe (3076-3245) — refusal pins driving getBusHandler directly (3100-3183), matched-apply pins (3185-3227), the diff-guard pin (3229-3244); its vi.mock list (199-283) contains NO "@tauri-apps/api/event" mock, so any new Tauri emit from the ext handlers needs one. Graph: .grace/graph/features.xml M-045 ends at line 2376 with its last SummaryDelta C-SEC-EXT-GRANT-BOUND (2375); .grace/graph/runtime.xml M-011 (2634-3837) with its last SummaryDelta C-SESSION-WRITE-ATOMICITY (3836); .grace/verification/features.xml V-M-045 (1978-2425) with the executed Command entry (1981) and scenario entries ending at scenario-security-stream-budget (2424). Design decisions locked by this plan (plan-level constants within the bounds the spec pins): (1) refusal constants — POST /ext/text-insert answers 501 with body {"error": "text-insert route deprecated: use POST /ext/context then POST /ext/apply"} and no event; the commands answer Err("ext_text_op_refused") with distinct BLOCK_TEXT_INSERT_REFUSED / BLOCK_TEXT_TRANSFORM_REFUSED logs; (2) ack constants — event mt::ext::text_op_ack carrying {request_id, op_index, applied, reason}; timeout constant EXT_APPLY_ACK_TIMEOUT_SECS = 5 applied per batch (one deadline for the whole batch, not per operation); nack reason strings are stable content-free classes: "targeting_gate_refused" for any pre-mutation refusal (binding gate, no rendered identity, diff guard) and "apply_failed" for a Muya failure (never raw error text); (3) verdict answers — 200 {"applied": true, "operations_count": n} only when every op ack'd applied; 409 {"error": ...} naming the failed op index and the applied prefix with BLOCK_EXT_APPLY_NOT_APPLIED; 504 with BLOCK_EXT_APPLY_ACK_TIMEOUT; unknown op_type pre-emission validation refuses 400 with BLOCK_EXT_APPLY_BATCH_UNKNOWN_OP; (4) idempotency — ExtApplyRequest gains optional "request_id"; the dedup store EXT_APPLY_VERDICTS is a process-global bounded map (EXT_APPLY_DEDUP_CAP = 256 recent entries, evict-oldest insertion, cleared on restart) keyed by extension id plus request id, mirroring the EXT_DOCUMENT_BINDINGS process-global pattern so the LiveServerState literal in main.rs stays untouched; a keyless batch mints "apply_{n}" for ack correlation only; the same-key in-flight attempt coalesces onto the pending verdict; replay answers the recorded first verdict (same status, same body) with an additive "duplicate": true marker and re-emits nothing; the dedup short-circuit runs after authentication and before the binding fence, and key registration happens atomically under the dedup mutex BEFORE the first emit; (5) invoke constants — the key header literal "idempotency-key" generated once per logical call and reused across internal retries, the honored header literal "retry-after" read on 503 and 429, the bounded ceiling INVOKE_RETRY_MAX_WAIT = Duration::from_millis(2000) (same order as the current fixed 500 ms sleep), 429 joining the existing attempt budget so the total attempt count stays two; (6) budget Retry-After — integer seconds derived from the bucket refill, bounded by STREAM_BUDGET_REFILL_SECS, attached to the existing 429 body answer. Deviation note (one, deliberate): the spec enumerates an exact eleven-file ObservedWriteScope; this plan appends .grace/verification/features.xml because the spec's own constraints require the GRACE verification surface to stay synchronized and task T-007 records the V-M-045 evidence there — the same extension the C-SEC-EXT-GRANT-BOUND plan applied over its spec. Per the drafting instruction this plan carries no self-referential grace-lint MustPassCommand; the orchestrator runs current/target/final lifecycle assertions itself. Writing this draft approves neither the execution plan nor code implementation, apply/archive, commits, departure into main, manual-acceptance exceptions or release.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-045</Value>
+        <Value>M-011</Value>
+        <Value>src-tauri/src/m045_ext/live_server.rs</Value>
+        <Value>src-tauri/src/m045_ext/text_ops.rs</Value>
+        <Value>src-tauri/src/m045_ext/invoke.rs</Value>
+        <Value>src-tauri/src/m045_ext/tests.rs</Value>
+        <Value>src/renderer/src/components/extensionGallery/textOps.js</Value>
+        <Value>src/renderer/src/components/editorWithTabs/editor.vue</Value>
+        <Value>tests/renderer/components/extensionGallery/textOps.test.js</Value>
+        <Value>tests/renderer/components/textOps.test.js</Value>
+        <Value>tests/renderer/components/editor-coverage.test.js</Value>
+        <Value>.grace/graph/features.xml</Value>
+        <Value>.grace/graph/runtime.xml</Value>
+        <Value>.grace/verification/features.xml</Value>
+      </MustExist>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>{"ok": true}</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_TEXT_INSERT_OK</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_EXT_APPLY_UNKNOWN_OP</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>operations_count: req.operations.len()</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>mt::ext::context_response</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_STREAM_BUDGET_RATE_EXCEEDED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/text_ops.rs</File>
+        <Text>pub async fn mt_ext_text_insert</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/text_ops.rs</File>
+        <Text>pub async fn mt_ext_text_transform</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/text_ops.rs</File>
+        <Text>app.emit("mt::text::op", &amp;event)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/invoke.rs</File>
+        <Text>for attempt in 0..2u8</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/invoke.rs</File>
+        <Text>Duration::from_millis(500)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>text_insert_authorized_emits_with_requester_identity</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>stream_budget_patch_refuses_over_rate</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>fn serve_fixture</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/extensionGallery/textOps.js</File>
+        <Text>documentId: payload.document_id</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>extBindingMatchesRendered</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>BLOCK_EXT_TARGETING_MISMATCH</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/editor-coverage.test.js</File>
+        <Text>editor_ext_targeting</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/extensionGallery/textOps.test.js</File>
+        <Text>forwards the document binding on the ext-text-insert emit</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/features.xml</File>
+        <Text>C-SEC-EXT-GRANT-BOUND (2026-11-21)</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/runtime.xml</File>
+        <Text>C-SEC-EDIT-TARGETING: the four extension handlers</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/features.xml</File>
+        <Text>scenario-security-stream-budget</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-045</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-011</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>StatusCode::NOT_IMPLEMENTED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>text-insert route deprecated</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>mt::ext::text_op_ack</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>EXT_APPLY_ACK_TIMEOUT_SECS</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_EXT_APPLY_BATCH_UNKNOWN_OP</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_EXT_APPLY_NOT_APPLIED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_EXT_APPLY_ACK_TIMEOUT</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_EXT_APPLY_DUPLICATE</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_EXT_APPLY_COALESCED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>EXT_APPLY_DEDUP_CAP</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>"request_id"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>"op_index"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>retry-after</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/text_ops.rs</File>
+        <Text>ext_text_op_refused</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/text_ops.rs</File>
+        <Text>BLOCK_TEXT_INSERT_REFUSED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/text_ops.rs</File>
+        <Text>BLOCK_TEXT_TRANSFORM_REFUSED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/invoke.rs</File>
+        <Text>idempotency-key</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/invoke.rs</File>
+        <Text>retry-after</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/invoke.rs</File>
+        <Text>INVOKE_RETRY_MAX_WAIT</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>text_insert_authorized_emits_with_requester_identity</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>text_insert_authorized_request_refused_not_implemented</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>text_insert_authorized_old_shape_body_still_parses</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>mt_ext_text_insert_refuses_when_enabled</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>mt_ext_text_transform_refuses_when_enabled</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>ext_apply_unknown_op_refused_with_zero_events</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>ext_apply_acks_applied_batch_200</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>ext_apply_gate_cut_nack_answers_409_with_failed_index</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>ext_apply_ack_timeout_answers_504</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>ext_apply_same_key_replay_returns_recorded_verdict</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>ext_apply_same_key_in_flight_coalesces</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>ext_apply_different_keys_apply_independently</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>ext_apply_keyless_applies_once</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>invoke_carries_stable_idempotency_key_across_retries</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>invoke_retries_429_once_honoring_retry_after</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>invoke_retry_after_over_ceiling_waits_no_longer_than_ceiling</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/extensionGallery/textOps.js</File>
+        <Text>requestId: payload.request_id</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/extensionGallery/textOps.js</File>
+        <Text>opIndex: payload.op_index</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>mt::ext::text_op_ack</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>targeting_gate_refused</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>apply_failed</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/editor-coverage.test.js</File>
+        <Text>vi.mock('@tauri-apps/api/event'</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/editor-coverage.test.js</File>
+        <Text>mt::ext::text_op_ack</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/extensionGallery/textOps.test.js</File>
+        <Text>opIndex</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/features.xml</File>
+        <Text>C-EXT-EDIT-PROOF (2026-11-22)</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/runtime.xml</File>
+        <Text>C-EXT-EDIT-PROOF (2026-11-22)</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/features.xml</File>
+        <Text>scenario-security-ext-edit-proof</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>{"ok": true}</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_TEXT_INSERT_OK</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>applied: true,
+            operations_count: req.operations.len()</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src-tauri/src/m045_ext/text_ops.rs</File>
+        <Text>BLOCK_INSERT_OK</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src-tauri/src/m045_ext/text_ops.rs</File>
+        <Text>BLOCK_TRANSFORM_OK</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src-tauri/src/m045_ext/invoke.rs</File>
+        <Text>from_millis(500)</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">npx vitest run tests/renderer/components/extensionGallery/textOps.test.js tests/renderer/components/textOps.test.js tests/renderer/components/editor-coverage.test.js</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-045 />
+        <M-011 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-045 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src-tauri/src/m045_ext/live_server.rs</File>
+      <File>src-tauri/src/m045_ext/text_ops.rs</File>
+      <File>src-tauri/src/m045_ext/invoke.rs</File>
+      <File>src-tauri/src/m045_ext/tests.rs</File>
+      <File>src/renderer/src/components/extensionGallery/textOps.js</File>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <File>tests/renderer/components/extensionGallery/textOps.test.js</File>
+      <File>tests/renderer/components/textOps.test.js</File>
+      <File>tests/renderer/components/editor-coverage.test.js</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/features.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Failing-first Rust tests: dead-route refusal pins for /ext/text-insert and the mt_ext_text_insert/mt_ext_text_transform commands</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src-tauri/src/m045_ext/tests.rs gains the failing-first route pins, red against the current tree because handle_text_insert answers 200 {"ok": true} with one emitted event (tests.rs:1086-1094): the moved pin text_insert_authorized_emits_with_requester_identity is renamed text_insert_authorized_request_refused_not_implemented and asserts an authorized /ext/text-insert request (valid bearer, enabled text.insert fixture) answers 501 NOT_IMPLEMENTED with a body naming the deprecated route and the live alternative and ZERO mt::text::op events; the old-shape pin text_insert_authorized_old_shape_body_emits is renamed text_insert_authorized_old_shape_body_still_parses and keeps proving the v1 {"text", "source"} body deserializes through TextInsertRequest while moving its status expectation to the honest 501 refusal; the four existing gate pins (text_insert_refuses_no_token / wrong_token / disabled_extension / missing_capability) gain explicit zero-event assertions kept from today and stay 401-class — they must pass unchanged before and after the fix.</Criterion>
+          <Criterion>src-tauri/src/m045_ext/tests.rs gains the failing-first command pins: mt_ext_text_insert_refuses_when_enabled and mt_ext_text_transform_refuses_when_enabled drive the commands through a registered, enabled fixture (tauri::test::MockRuntime app with managed registry, the incoming_fixture construction pattern) and assert Err("ext_text_op_refused") with zero mt::text::op events on the fixture recorder — red today because both commands return Ok(()) and emit; companion pins mt_ext_text_insert_refuses_when_disabled / mt_ext_text_transform_refuses_when_unregistered keep the existing registry.get_manifest refusal semantics green unchanged.</Criterion>
+          <Criterion>Every new and moved pin asserts the requester credential was read exactly once (the fixture credential reads counter) where the gate-pin precedent does, and no pin weakens any predecessor assertion: the binding matrix (1158-1231), the capability pins, the grant-bound family and the budget suite are untouched.</Criterion>
+          <Criterion>Module hygiene: tests.rs gains a dated 2026-11-22 C-EXT-EDIT-PROOF note in its file-local contract area; new pins live in the START_BLOCK_INCOMING_DATA_TESTS / command-test area with paired unique markers; no production file changes in this task — the suite is deliberately left red on the six moved/new refusal pins.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">cargo check --locked --offline --manifest-path src-tauri/Cargo.toml</Command>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext -- --nocapture text_insert_authorized mt_ext_text_insert_refuses mt_ext_text_transform_refuses</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Dead routes refuse at the source: 501 route refusal and stable command Err codes, zero events</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src-tauri/src/m045_ext/live_server.rs handle_text_insert: after the unchanged authenticate_incoming(TextInsert) gate (the four 401 refusals keep their exact statuses and zero events), the handler refuses 501 StatusCode::NOT_IMPLEMENTED with body {"error": "text-insert route deprecated: use POST /ext/context then POST /ext/apply"} — the file's plain {"error": ...} voice with a stable machine reason naming the deprecated route and the live alternative — logs a distinct BLOCK_TEXT_INSERT_REFUSED, emits no mt::text::op and touches no renderer state; the payload construction, the app_handle.emit("mt::text::op") call, the 500 emit-failure branch, BLOCK_TEXT_INSERT_OK and the {"ok": true} answer are removed; TextInsertRequest and the route registration stay (the v1 body must still deserialize for the pin), and the route doc comment documents the permanent truthful refusal.</Criterion>
+          <Criterion>src-tauri/src/m045_ext/text_ops.rs mt_ext_text_insert and mt_ext_text_transform: after the unchanged registry.get_manifest refusal (a disabled or unregistered extension keeps the existing error), each command refuses with Err("ext_text_op_refused") — the existing string-code voice, ext_enable_reapproval_required precedent — logs BLOCK_TEXT_INSERT_REFUSED / BLOCK_TEXT_TRANSFORM_REFUSED, emits no mt::text::op, and its names, signatures and allowlist entries (src-tauri/src/main.rs:971-972, src-tauri/src/m001_validate.rs:103-104) stay byte-identical; the now-unreachable emit path (emit_text_op with its "mt::text::op" emit, BLOCK_EMIT/BLOCK_EMIT_FAILED, the payload constructions and BLOCK_INSERT_OK / BLOCK_TRANSFORM_OK logs) is removed with its START_BLOCK_TAURI_COMMANDS/emit block markers kept paired and unique.</Criterion>
+          <Criterion>Module contracts: live_server.rs and text_ops.rs file-local MODULE_CONTRACT/CHANGE_SUMMARY gain dated 2026-11-22 C-EXT-EDIT-PROOF entries documenting the unified insertion contract — the deprecated routes refuse by name, /ext/apply under the binding gate is the one live mutation path; no Cargo.toml, dependency, registry, auth or renderer change; the editor gate, its comment naming these routes (editor.vue:3384-3386) and its editor_ext_targeting suite stay untouched by this task.</Criterion>
+          <Criterion>T-001's moved pins turn green; the full cargo m045_ext suite is green at this task's end (the apply/ack work has not started, so every /ext/apply pin keeps its current 200 semantics).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">cargo check --locked --offline --manifest-path src-tauri/Cargo.toml</Command>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Failing-first /ext/apply tests: unknown-op 400, the ack verdict legs (200/409/504) and request-id idempotency</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src-tauri/src/m045_ext/tests.rs gains the failing-first validation pin ext_apply_unknown_op_refused_with_zero_events: a bound, authorized batch containing one unknown op_type answers 400 with zero mt::text::op events and no applied:true — red today because the unknown op is skipped with continue and still counted into operations_count (live_server.rs:1771-1776, 1806-1809). The fixture gains an ack-responder helper beside the existing mt::ext::context_request responder (tests.rs:1019-1033): it listens for the batch's emitted request ids and answers the ack event with configurable per-op applied/reason or with silence, so all verdict legs are drivable headlessly.</Criterion>
+          <Criterion>ext_apply_acks_applied_batch_200: a bound batch whose every op is ack'd applied answers 200 {"applied": true, "operations_count": n} — red today because the handler answers before any verdict exists. ext_apply_gate_cut_nack_answers_409_with_failed_index: a nack (targeting_gate_refused class) on op index k answers 409 with the plain error body naming the failed index and whether earlier operations applied, zero further events — red today. ext_apply_ack_timeout_answers_504: a silent renderer answers 504 with a stable reason within the bounded budget — red today. The existing honest 500 emit-failure branch keeps its pin shape.</Criterion>
+          <Criterion>The idempotency family, all red today (no request key, no dedup, a second post re-emits): ext_apply_same_key_replay_returns_recorded_verdict — two posts with the same request id emit exactly once and the second response equals the recorded first verdict (same status, same body) with an additive duplicate marker, including a refusal verdict replay; ext_apply_same_key_in_flight_coalesces — a same-key post arriving while the first is awaiting its ack emits nothing extra and shares the pending verdict; ext_apply_different_keys_apply_independently — distinct keys emit and apply separately; ext_apply_keyless_applies_once — an absent key applies once with no dedup promise and no legacy-caller 400. Every pin keeps the binding-fence order observable: the dedup short-circuit sits after authentication and before the fence, proven by a replay whose remembered binding would otherwise refuse.</Criterion>
+          <Criterion>Module hygiene: dated tests.rs contract note; paired unique markers; no production file changes — the suite is deliberately red on the new apply pins at this task's end while the T-002 refusal pins and all predecessor suites stay green.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">cargo check --locked --offline --manifest-path src-tauri/Cargo.toml</Command>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext -- --nocapture ext_apply_</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>/ext/apply answers by fact: pre-emit op validation, the mt::ext::text_op_ack channel with a bounded per-batch timeout, and bounded request-id idempotency</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src-tauri/src/m045_ext/live_server.rs ExtApplyRequest gains the optional serde field request_id: Option&lt;String&gt; (absent deserializes None; legacy senders keep working); handle_ext_apply's order becomes: capability gate (unchanged) → dedup short-circuit (new, after authentication, before the fence) → binding fence 400/409 (unchanged, still before any event) → op validation → registration → emit → await acks → answer.</Criterion>
+          <Criterion>Pre-emit validation: the op set is checked before any emission — any op_type outside replace_selection/insert_at_cursor/undo refuses the whole batch 400 with BLOCK_EXT_APPLY_BATCH_UNKNOWN_OP and zero events, so operations_count never counts unvalidated operations (the per-op continue at live_server.rs:1771-1776 is gone); the emitted payload of every operation gains the additive fields "request_id" (the client-supplied key or the server-minted "apply_{n}") and "op_index" (its index in the batch), with absent-field serialization preserved for everything else.</Criterion>
+          <Criterion>The ack channel: a process-global pending-verdict registry (the EXT_DOCUMENT_BINDINGS process-global pattern — the LiveServerState literal in src-tauri/src/main.rs stays untouched) keyed by request_id resolves one verdict per op; start_live_server registers a listener for "mt::ext::text_op_ack" carrying {request_id, op_index, applied, reason} inside the existing SERVER_BOOT block next to the mt::ext::context_response listener (live_server.rs:1949-1969 precedent); the handler awaits verdicts under EXT_APPLY_ACK_TIMEOUT_SECS = 5 applied per batch — one deadline for the whole batch, not per operation — and answers 200 {"applied": true, "operations_count": n} only when every op ack'd applied; a nack answers 409 with the plain error body naming the failed op index and the applied prefix (BLOCK_EXT_APPLY_NOT_APPLIED); a timeout or a missing renderer subscriber answers 504 with a stable reason (BLOCK_EXT_APPLY_ACK_TIMEOUT, the /ext/context 504 precedent at live_server.rs:1674-1677); the 500 emit-failure branch stays as-is.</Criterion>
+          <Criterion>Bounded idempotency: EXT_APPLY_VERDICTS is a process-global bounded map (EXT_APPLY_DEDUP_CAP = 256 recent entries, evict-oldest, process-local, cleared on restart) keyed by extension id plus request id; when a key is present the handler first consults the recorded verdicts — a terminal replay answers the recorded first verdict (same status, same body) with an additive "duplicate": true marker and re-emits nothing (BLOCK_EXT_APPLY_DUPLICATE) — and a same-key attempt arriving while the first is still pending coalesces onto the pending verdict without a second emit (BLOCK_EXT_APPLY_COALESCED); key registration and the pending slot are created atomically under the dedup mutex BEFORE the first emit, so the same-key race window is closed by construction; when no key was sent the server mints "apply_{n}" for ack correlation only and records no dedup promise; a replay after a restart is not a dedup hit and is answered by the already-recorded-binding fence — documented, not handled.</Criterion>
+          <Criterion>Module hygiene: dated live_server.rs CHANGE_SUMMARY entry naming the ack channel, the timeout constant and the dedup; every START_BLOCK_/END_BLOCK_ marker paired and unique; the binding fence, capability gate, grant authorization, /stream/* dedup and budget semantics untouched; T-003's apply pins green and the full cargo m045_ext suite green at this task's end except the T-006 invoke/budget pins not yet written.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">cargo check --locked --offline --manifest-path src-tauri/Cargo.toml</Command>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Renderer relay and verdicts: requestId/opIndex through textOps.js, ack/nack from editor.vue, the event-emit mock and verdict pins in editor-coverage</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src/renderer/src/components/extensionGallery/textOps.js: the three bus emits (ext-text-insert 104-110, ext-text-transform 132-137, ext-undo 153-157) gain requestId: payload.request_id and opIndex: payload.op_index — absent forwards undefined exactly like the existing documentId/documentGeneration relay, so the base suite's exact-object pins (tests/renderer/components/textOps.test.js:42-52) keep passing because vitest toEqual ignores undefined properties; the MODULE_CONTRACT SCOPE line and CHANGE_SUMMARY gain the dated relay note; the module stays a pure relay with no gate logic.</Criterion>
+          <Criterion>src/renderer/src/components/editorWithTabs/editor.vue: the three ext handlers receive requestId/opIndex and, whenever the incoming event carries a requestId, answer through the additive Tauri event mt::ext::text_op_ack emitted via the established dynamic import("@tauri-apps/api/event") pattern (3606-3617 precedent) — a pre-mutation refusal (foreign/stale/null/absent binding through the unchanged extBindingMatchesRendered gate, no rendered identity, or the diff guard) nacks with the stable content-free reason "targeting_gate_refused" while still refusing before any mutation; a Muya apply exception nacks with the stable class "apply_failed" and never raw error text; a successful mutation acks applied:true after the mutation completes (the applied ack follows the Muya call, never precedes it); an event without requestId behaves exactly as today with no ack; the gate, its comment, the bus registrations and every response shape stay otherwise untouched; the dated CHANGE_SUMMARY/SCOPE contract entry documents the verdict channel.</Criterion>
+          <Criterion>tests/renderer/components/editor-coverage.test.js: adds vi.mock('@tauri-apps/api/event') with an emit spy (today no such mock exists — mock list 199-283), and the editor_ext_targeting suite gains verdict pins: a matched apply emits exactly one applied mt::ext::text_op_ack after the mutation spy records the call (insert, transform both branches, undo); the foreign/stale/null/absent binding cases and the diff-guard case emit one nack with the "targeting_gate_refused" reason while every expectNoMutation assertion keeps holding; a request-less event emits no ack; all existing pins stay green unedited.</Criterion>
+          <Criterion>tests/renderer/components/extensionGallery/textOps.test.js and tests/renderer/components/textOps.test.js gain requestId/opIndex forwarding pins mirroring the binding pins (243-335) — present values forwarded verbatim on all three emits, absent values forwarded as undefined — with the existing suites green unchanged.</Criterion>
+          <Criterion>No store, gallery, locale or liveViewer change; the ack event needs no bootstrap-ipc shim registration (renderer-to-backend like mt::ext::context_response); the vitest invocation of the three named suites is green.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">npx vitest run tests/renderer/components/extensionGallery/textOps.test.js tests/renderer/components/textOps.test.js tests/renderer/components/editor-coverage.test.js</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>Invoke honesty across retries: stable Idempotency-Key, bounded Retry-After honoring with 429 in the retry budget, and Mark's own 429 starts sending Retry-After</Title>
+        <DependsOn>T-005</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Red-first on the honest loopback harness (fixture_listener/serve_fixture, tests.rs:1741-1796): invoke_carries_stable_idempotency_key_across_retries serves a 503 then a 200 and asserts every attempt of the one logical call carries the same "idempotency-key" header value (red today — no header exists); invoke_retries_429_once_honoring_retry_after serves a 429 with a small Retry-After then a 200 and asserts the wait honors the header and the 429 was retried once within the existing attempt budget (red today — 429 is a terminal BadStatus and the sleep is a fixed 500 ms); invoke_retry_after_over_ceiling_waits_no_longer_than_ceiling serves a Retry-After over the ceiling and asserts the elapsed wait stays within the ceiling bound (red today). These are written and observed red before the implementation, recorded as task evidence without any commit.</Criterion>
+          <Criterion>src-tauri/src/m045_ext/invoke.rs: invoke_extension generates the idempotency key once per logical call before the retry loop and attaches the "idempotency-key" header to every attempt; the retry policy reads "retry-after" (seconds) on 503 and 429 and sleeps the honored value clamped to the named ceiling INVOKE_RETRY_MAX_WAIT = Duration::from_millis(2000) (a hostile or broken header can never stall the invoke; a missing or unparsable header falls back to the current short pause), with 429 joining the existing single-retry budget so the total attempt count stays two and non-retryable statuses stay terminal BadStatus; the loopback-only binding, no-proxy, no-redirect, redirect-not-followed contract, capability check, URL validation and BLOCK_* log voice are unchanged; the fixed Duration::from_millis(500) sleeps are gone; the InvokeRequest wire body {capability, payload} is unchanged.</Criterion>
+          <Criterion>src-tauri/src/m045_ext/live_server.rs budget rate refusal (1303-1328): the 429 TOO_MANY_REQUESTS answer gains a "retry-after" header of bounded integer seconds derived from the bucket refill, capped by STREAM_BUDGET_REFILL_SECS — budgets, statuses, bodies, zero-mutation semantics, the duplicate/needs_resync free short-circuits and every other budget refusal keep their exact current responses; stream_budget_patch_refuses_over_rate (tests.rs:2124-2187) gains the header assertion (integer, bounded by the refill period) while every existing budget pin keeps its status, body and zero-mutation assertions.</Criterion>
+          <Criterion>Module hygiene: dated invoke.rs and live_server.rs CHANGE_SUMMARY entries; markers paired and unique; no new dependency; the redirect pin invoke_redirect_response_not_followed and probe_health_honest_loopback_ok keep passing unchanged; the full cargo m045_ext suite green.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">cargo check --locked --offline --manifest-path src-tauri/Cargo.toml</Command>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>Record the M-045/M-011 graph deltas and the V-M-045 verification evidence; synchronize module contracts</Title>
+        <DependsOn>T-006</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>In .grace/graph/features.xml append a dated C-EXT-EDIT-PROOF (2026-11-22) SummaryDelta to M-045 after the C-SEC-EXT-GRANT-BOUND delta (line 2375, before &lt;/M-045&gt; at 2376): the dead unbound insertion routes refuse at the source (501 route refusal naming the context-read-plus-apply alternative, stable command Err codes, zero events); /ext/apply validates ops before any emission, carries request_id/op_index on every emitted payload, answers by the renderer's ack verdicts through mt::ext::text_op_ack under a bounded per-batch timeout (200 applied / 409 failed-index / 504 timeout), and dedups by the optional client request id through a bounded process-local store whose registration precedes the first emit; the outbound invoke carries a stable Idempotency-Key and honors Retry-After with a bounded ceiling while 429 joins the single-retry budget; the budget 429 sends Retry-After; preserve every existing SummaryDelta, Summary sentence, LegacySource, LegacyAttributes and annotation byte-identical.</Criterion>
+          <Criterion>In .grace/graph/runtime.xml append a dated C-EXT-EDIT-PROOF (2026-11-22) SummaryDelta to M-011 after the C-SESSION-WRITE-ATOMICITY delta (line 3836, before &lt;/M-011&gt; at 3837): the editor answers every request-tagged ext mutation with one ack/nack verdict after the unchanged extBindingMatchesRendered gate decides — nack reasons are stable content-free classes ("targeting_gate_refused", "apply_failed"), the applied ack follows the mutation, request-less events behave exactly as before, and the textOps relay forwards requestId/opIndex with absent-forwarding-undefined; preserve every existing entry byte-identical.</Criterion>
+          <Criterion>In .grace/verification/features.xml record only executed evidence in V-M-045: add one scenario-security-ext-edit-proof scenario after scenario-security-stream-budget (before &lt;/V-M-045&gt; at 2425) naming the moved pins (text_insert_authorized_request_refused_not_implemented, text_insert_authorized_old_shape_body_still_parses) and the new tests by name (the command refusals, ext_apply_unknown_op_refused_with_zero_events, the 200/409/504 verdict legs, the idempotency family, invoke_carries_stable_idempotency_key_across_retries, invoke_retries_429_once_honoring_retry_after, invoke_retry_after_over_ceiling_waits_no_longer_than_ceiling, the renderer verdict pins) with their expected statuses; keep the Command entry at the executed form cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext and add the executed vitest command; keep every existing scenario, Marker, TraceAssertion and LegacyMatrixEvidence block verbatim; do not claim evidence for anything not executed.</Criterion>
+          <Criterion>Module contracts synchronized: the file-local MODULE_CONTRACT/CHANGE_SUMMARY blocks of live_server.rs, text_ops.rs, invoke.rs, textOps.js and editor.vue carry the dated C-EXT-EDIT-PROOF entries with the deprecation of the routes and the ack-channel documentation (T-002/T-004/T-005 entries verified present and consistent with the final code); all START_BLOCK_/END_BLOCK_ markers codebase-wide stay paired and unique; no durable artifact outside the ObservedWriteScope changes; no release publication, version change or lane action is authorized by this task.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+          <Command budgetSeconds="600">npx vitest run tests/renderer/components/extensionGallery/textOps.test.js tests/renderer/components/textOps.test.js tests/renderer/components/editor-coverage.test.js</Command>
+        </Verification>
+      </T-007>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+      <Command budgetSeconds="600">npx vitest run tests/renderer/components/extensionGallery/textOps.test.js tests/renderer/components/textOps.test.js tests/renderer/components/editor-coverage.test.js</Command>
+      <Environment>Baseline is the current green-ext1 worktree HEAD (branch spec/ext-edit-proof, base bb68fd6c): the Rust toolchain runs with --locked --offline against the committed Cargo.lock and all three renderer suite files exist (verified). Tasks run strictly sequentially T-001 through T-007. cargo check passes alone after T-001 and T-003; between T-001 and T-002 the native suite is knowingly red on the six moved/new dead-route refusal pins (the handler still answers {"ok": true} and the commands still return Ok) and between T-003 and T-004 knowingly red on the apply validation/ack/idempotency pins (the handler still answers applied:true immediately with no channel and no dedup) — each becomes green at its implementation task and stays green through T-007; the T-006 invoke/budget tests are proven red-first inside T-006 itself by writing them against the current fixed-sleep/no-key code before the implementation lands, recorded as task evidence without any commit, and the renderer verdict pins are proven red-first inside T-005 the same way against the no-ack editor. No new dependencies; no request-body change to TextInsertRequest (v1 {"text", "source"} keeps parsing, pinned by the kept deserialization leg) and ExtApplyRequest's only new field is the optional request_id that deserializes-absent on legacy senders. The review minors are closed by construction: the ack timeout is a single per-batch deadline (EXT_APPLY_ACK_TIMEOUT_SECS = 5), the idempotency key registration atomically precedes the first emit under the dedup mutex so the same-key race is closed by construction, and editor-coverage.test.js gains the vi.mock('@tauri-apps/api/event') emit mock that today does not exist so the ack/nack pins can observe the verdict channel. Exactly two text-insert pins move (text_insert_authorized_emits_with_requester_identity and the emit leg of text_insert_authorized_old_shape_body_emits, renamed per the plan), every other predecessor suite — the binding matrix, capability/grant matrix, rebind and denial suites, stream-auth fencing, the budget suites and the redirect/loopback invoke pins — passes without weakened assertions or budgets; the diff-guard case nacks with the same content-free reason because a refused event must still answer, never silently hang a batch to timeout. No log line, error body, nack reason or ack payload carries secret material or document content; the ack reasons are stable class strings in the BLOCK_ voice; the loopback-only invoke contract, Bearer model, capability gate order, grant enforcement and the C-SEC-EDIT-TARGETING binding fence (400 missing / 409 mismatch before any event, never applied:true on refusal) are untouched; the editor gate with its editor_ext_targeting suite remains the single fail-closed authority. Every START_BLOCK_/END_BLOCK_ marker stays paired and unique after each task. This plan deliberately carries no self-referential grace-lint MustPassCommand; the orchestrator runs grace lint --assertions current/target/final and the archived current-state integrity itself. Owned cargo/vitest processes are cleaned up after runs; no apply/archive, commit/push, lane admission, departure into main, version/tag or release is authorized by this plan.</Environment>
+    </AcceptanceVerification>
+  </C-EXT-EDIT-PROOF>
+</GraceChangePlan>
