@@ -56,7 +56,7 @@
 //     invocation a localized refusal that invokes nothing and re-arms
 //     after the live attempt settles; the progress toast names
 //     update.version from the flow's own fresh re-check and
-//     status.latestVersion reaches no user-visible string; the terminal
+//     the stale snapshot's version field reaches no user-visible string; the terminal
 //     failure surfaces exactly one localized notice
 //     (updater.failureTitle/Body) with the raw error demoted to the
 //     console marker (BLOCK_INSTALL_FAILED). F-008's renderer half

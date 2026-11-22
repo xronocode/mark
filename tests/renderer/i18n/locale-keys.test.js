@@ -23,6 +23,7 @@
 //   LOCALES - the ten shipped locale codes.
 //   FAMILIES - the fifteen modeChips keys R-4 inventories.
 //   FEEDBACK_KEYS - rollback and extension-disable feedback dotted key paths.
+//   UPDATER_KEYS - updater failure/in-progress dotted key paths.
 //   readTable - parse one locale file.
 //   readKey - resolve one dotted key path inside a locale table.
 // END_MODULE_MAP
