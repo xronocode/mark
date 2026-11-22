@@ -7,9 +7,10 @@
 //   SCOPE:   Event registration/teardown. Insert, transform and undo
 //            handlers; the document binding relay (documentId/
 //            documentGeneration from payload.document_id/document_generation)
-//            rides every bus emit. Does NOT own a Muya instance — routes
-//            through the bus so the active editor.vue picks up the
-//            operation.
+//            and the verdict correlation relay (requestId/opIndex from
+//            payload.request_id/op_index, C-EXT-EDIT-PROOF) ride every bus
+//            emit. Does NOT own a Muya instance — routes through the bus so
+//            the active editor.vue picks up the operation.
 //   DEPENDS: @tauri-apps/api/event (listen), bus (application event bus).
 //   LINKS:   .grace/graph/features.xml M-045;
 //            .grace/graph/features.xml M-045 (PhaseRef Phase-B4);
@@ -17,6 +18,12 @@
 //   STATUS:  Phase-B4 initial.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-22 C-EXT-EDIT-PROOF: the mt::text::op relay additionally
+//     forwards the verdict correlation pair — requestId: payload.request_id
+//     and opIndex: payload.op_index ride the ext-text-insert,
+//     ext-text-transform and ext-undo emits (absent forwards undefined
+//     exactly like the document binding); the editor answers the backend's
+//     mt::ext::text_op_ack through it. Pure relay — no gate logic.
 //   - 2026-11-20 C-SEC-EDIT-TARGETING: the mt::text::op relay forwards the
 //     document binding — documentId: payload.document_id and
 //     documentGeneration: payload.document_generation are added to the
@@ -106,7 +113,9 @@ function handleInsert (payload, extId) {
     position,
     extensionId: extId,
     documentId: payload.document_id,
-    documentGeneration: payload.document_generation
+    documentGeneration: payload.document_generation,
+    requestId: payload.request_id,
+    opIndex: payload.op_index
   })
 
   // eslint-disable-next-line no-console
@@ -133,7 +142,9 @@ function handleTransform (payload, extId) {
     text,
     extensionId: extId,
     documentId: payload.document_id,
-    documentGeneration: payload.document_generation
+    documentGeneration: payload.document_generation,
+    requestId: payload.request_id,
+    opIndex: payload.op_index
   })
 
   // eslint-disable-next-line no-console
@@ -153,7 +164,9 @@ function handleUndo (payload, extId) {
   bus.emit('ext-undo', {
     extensionId: extId,
     documentId: payload.document_id,
-    documentGeneration: payload.document_generation
+    documentGeneration: payload.document_generation,
+    requestId: payload.request_id,
+    opIndex: payload.op_index
   })
 
   // eslint-disable-next-line no-console

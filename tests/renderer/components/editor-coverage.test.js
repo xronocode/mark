@@ -106,6 +106,10 @@ const writeTextMock = vi.hoisted(() => vi.fn(async () => undefined))
 const markedMock = vi.hoisted(() => vi.fn((text) => `<p>${text}</p>`))
 const sanitizeMock = vi.hoisted(() => vi.fn((html) => `clean:${html}`))
 const writeImageMock = vi.hoisted(() => vi.fn(async () => undefined))
+// C-EXT-EDIT-PROOF: the mt::ext::text_op_ack verdict emit spy — the ack
+// travels renderer-to-backend like mt::ext::context_response, so the ext
+// verdict pins observe it through this mock.
+const tauriEventEmitMock = vi.hoisted(() => vi.fn(async () => undefined))
 const pictureExportMock = vi.hoisted(() => ({
   buildTableSvg: vi.fn(),
   resolveTableExportTable: vi.fn(),
@@ -198,6 +202,10 @@ const mockSpellchecker = vi.hoisted(() => ({
 /* ── mocks ──────────────────────────────────────────────────────── */
 vi.mock('@/bus', () => ({ default: busMock }))
 vi.mock('electron-log', () => ({ default: logMock }))
+vi.mock('@tauri-apps/api/event', () => ({
+  emit: tauriEventEmitMock,
+  listen: vi.fn()
+}))
 
 vi.mock('muya/lib', () => ({
   default: MockMuya,
@@ -463,6 +471,7 @@ describe('editor.vue — coverage', () => {
     mockEditorInstance.copyAsHtml.mockReset()
     mockEditorInstance.pasteAsPlainText.mockReset()
     writeHtmlMock.mockReset().mockResolvedValue(undefined)
+    tauriEventEmitMock.mockReset().mockResolvedValue(undefined)
     markedMock.mockClear().mockImplementation((text) => `<p>${text}</p>`)
     sanitizeMock.mockClear().mockImplementation((html) => `clean:${html}`)
 
@@ -3241,6 +3250,174 @@ describe('editor.vue — coverage', () => {
         warnSpy.mockRestore()
         wrapper.unmount()
       }
+    })
+
+    // ══ C-EXT-EDIT-PROOF: the mt::ext::text_op_ack verdict channel ══
+    // Every request-tagged ext mutation answers exactly one verdict through
+    // the additive Tauri event: an applied ack AFTER the mutation, a nack
+    // with the stable content-free reason on any pre-mutation refusal
+    // (foreign/stale/null/absent binding, no rendered identity, the diff
+    // guard), and no ack at all for a request-less event.
+
+    const expectAck = (requestId, opIndex, applied, reason) => {
+      expect(tauriEventEmitMock).toHaveBeenCalledTimes(1)
+      expect(tauriEventEmitMock).toHaveBeenCalledWith('mt::ext::text_op_ack', {
+        request_id: requestId,
+        op_index: opIndex,
+        applied,
+        reason
+      })
+    }
+
+    it('a matched ext-text-insert acks applied after the mutation records', async () => {
+      const wrapper = await mountEditor()
+      clearMutationSpies()
+      const identity = renderedIdentity()
+      const order = []
+      mockEditorInstance.insertParagraph.mockImplementation(() => { order.push('mutate') })
+      tauriEventEmitMock.mockImplementation(async () => { order.push('ack') })
+      getBusHandler('ext-text-insert')({ text: 'inserted', requestId: 'apply-order-insert', opIndex: 0, documentId: identity.documentId, documentGeneration: identity.documentGeneration })
+      expect(mockEditorInstance.insertParagraph).toHaveBeenCalledTimes(1)
+      await flushPromises()
+      expect(order).toEqual(['mutate', 'ack'])
+      expectAck('apply-order-insert', 0, true, '')
+      wrapper.unmount()
+    })
+
+    it('a matched ext-text-transform acks applied via the no-selection setMarkdown branch', async () => {
+      const wrapper = await mountEditor()
+      clearMutationSpies()
+      const identity = renderedIdentity()
+      const order = []
+      mockEditorInstance.setMarkdown.mockImplementation(() => { order.push('mutate') })
+      tauriEventEmitMock.mockImplementation(async () => { order.push('ack') })
+      getBusHandler('ext-text-transform')({ text: '# Replaced', requestId: 'apply-order-setmd', opIndex: 1, documentId: identity.documentId, documentGeneration: identity.documentGeneration })
+      expect(mockEditorInstance.setMarkdown).toHaveBeenCalledTimes(1)
+      await flushPromises()
+      expect(order).toEqual(['mutate', 'ack'])
+      expectAck('apply-order-setmd', 1, true, '')
+      wrapper.unmount()
+    })
+
+    it('a matched ext-text-transform acks applied via the selection replace branch', async () => {
+      const wrapper = await mountEditor()
+      mockEditorInstance.getSelection.mockReturnValue({ selectedText: 'old text' })
+      clearMutationSpies()
+      const identity = renderedIdentity()
+      const order = []
+      mockEditorInstance.replace.mockImplementation(() => { order.push('mutate') })
+      tauriEventEmitMock.mockImplementation(async () => { order.push('ack') })
+      getBusHandler('ext-text-transform')({ text: 'new text', requestId: 'apply-order-replace', opIndex: 2, documentId: identity.documentId, documentGeneration: identity.documentGeneration })
+      expect(mockEditorInstance.replace).toHaveBeenCalledTimes(1)
+      await flushPromises()
+      expect(order).toEqual(['mutate', 'ack'])
+      expectAck('apply-order-replace', 2, true, '')
+      wrapper.unmount()
+    })
+
+    it('a matched ext-undo acks applied after the undo dispatch', async () => {
+      const wrapper = await mountEditor()
+      clearMutationSpies()
+      const identity = renderedIdentity()
+      const order = []
+      mockEditorInstance.undo.mockImplementation(() => { order.push('mutate') })
+      tauriEventEmitMock.mockImplementation(async () => { order.push('ack') })
+      getBusHandler('ext-undo')({ extensionId: 'ext-acked', requestId: 'apply-order-undo', opIndex: 3, documentId: identity.documentId, documentGeneration: identity.documentGeneration })
+      expect(mockEditorInstance.undo).toHaveBeenCalledTimes(1)
+      await flushPromises()
+      expect(order).toEqual(['mutate', 'ack'])
+      expectAck('apply-order-undo', 3, true, '')
+      wrapper.unmount()
+    })
+
+    it('a foreign binding nacks targeting_gate_refused before any mutation', async () => {
+      const wrapper = await mountEditor()
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      try {
+        clearMutationSpies()
+        const identity = renderedIdentity()
+        getBusHandler('ext-text-transform')({ text: '# Foreign', requestId: 'apply-nack-foreign', opIndex: 0, documentId: 'tab-999', documentGeneration: identity.documentGeneration })
+        await flushPromises()
+        expectNoMutation()
+        expectAck('apply-nack-foreign', 0, false, 'targeting_gate_refused')
+      } finally {
+        warnSpy.mockRestore()
+        wrapper.unmount()
+      }
+    })
+
+    it('a stale generation nacks targeting_gate_refused before insertParagraph', async () => {
+      const wrapper = await mountEditor()
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      try {
+        clearMutationSpies()
+        getBusHandler('ext-text-insert')({ text: 'stale', requestId: 'apply-nack-stale', opIndex: 1, documentId: editorStore.currentFile.id, documentGeneration: 'document-stale-gen' })
+        await flushPromises()
+        expectNoMutation()
+        expectAck('apply-nack-stale', 1, false, 'targeting_gate_refused')
+      } finally {
+        warnSpy.mockRestore()
+        wrapper.unmount()
+      }
+    })
+
+    it('a null identity nacks targeting_gate_refused', async () => {
+      const wrapper = await mountEditor()
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      try {
+        clearMutationSpies()
+        getBusHandler('ext-undo')({ extensionId: 'ext-null', requestId: 'apply-nack-null', opIndex: 2, documentId: null, documentGeneration: null })
+        await flushPromises()
+        expectNoMutation()
+        expectAck('apply-nack-null', 2, false, 'targeting_gate_refused')
+      } finally {
+        warnSpy.mockRestore()
+        wrapper.unmount()
+      }
+    })
+
+    it('an absent binding nacks targeting_gate_refused (the unbound relay shape)', async () => {
+      const wrapper = await mountEditor()
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      try {
+        clearMutationSpies()
+        getBusHandler('ext-text-insert')({ text: 'unbound', requestId: 'apply-nack-absent', opIndex: 3 })
+        await flushPromises()
+        expectNoMutation()
+        expectAck('apply-nack-absent', 3, false, 'targeting_gate_refused')
+      } finally {
+        warnSpy.mockRestore()
+        wrapper.unmount()
+      }
+    })
+
+    it('the diff guard nacks targeting_gate_refused so a refused event still answers', async () => {
+      const wrapper = await mountEditor()
+      editorStore.currentFile.diffMode = true
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      try {
+        clearMutationSpies()
+        const identity = renderedIdentity()
+        getBusHandler('ext-text-transform')({ text: '# Diff', requestId: 'apply-nack-diff', opIndex: 0, documentId: identity.documentId, documentGeneration: identity.documentGeneration })
+        await flushPromises()
+        expectNoMutation()
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('BLOCK_DIFF_EDIT_BLOCKED'))
+        expectAck('apply-nack-diff', 0, false, 'targeting_gate_refused')
+      } finally {
+        warnSpy.mockRestore()
+        wrapper.unmount()
+      }
+    })
+
+    it('a request-less ext mutation behaves exactly as today with no ack', async () => {
+      const wrapper = await mountEditor()
+      clearMutationSpies()
+      const identity = renderedIdentity()
+      getBusHandler('ext-text-insert')({ text: 'no request id', documentId: identity.documentId, documentGeneration: identity.documentGeneration })
+      await flushPromises()
+      expect(mockEditorInstance.insertParagraph).toHaveBeenCalledTimes(1)
+      expect(tauriEventEmitMock).not.toHaveBeenCalled()
+      wrapper.unmount()
     })
   })
 
