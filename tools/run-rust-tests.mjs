@@ -17,6 +17,7 @@
 //   executable - Recognize existing ELF/PE/thin Mach-O and bounded validated universal Mach-O executables.
 //   namedExecutable - Match workspace output identities without dependency/object suffixes.
 //   present - Distinguish actual ENOENT from inaccessible/unknown owned paths.
+//   removeWithRetry - Bounded EBUSY/EPERM unlink retry for artifact cleanup (the Windows AV-lock window).
 //   validateRuntime - Fail closed before Cargo build on unsupported Node/POSIX execve runtimes.
 //   snapshotExecutables - Inventory recognized workspace executable names without dependency/build caches.
 //   sourceIdentity - Bind checkout revision and current tracked delta.

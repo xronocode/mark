@@ -106,6 +106,25 @@ skipped. Testers install from the direct asset links over their existing
 installation and roll back by reinstalling the stable DMG. A prerelease is
 not a train dispatch and records no acceptance.
 
+### 4b. Signing boundary (C-RELEASE-SIGNING-SPLIT)
+
+The tag run splits into an unsigned build lane and a separate signing lane.
+The build job holds no environment, no OIDC and no secrets: it installs with
+`npm ci --ignore-scripts` — the allowlist carries the single approved
+install-script exception (esbuild), and any further entry requires a reviewed
+change — builds both platform bundles unsigned, and records a SHA-256
+receipt sidecar for every staged artifact. The `release-signing` sign job is
+the only holder of the Apple and Tauri updater secrets and of the OIDC
+attestation authority. It downloads the staged set, recomputes every digest
+against the recorded receipts and refuses the run on any mismatch — missing
+receipts and unexpected extra files fail it too — before any key material is
+used: it signs only digest-verified artifacts. It re-signs the staged macOS
+bundle with the Developer ID identity without rebuilding, notarizes and
+staples it, produces the Tauri updater signatures for both platforms, and
+issues the SLSA provenance and the keyless cosign signatures over the signed
+set. Publication is needs-chained on signing, so no downstream stage can
+bypass it, and the prerelease lane rides the same split chain.
+
 ## 5. Release notes
 
 The workflow publishes only the automated verification block. Once the release
