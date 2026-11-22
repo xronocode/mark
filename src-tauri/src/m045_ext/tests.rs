@@ -992,6 +992,11 @@ struct IncomingFixture {
     // C-SEC-EDIT-TARGETING: the last (document_id, document_generation)
     // pair the context responder handed, recorded for apply-side assertions.
     last_binding: Arc<Mutex<Option<(String, String)>>>,
+    // C-EXT-TRUST-COHERENCE: opt-in gated hand-off for the context
+    // responder (open by default, so no call site changes) and a counter
+    // of emitted context requests, for the cancellation and fence pins.
+    context_gate: Arc<(Mutex<bool>, std::sync::Condvar)>,
+    context_requests: Arc<std::sync::atomic::AtomicU64>,
 }
 
 fn incoming_fixture(enabled: bool, capability: &str) -> IncomingFixture {
@@ -1071,22 +1076,44 @@ fn incoming_fixture_with_grant(enabled: bool, capabilities: &[&str], grant: bool
     let fixture_id = id.clone();
     let seq = handed_seq.clone();
     let handed = last_binding.clone();
+    let context_gate = Arc::new((Mutex::new(true), std::sync::Condvar::new()));
+    let context_requests = Arc::new(std::sync::atomic::AtomicU64::new(0));
+    let gate = context_gate.clone();
+    let counter = context_requests.clone();
     app.listen("mt::ext::context_request", move |event| {
+        counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let payload: serde_json::Value = serde_json::from_str(event.payload()).unwrap();
         let state = weak_state.upgrade().unwrap();
+        let n = seq.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+        let response = super::live_server::ExtContextResponse {
+            markdown: "dummy context".to_string(), cursor: None, selection: None, file_path: None,
+            document_id: Some(format!("tab-{fixture_id}")),
+            document_generation: Some(format!("document-gen-{n}")),
+        };
+        *handed.lock().unwrap() = Some((response.document_id.clone().unwrap(), response.document_generation.clone().unwrap()));
+        // C-EXT-TRUST-COHERENCE: the gated hand-off waits BEFORE removing
+        // the pending entry, so a disable can drain the entry (dropping
+        // its sender) while the response waits; the gate stands open
+        // unless a pin armed it, so default behavior is unchanged.
+        {
+            let (ready, wake) = &*gate;
+            let guard = ready.lock().unwrap();
+            drop(wake.wait_while(guard, |ready| !*ready).unwrap());
+        }
         let tx = state.pending_context.lock().unwrap().remove(payload["request_id"].as_str().unwrap());
         if let Some(tx) = tx {
-            let n = seq.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
-            let response = super::live_server::ExtContextResponse {
-                markdown: "dummy context".to_string(), cursor: None, selection: None, file_path: None,
-                document_id: Some(format!("tab-{fixture_id}")),
-                document_generation: Some(format!("document-gen-{n}")),
-            };
-            *handed.lock().unwrap() = Some((response.document_id.clone().unwrap(), response.document_generation.clone().unwrap()));
-            tx.send(response).unwrap();
+            tx.tx.send(response).unwrap();
         }
     });
-    IncomingFixture { app, state, events, id, token, credential, live_events, last_binding }
+    IncomingFixture { app, state, events, id, token, credential, live_events, last_binding, context_gate, context_requests }
+}
+
+/// C-EXT-TRUST-COHERENCE: arm the fixture's context responder to hold its
+/// response until the returned gate is released, so a disable can land
+/// while the read is pending.
+fn gate_context_responder(f: &IncomingFixture) -> Arc<(Mutex<bool>, std::sync::Condvar)> {
+    *f.context_gate.0.lock().unwrap() = false;
+    f.context_gate.clone()
 }
 
 fn handed_binding(f: &IncomingFixture) -> (String, String) {
@@ -1998,6 +2025,80 @@ async fn text_insert_fences_disable_crossing_paused_authentication() {
     let body = budget_body(response).await;
     assert_eq!(body["error"], "extension is not enabled");
     assert!(f.events.lock().unwrap().is_empty(), "a fenced insert emits zero mt::text::op events");
+}
+
+#[tokio::test]
+async fn context_fences_disable_crossing_paused_authentication() {
+    let f = incoming_fixture(true, "context.read");
+    let (entered_tx, entered_rx) = std::sync::mpsc::channel();
+    let release = Arc::new((Mutex::new(false), std::sync::Condvar::new()));
+    *f.credential.read_pause.lock().unwrap() = Some((entered_tx, release.clone()));
+    let state = f.state.clone();
+    let id = f.id.clone();
+    let token = f.token.clone();
+    let pending = tokio::spawn(async move {
+        super::live_server::handle_ext_context(State(state), bearer_headers(Some(&token)),
+            Json(super::live_server::ExtContextRequest { extension_id: id }))
+            .await.into_response()
+    });
+    tokio::task::spawn_blocking(move || entered_rx.recv_timeout(std::time::Duration::from_secs(5)).unwrap()).await.unwrap();
+    f.credential.fail_delete.store(true, std::sync::atomic::Ordering::Relaxed);
+    assert!(super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.is_err());
+    *release.0.lock().unwrap() = true; release.1.notify_all();
+    let response = pending.await.unwrap();
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED, "the resumed read must be fenced, not served");
+    let body = budget_body(response).await;
+    assert_eq!(body["error"], "extension is not enabled");
+    assert_eq!(f.context_requests.load(std::sync::atomic::Ordering::Relaxed), 0, "a fenced read emits zero renderer traffic");
+    assert!(f.events.lock().unwrap().is_empty());
+    assert!(f.state.pending_context.lock().unwrap().is_empty(), "no pending entry survives the fenced read");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn context_disable_cancels_the_pending_read() {
+    // Dual capability: context.read owns the pending read; the
+    // never-issued-binding proof applies with text.edit after the trust
+    // reset.
+    let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    let release = gate_context_responder(&f);
+    let state = f.state.clone();
+    let id = f.id.clone();
+    let token = f.token.clone();
+    let pending = tokio::spawn(async move {
+        super::live_server::handle_ext_context(State(state), bearer_headers(Some(&token)),
+            Json(super::live_server::ExtContextRequest { extension_id: id }))
+            .await.into_response()
+    });
+    // The read is pending: its entry is registered and its renderer
+    // request emitted.
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    loop {
+        let registered = !f.state.pending_context.lock().unwrap().is_empty();
+        if registered || std::time::Instant::now() >= deadline { break; }
+        tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+    }
+    assert!(!f.state.pending_context.lock().unwrap().is_empty(), "the context read registered its pending entry");
+    assert_eq!(f.context_requests.load(std::sync::atomic::Ordering::Relaxed), 1, "the renderer request was emitted");
+    // A successful disable drains the pending read it owns: the woken
+    // handler must fence instead of serving the response that overtook
+    // the drain, and the drained entry makes the unchanged listener drop
+    // the late response released below.
+    super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap();
+    *release.0.lock().unwrap() = true; release.1.notify_all();
+    let response = tokio::time::timeout(std::time::Duration::from_secs(1), pending).await
+        .expect("the drained read wakes immediately instead of spending the 5s timeout")
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED, "the cancelled read must be fenced, not served");
+    let body = budget_body(response).await;
+    assert_eq!(body["error"], "extension is not enabled");
+    assert!(f.events.lock().unwrap().is_empty(), "a cancelled read emits zero mt::text::op events");
+    assert_eq!(f.context_requests.load(std::sync::atomic::Ordering::Relaxed), 1, "no further renderer traffic after cancellation");
+    // Nothing was recorded: after a trust reset, an apply echoing the
+    // binding the late response handed is a never-issued binding (409).
+    let fresh = fresh_pair_secret(&f).await;
+    super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap();
+    let (document_id, document_generation) = handed_binding(&f);
+    assert_eq!(apply_bound(&f, &fresh, Some(document_id), Some(document_generation)).await, StatusCode::CONFLICT, "the cancelled read recorded no binding");
 }
 // END_BLOCK_INCOMING_FENCE_PINS
 

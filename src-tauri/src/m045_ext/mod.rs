@@ -22,6 +22,7 @@
 //            Phase-B4 — text_ops (text.insert + text.transform) added.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-23 C-EXT-TRUST-COHERENCE T-003: mt_ext_disable drains the disabled extension's pending /ext/context reads inside its existing stream_gate block (live_server::drain_pending_context, BLOCK_DISABLE_CONTEXT_DRAINED with the drained count), so the woken handlers' pre-serve epoch re-check refuses them — lock order stays stream_gate, then the leaf pending-context map.
 //   - 2026-11-21 C-SEC-EXT-GRANT-BOUND T-002: mt_ext_enable refuses — before taking stream_gate — while the current manifest (registry.peek_manifest) requests incoming capabilities beyond the stored approved grant (BLOCK_ENABLE_GRANT_EXCEEDED / ext_enable_reapproval_required, unreadable grant BLOCK_ENABLE_GRANT_UNREADABLE / ext_enable_grant_unreadable); an enable-minted credential deliberately receives no grant and authorizes no incoming route; mt_ext_disable additionally revokes the stored grant best-effort (BLOCK_DISABLE_GRANT_REVOKED / BLOCK_DISABLE_GRANT_REVOKE_FAILED) without joining the strict-absence success condition.
 //   - 2026-11-11 C-SEC-STREAM-AUTH: fence and close the owner stream before credential revocation, including failure.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES T-004: fence disable before strict credential revocation and read-back.
@@ -162,6 +163,16 @@ pub async fn mt_ext_disable<R: tauri::Runtime>(
         let _stream_gate = registry.stream_gate.lock().await;
         registry.disable(&id)?;
         if let Some(state) = app.try_state::<std::sync::Arc<LiveServerState<R>>>() {
+            // C-EXT-TRUST-COHERENCE: drain this extension's pending
+            // /ext/context reads under the same fence, so the woken
+            // handlers' pre-serve epoch re-check refuses them instead of
+            // serving content for a disabled extension.
+            let drained = live_server::drain_pending_context(&state, &id);
+            if drained > 0 {
+                safe_eprintln!(
+                    "[ExtHost][command][BLOCK_DISABLE_CONTEXT_DRAINED id={id} count={drained}]"
+                );
+            }
             let mut guard = state.session.lock().await;
             if let Some(session) = guard.as_mut().filter(|s| s.active && s.extension_id == id) {
                 session.active = false;

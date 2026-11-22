@@ -21,6 +21,19 @@
 //   STATUS:  Phase-B5b — handlers emit to frontend via live_bridge.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-23 C-EXT-TRUST-COHERENCE T-003: a disable cancels the
+//     context reads it owns — the pending /ext/context entry carries its
+//     extension id (PendingContextEntry; the main.rs LiveServerState
+//     literal keeps its HashMap::new() expression, the value type is
+//     inferred), mt_ext_disable drains the disabled extension's entries
+//     under its stream_gate block (drain_pending_context,
+//     BLOCK_DISABLE_CONTEXT_DRAINED), and the woken handler re-checks
+//     the epoch under stream_gate before answering or recording:
+//     disabled ⇒ 401 with the fence voice BLOCK_EXT_CONTEXT_CANCELLED
+//     and no EXT_DOCUMENT_BINDINGS mutation, a still-enabled channel
+//     closure keeps the 500 voice, the timeout leg keeps its 504, and
+//     the mt::ext::context_response listener stays byte-unchanged
+//     (drained entries' late responses keep being dropped).
 //   - 2026-11-23 C-EXT-TRUST-COHERENCE T-002: the incoming data routes
 //     carry the disable fence the /stream/* routes already have —
 //     authenticate_incoming snapshots the authorization_epoch beside the
@@ -225,6 +238,16 @@ pub struct LiveSession {
     pub last_heartbeat: Instant,
 }
 
+/// C-EXT-TRUST-COHERENCE: a pending /ext/context read carries the id of
+/// the extension that owns it, so a disable can drain exactly its own
+/// reads (drain_pending_context). The LiveServerState literal in
+/// src-tauri/src/main.rs keeps its HashMap::new() expression — the value
+/// type is inferred here.
+pub struct PendingContextEntry {
+    pub tx: tokio::sync::oneshot::Sender<ExtContextResponse>,
+    pub extension_id: String,
+}
+
 /// Shared state for the live server. Thread-safe via tokio::sync::Mutex
 /// (async-aware, no blocking across await points).
 pub struct LiveServerState<R: tauri::Runtime = tauri::Wry> {
@@ -234,7 +257,9 @@ pub struct LiveServerState<R: tauri::Runtime = tauri::Wry> {
     /// Pending /ext/context requests awaiting frontend response.
     /// Uses std::sync::Mutex (not tokio) because the lock is held
     /// only briefly for insert/remove — never across await points.
-    pub pending_context: std::sync::Mutex<HashMap<String, tokio::sync::oneshot::Sender<ExtContextResponse>>>,
+    /// C-EXT-TRUST-COHERENCE: a leaf lock taken under stream_gate by the
+    /// disable-side drain, never the inverse order.
+    pub pending_context: std::sync::Mutex<HashMap<String, PendingContextEntry>>,
 }
 
 // END_BLOCK_TYPES
@@ -1863,7 +1888,10 @@ pub(super) async fn handle_ext_context<R: tauri::Runtime>(
             );
         }
         let mut pending = state.pending_context.lock().unwrap();
-        pending.insert(request_id.clone(), tx);
+        pending.insert(request_id.clone(), PendingContextEntry {
+            tx,
+            extension_id: identity.extension_id.clone(),
+        });
     }
 
     if let Err(e) = super::live_bridge::emit_context_request(
@@ -1883,37 +1911,61 @@ pub(super) async fn handle_ext_context<R: tauri::Runtime>(
     }
 
     match tokio::time::timeout(std::time::Duration::from_secs(5), rx).await {
-        Ok(Ok(context)) => {
-            // C-SEC-EDIT-TARGETING: remember the binding this context read
-            // carried (a (None, None) pair too — it refuses every apply
-            // for this extension until a context read carries rendered
-            // identity). A timed-out or channel-closed request records
-            // nothing.
-            {
-                let mut bindings = EXT_DOCUMENT_BINDINGS.lock().unwrap();
-                bindings.insert(
-                    req.extension_id.clone(),
-                    DocumentBinding {
-                        document_id: context.document_id.clone(),
-                        document_generation: context.document_generation.clone(),
-                    },
+        // C-EXT-TRUST-COHERENCE: content and channel closure both pass the
+        // pre-serve re-check under stream_gate first — a disable that
+        // cancelled this read (drained entry, closed channel) or landed
+        // while the response was in flight is fenced here: 401 with the
+        // fence voice, nothing served and nothing recorded into
+        // EXT_DOCUMENT_BINDINGS. A still-enabled channel closure keeps
+        // the existing 500 voice; the context_response listener stays
+        // unchanged and keeps dropping drained entries' late responses.
+        Ok(wake) => {
+            let registry = state.app_handle.state::<super::registry::ExtRegistry>();
+            let _stream_gate = registry.stream_gate.lock().await;
+            if !identity.is_enabled(&registry) {
+                safe_eprintln!(
+                    "[ExtHost][live_server][BLOCK_EXT_CONTEXT_CANCELLED id={}]",
+                    identity.extension_id,
+                );
+                return (
+                    StatusCode::UNAUTHORIZED,
+                    Json(serde_json::json!({"error": "extension is not enabled"})),
                 );
             }
-            safe_eprintln!(
-                "[ExtHost][live_server][BLOCK_EXT_CONTEXT_OK ext_id={} md_len={}]",
-                req.extension_id,
-                context.markdown.len(),
-            );
-            (StatusCode::OK, Json(serde_json::to_value(&context).unwrap()))
-        }
-        Ok(Err(_)) => {
-            safe_eprintln!(
-                "[ExtHost][live_server][BLOCK_EXT_CONTEXT_CHANNEL_CLOSED]"
-            );
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "context channel closed unexpectedly"})),
-            )
+            match wake {
+                Ok(context) => {
+                    // C-SEC-EDIT-TARGETING: remember the binding this context read
+                    // carried (a (None, None) pair too — it refuses every apply
+                    // for this extension until a context read carries rendered
+                    // identity). A timed-out or channel-closed request records
+                    // nothing.
+                    {
+                        let mut bindings = EXT_DOCUMENT_BINDINGS.lock().unwrap();
+                        bindings.insert(
+                            req.extension_id.clone(),
+                            DocumentBinding {
+                                document_id: context.document_id.clone(),
+                                document_generation: context.document_generation.clone(),
+                            },
+                        );
+                    }
+                    safe_eprintln!(
+                        "[ExtHost][live_server][BLOCK_EXT_CONTEXT_OK ext_id={} md_len={}]",
+                        req.extension_id,
+                        context.markdown.len(),
+                    );
+                    (StatusCode::OK, Json(serde_json::to_value(&context).unwrap()))
+                }
+                Err(_) => {
+                    safe_eprintln!(
+                        "[ExtHost][live_server][BLOCK_EXT_CONTEXT_CHANNEL_CLOSED]"
+                    );
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(serde_json::json!({"error": "context channel closed unexpectedly"})),
+                    )
+                }
+            }
         }
         Err(_) => {
             let mut pending = state.pending_context.lock().unwrap();
@@ -1927,6 +1979,29 @@ pub(super) async fn handle_ext_context<R: tauri::Runtime>(
             )
         }
     }
+}
+
+/// C-EXT-TRUST-COHERENCE: wake and discard the disabled extension's
+/// pending /ext/context reads. Called from mt_ext_disable inside its
+/// existing stream_gate block — the pending map stays a leaf std Mutex
+/// with no inverse-order path, and the handlers' 5 s wait never happens
+/// under the gate. Dropping each drained sender wakes its handler
+/// immediately; the pre-serve re-check then refuses the cancelled read.
+/// Returns the drained count for BLOCK_DISABLE_CONTEXT_DRAINED.
+pub(super) fn drain_pending_context<R: tauri::Runtime>(
+    state: &LiveServerState<R>,
+    extension_id: &str,
+) -> usize {
+    let mut pending = state.pending_context.lock().unwrap();
+    let owned: Vec<String> = pending.iter()
+        .filter(|(_, entry)| entry.extension_id == extension_id)
+        .map(|(request_id, _)| request_id.clone())
+        .collect();
+    let drained = owned.len();
+    for request_id in owned {
+        pending.remove(&request_id);
+    }
+    drained
 }
 
 /// POST /ext/apply — apply edit operations to the active editor.
@@ -2427,7 +2502,11 @@ pub async fn start_live_server<R: tauri::Runtime>(state: Arc<LiveServerState<R>>
             Ok(resp) => {
                 let mut pending = ctx_state.pending_context.lock().unwrap();
                 if let Some(tx) = pending.remove(&resp.request_id) {
-                    let _ = tx.send(resp.context);
+                    // C-EXT-TRUST-COHERENCE: the pending value gained the
+                    // extension id (PendingContextEntry); the listener's
+                    // behavior is unchanged — it still drops entries
+                    // missing at response time, drained ones included.
+                    let _ = tx.tx.send(resp.context);
                 }
             }
             Err(e) => {
