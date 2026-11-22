@@ -25,11 +25,10 @@ import RipgrepDirectorySearcher from '../node/ripgrepSearcher'
 //   useSearchStore - the Pinia store (keyword, results, running, error,
 //                    partialResults, runSearch, cancelRunning).
 //   parseSearchMaxFileSize - documented size-string parser at the store boundary.
-//   SEARCH_RESULT_CAP - honest delivered-match cap (100): the displayed
-//                       set truncates to exactly this many delivered
-//                       matches and is marked partial through
-//                       partialResults; a cap is not a failure.
 // END_MODULE_MAP
+// (SEARCH_RESULT_CAP — the honest delivered-match cap — is a module-
+// scoped const rather than an export: documented in SCOPE above and at
+// its declaration below.)
 //
 
 // v1.3.0: search lifecycle — one generation claim per runSearch

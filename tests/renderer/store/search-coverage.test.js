@@ -228,7 +228,7 @@ describe('store/search — coverage gaps', () => {
   })
 
   // C-SEARCH-LIFECYCLE-DISCARD T-001: documents the replacement of the
-  // mock-fed pin "didSearchPaths under 100 does not set error" — the
+  // mock-fed didSearchPaths sub-limit pin — the
   // store passes no didSearchPaths option anymore (the searchedPaths
   // event never exists on the wire; the honest delivered-match cap is
   // pinned in search.test.ts).

@@ -228,8 +228,8 @@ describe('store/search', () => {
       expect(s.running).toBe(false)
     })
 
-    // C-SEARCH-LIFECYCLE-DISCARD T-001: replaces the mock-fed pin
-    // "canceling on >100 paths sets error message" — the searchedPaths
+    // C-SEARCH-LIFECYCLE-DISCARD T-001: replaces the mock-fed
+    // ">100 paths" error pin — the searchedPaths
     // event it drove never exists on the wire, so the limit is now an
     // honest delivered-match cap: grouped envelopes counted on their
     // matches (the matchCount unit), the crossing envelope sliced to the

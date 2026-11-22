@@ -16,7 +16,7 @@
 //
 // START_MODULE_MAP
 //   fixture - fake muya with a real EventCenter, controlled
-//             imagePathAutoComplete promises and a dispatch spy.
+//             (imagePathAutoComplete) promises and a dispatch spy.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
