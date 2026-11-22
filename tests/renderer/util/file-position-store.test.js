@@ -173,6 +173,48 @@ describe('util/filePositionStore (C-FILE-POSITION-MEMORY)', () => {
     expect(await saveFilePosition('', anEntry(), io)).toBe(false)
   })
 
+  it('saveFilePosition_caps_the_store_to_MAX_POSITION_FILES', async () => {
+    // C-SESSION-DURABILITY: the write path applies the SAME capStoreFiles
+    // discipline the read path already applies (newest-by-savedAt kept,
+    // ties deterministic), so the on-disk store can never silently
+    // outgrow its bound between reads.
+    const { saveFilePosition, MAX_POSITION_FILES, FILE_POSITIONS_PREFS_KEY } = await load()
+    const io = fakeIo()
+    // Seeded beyond the cap: MAX+5 entries, savedAt ascending with the
+    // path suffix (oldest first).
+    const files = {}
+    for (let i = 0; i < MAX_POSITION_FILES + 5; i++) files[`/f${i}.md`] = anEntry({ savedAt: i })
+    io.dump().set(FILE_POSITIONS_PREFS_KEY, { version: 1, files })
+
+    expect(await saveFilePosition('/f-new.md', anEntry({ scrollTop: 9 }), io)).toBe(true)
+
+    const store = io.dump().get(FILE_POSITIONS_PREFS_KEY)
+    expect(
+      Object.keys(store.files).length,
+      `the persisted store holds ${Object.keys(store.files).length} entries — the save path left it uncapped`
+    ).toBe(MAX_POSITION_FILES)
+    // The just-saved entry survives: its fresh savedAt makes it newest.
+    expect(store.files['/f-new.md'].scrollTop).toBe(9)
+    // The eviction keeps the newest-by-savedAt set: the six oldest
+    // seeds (f0..f5) are gone, f6..f204 survive.
+    expect(store.files['/f0.md']).toBeUndefined()
+    expect(store.files['/f5.md']).toBeUndefined()
+    expect(store.files['/f6.md']).toBeTruthy()
+    expect(store.files['/f204.md']).toBeTruthy()
+
+    // An at-cap save (the store stays ≤ cap: an existing path replaced)
+    // is a no-cap no-op — the capped:false short-circuit untouched.
+    const io2 = fakeIo()
+    const files2 = {}
+    for (let i = 0; i < MAX_POSITION_FILES; i++) files2[`/g${i}.md`] = anEntry({ savedAt: i })
+    io2.dump().set(FILE_POSITIONS_PREFS_KEY, { version: 1, files: files2 })
+    expect(await saveFilePosition('/g5.md', anEntry({ scrollTop: 7 }), io2)).toBe(true)
+    const store2 = io2.dump().get(FILE_POSITIONS_PREFS_KEY)
+    expect(Object.keys(store2.files)).toHaveLength(MAX_POSITION_FILES)
+    expect(store2.files['/g5.md'].scrollTop).toBe(7)
+    expect(store2.files['/g0.md']).toBeTruthy()
+  })
+
   // ── v1.1.0 review wave: serialization, tri-state stat, read-failure abort ──
 
   it('two interleaved saves both survive (serialized mutation queue)', async () => {
