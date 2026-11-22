@@ -265,14 +265,17 @@ test.describe('the Settings family picker carries the new families (C-51 T-007)'
     await expect(docsTile).toHaveClass(/(^|\s)is-selected(\s|$)/, { timeout: 5_000 })
     await expect(page.locator('body')).not.toHaveClass(/(^|\s)dark(\s|$)/)
     // The theme's own document mirror carries the Docs ground colour.
+    // vite 8's build serializes the hex lowercase — the colour is the same;
+    // compare case-insensitively.
     await expect
       .poll(
-        async () => page.evaluate(() =>
-          document.documentElement.style.getPropertyValue('--editorBgColor')
-        ),
+        async () =>
+          (await page.evaluate(() =>
+            document.documentElement.style.getPropertyValue('--editorBgColor')
+          )).toLowerCase(),
         { timeout: 5_000 }
       )
-      .toBe('#FCFCFB')
+      .toBe('#fcfcfb')
 
     const writes = await page.evaluate(() => (window as any).__prefWrites || [])
     const themeWrites = writes.filter(
@@ -307,12 +310,13 @@ test.describe('the Settings family picker carries the new families (C-51 T-007)'
     await expect(macosTile).toHaveClass(/(^|\s)is-selected(\s|$)/)
     await expect
       .poll(
-        async () => page.evaluate(() =>
-          document.documentElement.style.getPropertyValue('--editorBgColor')
-        ),
+        async () =>
+          (await page.evaluate(() =>
+            document.documentElement.style.getPropertyValue('--editorBgColor')
+          )).toLowerCase(),
         { timeout: 5_000 }
       )
-      .toBe('#1E1E1E')
+      .toBe('#1e1e1e')
 
     const writes = await page.evaluate(() => (window as any).__prefWrites || [])
     const themeWrites = writes.filter((w: any) => w.key === 'theme')
