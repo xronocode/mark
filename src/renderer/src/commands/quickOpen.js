@@ -134,7 +134,21 @@ class QuickOpenCommand {
         .search([rootPath], '', {
           didMatch: (result) => {
             if (canceled) return
-            searchResult.push(result)
+            // C-SEARCH-RESULT-CONTRACT: normalize here, where the envelope
+            // is consumed — a plain string (today's searcher shape) is kept
+            // as-is; the window shim's grouped { filePath, matches } row
+            // contributes its string pathname so `const item = { id:
+            // pathname }` builds a string id again and executeSubcommand
+            // can open the file; any other non-string shape is dropped.
+            const pathname =
+              typeof result === 'string'
+                ? result
+                : result && typeof result.filePath === 'string'
+                  ? result.filePath
+                  : null
+            if (pathname !== null) {
+              searchResult.push(pathname)
+            }
           },
           didSearchPaths: (numPathsFound) => {
             // Cancel when more than 30 files were found. User should specify the search query.

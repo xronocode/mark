@@ -54,6 +54,13 @@
 //     forwards the backend's additive optional partial flag
 //     (partial: m.partial === true) on terminal envelopes only so the
 //     store keeps already-streamed hits honestly marked partial.
+//   - 2026-11-22 C-SEARCH-RESULT-CONTRACT T-003: the mt::search-event
+//     payload translation moved into the pure zero-import sibling
+//     search-event-translation.js (behavior-tested under jsdom; the
+//     static import here is boot-safe because the helper has no imports
+//     of its own). Match rows now carry the honest array-pair range
+//     from the backend's matchStart/matchEnd bounds; the fabricated
+//     "column + snippet.length" end is gone.
 
 // END_MODULE_CONTRACT
 // START_MODULE_MAP
@@ -82,6 +89,13 @@ import bus from '@/bus'
 // AFTER backend has already fired the response, event is missed).
 import { invoke as _tauriInvoke } from '@tauri-apps/api/core'
 import { listen as _tauriListen, once as _tauriOnce, emit as _tauriEmit } from '@tauri-apps/api/event'
+// C-SEARCH-RESULT-CONTRACT: the mt::search-event payload translation is
+// a PURE zero-dependency sibling — a static edge here is boot-safe
+// precisely because the helper has no imports of its own (the C-52
+// chunk-pull failure mode is pinned to clipboard modules with
+// import-time window.electron readers; pinned by
+// tests/renderer/_shims/install-window-globals.test.js).
+import { translateSearchEvent } from './search-event-translation'
 
 // ─── URL args parity with v1.2.3 main process ─────────────────────────
 // In Electron, the main process appended `?udp=<path>&wid=0&type=editor`
@@ -396,35 +410,12 @@ const electron = {
         wrappedListener = listen(channel, (event) => {
           const m = event.payload
           if (!m) return
-          const sid = m.searchId
-          if (m.kind === 'match' && Array.isArray(m.hits) && m.hits.length) {
-            const byPath = new Map()
-            for (const h of m.hits) {
-              if (!byPath.has(h.path)) byPath.set(h.path, [])
-              byPath.get(h.path).push({
-                matchText: h.snippet || '',
-                lineText: h.snippet || '',
-                range: [
-                  { row: Math.max(0, (h.line || 1) - 1), column: h.column || 0 },
-                  { row: Math.max(0, (h.line || 1) - 1), column: (h.column || 0) + (h.snippet ? h.snippet.length : 0) }
-                ],
-                leadingContextLines: [],
-                trailingContextLines: []
-              })
-            }
-            for (const [filePath, matches] of byPath) {
-              handler(event, { searchId: sid, type: 'match', payload: { filePath, matches } })
-            }
-          } else if (m.kind === 'complete') {
-            // C-SEARCH-ERROR-VISIBILITY: the additive optional partial flag
-            // is forwarded on terminal envelopes only (match envelopes stay
-            // untouched) so the store keeps streamed hits honestly marked.
-            handler(event, { searchId: sid, type: 'complete', partial: m.partial === true })
-          } else if (m.kind === 'cancelled') {
-            handler(event, { searchId: sid, type: 'complete', partial: m.partial === true })
-          } else if (m.kind === 'error') {
-            handler(event, { searchId: sid, type: 'error', payload: { message: m.error || 'search error' }, partial: m.partial === true })
-          }
+          // C-SEARCH-RESULT-CONTRACT: the payload translation lives in
+          // the pure zero-dependency sibling (per-path grouping, honest
+          // array-pair ranges from matchStart/matchEnd, terminal shapes
+          // with the additive partial flag) and is behavior-tested under
+          // jsdom there.
+          for (const d of translateSearchEvent(m)) handler(event, d)
         })
       } else {
         wrappedListener = listen(channel, (event) => handler(event, event.payload))

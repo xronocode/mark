@@ -151,3 +151,101 @@ describe('QuickOpenCommand', () => {
     expect(result.title).toBeDefined()
   })
 })
+
+// ── C-SEARCH-RESULT-CONTRACT: quickopen-string-ids ──────────────────
+// Today's window-shim content-spawn delivers didMatch the GROUPED
+// envelope ({ filePath, matches }) rows; pushed raw, id becomes an
+// object and no disk result can be opened. The consumer must normalize
+// the envelope back to string pathnames where didMatch receives it.
+describe('quickopen-string-ids (C-SEARCH-RESULT-CONTRACT)', () => {
+  let cmd
+  let rootState
+
+  beforeEach(() => {
+    rootState = {
+      editor: { tabs: [] },
+      project: { projectTree: { pathname: '/docs' } }
+    }
+    window.fileUtils.hasMarkdownExtension = vi.fn(() => false)
+    window.fileUtils.isChildOfDirectory = vi.fn(
+      (parent, child) => typeof child === 'string' && child.startsWith(parent + '/')
+    )
+    window.fileUtils.MARKDOWN_INCLUSIONS = ['*.md']
+    window.path.relative = vi.fn((from, to) => to.slice(from.length + 1))
+    cmd = new QuickOpenCommand(rootState)
+  })
+
+  const shimFeed = (options) => {
+    options.didMatch({
+      filePath: '/docs/found-a.md',
+      matches: [{ lineText: 'needle here', range: [[0, 6], [0, 12]] }]
+    })
+    options.didMatch({
+      filePath: '/docs/sub/found-b.md',
+      matches: [{ lineText: 'other needle' }]
+    })
+    const p = Promise.resolve()
+    p.cancel = vi.fn()
+    return p
+  }
+
+  it('normalizes the shim-shaped grouped envelope so every id is a pathname string', async () => {
+    const getPathCalls = []
+    window.path.relative = vi.fn((from, to) => {
+      getPathCalls.push(to)
+      return to.slice(from.length + 1)
+    })
+    cmd._directorySearcher.search = vi.fn((_paths, _q, options) => shimFeed(options))
+
+    const result = await cmd._doSearch('found')
+    expect(result.length).toBe(2)
+    for (const item of result) {
+      expect(typeof item.id).toBe('string')
+      expect(item.id.startsWith('/docs/')).toBe(true)
+    }
+    expect(result.map((i) => i.id)).toEqual(['/docs/found-a.md', '/docs/sub/found-b.md'])
+    // isChildOfDirectory and window.path.relative keep their string contracts.
+    for (const p of getPathCalls) expect(typeof p).toBe('string')
+    for (const call of window.fileUtils.isChildOfDirectory.mock.calls) {
+      expect(typeof call[1]).toBe('string')
+    }
+  })
+
+  it('executeSubcommand sends the string pathname to mt::open-file-by-window-id', async () => {
+    window.marktext = { env: { windowId: 7 } }
+    cmd._directorySearcher.search = vi.fn((_paths, _q, options) => shimFeed(options))
+
+    const result = await cmd._doSearch('found')
+    await cmd.executeSubcommand(result[0].id)
+    expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
+      'mt::open-file-by-window-id',
+      7,
+      '/docs/found-a.md'
+    )
+  })
+
+  it('keeps plain-string didMatch deliveries working (today\'s searcher shape)', async () => {
+    cmd._directorySearcher.search = vi.fn((_paths, _q, options) => {
+      options.didMatch('/docs/string-path.md')
+      const p = Promise.resolve()
+      p.cancel = vi.fn()
+      return p
+    })
+    const result = await cmd._doSearch('string')
+    expect(result.map((i) => i.id)).toEqual(['/docs/string-path.md'])
+  })
+
+  it('drops non-string shapes without a string filePath', async () => {
+    cmd._directorySearcher.search = vi.fn((_paths, _q, options) => {
+      options.didMatch(42)
+      options.didMatch(null)
+      options.didMatch({ matches: [] })
+      options.didMatch({ filePath: '/docs/kept.md', matches: [] })
+      const p = Promise.resolve()
+      p.cancel = vi.fn()
+      return p
+    })
+    const result = await cmd._doSearch('kept')
+    expect(result.map((i) => i.id)).toEqual(['/docs/kept.md'])
+  })
+})

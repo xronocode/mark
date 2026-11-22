@@ -1,4 +1,4 @@
-import { shallowMount } from '@vue/test-utils'
+import { shallowMount, mount } from '@vue/test-utils'
 import { setupTestPinia } from '../../pinia'
 import { createI18n } from 'vue-i18n'
 import { readFileSync } from 'node:fs'
@@ -279,6 +279,173 @@ describe('projectSearch/index.vue', () => {
     await wrapper.vm.$nextTick()
     expect(searchStore.results).toHaveLength(1)
     expect(searchStore.results[0].filePath).toBe('/proj/new.md')
+  })
+})
+
+// ─── C-SEARCH-RESULT-CONTRACT: project-search-keyboard-chain ─────────
+// The overlay must be keyboard-operable end to end following the
+// commandPalette zone canon (selected index + active class +
+// scrollIntoView, no new ARIA roles). Every step is red before the fix:
+// Enter is a no-op placeholder, the rows carry no tabindex/keydown, and
+// Escape closes only from the input.
+describe('project-search-keyboard-chain (C-SEARCH-RESULT-CONTRACT)', () => {
+  let pinia
+
+  const chainI18n = createI18n({ legacy: false, locale: 'en', messages: { en: {} } })
+
+  // Full mount (real SearchResultItem rows) — the chain drives match
+  // lines, which the shallow stub would erase. attachTo puts the tree
+  // into the document: jsdom's focus()/document.activeElement only move
+  // for attached elements.
+  let chainWrapper = null
+  const mountChain = async () => {
+    const ProjectSearch = (await import('@/components/projectSearch/index.vue')).default
+    chainWrapper = mount(ProjectSearch, {
+      attachTo: document.body,
+      global: {
+        plugins: [pinia, chainI18n],
+        stubs: { ElButton: true }
+      }
+    })
+    return chainWrapper
+  }
+
+  const tick = async (wrapper) => {
+    await Promise.resolve()
+    await Promise.resolve()
+    await wrapper.vm.$nextTick()
+    await Promise.resolve()
+    await wrapper.vm.$nextTick()
+  }
+
+  beforeEach(() => {
+    pinia = setupTestPinia()
+    // jsdom has no layout engine — the roving canon's scrollIntoView is
+    // recorded, never executed.
+    window.HTMLElement.prototype.scrollIntoView = vi.fn()
+  })
+
+  afterEach(() => {
+    chainWrapper?.unmount()
+    chainWrapper = null
+    bus.all.clear()
+    vi.restoreAllMocks()
+  })
+
+  const openWithResults = async (wrapper) => {
+    const { useSearchStore } = await import('@/store/search')
+    const searchStore = useSearchStore()
+    searchStore.keyword = 'needle'
+    searchStore.results = [
+      {
+        filePath: '/proj/a.md',
+        matches: [
+          { lineText: 'alpha needle beta', range: [[0, 6], [0, 12]] },
+          { lineText: 'second line needle', range: [[1, 12], [1, 18]] }
+        ]
+      },
+      {
+        filePath: '/proj/b.md',
+        matches: [{ lineText: 'b file needle', range: [[0, 7], [0, 13]] }]
+      }
+    ]
+    bus.emit('projectSearch')
+    await wrapper.vm.$nextTick()
+    return searchStore
+  }
+
+  it('Enter in the query input moves focus into the results (first row selected)', async () => {
+    const wrapper = await mountChain()
+    await openWithResults(wrapper)
+
+    await wrapper.find('.search-input').trigger('keydown.enter')
+    await tick(wrapper)
+
+    const rows = wrapper.findAll('.matches ul li')
+    expect(rows.length).toBe(3)
+    expect(document.activeElement).toBe(rows[0].element)
+    expect(rows[0].classes()).toContain('active')
+    expect(rows[0].attributes('tabindex')).toBe('0')
+    expect(rows[1].attributes('tabindex')).toBe('-1')
+  })
+
+  it('ArrowDown/ArrowUp move the visible selection across match lines with wrap-around', async () => {
+    const wrapper = await mountChain()
+    await openWithResults(wrapper)
+    await wrapper.find('.search-input').trigger('keydown.enter')
+    await tick(wrapper)
+    const rows = wrapper.findAll('.matches ul li')
+
+    await wrapper.find('.panel-results').trigger('keydown', { key: 'ArrowDown' })
+    await tick(wrapper)
+    expect(rows[1].classes()).toContain('active')
+    expect(rows[0].classes()).not.toContain('active')
+    expect(document.activeElement).toBe(rows[1].element)
+
+    // Wrap-around: two more downs land back on the first row.
+    await wrapper.find('.panel-results').trigger('keydown', { key: 'ArrowDown' })
+    await wrapper.find('.panel-results').trigger('keydown', { key: 'ArrowDown' })
+    await tick(wrapper)
+    expect(rows[0].classes()).toContain('active')
+
+    // Wrap-around up: from the first row to the last.
+    await wrapper.find('.panel-results').trigger('keydown', { key: 'ArrowUp' })
+    await tick(wrapper)
+    expect(rows[2].classes()).toContain('active')
+  })
+
+  it('Enter on a selected match line opens that file at that match through the click code path', async () => {
+    const wrapper = await mountChain()
+    await openWithResults(wrapper)
+    await wrapper.find('.search-input').trigger('keydown.enter')
+    await tick(wrapper)
+
+    await wrapper.find('.panel-results').trigger('keydown', { key: 'ArrowDown' })
+    await tick(wrapper)
+    const rows = wrapper.findAll('.matches ul li')
+    await rows[1].trigger('keydown.enter')
+    await tick(wrapper)
+
+    expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
+      'mt::open-file',
+      '/proj/a.md',
+      {
+        cursor: {
+          isCollapsed: false,
+          anchor: { line: 1, ch: 12 },
+          focus: { line: 1, ch: 18 }
+        }
+      }
+    )
+  })
+
+  it('Tab can reach the result rows (roving tabindex)', async () => {
+    const wrapper = await mountChain()
+    await openWithResults(wrapper)
+    await wrapper.find('.search-input').trigger('keydown.enter')
+    await tick(wrapper)
+
+    const rows = wrapper.findAll('.matches ul li')
+    const tabbable = rows.filter((r) => r.attributes('tabindex') === '0')
+    expect(tabbable.length).toBe(1)
+    // Tab steps into the selected row and arrows keep moving the
+    // selection — the documented roving-focused choice.
+    await rows[0].trigger('keydown', { key: 'ArrowDown' })
+    await tick(wrapper)
+    expect(rows[1].attributes('tabindex')).toBe('0')
+    expect(rows[0].attributes('tabindex')).toBe('-1')
+  })
+
+  it('Escape closes the overlay from the results context (input close preserved)', async () => {
+    const wrapper = await mountChain()
+    await openWithResults(wrapper)
+    await wrapper.find('.search-input').trigger('keydown.enter')
+    await tick(wrapper)
+
+    const rows = wrapper.findAll('.matches ul li')
+    await rows[2].trigger('keydown.escape')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.project-search-overlay').exists()).toBe(false)
   })
 })
 

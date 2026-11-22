@@ -1,10 +1,10 @@
 // FILE: src-tauri/src/m013b/search.rs
-// VERSION: 2.4.0-beta
+// VERSION: 2.5.0-beta
 // START_MODULE_CONTRACT
 //   PURPOSE: Run cancellable content searches and stream bounded result batches to the renderer.
-//   SCOPE: Tauri search commands, rg JSON-process transport (exit-status honesty, bounded stderr capture, cancel watcher), embedded ignore/regex fallback, shared exclusion-mask compilation, search-session coordination (session-wide seq, exactly one terminal), cancellation, and search-event payloads (additive optional partial flag).
+//   SCOPE: Tauri search commands, rg JSON-process transport (exit-status honesty, bounded stderr capture, cancel watcher), embedded ignore/regex fallback, shared exclusion-mask compilation, search-session coordination (session-wide seq, exactly one terminal), cancellation, and search-event payloads (additive optional partial flag; additive optional honest matchStart/matchEnd hit bounds).
 //   DEPENDS: ignore, regex, serde_json, tauri, m010_security, m013b::error, m013b::state.
-//   LINKS: M-004, V-M-004, Phase-B2 step-4, C-SEARCH-SESSION-COMPLETION, C-SEARCH-ERROR-VISIBILITY.
+//   LINKS: M-004, V-M-004, Phase-B2 step-4, C-SEARCH-SESSION-COMPLETION, C-SEARCH-ERROR-VISIBILITY, C-SEARCH-RESULT-CONTRACT.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -14,7 +14,7 @@
 //   DEFAULT_BATCH_SIZE - Default renderer result-batch capacity.
 //   MAX_LINE_BYTES - Maximum line size admitted by the embedded fallback.
 //   SearchOptions - Search preferences accepted from the renderer.
-//   SearchHit - One normalized text-match result.
+//   SearchHit - One normalized text-match result (additive optional matchStart/matchEnd first-submatch bounds within the delivered snippet, UTF-16 code units; wire-absent when unavailable).
 //   SearchEvent - Batched search-event wire payload (additive optional partial flag on terminals).
 //   SearchSink - Event-sink abstraction shared by Tauri and tests.
 //   SearchRegistry - Registry of cancellable in-flight searches.
@@ -28,7 +28,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2.4.0-beta - C-SEARCH-ERROR-VISIBILITY T-001/T-003: rg honesty and prompt cancel settle — stderr piped with a bounded START_BLOCK_RIPGREP_STDERR_CAPTURE tail (BLOCK log only, never the wire error), child exit status reaped and checked (0/1 normal, >=2 the single "rg exited with code N" error class), START_BLOCK_CANCEL_WATCHER thread kills+waits a silent child without needing a stdout line, compile_exclusion_masks applied symmetrically (walker filter + rg --glob=! args; invalid masks explicitly ignored), additive optional SearchEvent.partial with finalize(terminal, error, partial) computed conservatively in run_session.
+//   LAST_CHANGE: 2.5.0-beta - C-SEARCH-RESULT-CONTRACT T-001/T-002: SearchHit grows two additive optional match-bound fields (matchStart/matchEnd, wire-absent via skip_serializing_if) — the first submatch's span within the DELIVERED snippet text, in UTF-16 code-unit offsets (0-based start, exclusive end; the renderer substring index space) computed by one shared byte_offset_to_utf16_units conversion; filled by BOTH engines (rg --json first-submatch start/end replacing the reserved pattern_len placeholder, embedded walker match span), honest-or-absent when the match is not fully inside the delivered snippet (walker byte truncation; defensively for rg too); legacy column per-leg values untouched.
+//   PREVIOUS: 2.4.0-beta - C-SEARCH-ERROR-VISIBILITY T-001/T-003: rg honesty and prompt cancel settle — stderr piped with a bounded START_BLOCK_RIPGREP_STDERR_CAPTURE tail (BLOCK log only, never the wire error), child exit status reaped and checked (0/1 normal, >=2 the single "rg exited with code N" error class), START_BLOCK_CANCEL_WATCHER thread kills+waits a silent child without needing a stdout line, compile_exclusion_masks applied symmetrically (walker filter + rg --glob=! args; invalid masks explicitly ignored), additive optional SearchEvent.partial with finalize(terminal, error, partial) computed conservatively in run_session.
 //   PREVIOUS: 2.3.0-beta - C-SEARCH-SESSION-COMPLETION T-001: SearchSessionCoordinator owns the session-wide seq and the single terminal (complete/cancelled/error); run_search/run_ripgrep emit match batches only, run_session finalizes exactly once across all roots and both engines — no per-root terminals, no seq restart.
 //   PREVIOUS: 2.2.0-beta - C-15 T-W2: ripgrep_available probe — desktop builds without a system rg (typical Windows) degrade to the in-process walker with BLOCK_RIPGREP_FALLBACK marker.
 //   PREVIOUS: 2.1.1-beta - Defined injectable rg execution so spawn-failure tests remain deterministic under parallel cargo test.
@@ -105,6 +106,34 @@ pub struct SearchHit {
     pub column: u32,
     pub snippet: String,
     pub truncated: bool,
+    /// C-SEARCH-RESULT-CONTRACT: additive optional honest match bounds —
+    /// the first submatch's span WITHIN THE DELIVERED snippet text, in
+    /// UTF-16 code-unit offsets (0-based start, exclusive end): the exact
+    /// index space of the renderer's String.substring, exact for BMP and
+    /// astral content alike. Both engines' raw spans are byte offsets, so
+    /// both legs convert through one shared helper (bounds_parity_
+    /// across_engines pins identical semantics). Absent (wire-absent via
+    /// skip_serializing_if, the struct's established optional-field
+    /// style) when the match is not fully inside the delivered snippet —
+    /// honest-or-absent, never a partial or fabricated span.
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "matchStart")]
+    pub match_start: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "matchEnd")]
+    pub match_end: Option<u32>,
+}
+
+// START_CONTRACT: byte_offset_to_utf16_units
+//   PURPOSE: The one documented byte→bounds conversion (C-SEARCH-RESULT-CONTRACT): map an engine's raw byte offset within the delivered snippet text to a UTF-16 code-unit offset — the unit both engine legs deliver and the renderer's substring reads.
+//   INPUTS: { text: &str - the delivered snippet text, byte_offset: usize - raw engine span offset within that text }
+//   OUTPUTS: { Option<u32> - None when the offset falls outside text or is not a char boundary, else the UTF-16 code-unit offset }
+//   SIDE_EFFECTS: None.
+//   LINKS: SearchHit.match_start/match_end, bounds_parity_across_engines, V-M-004.
+// END_CONTRACT: byte_offset_to_utf16_units
+fn byte_offset_to_utf16_units(text: &str, byte_offset: usize) -> Option<u32> {
+    if byte_offset > text.len() || !text.is_char_boundary(byte_offset) {
+        return None;
+    }
+    Some(text[..byte_offset].encode_utf16().count() as u32)
 }
 
 /// Outbound event payload. Renderer parses {searchId, kind, hits[],
@@ -543,14 +572,40 @@ pub fn run_search(
             } else {
                 line.clone()
             };
+            // C-SEARCH-RESULT-CONTRACT: bounds live in the DELIVERED
+            // snippet's index space; the ellipsis marker is decoration the
+            // renderer never indexes into, so the delivered text ends at
+            // this byte offset.
+            let delivered_end_byte = snippet.len() - if truncated { '…'.len_utf8() } else { 0 };
             for m in matcher.find_iter(&line) {
                 total_hits += 1;
+                // Honest-or-absent: every walker hit carries the span of
+                // the match it represents as UTF-16 code units over the
+                // delivered snippet (converted through the one shared
+                // helper); a match not fully inside the delivered
+                // (byte-truncated) text stays wire-absent — never a
+                // partial span. The legacy 1-based column keeps its
+                // current value untouched (known walker/rg divergence is
+                // superseded for rendering by the bounds; recorded debt).
+                let (match_start, match_end) = if m.end() <= delivered_end_byte {
+                    match (
+                        byte_offset_to_utf16_units(&snippet, m.start()),
+                        byte_offset_to_utf16_units(&snippet, m.end()),
+                    ) {
+                        (Some(s), Some(e)) => (Some(s), Some(e)),
+                        _ => (None, None),
+                    }
+                } else {
+                    (None, None)
+                };
                 batch.push(SearchHit {
                     path: file_path.display().to_string(),
                     line: (line_num + 1) as u32,
                     column: (m.start() + 1) as u32,
                     snippet: snippet.clone(),
                     truncated,
+                    match_start,
+                    match_end,
                 });
                 if batch.len() >= DEFAULT_BATCH_SIZE {
                     let to_emit = std::mem::take(&mut batch);
@@ -840,7 +895,6 @@ fn run_ripgrep_with_program(
 
     let mut total: u32 = 0;
     let mut batch: Vec<SearchHit> = Vec::with_capacity(DEFAULT_BATCH_SIZE);
-    let pattern_len = pattern.chars().count() as u32;
 
     for line in reader.lines() {
         if cancel.load(Ordering::SeqCst) {
@@ -881,21 +935,50 @@ fn run_ripgrep_with_program(
             .unwrap_or("")
             .trim_end_matches('\n')
             .to_string();
-        // First submatch's start column for the column field. Renderer
-        // shim re-derives a range from snippet for highlighting.
-        let column = data
+        // C-SEARCH-RESULT-CONTRACT: the first submatch's span feeds the
+        // legacy 0-based column field (per-leg value untouched) AND the
+        // additive matchStart/matchEnd bounds. rg --json submatch
+        // offsets are byte offsets within the line, so the conversion to
+        // UTF-16 code units over the delivered snippet runs through the
+        // same shared helper as the walker leg (bounds_parity_across_
+        // engines pins identical semantics). A span not fully inside the
+        // delivered line stays wire-absent — honest-or-absent, never a
+        // partial span. The renderer shim maps present bounds into the
+        // array-pair range for highlighting.
+        let first_submatch = data
             .get("submatches")
             .and_then(|sm| sm.as_array())
-            .and_then(|arr| arr.first())
+            .and_then(|arr| arr.first());
+        let column = first_submatch
             .and_then(|m| m.get("start"))
             .and_then(|s| s.as_u64())
             .unwrap_or(0) as u32;
+        let raw_start = first_submatch
+            .and_then(|m| m.get("start"))
+            .and_then(|s| s.as_u64());
+        let raw_end = first_submatch
+            .and_then(|m| m.get("end"))
+            .and_then(|s| s.as_u64());
+        let (match_start, match_end) = match (raw_start, raw_end) {
+            (Some(s), Some(e)) if e as usize <= snippet.len() => {
+                match (
+                    byte_offset_to_utf16_units(&snippet, s as usize),
+                    byte_offset_to_utf16_units(&snippet, e as usize),
+                ) {
+                    (Some(bs), Some(be)) => (Some(bs), Some(be)),
+                    _ => (None, None),
+                }
+            }
+            _ => (None, None),
+        };
         batch.push(SearchHit {
             path: path_text,
             line: line_num,
             column,
             snippet,
             truncated: false,
+            match_start,
+            match_end,
         });
         total += 1;
         if batch.len() >= DEFAULT_BATCH_SIZE {
@@ -945,7 +1028,6 @@ fn run_ripgrep_with_program(
             return Err((total, message));
         }
     }
-    let _ = pattern_len; // reserved for future range-end calc
     Ok(total)
 }
 
@@ -2427,6 +2509,8 @@ mod tests {
             column: 1,
             snippet: "needle".to_string(),
             truncated: false,
+            match_start: None,
+            match_end: None,
         }]));
         let events = collect_all(&rx, Duration::from_millis(300), Duration::from_millis(1500));
         assert_eq!(events.len(), 1, "exactly one terminal event; got {events:?}");
@@ -2516,5 +2600,292 @@ mod tests {
                 "mark-no-such-rg-binary-xyz"
             )));
         }
+    }
+
+    // ─── C-SEARCH-RESULT-CONTRACT: honest match bounds ─────────────────
+    // Failing-first receipts (traced against the pre-change tree): SearchHit
+    // carried no match-bound fields at all, so every present-bounds
+    // assertion below is red before the additive fields land. The
+    // absence assertions are control pins: they hold trivially while the
+    // fields do not exist and keep the honest-or-absent rule pinned once
+    // they do.
+    //
+    // Units convention (this change's documented decision): match bounds
+    // are UTF-16 code-unit offsets (0-based start, exclusive end)
+    // computed at the backend against the DELIVERED snippet text — the
+    // exact index space of the renderer's String.substring, exact for
+    // BMP and astral content alike. Both engines' raw spans are byte
+    // offsets (regex crate Match spans, rg --json submatch start/end),
+    // so the conversion runs through one shared helper; Unicode
+    // scalar-value counts are rejected because they diverge from JS
+    // substring indices on astral-plane characters.
+
+    /// JS-substring oracle: slice `snippet` the way the renderer's
+    /// substring(start, end) slices UTF-16 code units.
+    fn utf16_substring(snippet: &str, start: u64, end: u64) -> Option<String> {
+        let units: Vec<u16> = snippet.encode_utf16().collect();
+        let (s, e) = (start as usize, end as usize);
+        if s > e || e > units.len() {
+            return None;
+        }
+        String::from_utf16(&units[s..e]).ok()
+    }
+
+    /// First delivered hit for a file/line pair as its wire form.
+    fn first_hit_value(
+        events: &[SearchEvent],
+        file_suffix: &str,
+        line: u32,
+    ) -> serde_json::Value {
+        for ev in events {
+            if ev.kind != "match" {
+                continue;
+            }
+            for hit in &ev.hits {
+                if hit.path.ends_with(file_suffix) && hit.line == line {
+                    return serde_json::to_value(hit).expect("hit serializes");
+                }
+            }
+        }
+        panic!("no hit for {file_suffix}:{line}; events={events:?}");
+    }
+
+    /// All match-batch hits of one session as (file, line, start, end,
+    /// snippet) wire tuples, ordered by (file, line) for engine parity.
+    fn wire_bounds_by_line(rx: &mpsc::Receiver<SearchEvent>) -> Vec<(String, u32, u64, u64, String)> {
+        let events = collect_until_terminal(rx, Duration::from_secs(2));
+        let mut out = Vec::new();
+        for ev in &events {
+            if ev.kind != "match" {
+                continue;
+            }
+            for hit in &ev.hits {
+                let v = serde_json::to_value(hit).expect("hit serializes");
+                let file = hit
+                    .path
+                    .rsplit(|c| c == '/' || c == '\\')
+                    .next()
+                    .unwrap_or("")
+                    .to_string();
+                let start = v.get("matchStart").and_then(|x| x.as_u64()).unwrap_or_else(|| {
+                    panic!(
+                        "matchStart absent for {file}:{} — every fully-delivered match must carry honest bounds; hit={v}",
+                        hit.line
+                    )
+                });
+                let end = v.get("matchEnd").and_then(|x| x.as_u64()).unwrap_or_else(|| {
+                    panic!("matchEnd absent for {file}:{}; hit={v}", hit.line)
+                });
+                let snippet = v
+                    .get("snippet")
+                    .and_then(|x| x.as_str())
+                    .unwrap_or_default()
+                    .to_string();
+                out.push((file, hit.line, start, end, snippet));
+            }
+        }
+        out.sort_by(|a, b| (&a.0, a.1).cmp(&(&b.0, b.1)));
+        out
+    }
+
+    #[test]
+    fn search_hit_bounds_wire_form() {
+        // (a) A hit with known bounds serializes BOTH camelCase wire
+        // fields; the snake_case rust names never leak into the wire.
+        let dir = TempDir::new().unwrap();
+        write(dir.path().join("ascii.md"), "alpha needle beta\n").unwrap();
+        let cancel = Arc::new(AtomicBool::new(false));
+        let opts = SearchOptions::default();
+        let (_total, _kind, rx) =
+            run_session_one_root("s-bounds-wire", dir.path(), "needle", &opts, cancel);
+        let events = collect_until_terminal(&rx, Duration::from_secs(1));
+        let v = first_hit_value(&events, "ascii.md", 1);
+        let start = v
+            .get("matchStart")
+            .and_then(|x| x.as_u64())
+            .expect("matchStart wire field must be present with honest bounds");
+        let end = v
+            .get("matchEnd")
+            .and_then(|x| x.as_u64())
+            .expect("matchEnd wire field must be present with honest bounds");
+        let raw = serde_json::to_string(&v).unwrap();
+        assert!(
+            !raw.contains("\"match_start\"") && !raw.contains("\"match_end\""),
+            "snake_case field names must not leak into the wire; got {raw}"
+        );
+        // Honest bounds: 0-based UTF-16 start, exclusive end, against the
+        // delivered snippet — the renderer's substring(start, end) must
+        // recover the matched text exactly.
+        let snippet = v.get("snippet").and_then(|x| x.as_str()).unwrap_or_default();
+        assert_eq!(
+            start, 6,
+            "'needle' starts at UTF-16 unit 6 in 'alpha needle beta'"
+        );
+        assert_eq!(end, 12, "exclusive end is 6 + 6 units");
+        assert_eq!(
+            utf16_substring(snippet, start, end).as_deref(),
+            Some("needle"),
+            "substring(start, end) of the delivered snippet must equal the matched text"
+        );
+    }
+
+    #[test]
+    fn bounds_parity_across_engines() {
+        // (b)+(c) One fixture searched by BOTH engines yields identical
+        // bounds semantics: same 0-based start, same exclusive end, same
+        // unit — UTF-16 code units over the delivered snippet. The
+        // multi-byte fixture is the delivery-baseline probe: byte spans
+        // and UTF-16 units diverge on Cyrillic prefixes, so parity plus
+        // substring equality proves the shared conversion (never a
+        // known-false byte span).
+        let dir = TempDir::new().unwrap();
+        write(
+            dir.path().join("ascii.md"),
+            "alpha needle beta\nplain line\nneedle again\n",
+        )
+        .unwrap();
+        write(
+            dir.path().join("multi.md"),
+            "Слово needle слово\nиголка needle хвост\n",
+        )
+        .unwrap();
+        let opts = SearchOptions::default();
+
+        // Walker leg (in-process; the App Store / missing-rg path).
+        let cancel = Arc::new(AtomicBool::new(false));
+        let (_total, _kind, rx) =
+            run_session_one_root("s-parity-walker", dir.path(), "needle", &opts, cancel);
+        let walker_hits = wire_bounds_by_line(&rx);
+        assert_eq!(walker_hits.len(), 4, "two ASCII + two multi-byte matches");
+
+        // rg leg under its existing availability guard.
+        if rg_available() {
+            let (tx, rx) = mpsc::channel();
+            let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+            let mut coordinator = SearchSessionCoordinator::new("s-parity-rg".to_string(), sink);
+            let roots = vec![dir.path().to_path_buf()];
+            let cancel = Arc::new(AtomicBool::new(false));
+            let (total, kind) =
+                run_session(&roots, "needle", &opts, false, cancel, &mut coordinator);
+            assert_eq!(kind, "complete");
+            assert_eq!(total, 4);
+            let rg_hits = wire_bounds_by_line(&rx);
+            assert_eq!(rg_hits.len(), 4);
+            for (w, r) in walker_hits.iter().zip(rg_hits.iter()) {
+                assert_eq!(w.0, r.0, "parity covers the same file");
+                assert_eq!(w.1, r.1, "parity covers the same line");
+                assert_eq!(
+                    (w.2, w.3),
+                    (r.2, r.3),
+                    "identical bounds semantics for the same match on {}:{}",
+                    w.0,
+                    w.1
+                );
+                assert_eq!(w.4, r.4, "same delivered snippet on {}:{}", w.0, w.1);
+            }
+        }
+
+        // Delivery-baseline units probe on the walker leg: ASCII lines —
+        // byte offset and UTF-16 unit coincide; multi-byte lines — they
+        // diverge and the delivered bounds MUST be UTF-16 units.
+        let by_key = |file: &str, line: u32| -> (u64, u64, String) {
+            walker_hits
+                .iter()
+                .find(|h| h.0 == file && h.1 == line)
+                .map(|h| (h.2, h.3, h.4.clone()))
+                .unwrap_or_else(|| panic!("no walker hit for {file}:{line}"))
+        };
+        let (s, e, snip) = by_key("ascii.md", 1);
+        assert_eq!((s, e), (6, 12));
+        assert_eq!(utf16_substring(&snip, s, e).as_deref(), Some("needle"));
+        let (s, e, snip) = by_key("ascii.md", 3);
+        assert_eq!((s, e), (0, 6));
+        assert_eq!(utf16_substring(&snip, s, e).as_deref(), Some("needle"));
+        // "Слово needle слово": byte start 11, UTF-16 start 6.
+        let (s, e, snip) = by_key("multi.md", 1);
+        assert_ne!(
+            s, 11,
+            "probe guard: the multi-byte prefix really diverges byte-vs-unit"
+        );
+        assert_eq!(
+            s, 6,
+            "UTF-16 code-unit start on the multi-byte line (a byte span would be a known-false highlight)"
+        );
+        assert_eq!(e, 12);
+        assert_eq!(utf16_substring(&snip, s, e).as_deref(), Some("needle"));
+        // "иголка needle хвост": byte start 13, UTF-16 start 7.
+        let (s, e, snip) = by_key("multi.md", 2);
+        assert_eq!((s, e), (7, 13));
+        assert_eq!(utf16_substring(&snip, s, e).as_deref(), Some("needle"));
+    }
+
+    #[test]
+    fn match_beyond_truncated_snippet_yields_absent_bounds() {
+        // (d) Honest-or-absent: the walker's byte-truncated snippet (1 MB
+        // cap + ellipsis marker) does not fully contain the match, so the
+        // hit must be delivered WITHOUT either bound field — never a
+        // partial or fabricated span — and the batch still delivers the
+        // hit itself.
+        let dir = TempDir::new().unwrap();
+        let mut line = "x".repeat(MAX_LINE_BYTES + 10);
+        line.push_str("needle");
+        line.push_str(&"y".repeat(50));
+        write(dir.path().join("big.md"), line + "\n").unwrap();
+        let cancel = Arc::new(AtomicBool::new(false));
+        let opts = SearchOptions::default();
+        let (total, kind, rx) =
+            run_session_one_root("s-bounds-truncated", dir.path(), "needle", &opts, cancel);
+        assert_eq!(kind, "complete");
+        assert_eq!(total, 1, "the hit itself is still delivered");
+        let events = collect_until_terminal(&rx, Duration::from_secs(2));
+        let v = first_hit_value(&events, "big.md", 1);
+        assert_eq!(
+            v.get("truncated").and_then(|x| x.as_bool()),
+            Some(true),
+            "fixture sanity: the snippet really is byte-truncated"
+        );
+        let raw = serde_json::to_string(&v).unwrap();
+        assert!(
+            !raw.contains("\"matchStart\"") && !raw.contains("\"matchEnd\""),
+            "bounds must stay wire-absent when the match is not fully inside the delivered snippet; got {raw}"
+        );
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn rg_bounds_absent_when_submatch_exceeds_delivered_line() {
+        // Defensive rg-leg symmetry (deterministic injection, no native rg
+        // needed): a submatch span beyond the delivered line text must
+        // stay wire-absent — honest-or-absent, never a partial span — and
+        // the hit itself is still delivered.
+        let dir = TempDir::new().unwrap();
+        let script = write_exec_script(
+            dir.path(),
+            "rg-bounds-overflow.sh",
+            "#!/bin/sh\nprintf '%s\\n' '{\"type\":\"match\",\"data\":{\"path\":{\"text\":\"hit.md\"},\"line_number\":1,\"lines\":{\"text\":\"needle here\\n\"},\"submatches\":[{\"match\":{\"text\":\"needle\"},\"start\":0,\"end\":999999}]}}'\nexit 0\n",
+        );
+        let (tx, rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let mut coordinator =
+            SearchSessionCoordinator::new("rg-bounds-overflow".to_string(), sink);
+        let cancel = Arc::new(AtomicBool::new(false));
+        let opts = SearchOptions::default();
+        let total = run_ripgrep_with_program(
+            script.as_os_str(),
+            dir.path(),
+            "needle",
+            &opts,
+            cancel,
+            &mut coordinator,
+        )
+        .expect("the injected rg completes normally");
+        assert_eq!(total, 1, "the hit itself is still delivered");
+        let events = collect_until_terminal(&rx, Duration::from_millis(500));
+        let v = first_hit_value(&events, "hit.md", 1);
+        let raw = serde_json::to_string(&v).unwrap();
+        assert!(
+            !raw.contains("\"matchStart\"") && !raw.contains("\"matchEnd\""),
+            "out-of-line submatch spans must stay wire-absent; got {raw}"
+        );
     }
 }

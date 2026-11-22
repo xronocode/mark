@@ -353,6 +353,33 @@ describe('QuickOpenCommand — deep coverage', () => {
     })
   })
 
+  // ---- shim-shaped feed open invocation (C-SEARCH-RESULT-CONTRACT) ----
+
+  describe('shim-shaped-feed open invocation (C-SEARCH-RESULT-CONTRACT)', () => {
+    it('opens the resolved string pathname after a grouped didMatch envelope feed', async () => {
+      window.marktext = { env: { windowId: 9 } }
+      mockSearchFn.mockImplementation((_paths, _q, options) => {
+        options.didMatch({
+          filePath: '/docs/shim-found.md',
+          matches: [{ lineText: 'needle here', range: [[0, 6], [0, 12]] }]
+        })
+        const p = Promise.resolve()
+        p.cancel = vi.fn()
+        return p
+      })
+
+      const result = await cmd._doSearch('shim')
+      expect(result).toHaveLength(1)
+      expect(typeof result[0].id).toBe('string')
+      await cmd.executeSubcommand(result[0].id)
+      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
+        'mt::open-file-by-window-id',
+        9,
+        '/docs/shim-found.md'
+      )
+    })
+  })
+
   // ---- executeSubcommand() ----
 
   describe('executeSubcommand()', () => {
