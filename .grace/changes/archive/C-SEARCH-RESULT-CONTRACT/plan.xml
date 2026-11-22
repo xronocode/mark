@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved">
+<GraceChangePlan graceVersion="4.0" status="applied">
   <C-SEARCH-RESULT-CONTRACT>
     <Name>Honest search-result contract end to end — implementation plan</Name>
     <ChangeRef>C-SEARCH-RESULT-CONTRACT</ChangeRef>

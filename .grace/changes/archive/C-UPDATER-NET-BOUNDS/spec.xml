@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion='4.0' status='approved'>
+<GraceChangeSpec graceVersion='4.0' status='applied'>
   <C-UPDATER-NET-BOUNDS>
     <Name>Bounded, serialized forward-update path: deadlines on check and download, one install at a time, idempotent rollback-snapshot reuse, fresh-data install toasts, and honest backup-channel evidence</Name>
     <Created>2026-11-22</Created>
