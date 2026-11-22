@@ -324,6 +324,23 @@ impl PrefsState {
         guard.save()
     }
 
+    /// C-SESSION-DURABILITY: the read-batch mirror of set_many — ONE
+    /// mutex acquisition answering every requested key (absent keys as
+    /// Value::Null, preserving the mt_prefs_get null-for-absent facade
+    /// semantics). Strictly read-only by design: no insert, no save, no
+    /// generation change and NO broadcast — the read/write asymmetry is
+    /// deliberate (a read never fans out), so the on-disk generation is
+    /// untouched by a restore read.
+    pub fn get_many(&self, keys: Vec<String>) -> Map<String, Value> {
+        let guard = self.inner.lock().expect("PrefsState mutex poisoned");
+        keys.into_iter()
+            .map(|key| {
+                let value = guard.get(&key).cloned().unwrap_or(Value::Null);
+                (key, value)
+            })
+            .collect()
+    }
+
     /// C-SESSION-WRITE-ATOMICITY: test-only mirror of set_many with the
     /// final rename injected (the m068 promote_staging_over_live seam) so
     /// pins can fail the promote without touching the production path.
@@ -457,6 +474,25 @@ pub async fn mt_prefs_set_many(
         app.webview_windows().len()
     );
     Ok(())
+}
+
+/// C-SESSION-DURABILITY: read a whole preference batch (the renderer
+/// session profile) as ONE request — one mutex acquisition, absent keys
+/// as null, strictly read-only (no save, no generation change, no
+/// broadcast). The read-batch mirror of mt_prefs_set_many so the
+/// restore payload travels in one round-trip; mt_prefs_get stays the
+/// canonical single-key surface.
+#[tauri::command]
+pub async fn mt_prefs_get_many(
+    keys: Vec<String>,
+    prefs: State<'_, PrefsState>,
+) -> Result<Value, String> {
+    let map = prefs.get_many(keys);
+    safe_eprintln!(
+        "[Prefs][get_many][BLOCK_INVOKED keys={}]",
+        map.len()
+    );
+    Ok(Value::Object(map))
 }
 
 /// Snapshot all prefs as an object. Useful for renderer bootstrap.

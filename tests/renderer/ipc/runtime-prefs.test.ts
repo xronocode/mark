@@ -91,6 +91,38 @@ describe('ipcPrefs', () => {
     })
   })
 
+  describe('getMany', () => {
+    // C-SESSION-DURABILITY: the read-batch wrapper dispatches the raw
+    // Tauri invoke ('mt_prefs_get_many') with the { keys } argument
+    // shape, mirroring the setMany raw-invoke pin style.
+    it('calls the raw transport with mt_prefs_get_many and the { keys } argument shape', async () => {
+      ;(tauriInvoke as any).mockResolvedValueOnce({
+        lastSessionTabs: ['/a.md'],
+        lastSessionActive: null,
+        lastSessionFolders: [],
+        lastSessionFormats: null
+      })
+
+      const keys = ['lastSessionTabs', 'lastSessionActive', 'lastSessionFolders', 'lastSessionFormats']
+      const result = await ipcPrefs.getMany(keys)
+
+      expect(tauriInvoke).toHaveBeenCalledWith('mt_prefs_get_many', { keys })
+      expect(result).toEqual({
+        lastSessionTabs: ['/a.md'],
+        lastSessionActive: null,
+        lastSessionFolders: [],
+        lastSessionFormats: null
+      })
+    })
+
+    it('propagates transport errors', async () => {
+      ;(tauriInvoke as any).mockRejectedValueOnce(new Error('mt_prefs_get_many failed'))
+      await expect(
+        ipcPrefs.getMany(['lastSessionTabs'])
+      ).rejects.toThrow('mt_prefs_get_many failed')
+    })
+  })
+
   describe('getAll', () => {
     it('calls ipcInvoke with mt::prefs::get_all and empty args', async () => {
       const prefs = { theme: 'dark', fontSize: 14 }

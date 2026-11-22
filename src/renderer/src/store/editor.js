@@ -772,16 +772,25 @@ export const useEditorStore = defineStore('editor', {
             // reopens (review wave 2: the live autosaved preferences can
             // legitimately change mid-run, so the click path must not
             // reread them); never refreshed afterwards.
-            const readList = async (key) => {
-              const value = await ipcPrefs.get(key).catch(() => null)
+            // C-SESSION-DURABILITY: the cold-start capture shares the same
+            // ONE-request read as the live restore — the four-key profile
+            // travels in one mt_prefs_get_many batch (absent keys as
+            // null; a total-transport failure degrades to the all-absent
+            // shape exactly as before).
+            const readBatch = ((await ipcPrefs.getMany([
+              'lastSessionFolders',
+              'lastSessionTabs',
+              'lastSessionActive',
+              'lastSessionFormats'
+            ]).catch(() => null)) || {})
+            const readList = (key) => {
+              const value = readBatch[key]
               return Array.isArray(value) ? value.filter((x) => typeof x === 'string' && x) : []
             }
-            const [tabs, folders, activeRaw, formatsRaw] = await Promise.all([
-              readList('lastSessionTabs'),
-              readList('lastSessionFolders'),
-              ipcPrefs.get('lastSessionActive').catch(() => null),
-              ipcPrefs.get('lastSessionFormats').catch(() => null)
-            ])
+            const tabs = readList('lastSessionTabs')
+            const folders = readList('lastSessionFolders')
+            const activeRaw = readBatch.lastSessionActive
+            const formatsRaw = readBatch.lastSessionFormats
             const active = typeof activeRaw === 'string' && activeRaw ? activeRaw : null
             const { formats, rejected } = captureSessionFormats(formatsRaw, tabs)
             if (rejected) this._notifyFormatError('MT_ENC_INVALID_POLICY')
@@ -808,13 +817,28 @@ export const useEditorStore = defineStore('editor', {
       // autosave legitimately rewrites them during the run, and the
       // offer must reopen exactly what it advertises. The automatic
       // startup path passes nothing and reads the preferences as before.
-      const readList = async (key) => {
+      // C-SESSION-DURABILITY: the live path reads the four-key profile as
+      // ONE batched request — the mt_prefs_get_many read mirror of the
+      // write batch (one backend mutex acquisition, absent keys as null,
+      // strictly read-only). A getMany rejection degrades to the
+      // all-absent shape (tabs/folders empty lists, active/formats null)
+      // — identical to today's total-transport-failure behavior. The
+      // frozen-payload path (`from`) keeps reading NO preferences.
+      const readBatch = from
+        ? {}
+        : ((await ipcPrefs.getMany([
+            'lastSessionFolders',
+            'lastSessionTabs',
+            'lastSessionActive',
+            'lastSessionFormats'
+          ]).catch(() => null)) || {})
+      const readList = (key) => {
         if (from) {
           if (key === 'lastSessionTabs') return [...from.tabs]
           if (key === 'lastSessionFolders') return [...(from.folders || [])]
-          return null
+          return []
         }
-        const value = await ipcPrefs.get(key).catch(() => null)
+        const value = readBatch[key]
         return Array.isArray(value) ? value.filter((p) => typeof p === 'string' && p) : []
       }
       const exists = async (path, kind) => {
@@ -825,10 +849,10 @@ export const useEditorStore = defineStore('editor', {
           return false
         }
       }
-      const folders = await readList('lastSessionFolders')
-      const paths = await readList('lastSessionTabs')
-      const active = from ? (from.active || null) : await ipcPrefs.get('lastSessionActive').catch(() => null)
-      const rawFormats = from ? from.formats : await ipcPrefs.get('lastSessionFormats').catch(() => null)
+      const folders = readList('lastSessionFolders')
+      const paths = readList('lastSessionTabs')
+      const active = from ? (from.active || null) : (readBatch.lastSessionActive ?? null)
+      const rawFormats = from ? from.formats : (readBatch.lastSessionFormats ?? null)
       const { formats, rejected } = captureSessionFormats(rawFormats, paths)
       if (rejected) this._notifyFormatError('MT_ENC_INVALID_POLICY')
       let skipped = 0
@@ -839,9 +863,26 @@ export const useEditorStore = defineStore('editor', {
       // drive/iCloud account comes back), and the remaining roots, tabs
       // and the active tab still restore.
       const skippedFolders = []
+      // C-SESSION-DURABILITY: ONE concurrent stat pass BEFORE the first
+      // open — the folder candidates exclude already-open roots exactly
+      // as today, and the per-path verdict semantics are the unchanged
+      // exists helper (isDirectory for folders, isFile for files, any
+      // rejection to false, via the ipcFs.stat transport). The loops
+      // below consume the precomputed verdicts with the identical skip
+      // counting, visible degradation notice, open order and active-tab
+      // handling.
+      const folderCandidates = folders.filter(
+        (folder) => !projectStore.projectTrees.some((r) => r.pathname === folder)
+      )
+      const [folderVerdicts, fileVerdicts] = await Promise.all([
+        Promise.all(folderCandidates.map((folder) => exists(folder, 'dir'))),
+        Promise.all(paths.map((p) => exists(p, 'file')))
+      ])
+      const dirAlive = new Map(folderCandidates.map((folder, i) => [folder, folderVerdicts[i]]))
+      const fileAlive = new Map(paths.map((p, i) => [p, fileVerdicts[i]]))
       for (const folder of folders) {
         if (projectStore.projectTrees.some((r) => r.pathname === folder)) continue
-        if (!(await exists(folder, 'dir'))) {
+        if (!dirAlive.get(folder)) {
           skipped++
           skippedFolders.push(folder)
           continue
@@ -850,7 +891,7 @@ export const useEditorStore = defineStore('editor', {
         restoredFolders++
       }
       for (const p of paths) {
-        if (!(await exists(p, 'file'))) { skipped++; continue }
+        if (!fileAlive.get(p)) { skipped++; continue }
         try {
           const record = formats.find(record => record.pathname === p)
           const options = record ? { restoredFormat: captureRestoredFormat(record) } : {}

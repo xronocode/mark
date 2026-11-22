@@ -32,7 +32,19 @@ vi.mock('@/ipc/runtime', () => ({
   },
   ipcWatch: { subscribe: vi.fn(async () => vi.fn()) },
   ipcRecent: { add: vi.fn(), list: vi.fn(async () => []), clear: vi.fn() },
-  ipcPrefs: { get: vi.fn(async () => null), set: vi.fn(async () => {}), setMany: vi.fn(async () => {}) }
+  ipcPrefs: {
+    get: vi.fn(async () => null),
+    set: vi.fn(async () => {}),
+    setMany: vi.fn(async () => {}),
+    // C-SESSION-DURABILITY: the batched read delegates per key to the
+    // SAME get stubbing — every existing per-key mockImplementation
+    // keeps driving the restore/capture paths unchanged.
+    getMany: vi.fn(async function (keys) {
+      const out = {}
+      for (const key of keys) out[key] = await this.get(key)
+      return out
+    })
+  }
 }))
 vi.mock('deep-equal', () => ({ default: vi.fn(() => false) }))
 vi.mock('@/util', () => ({
