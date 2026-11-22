@@ -160,6 +160,7 @@ describe('file.check-update — signed in-app updater', () => {
 
     const downloadAndInstallMock = vi.fn()
     checkMock.mockResolvedValueOnce({
+      version: '2.0.6',
       downloadAndInstall: downloadAndInstallMock
     })
 
@@ -184,6 +185,7 @@ describe('file.check-update — signed in-app updater', () => {
 
     const downloadAndInstallMock = vi.fn()
     checkMock.mockResolvedValueOnce({
+      version: '2.0.6',
       downloadAndInstall: downloadAndInstallMock
     })
 
@@ -252,7 +254,7 @@ describe('file.check-update — signed in-app updater', () => {
   it('installSignedUpdate drives check → downloadAndInstall → relaunch', async () => {
     invoke.mockResolvedValueOnce(undefined) // mt_rollback_prepare (C-UPDATER-ROLLBACK)
     const downloadAndInstallMock = vi.fn()
-    checkMock.mockResolvedValueOnce({ downloadAndInstall: downloadAndInstallMock })
+    checkMock.mockResolvedValueOnce({ version: '2.6.0', downloadAndInstall: downloadAndInstallMock })
 
     await installSignedUpdate({
       currentVersion: '2.5.0',
