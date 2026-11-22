@@ -140,6 +140,13 @@ export async function installTauriShim(page: Page): Promise<void> {
       // the picker.
       mt_print_webview: () => null,
       mt_export_pdf: () => null,
+      // C-SEARCH-RESULT-CONTRACT T-006: quiet-by-default search doubles —
+      // spawn resolves a no-op search without side effects and cancel
+      // resolves null, so every other spec keeps seeing quiet success.
+      // Specs override both via window.__mockInvoke[cmd] and feed
+      // realistic envelopes through __emitSearchEvent(searchId, payload).
+      mt_search_spawn: () => null,
+      mt_search_cancel: () => null,
       'plugin:dialog|open': () => null,
       // C-56 diagram/chart picture export: the native context menu
       // resolves "nothing clicked" by default (specs override to capture
@@ -252,6 +259,13 @@ export async function installTauriShim(page: Page): Promise<void> {
         }
       }
       return n
+    }
+
+    // C-SEARCH-RESULT-CONTRACT T-006: feed a realistic mt::search-event
+    // envelope to every subscribed searcher — payload is the event body
+    // without searchId (kind, hits, seq, ...).
+    ;(window as any).__emitSearchEvent = (searchId: string, payload: Record<string, unknown>) => {
+      return (window as any).__emitFakeEvent('mt::search-event', { searchId, ...payload })
     }
 
     // Mock dragDropEvent listener registration: the renderer shim does
