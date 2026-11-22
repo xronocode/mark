@@ -69,7 +69,7 @@ vi.mock('@/ipc/runtime', () => ({
   ipcFs: __ipcFsMock,
   ipcWatch: {},
   ipcSearch: {},
-  ipcPrefs: { get: vi.fn(async () => null), set: vi.fn(async () => {}), getAll: vi.fn(async () => ({})) },
+  ipcPrefs: { get: vi.fn(async () => null), getMany: vi.fn(async (keys: string[]) => Object.fromEntries(keys.map(key => [key, null]))), set: vi.fn(async () => {}), getAll: vi.fn(async () => ({})) },
   ipcWorkspace: {},
   ipcFonts: {},
   ipcRecent: { add: vi.fn(async () => {}), list: vi.fn(async () => []), clear: vi.fn(async () => {}) },
