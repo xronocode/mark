@@ -1223,6 +1223,9 @@ async fn apply_requires_text_edit_capability() {
     // through.
     let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
     assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    // C-EXT-EDIT-PROOF: the apply 200 is verdict-backed — the fixture acks
+    // the batch applied.
+    install_ack_responder(&f, ack_script(&[(0, true, "")]));
     let (document_id, document_generation) = handed_binding(&f);
     assert_eq!(apply_bound(&f, &f.token, Some(document_id), Some(document_generation)).await, StatusCode::OK);
     {
@@ -1296,6 +1299,8 @@ async fn apply_requires_matching_context_binding() {
     // After the context read the exact handed pair is accepted, and the
     // binding travels inside the emitted op payload.
     assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    // C-EXT-EDIT-PROOF: the verdict-backed 200 — the fixture acks applied.
+    install_ack_responder(&f, ack_script(&[(0, true, "")]));
     let (document_id, document_generation) = handed_binding(&f);
     assert_eq!(apply_bound(&f, &f.token, Some(document_id.clone()), Some(document_generation.clone())).await, StatusCode::OK);
     let events = f.events.lock().unwrap();
@@ -1311,6 +1316,9 @@ async fn apply_stale_instance_binding_refused() {
     let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
     // First instance: gen-1 is handed and the matching apply is applied.
     assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    // C-EXT-EDIT-PROOF: both matched applies below are verdict-backed; the
+    // fence-refused applies stay event-free without any responder.
+    install_ack_responder(&f, ack_script(&[(0, true, "")]));
     let (document_id, generation_1) = handed_binding(&f);
     assert_eq!(generation_1, "document-gen-1");
     assert_eq!(apply_bound(&f, &f.token, Some(document_id.clone()), Some(generation_1.clone())).await, StatusCode::OK);
@@ -1376,6 +1384,13 @@ fn install_ack_responder(f: &IncomingFixture, script: AckScript) {
                 "reason": reason,
             })).unwrap();
         }
+    });
+    // The test fixture bridges the emitted ack event into the production
+    // resolution entry — the same function the start_live_server listener
+    // calls, mirroring how the context responder replaces the production
+    // listener wiring.
+    f.app.listen("mt::ext::text_op_ack", |event| {
+        super::live_server::resolve_text_op_ack(event.payload());
     });
 }
 
@@ -1572,13 +1587,19 @@ async fn ext_apply_same_key_in_flight_coalesces() {
     request["request_id"] = serde_json::json!("key-in-flight");
     let (status_a, body_a) = apply_raw(&f, &f.token, request.clone()).await;
     let (status_b, body_b) = apply_raw(&f, &f.token, request).await;
-    // Both callers share the pending verdict; the coalesced attempt answers
-    // the verdict with the duplicate marker instead of emitting again.
+    // Both callers share the pending verdict; whichever arrived second (an
+    // in-flight coalesce or a terminal replay) answers the verdict with the
+    // duplicate marker instead of emitting again.
     assert_eq!(status_a, StatusCode::OK);
     assert_eq!(status_b, status_a);
-    assert_eq!(body_b["applied"], body_a["applied"]);
     assert_eq!(body_a["applied"], true);
-    assert_eq!(body_b["duplicate"], true, "the in-flight coalesce carries the duplicate marker");
+    assert_eq!(body_b["applied"], true);
+    let duplicate_marks = [body_a.get("duplicate"), body_b.get("duplicate")];
+    assert_eq!(
+        duplicate_marks.iter().filter(|mark| mark.is_some_and(|value| value.as_bool() == Some(true))).count(),
+        1,
+        "exactly one of the same-key pair answers as the duplicate: {body_a} / {body_b}",
+    );
     assert_eq!(f.events.lock().unwrap().len(), 1, "one emit for the same-key pair");
 }
 
@@ -1694,7 +1715,7 @@ async fn apply_bound(
 ) -> StatusCode {
     super::live_server::handle_ext_apply(State(f.state.clone()), bearer_headers(Some(token)),
         Json(super::live_server::ExtApplyRequest {
-            extension_id: f.id.clone(), undo_label: None,
+            extension_id: f.id.clone(), undo_label: None, request_id: None,
             document_id, document_generation,
             operations: vec![super::live_server::EditOperation { op_type: "insert_at_cursor".to_string(), content: Some("fixture edit".to_string()) }],
         })).await.into_response().status()
@@ -1854,6 +1875,8 @@ async fn fresh_pairing_restores_access() {
     super::mt_ext_enable(editor.id.clone(), editor.app.state()).await.unwrap();
     assert_eq!(apply_fixture(&editor, &editor.token).await, StatusCode::UNAUTHORIZED);
     assert_eq!(context_fixture(&editor, &fresh_edit).await, StatusCode::OK);
+    // C-EXT-EDIT-PROOF: the verdict-backed apply 200 — the fixture acks applied.
+    install_ack_responder(&editor, ack_script(&[(0, true, "")]));
     let (document_id, document_generation) = handed_binding(&editor);
     assert_eq!(apply_bound(&editor, &fresh_edit, Some(document_id), Some(document_generation)).await, StatusCode::OK);
     assert_eq!(editor.events.lock().unwrap().len(), 1);

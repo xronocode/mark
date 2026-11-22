@@ -21,6 +21,31 @@
 //   STATUS:  Phase-B5b — handlers emit to frontend via live_bridge.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-22 C-EXT-EDIT-PROOF T-004: /ext/apply answers by fact —
+//     ExtApplyRequest gains the optional request_id idempotency key; the
+//     dedup short-circuit consults-and-registers atomically (bounded
+//     EXT_APPLY_VERDICTS store, EXT_APPLY_DEDUP_CAP 256, evict-oldest,
+//     process-local) after authentication and before the fence: a replay
+//     answers the recorded verdict with the additive duplicate:true marker
+//     (BLOCK_EXT_APPLY_DUPLICATE) and re-emits nothing, a same-key
+//     in-flight retry coalesces onto the pending verdict
+//     (BLOCK_EXT_APPLY_COALESCED), a keyless batch mints "apply_{n}" for
+//     ack correlation only. The op set is validated before any emission —
+//     an unknown op_type refuses the whole batch 400
+//     (BLOCK_EXT_APPLY_BATCH_UNKNOWN_OP) with zero events, replacing the
+//     skip-with-continue leg; every emitted payload carries the batch
+//     "request_id" and its "op_index". The renderer answers through the
+//     new additive mt::ext::text_op_ack event {request_id, op_index,
+//     applied, reason} (listener registered in start_live_server beside
+//     mt::ext::context_response, resolution through resolve_text_op_ack);
+//     emission collects verdicts sequentially under ONE per-batch deadline
+//     EXT_APPLY_ACK_TIMEOUT_SECS = 5 and answers 200
+//     {"applied": true, "operations_count": n} only on a fully ack'd
+//     batch, 409 naming the failed index and the applied prefix
+//     (BLOCK_EXT_APPLY_NOT_APPLIED), 504 on the timeout or a missing
+//     renderer subscriber (BLOCK_EXT_APPLY_ACK_TIMEOUT); the 500
+//     emit-failure branch stays. The binding fence, capability gate,
+//     /stream/* dedup and budget semantics are untouched.
 //   - 2026-11-22 C-EXT-EDIT-PROOF T-002: the dead unbound insertion route
 //     refuses at the source — POST /ext/text-insert answers 501
 //     NOT_IMPLEMENTED (BLOCK_TEXT_INSERT_REFUSED) with the stable body
@@ -296,6 +321,111 @@ pub struct DocumentBinding {
 static EXT_DOCUMENT_BINDINGS: std::sync::LazyLock<std::sync::Mutex<HashMap<String, DocumentBinding>>> =
     std::sync::LazyLock::new(|| std::sync::Mutex::new(HashMap::new()));
 
+// --- C-EXT-EDIT-PROOF: the /ext/apply verdict and idempotency channel ---
+
+/// C-EXT-EDIT-PROOF: the per-batch ack deadline for /ext/apply — ONE
+/// deadline for the whole batch, not per operation (the same order as the
+/// /ext/context round trip).
+pub const EXT_APPLY_ACK_TIMEOUT_SECS: u64 = 5;
+
+/// C-EXT-EDIT-PROOF: the bounded process-local dedup capacity — entries
+/// beyond this cap evict the oldest insertion; the store is cleared on
+/// restart.
+pub const EXT_APPLY_DEDUP_CAP: usize = 256;
+
+/// C-EXT-EDIT-PROOF: one renderer verdict for one emitted operation. The
+/// reason is a stable content-free class ("targeting_gate_refused",
+/// "apply_failed") — never raw error text or document content.
+#[derive(Debug, Clone)]
+struct TextOpAckVerdict {
+    op_index: u64,
+    applied: bool,
+    reason: String,
+}
+
+/// C-EXT-EDIT-PROOF: pending text-op verdicts keyed by the batch request
+/// id. The handler creates the (empty) entry when its emission phase starts
+/// and removes it when the batch ends; resolve_text_op_ack appends arriving
+/// verdicts and silently drops those naming no pending batch (a stale ack
+/// carries no content). Process-global like EXT_DOCUMENT_BINDINGS —
+/// deliberately NOT a LiveServerState field, so the struct literal in
+/// src-tauri/src/main.rs stays untouched.
+static EXT_APPLY_ACK_INBOX: std::sync::LazyLock<std::sync::Mutex<HashMap<String, Vec<TextOpAckVerdict>>>> =
+    std::sync::LazyLock::new(|| std::sync::Mutex::new(HashMap::new()));
+
+/// A terminal apply verdict: the exact (status, body) the first attempt
+/// answered. Replays answer it verbatim with an additive duplicate marker.
+type ApplyVerdictSlot = Arc<std::sync::Mutex<Option<(StatusCode, serde_json::Value)>>>;
+
+/// C-EXT-EDIT-PROOF: the bounded process-local dedup of apply verdicts,
+/// keyed by extension id plus client request id. The slot is None while the
+/// first attempt is pending and holds its terminal verdict afterwards; the
+/// consult-or-register step runs atomically under this mutex BEFORE the
+/// first emit, so the same-key race is closed by construction. Eviction is
+/// oldest-inserted past EXT_APPLY_DEDUP_CAP; the store is cleared on
+/// restart — a replay after a restart is not a dedup hit and is answered by
+/// the already-recorded-binding fence (documented, not handled).
+static EXT_APPLY_VERDICTS: std::sync::LazyLock<std::sync::Mutex<Vec<(String, ApplyVerdictSlot)>>> =
+    std::sync::LazyLock::new(|| std::sync::Mutex::new(Vec::new()));
+
+/// C-EXT-EDIT-PROOF: server-minted batch request ids for keyless batches —
+/// ack correlation only, no dedup promise.
+static APPLY_REQUEST_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+/// C-EXT-EDIT-PROOF: the one resolution entry for the renderer's
+/// mt::ext::text_op_ack verdicts. The production listener registered in
+/// start_live_server (beside the mt::ext::context_response listener) hands
+/// the raw payload here, and the test fixture bridges the same entry. A
+/// malformed or unknown-target verdict names no pending batch and is
+/// dropped.
+pub(super) fn resolve_text_op_ack(payload: &str) {
+    let Ok(value) = serde_json::from_str::<serde_json::Value>(payload) else { return };
+    let (Some(request_id), Some(op_index), Some(applied)) = (
+        value["request_id"].as_str().map(str::to_string),
+        value["op_index"].as_u64(),
+        value["applied"].as_bool(),
+    ) else { return };
+    let reason = value["reason"].as_str().unwrap_or_default().to_string();
+    if let Ok(mut inbox) = EXT_APPLY_ACK_INBOX.lock() {
+        if let Some(queue) = inbox.get_mut(&request_id) {
+            queue.push(TextOpAckVerdict { op_index, applied, reason });
+        }
+    }
+}
+
+/// Take the awaited verdict for one op of a pending batch, if it has
+/// arrived.
+fn take_ack_verdict(request_id: &str, op_index: u64) -> Option<TextOpAckVerdict> {
+    let mut inbox = EXT_APPLY_ACK_INBOX.lock().unwrap();
+    let queue = inbox.get_mut(request_id)?;
+    let position = queue.iter().position(|verdict| verdict.op_index == op_index)?;
+    Some(queue.remove(position))
+}
+
+/// Remove the batch's ack inbox entry when the handler leaves the emission
+/// phase by any path.
+struct AckInboxGuard(String);
+impl Drop for AckInboxGuard {
+    fn drop(&mut self) {
+        EXT_APPLY_ACK_INBOX.lock().unwrap().remove(&self.0);
+    }
+}
+
+/// Record the terminal verdict of a keyed batch so later replays answer it.
+fn record_apply_verdict(slot: &Option<ApplyVerdictSlot>, status: StatusCode, body: &serde_json::Value) {
+    if let Some(slot) = slot {
+        *slot.lock().unwrap() = Some((status, body.clone()));
+    }
+}
+
+/// Mark an answered body as the duplicate replay of a recorded verdict.
+fn with_duplicate_marker(mut body: serde_json::Value) -> serde_json::Value {
+    if let Some(object) = body.as_object_mut() {
+        object.insert("duplicate".to_string(), serde_json::Value::Bool(true));
+    }
+    body
+}
+
 #[derive(Debug, Deserialize)]
 pub struct ExtContextRequest {
     pub extension_id: String,
@@ -349,6 +479,13 @@ pub struct ExtApplyRequest {
     /// of an extractor rejection.
     pub document_id: Option<String>,
     pub document_generation: Option<String>,
+    /// C-EXT-EDIT-PROOF: the optional client request id — when present it
+    /// is the idempotency key (a replay answers the recorded first verdict
+    /// with an additive duplicate marker and re-emits nothing; a same-key
+    /// in-flight retry coalesces onto the pending verdict). Absent
+    /// deserializes None: the server mints "apply_{n}" for ack correlation
+    /// only and records no dedup promise, so legacy senders keep working.
+    pub request_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -1675,8 +1812,18 @@ pub(super) async fn handle_ext_context<R: tauri::Runtime>(
 /// C-SEC-EDIT-TARGETING: the request must echo the document binding
 /// (document_id + document_generation) recorded by the /ext/context read;
 /// the fence runs after the capability gate and before any event.
-/// Emits mt::text::op events for each operation; Muya's 1500ms debounce
-/// groups rapid operations as a single undo step.
+/// C-EXT-EDIT-PROOF: the handler answers by fact — the dedup short-circuit
+/// consults the bounded process-local verdict store after authentication
+/// and before the fence (a replay answers the recorded verdict with an
+/// additive duplicate marker, a same-key in-flight retry coalesces); the
+/// op set is validated before any emission (an unknown op_type refuses the
+/// whole batch 400 with zero events); every emitted payload carries the
+/// batch request id and its op index; and the emission collects the
+/// renderer's mt::ext::text_op_ack verdicts under one per-batch deadline —
+/// 200 {"applied": true, "operations_count": n} only when every operation
+/// ack'd applied, 409 naming the failed index and the applied prefix on a
+/// nack, 504 on the bounded ack timeout. Muya's 1500ms debounce groups
+/// rapid operations as a single undo step.
 pub(super) async fn handle_ext_apply<R: tauri::Runtime>(
     State(state): State<Arc<LiveServerState<R>>>,
     headers: HeaderMap,
@@ -1685,6 +1832,80 @@ pub(super) async fn handle_ext_apply<R: tauri::Runtime>(
     if let Err(e) = authenticate_incoming(&state, &headers, Some(&req.extension_id), Some(RouteCapability::TextEdit)).await {
         return (e.0, Json(serde_json::json!({"error": e.1})));
     }
+
+    // C-EXT-EDIT-PROOF: the dedup short-circuit — after authentication,
+    // before the binding fence. Consult and registration are one atomic
+    // step under the dedup mutex, so a same-key race can never double-emit:
+    // the second caller always finds the first's slot. A keyless batch
+    // mints "apply_{n}" for ack correlation only below and registers no
+    // dedup promise.
+    let dedup_deadline = Instant::now() + std::time::Duration::from_secs(EXT_APPLY_ACK_TIMEOUT_SECS);
+    enum DedupAdmission {
+        Replay(ApplyVerdictSlot),
+        Fresh(ApplyVerdictSlot),
+    }
+    let dedup_slot: Option<ApplyVerdictSlot> = if let Some(key) = req.request_id.as_deref() {
+        let composite = format!("{}\u{1}{}", req.extension_id, key);
+        let admission = {
+            let mut store = EXT_APPLY_VERDICTS.lock().unwrap();
+            if let Some((_, slot)) = store.iter().find(|(id, _)| *id == composite) {
+                DedupAdmission::Replay(slot.clone())
+            } else {
+                let slot: ApplyVerdictSlot = Arc::new(std::sync::Mutex::new(None));
+                if store.len() >= EXT_APPLY_DEDUP_CAP {
+                    store.remove(0);
+                }
+                store.push((composite, slot.clone()));
+                DedupAdmission::Fresh(slot)
+            }
+        };
+        match admission {
+            DedupAdmission::Replay(slot) => {
+                let mut coalesced = false;
+                let resolved = loop {
+                    let recorded = slot.lock().unwrap().clone();
+                    match recorded {
+                        Some((status, body)) => {
+                            safe_eprintln!(
+                                "[ExtHost][live_server][BLOCK_EXT_APPLY_DUPLICATE ext_id={} request_id={key}]",
+                                req.extension_id,
+                            );
+                            break (status, Json(with_duplicate_marker(body)));
+                        }
+                        None => {
+                            if !coalesced {
+                                safe_eprintln!(
+                                    "[ExtHost][live_server][BLOCK_EXT_APPLY_COALESCED ext_id={} request_id={key}]",
+                                    req.extension_id,
+                                );
+                                coalesced = true;
+                            }
+                            if Instant::now() >= dedup_deadline {
+                                safe_eprintln!(
+                                    "[ExtHost][live_server][BLOCK_EXT_APPLY_ACK_TIMEOUT ext_id={} request_id={key} coalesced=true]",
+                                    req.extension_id,
+                                );
+                                break (
+                                    StatusCode::GATEWAY_TIMEOUT,
+                                    Json(serde_json::json!({
+                                        "error": format!(
+                                            "apply ack timeout: the renderer did not acknowledge within {}s",
+                                            EXT_APPLY_ACK_TIMEOUT_SECS,
+                                        )
+                                    })),
+                                );
+                            }
+                            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+                        }
+                    }
+                };
+                return resolved;
+            }
+            DedupAdmission::Fresh(slot) => Some(slot),
+        }
+    } else {
+        None
+    };
 
     // C-SEC-EDIT-TARGETING: binding fence. The capability gate above still
     // runs first. The apply must name the exact document instance and
@@ -1698,10 +1919,9 @@ pub(super) async fn handle_ext_apply<R: tauri::Runtime>(
             "[ExtHost][live_server][BLOCK_EXT_APPLY_MISSING_BINDING ext_id={}]",
             req.extension_id,
         );
-        return (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({"error": "missing document binding: document_id and document_generation are required"})),
-        );
+        let body = serde_json::json!({"error": "missing document binding: document_id and document_generation are required"});
+        record_apply_verdict(&dedup_slot, StatusCode::BAD_REQUEST, &body);
+        return (StatusCode::BAD_REQUEST, Json(body));
     }
 
     {
@@ -1719,10 +1939,9 @@ pub(super) async fn handle_ext_apply<R: tauri::Runtime>(
                     "[ExtHost][live_server][BLOCK_EXT_APPLY_BINDING_MISMATCH ext_id={}]",
                     req.extension_id,
                 );
-                return (
-                    StatusCode::CONFLICT,
-                    Json(serde_json::json!({"error": "document binding mismatch; re-read context"})),
-                );
+                let body = serde_json::json!({"error": "document binding mismatch; re-read context"});
+                record_apply_verdict(&dedup_slot, StatusCode::CONFLICT, &body);
+                return (StatusCode::CONFLICT, Json(body));
             }
         }
     }
@@ -1733,6 +1952,41 @@ pub(super) async fn handle_ext_apply<R: tauri::Runtime>(
         req.operations.len(),
     );
 
+    // C-EXT-EDIT-PROOF: pre-emit validation — any op_type outside the three
+    // known classes refuses the whole batch before any emission (the
+    // /stream/patch unknown-op precedent), so operations_count never counts
+    // unvalidated operations.
+    for (i, op) in req.operations.iter().enumerate() {
+        if !matches!(op.op_type.as_str(), "replace_selection" | "insert_at_cursor" | "undo") {
+            safe_eprintln!(
+                "[ExtHost][live_server][BLOCK_EXT_APPLY_BATCH_UNKNOWN_OP op_type={} index={}]",
+                op.op_type,
+                i,
+            );
+            let body = serde_json::json!({
+                "error": format!(
+                    "unknown op_type \"{}\" at index {} (expected \"replace_selection\", \"insert_at_cursor\" or \"undo\")",
+                    op.op_type,
+                    i,
+                )
+            });
+            record_apply_verdict(&dedup_slot, StatusCode::BAD_REQUEST, &body);
+            return (StatusCode::BAD_REQUEST, Json(body));
+        }
+    }
+
+    // C-EXT-EDIT-PROOF: the batch request id — the client-supplied key or
+    // the server-minted "apply_{n}" (correlation only, no dedup promise).
+    let batch_request_id = req.request_id.clone().unwrap_or_else(|| {
+        format!("apply_{}", APPLY_REQUEST_COUNTER.fetch_add(1, Ordering::Relaxed))
+    });
+    EXT_APPLY_ACK_INBOX.lock().unwrap().insert(batch_request_id.clone(), Vec::new());
+    let _inbox_guard = AckInboxGuard(batch_request_id.clone());
+
+    // One deadline for the whole batch, not per operation.
+    let deadline = Instant::now() + std::time::Duration::from_secs(EXT_APPLY_ACK_TIMEOUT_SECS);
+    let mut applied_prefix: usize = 0;
+
     for (i, op) in req.operations.iter().enumerate() {
         let (op_type, payload) = match op.op_type.as_str() {
             "replace_selection" => (
@@ -1741,6 +1995,8 @@ pub(super) async fn handle_ext_apply<R: tauri::Runtime>(
                     "text": op.content.clone().unwrap_or_default(),
                     "document_id": req.document_id.clone(),
                     "document_generation": req.document_generation.clone(),
+                    "request_id": batch_request_id,
+                    "op_index": i,
                 }),
             ),
             "insert_at_cursor" => (
@@ -1750,21 +2006,19 @@ pub(super) async fn handle_ext_apply<R: tauri::Runtime>(
                     "position": null,
                     "document_id": req.document_id.clone(),
                     "document_generation": req.document_generation.clone(),
+                    "request_id": batch_request_id,
+                    "op_index": i,
                 }),
             ),
-            "undo" => (
+            _ => (
                 "undo",
                 serde_json::json!({
                     "document_id": req.document_id.clone(),
                     "document_generation": req.document_generation.clone(),
+                    "request_id": batch_request_id,
+                    "op_index": i,
                 }),
             ),
-            other => {
-                safe_eprintln!(
-                    "[ExtHost][live_server][BLOCK_EXT_APPLY_UNKNOWN_OP op_type={other} index={i}]"
-                );
-                continue;
-            }
         };
 
         let event = super::text_ops::TextOpEvent {
@@ -1777,13 +2031,63 @@ pub(super) async fn handle_ext_apply<R: tauri::Runtime>(
             safe_eprintln!(
                 "[ExtHost][live_server][BLOCK_EXT_APPLY_EMIT_FAILED op={op_type} index={i} reason={e}]"
             );
+            let body = serde_json::json!({
+                "error": format!("emit failed for operation {i}: {e}"),
+            });
+            record_apply_verdict(&dedup_slot, StatusCode::INTERNAL_SERVER_ERROR, &body);
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({
-                    "error": format!("emit failed for operation {i}: {e}"),
-                })),
+                Json(body),
             );
         }
+
+        // C-EXT-EDIT-PROOF: await this operation's verdict under the shared
+        // batch deadline; a missing renderer subscriber manifests as the
+        // honest 504 (the /ext/context timeout precedent).
+        let verdict = loop {
+            if let Some(verdict) = take_ack_verdict(&batch_request_id, i as u64) {
+                break verdict;
+            }
+            if Instant::now() >= deadline {
+                safe_eprintln!(
+                    "[ExtHost][live_server][BLOCK_EXT_APPLY_ACK_TIMEOUT ext_id={} request_id={} index={}]",
+                    req.extension_id,
+                    batch_request_id,
+                    i,
+                );
+                let body = serde_json::json!({
+                    "error": format!(
+                        "apply ack timeout: the renderer did not acknowledge within {}s",
+                        EXT_APPLY_ACK_TIMEOUT_SECS,
+                    )
+                });
+                record_apply_verdict(&dedup_slot, StatusCode::GATEWAY_TIMEOUT, &body);
+                return (StatusCode::GATEWAY_TIMEOUT, Json(body));
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        };
+
+        if !verdict.applied {
+            safe_eprintln!(
+                "[ExtHost][live_server][BLOCK_EXT_APPLY_NOT_APPLIED ext_id={} request_id={} index={} reason={}]",
+                req.extension_id,
+                batch_request_id,
+                i,
+                verdict.reason,
+            );
+            let body = serde_json::json!({
+                "error": format!(
+                    "apply refused: operation {} not applied ({}); {} of {} earlier operations applied",
+                    i,
+                    verdict.reason,
+                    applied_prefix,
+                    i,
+                )
+            });
+            record_apply_verdict(&dedup_slot, StatusCode::CONFLICT, &body);
+            return (StatusCode::CONFLICT, Json(body));
+        }
+        applied_prefix += 1;
     }
 
     safe_eprintln!(
@@ -1792,13 +2096,10 @@ pub(super) async fn handle_ext_apply<R: tauri::Runtime>(
         req.operations.len(),
     );
 
-    (
-        StatusCode::OK,
-        Json(serde_json::json!(ExtApplyResponse {
-            applied: true,
-            operations_count: req.operations.len(),
-        })),
-    )
+    let answer = ExtApplyResponse { applied: true, operations_count: req.operations.len() };
+    let body = serde_json::json!(answer);
+    record_apply_verdict(&dedup_slot, StatusCode::OK, &body);
+    (StatusCode::OK, Json(body))
 }
 
 /// GET /debug/auth — diagnostic endpoint (dev builds only).
@@ -1942,6 +2243,7 @@ pub async fn start_live_server<R: tauri::Runtime>(state: Arc<LiveServerState<R>>
     // `mt::ext::context_response` back — we resolve the pending
     // oneshot channel here.
     let listener_handle = ctx_state.app_handle.clone();
+    let ack_listener_handle = ctx_state.app_handle.clone();
     listener_handle.listen("mt::ext::context_response", move |event| {
         let payload_str = event.payload();
         match serde_json::from_str::<ContextCallbackPayload>(payload_str) {
@@ -1957,6 +2259,14 @@ pub async fn start_live_server<R: tauri::Runtime>(state: Arc<LiveServerState<R>>
                 );
             }
         }
+    });
+
+    // C-EXT-EDIT-PROOF: listen for the renderer's text-op verdicts. The
+    // ack travels renderer-to-backend like mt::ext::context_response (no
+    // shim registration); resolve_text_op_ack buffers the verdict for the
+    // awaiting /ext/apply handler.
+    ack_listener_handle.listen("mt::ext::text_op_ack", move |event| {
+        resolve_text_op_ack(event.payload());
     });
 
     Ok(port)
