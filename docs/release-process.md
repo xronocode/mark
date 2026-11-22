@@ -125,6 +125,11 @@ issues the SLSA provenance and the keyless cosign signatures over the signed
 set. Publication is needs-chained on signing, so no downstream stage can
 bypass it, and the prerelease lane rides the same split chain.
 
+The Homebrew cask handoff resolves its sha256 only from the signed macOS release artifact — never from
+the unsigned staged copy — and coherence-checks the sidecar against a fresh hash of the signed DMG
+beside it, failing the run closed on BLOCK_RELEASE_CASK_DIGEST_MISMATCH before the pull request opens.
+The cask value itself stays the sidecar value, not a recomputed digest.
+
 ## 5. Release notes
 
 The workflow publishes only the automated verification block. Once the release

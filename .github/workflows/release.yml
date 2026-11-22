@@ -1,5 +1,5 @@
 # FILE: .github/workflows/release.yml
-# VERSION: 3.9.0
+# VERSION: 3.10.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Admit only an approved annotated release tag, build and sign its exact Ready seal, then stage one digest-verified draft release and expose it only after the owner approves the synchronous release environment gate.
 #   SCOPE: Named-test manual unsigned QA handoffs plus tag-only readiness, signing, notarization, artifact verification, owner-gated draft-first publication, and downstream Homebrew handoff.
@@ -16,10 +16,11 @@
 #   sign - Sole holder of the release-signing environment, the APPLE_*/TAURI_SIGNING_* secrets and the id-token/attestations OIDC: verifies every staged artifact digest against the build's recorded receipts (refusing on BLOCK_SIGN_DIGEST_MISMATCH) and signs digest-verified staged artifacts without rebuilding — Apple re-sign/notarize/staple, Tauri updater signatures, SLSA provenance and keyless cosign — then uploads the signed set under the release artifact names.
 #   prepare-publication - Render and digest the exact release body and asset set without write credentials. C-RELEASE-CANARY-PRERELEASE: prerelease tags get a generated body (automated verification block plus the external-tester notice) with no reviewed-notes extraction and no brew line.
 #   publish - Reconcile and verify an immutable asset set on a draft, then expose it as the final owner-gated step once the build lanes are green and the owner approves the release environment. C-RELEASE-CANARY-PRERELEASE: prerelease tags publish with isPrerelease=true and an assertion that releases/latest did NOT advance (updater feed untouched).
-#   publish-cask - Open or verify the exact downstream Homebrew cask update and schedule its required-check-gated auto-merge; skipped for prerelease tags.
+#   publish-cask - Open or verify the exact downstream Homebrew cask update and schedule its required-check-gated auto-merge; skipped for prerelease tags. C-RELEASE-CASK-SIGNED-DIGEST: the cask sha256 is resolved only from the signed macOS release artifact by explicit path and coherence-checked against the signed DMG before any cask mutation.
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-11-22 v3.10.0 C-RELEASE-CASK-SIGNED-DIGEST: publish-cask resolves the Homebrew cask digest only from the signed macOS release artifact — the job downloads exactly mark-macos-arm64-release by name into its own path, addresses the .sha256 sidecar by that explicit artifact path (the unconstrained find/head selection over the all-artifact staged tree is gone), and coherence-checks the sidecar against a fresh hash of the signed DMG beside it, failing closed on [ReleaseCask][publish-cask][BLOCK_RELEASE_CASK_DIGEST_MISMATCH] before any cask mutation; the cask still carries the sidecar value per B2CR-3 and the prerelease skip stays byte-identical.
 #   - 2026-11-22 v3.9.0 C-RELEASE-SIGNING-SPLIT: split the privileged build job into an unsigned build and a digest-gated sign job — build drops its environment, id-token/attestations and every secrets reference, installs with npm ci --ignore-scripts plus the single approved install-script exception (esbuild), builds unsigned bundles (updater artifacts disabled per the release-tauri.yml precedent) staged with a SHA-256 receipt sidecar per artifact, and the new sign job — the sole holder of the release-signing environment, the APPLE_*/TAURI_SIGNING_* secrets and the OIDC attestation authority — verifies every staged digest against those receipts before any signing step (BLOCK_SIGN_DIGEST_MISMATCH), re-signs the staged macOS bundle without rebuilding, notarizes and staples it, signs the Tauri updater archives for both platforms, composes the signed feed fragments, moves the SLSA provenance and keyless cosign over the signed set, and prepare-publication is needs-chained on sign so publication is never upstream of signing; the prerelease lane and every tag path outside the split keep byte-identical behavior.
 #   - 2026-11-21 v3.8.0 C-RELEASE-BETA-CHECKS-GATE: the prerelease lane gains a fail-closed checks boundary inside authorize-tag — prerelease tags collect their commit's check runs at the seal (stable jq shape, latest attempt kept, fresh evidence on every re-run) and are rejected unless the pinned main required set (status check and release/governance, both GitHub Actions, derived from rulesets.main.requiredChecks minus this workflow's own tag-time check) is exactly-once green at that SHA; a failed, cancelled, missing, ambiguous or stale-SHA match stops the tag before the release-signing environment or any packaging job runs. The stable lane is byte-identical for non-hyphenated tags.
 #   - 2026-11-17 v3.7.0 C-RELEASE-CANARY-PRERELEASE: prerelease lane for external-tester tags — authorize-tag admits vX.Y.Z-beta.N/canary.N (base = train computedVersion, no Ready seal) and skips readiness/materials/preflight plus the identity artifact; build skips the repeated admission gates; prepare-publication renders a tester body; publish exposes a prerelease that never advances releases/latest; publish-cask is skipped for prereleases. The stable path is unchanged for non-hyphenated tags.
@@ -1595,10 +1596,15 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: download release artifacts
+      - name: download signed macOS release artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          path: /tmp/release-stage
+          # C-RELEASE-CASK-SIGNED-DIGEST: the cask digest is resolved only
+          # from the signed macOS release artifact — the broad all-artifact
+          # download let the digest selection below pick the unsigned staged
+          # sidecar.
+          name: mark-macos-arm64-release
+          path: /tmp/release-stage/mark-macos-arm64-release
 
       - name: gate on App secrets
         env:
@@ -1629,13 +1635,25 @@ jobs:
           set -euo pipefail
           VER="${TAG#v}"
 
-          # Pull the .sha256 sidecar value (NOT recompute) per B2CR-3.
-          SHA256_FILE=$(find /tmp/release-stage -name "Mark_${VER}_aarch64.dmg.sha256" | head -1)
-          if [ -z "$SHA256_FILE" ]; then
-            echo "::error::sha256 sidecar missing for $TAG"
+          # C-RELEASE-CASK-SIGNED-DIGEST: address the sidecar by its explicit
+          # artifact path — no find/head selection over the staged tree
+          # remains, so the unsigned staged copy can never be picked.
+          CASK_SIDECAR="/tmp/release-stage/mark-macos-arm64-release/Mark_${VER}_aarch64.dmg.sha256"
+          SIGNED_DMG="/tmp/release-stage/mark-macos-arm64-release/Mark_${VER}_aarch64.dmg"
+          if [ ! -f "$CASK_SIDECAR" ] || [ ! -f "$SIGNED_DMG" ]; then
+            echo "::error::signed DMG or its .sha256 sidecar missing for $TAG"
             exit 1
           fi
-          SHA256=$(awk '{print $1}' < "$SHA256_FILE")
+          # Pull the .sha256 sidecar value (NOT recompute) per B2CR-3.
+          SHA256=$(awk '{print $1}' < "$CASK_SIDECAR")
+          # Coherence check only: the recomputed hash is never substituted
+          # into the cask — a sidecar that disagrees with the signed DMG
+          # beside it fails the run before any cask mutation.
+          COMPUTED=$(sha256sum "$SIGNED_DMG" | awk '{print $1}')
+          if [ "$SHA256" != "$COMPUTED" ]; then
+            echo "::error::[ReleaseCask][publish-cask][BLOCK_RELEASE_CASK_DIGEST_MISMATCH] sidecar $SHA256 != computed $COMPUTED for $TAG"
+            exit 1
+          fi
 
           # Configure git to use the GH App token via gh's credential
           # helper. Without this, `git push` falls through to the default

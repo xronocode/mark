@@ -1,0 +1,251 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-RELEASE-CASK-SIGNED-DIGEST>
+    <IntentSummary>Close the cask-digest ambiguity C-RELEASE-SIGNING-SPLIT left downstream: since the split (#315, commit 3f61c2b7) a stable run carries the Mark_${VER}_aarch64.dmg.sha256 sidecar filename in three artifacts holding two different values — mark-macos-arm64-release-staged with the digest of the UNSIGNED staged DMG, mark-macos-arm64-release with the fresh digest of the SIGNED DMG re-emitted by the sign job, and the release-publication-${TAG} inventory with a copy of the signed digest — while publish-cask downloads ALL run artifacts (no pattern/name, v4 unpacks each artifact into its own subdirectory) and picks the sidecar with an unconstrained find /tmp/release-stage -name "Mark_${VER}_aarch64.dmg.sha256" | head -1 whose result nothing downstream re-checks before it is written into the public Homebrew cask. The fix: publish-cask downloads exactly mark-macos-arm64-release by name into its own path /tmp/release-stage/mark-macos-arm64-release (the job's only staged-tree read is that sidecar — the tap lives in /tmp/tap — so the narrowing loses nothing), addresses the sidecar and the signed DMG beside it by their explicit artifact-subdirectory paths with a fail-closed existence check, deletes the unconstrained find/head selection from the workflow, and adds a fail-closed coherence check before gh auth setup-git and any cask mutation: sha256sum over the signed DMG compared with the sidecar value, refusing with ::error::[ReleaseCask][publish-cask][BLOCK_RELEASE_CASK_DIGEST_MISMATCH] and exit 1 on mismatch; the cask still carries the sidecar value per B2CR-3 — the hash is only a coherence check, never substituted. The other /tmp/release-stage consumers are audited and correct (prepare-publication downloads with pattern: mark-*-release, which cannot match the -staged names, and its copy_one guard fails closed unless the find returns exactly one match; the feed-fragment find consumes every match intentionally) and stay untouched. tests/renderer/release-governance.test.js gains the comment-blind red-control validator assertCaskSignedDigest with CRLF-tolerant regexes, a positive pin test and a red-control test whose in-memory mutations restore the broad unnamed download, remove the coherence check, reintroduce the unconstrained find and swallow the comparison, each asserted to throw; docs/release-process.md 4b gains the signed-set/coherence sentences; release.yml bumps to VERSION 3.10.0 with a dated CHANGE_SUMMARY line and the publish-cask MODULE_MAP entry; the test file bumps to 2.5.0; .grace/graph/features.xml M-046 gains one dated SummaryDelta and .grace/verification/features.xml V-M-046 gains scenario-40.</IntentSummary>
+    <Spec>C-RELEASE-CASK-SIGNED-DIGEST</Spec>
+    <ReferenceState>Authored 2026-11-22 against the repository at branch fix/cask-signed-digest, HEAD bb68fd6c ("chore: bump vite from 7.3.7 to 8.3.8 (#207)"); every anchor below was verified directly against this tree. .github/workflows/release.yml VERSION 3.9.0 (line 2): MODULE_CONTRACT :3-10, MODULE_MAP :12-20 (publish-cask entry :19), CHANGE_SUMMARY :22-69 (topmost entry the dated v3.9.0 C-RELEASE-SIGNING-SPLIT line :23). Jobs: authorize-tag, manual-build, build, sign, prepare-publication, publish, publish-cask. Defect anatomy: publish-cask :1575, needs [authorize-tag, build, publish] :1577, prerelease skip :1580, environment: release-cask :1583, permissions contents: read :1584-1585; download step "download release artifacts" :1598-1601 (uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4 :1599, with: :1600, path: /tmp/release-stage :1601 — no pattern, no name); "gate on App secrets" :1603; token mint :1612-1622; "open cask bump PR" :1624; the B2CR-3 comment :1632 ("Pull the .sha256 sidecar value (NOT recompute) per B2CR-3."); the unconstrained selection :1633 (SHA256_FILE=$(find /tmp/release-stage -name "Mark_${VER}_aarch64.dmg.sha256" | head -1)); missing-sidecar refusal :1634-1637; SHA256 read :1638; gh auth setup-git :1643; tap clone to /tmp/tap :1646; cask selection :1653-1659; idempotent exact-PR handling :1664-1681 (merged case greps version and sha256 strings :1675-1676); sed writes :1689-1690 (sha256 "$SHA256" :1690); URL template check :1693-1697; PR create/body :1703-1714; verification jq :1721-1724; auto-merge :1725. The three sidecar copies: build's stage step writes the unsigned DMG sidecar :725 (shasum -a 256 "$DMG_DST" | awk '{print $1}' > "$DMG_DST.sha256") and the loop over the remaining staged files :736-741, uploaded as mark-macos-arm64-release-staged :889-900 (macOS) and :904-911 (Windows); the sign job re-emits fresh receipts for the signed DMG, the updater archive and latest-platform.json :1162-1166 (for SIGNED in "/tmp/release/Mark_${VER}_aarch64.dmg" "$TGZ" /tmp/release/latest-platform.json; shasum -a 256 "$SIGNED" | awk '{print $1}' > "$SIGNED.sha256") and uploads the signed set as mark-macos-arm64-release :1260-1274 (name :1264) — its own download is the name+path form :966-970; prepare-publication copies the sidecar into the asset inventory :1355 and seals/uploads the publication bundle :1434-1448 (name: release-publication-${{ needs.build.outputs.tag }} :1442), which publish downloads :1466-1470. Consumer audit (Relationship basis): prepare-publication downloads with pattern: mark-*-release :1300-1307; copy_one guards exactly-one match :1347-1352 ([ "${#MATCHES[@]}" = 1 ] || { echo "::error::expected exactly one $NAME"; exit 1; } :1350); the feed-fragment find consumes all matches with a non-empty guard :1328-1333; no -staged artifact contains latest-platform.json. Marker style: [ReleaseAuthorize][authorize-tag][BLOCK_PRERELEASE_CHECKS_NOT_GREEN] :226, [ReleaseSign][sign][BLOCK_SIGN_DIGEST_MISMATCH] :991-1009, [ReleasePublish][publish][BLOCK_RELEASE_LATEST_ADVANCED] :1573 — ubuntu-latest steps hash with sha256sum (:1369, :1476), macOS lanes with shasum. tests/renderer/release-governance.test.js VERSION 2.4.0 (line 2), 1143 lines: MODULE_MAP :12-43 (publishCaskJob entry :37), CHANGE_SUMMARY :45-57 (topmost v2.4.0 entry :46), the readFileSync workflow sources :71-79, job slices :84-112 (publishCaskJob = releaseWorkflow.split(/^  publish-cask:/m)[1] :112), comment-blind validators assertReleaseSigningSplit :177-307, assertPublicationNeedsChain :313-325, assertSplitPrereleaseEquivalence :330-340, assertGitleaksChecksumContract :347-359, assertPrereleaseGateWiring :406-419; tests: gitleaks pins :569, gitleaks red controls :600, wiring :644, red mutations :818, split boundary :862, split red controls :919, needs chain :1058, prerelease equivalence :1074, sign concentration :1106; END_BLOCK_RELEASE_GOVERNANCE_TESTS :1142. Red-control precedent uses in-memory releaseWorkflow mutations with \r?\n-tolerant regexes (:942-943, :1019) and toThrow(/distinct-message/) expectations. docs/release-process.md 151 lines: section 4b "### 4b. Signing boundary (C-RELEASE-SIGNING-SPLIT)" :109-126, section 5 :128. .grace/graph/features.xml: M-046 opens :2377, its dated SummaryDelta chain ends with C-RELEASE-SIGNING-SPLIT (2026-11-22) :2397 (the insertion point for the new delta), the M-046 Tests list names tests/renderer/release-governance.test.js :2684, M-046 closes :2849 — the governance test file has no separate module id; it is a Test of M-046. .grace/verification/features.xml: V-M-046 opens :2426, Commands :2428-2453, Scenarios :2454-2562 with the last entry scenario-39 (C-RELEASE-SIGNING-SPLIT, 2026-11-22) :2561 (the insertion point for scenario-40), Markers :2563-2577 — the previous change named its BLOCK_SIGN_DIGEST_MISMATCH marker inside the scenario text without adding a Marker element, and scenario-40 mirrors that convention. actionlint is an established MustPassCommand in the canon plan for this module. Deviation notes: the coordinator's MustPassCommand phrasing named "npx vitest run tests/renderer/release-governance.test.js"; this plan uses the repo-canonical invocation of the same file (node node_modules/vitest/vitest.mjs run tests/renderer/release-governance.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2) exactly as the archived canon plan and V-M-046 do. Writing this draft approves neither implementation, apply/archive, commit/push, lane admission, release, signing, tag, cask PR, merge nor publication.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-046</Value>
+        <Value>.github/workflows/release.yml</Value>
+        <Value>tests/renderer/release-governance.test.js</Value>
+        <Value>docs/release-process.md</Value>
+        <Value>.grace/graph/features.xml</Value>
+        <Value>.grace/verification/features.xml</Value>
+      </MustExist>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text># VERSION: 3.9.0</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          path: /tmp/release-stage</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          SHA256_FILE=$(find /tmp/release-stage -name "Mark_${VER}_aarch64.dmg.sha256" | head -1)</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          # Pull the .sha256 sidecar value (NOT recompute) per B2CR-3.</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>shasum -a 256 "$DMG_DST" | awk '{print $1}' > "$DMG_DST.sha256"</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>shasum -a 256 "$SIGNED" | awk '{print $1}' > "$SIGNED.sha256"</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>            "Mark_${VER}_aarch64.dmg.sha256" \</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          name: release-publication-${{ needs.build.outputs.tag }}</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          pattern: mark-*-release</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>            [ "${#MATCHES[@]}" = 1 ] || { echo "::error::expected exactly one $NAME"; exit 1; }</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>    needs: [authorize-tag, build, publish]</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>    if: needs.authorize-tag.outputs.prerelease != 'true'</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>// VERSION: 2.4.0</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>const publishCaskJob = releaseWorkflow.split(/^  publish-cask:/m)[1]</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/release-process.md</File>
+        <Text>### 4b. Signing boundary (C-RELEASE-SIGNING-SPLIT)</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/features.xml</File>
+        <Text>C-RELEASE-SIGNING-SPLIT</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/features.xml</File>
+        <Text>scenario-39</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-046</Module>
+      </MustVerify>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text># VERSION: 3.10.0</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>C-RELEASE-CASK-SIGNED-DIGEST</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>      - name: download signed macOS release artifacts</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          name: mark-macos-arm64-release
+          path: /tmp/release-stage/mark-macos-arm64-release</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          CASK_SIDECAR="/tmp/release-stage/mark-macos-arm64-release/Mark_${VER}_aarch64.dmg.sha256"</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          SIGNED_DMG="/tmp/release-stage/mark-macos-arm64-release/Mark_${VER}_aarch64.dmg"</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          COMPUTED=$(sha256sum "$SIGNED_DMG" | awk '{print $1}')</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>[ReleaseCask][publish-cask][BLOCK_RELEASE_CASK_DIGEST_MISMATCH]</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          # Pull the .sha256 sidecar value (NOT recompute) per B2CR-3.</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>// VERSION: 2.5.0</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>C-RELEASE-CASK-SIGNED-DIGEST</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>assertCaskSignedDigest</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>BLOCK_RELEASE_CASK_DIGEST_MISMATCH</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>sources the Homebrew cask digest only from the signed macOS release artifact</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>fails closed on in-memory mutations of the cask digest selection</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/release-process.md</File>
+        <Text>resolves its sha256 only from the signed macOS release artifact</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/features.xml</File>
+        <Text>C-RELEASE-CASK-SIGNED-DIGEST</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/features.xml</File>
+        <Text>C-RELEASE-CASK-SIGNED-DIGEST</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/features.xml</File>
+        <Text>scenario-40</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>find /tmp/release-stage -name "Mark_${VER}_aarch64.dmg.sha256"</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>        with:
+          path: /tmp/release-stage</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/release-governance.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="60">actionlint .github/workflows/release.yml</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="60">npm run release:governance</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-046 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-046 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>.github/workflows/release.yml</File>
+      <File>tests/renderer/release-governance.test.js</File>
+      <File>docs/release-process.md</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/features.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>publish-cask hardening: named signed-artifact download, explicit sidecar/DMG paths, fail-closed coherence check, workflow markup</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Replace the publish-cask download step (:1598-1601, step name "download release artifacts", with: path: /tmp/release-stage and no pattern/name) with a step named "download signed macOS release artifacts" declaring exactly name: mark-macos-arm64-release and path: /tmp/release-stage/mark-macos-arm64-release under the same pinned actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4 reference, preceded inside the with: block by a comment in the prepare-publication precedent's style (:1303-1305) whose first line reads "C-RELEASE-CASK-SIGNED-DIGEST: the cask digest is resolved only" and records that the broad all-artifact download let the selection below pick the unsigned staged sidecar. The job reads nothing else under /tmp/release-stage (its tap clone goes to /tmp/tap :1646), so no other artifact is needed; the step name, the exact with: keys and the path are pinned by the TargetAssertions and by T-002's pins.</Criterion>
+          <Criterion>Replace the selection block (:1632-1638) at the top of the "open cask bump PR" step with, in this order and exact form: a comment whose first line reads "C-RELEASE-CASK-SIGNED-DIGEST: address the sidecar by its explicit" stating that no find/head selection over the staged tree remains; the assignments CASK_SIDECAR="/tmp/release-stage/mark-macos-arm64-release/Mark_${VER}_aarch64.dmg.sha256" and SIGNED_DMG="/tmp/release-stage/mark-macos-arm64-release/Mark_${VER}_aarch64.dmg"; a fail-closed existence check ([ ! -f "$CASK_SIDECAR" ] || [ ! -f "$SIGNED_DMG" ]) echoing "::error::signed DMG or its .sha256 sidecar missing for $TAG" and exiting 1; the retained comment line "          # Pull the .sha256 sidecar value (NOT recompute) per B2CR-3." with SHA256=$(awk '{print $1}' &lt; "$CASK_SIDECAR"); then the coherence check only — COMPUTED=$(sha256sum "$SIGNED_DMG" | awk '{print $1}') and, on inequality, echo "::error::[ReleaseCask][publish-cask][BLOCK_RELEASE_CASK_DIGEST_MISMATCH] sidecar $SHA256 != computed $COMPUTED for $TAG" with exit 1 — placed BEFORE gh auth setup-git (:1643), the tap clone and every cask mutation, with a preceding comment naming it a coherence check whose hash is never substituted into the cask. No || true, || echo or set +e around the comparison; the whole rest of the step (gh auth setup-git, clone, cask selection, idempotent exact-PR handling, sed writes of "$SHA256", URL template check, PR create, verification jq, auto-merge :1640-1725) stays byte-identical, as do needs, the prerelease skip, environment: release-cask, permissions and every other step of the job.</Criterion>
+          <Criterion>Synchronize release.yml's own markup only: VERSION 3.9.0 to 3.10.0 (line 2); the MODULE_MAP publish-cask entry (:19) gains the sentence "C-RELEASE-CASK-SIGNED-DIGEST: the cask sha256 is resolved only from the signed macOS release artifact by explicit path and coherence-checked against the signed DMG before any cask mutation."; and a dated 2026-11-22 CHANGE_SUMMARY line "  - 2026-11-22 v3.10.0 C-RELEASE-CASK-SIGNED-DIGEST: publish-cask resolves the Homebrew cask digest only from the signed macOS release artifact — the job downloads exactly mark-macos-arm64-release by name into its own path, addresses the .sha256 sidecar by that explicit artifact path (the unconstrained find/head selection over the all-artifact staged tree is gone), and coherence-checks the sidecar against a fresh hash of the signed DMG beside it, failing closed on [ReleaseCask][publish-cask][BLOCK_RELEASE_CASK_DIGEST_MISMATCH] before any cask mutation; the cask still carries the sidecar value per B2CR-3 and the prerelease skip stays byte-identical." inserted as the new topmost entry (:23 style). No other byte of the workflow changes in this task: authorize-tag, manual-build, build, sign, prepare-publication and publish are untouched, and no MODULE_CONTRACT line other than the version changes.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="60">actionlint .github/workflows/release.yml</Command>
+          <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/release-governance.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2</Command>
+          <Command budgetSeconds="60">npm run release:governance</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Governance pins: assertCaskSignedDigest validator, positive cask-digest test, red-control mutations, test markup</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Add the comment-blind red-control validator function assertCaskSignedDigest(source) inside START_BLOCK_RELEASE_GOVERNANCE_TESTS, mirroring the assertGitleaksChecksumContract / assertPublicationNeedsChain precedent (in-memory source string only, no network, no tracked-file edits): it derives the publish-cask slice by splitting the source on /^  publish-cask:/m and asserts, each with a distinct Error message — the slice contains "- name: download signed macOS release artifacts" with "name: mark-macos-arm64-release" and "path: /tmp/release-stage/mark-macos-arm64-release" and no bare path-only download (a with: block in the slice whose declared keys lack name: is rejected); the sidecar is addressed by the explicit assignments CASK_SIDECAR="/tmp/release-stage/mark-macos-arm64-release/Mark_${VER}_aarch64.dmg.sha256" and SIGNED_DMG="/tmp/release-stage/mark-macos-arm64-release/Mark_${VER}_aarch64.dmg" with a fail-closed existence check; no /find \/tmp\/release-stage[^\r\n]*Mark_\$\{VER\}_aarch64\.dmg\.sha256/ selection and no "| head -1" applied to a sha256 sidecar anywhere in the slice; the coherence demand holds (sha256sum "$SIGNED_DMG" comparison present, BLOCK_RELEASE_CASK_DIGEST_MISMATCH present, exit 1 on the mismatch branch, no /\|\| true|\|\| echo|set \+e/ around the comparison) and the marker-bearing refusal precedes "gh auth setup-git" in the slice (check-then-mutate ordering, mirroring the requireVerifyThenSign index precedent :301-305); and the B2CR-3 policy holds ("Pull the .sha256 sidecar value (NOT recompute) per B2CR-3." still present, the cask write still uses "$SHA256", the COMPUTED value never appears inside a cask-writing construct). All regexes are CRLF-tolerant (\r?\n) because Windows checkouts carry \r\n.</Criterion>
+          <Criterion>Add exactly two tests to the suite, leaving every existing test unweakened (the split-boundary, needs-chain, prerelease-equivalence, sign-concentration, gitleaks and beta-checks pins all keep passing): first, it('sources the Homebrew cask digest only from the signed macOS release artifact and coherence-checks it') asserting assertCaskSignedDigest(releaseWorkflow) does not throw plus the positive slice pins (the named download with its exact name/path, the explicit sidecar and DMG assignments, the marker, the retained B2CR-3 comment, the sed write of "$SHA256"); second, it('fails closed on in-memory mutations of the cask digest selection') performing the red controls on in-memory copies of releaseWorkflow only — (a) restoring the broad unnamed download by replacing the "- name: download signed macOS release artifacts" step block (a CRLF-tolerant /- name: download signed macOS release artifacts\r?\n(?:.|\r|\n)*?(?=- name: gate on App secrets)/ splice) with the old "download release artifacts" uses/with/path: /tmp/release-stage shape, (b) removing the coherence check by splicing the COMPUTED assignment and its mismatch branch (a CRLF-tolerant region splice from the COMPUTED= line through its closing fi, or an equivalent line-array splice), (c) reintroducing the unconstrained selection by replacing the CASK_SIDECAR/SIGNED_DMG assignment lines with SHA256_FILE=$(find /tmp/release-stage -name "Mark_${VER}_aarch64.dmg.sha256" | head -1), and (d) appending " || true" to the digest comparison — each expect(() => assertCaskSignedDigest(mutated)).toThrow(/distinct-message/) matching the file's red-control style (:919-1056).</Criterion>
+          <Criterion>Synchronize the test file's local markup only: VERSION 2.4.0 to 2.5.0 (line 2); a MODULE_MAP entry "//   assertCaskSignedDigest - comment-blind red-control validator for the publish-cask signed-digest contract."; and a dated 2026-11-22 CHANGE_SUMMARY entry "  - 2026-11-22 v2.5.0 C-RELEASE-CASK-SIGNED-DIGEST: pin the publish-cask signed-digest contract — the download step names exactly mark-macos-arm64-release with its own path, the sidecar and signed DMG are addressed by explicit artifact paths with no unconstrained find/head selection, the coherence check fails closed on BLOCK_RELEASE_CASK_DIGEST_MISMATCH before any cask mutation, and the B2CR-3 sidecar-sourcing policy stays — with red controls rejecting the broad unnamed download, a removed coherence check or marker, a reintroduced unconstrained find, and a swallowed comparison." No edit to .github/workflows/release.yml or any other file in this task.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/release-governance.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2</Command>
+          <Command budgetSeconds="60">actionlint .github/workflows/release.yml</Command>
+          <Command budgetSeconds="60">npm run release:governance</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Docs cask sentences, M-046 SummaryDelta, verification scenario-40</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>docs/release-process.md: append to section 4b "### 4b. Signing boundary (C-RELEASE-SIGNING-SPLIT)" (:109-126), after its final sentence (:126) and before "## 5. Release notes" (:128), exactly this two-sentence passage: "The Homebrew cask handoff resolves its sha256 only from the signed macOS release artifact — never from the unsigned staged copy — and coherence-checks the sidecar against a fresh hash of the signed DMG beside it, failing the run closed on BLOCK_RELEASE_CASK_DIGEST_MISMATCH before the pull request opens. The cask value itself stays the sidecar value, not a recomputed digest." No other section, heading or wording changes; this task touches no workflow, secret, pin or job-condition content.</Criterion>
+          <Criterion>.grace/graph/features.xml: append one dated SummaryDelta inside M-046 immediately after the C-RELEASE-SIGNING-SPLIT delta (:2397) — "C-RELEASE-CASK-SIGNED-DIGEST (2026-11-22): the Homebrew cask handoff resolves its sha256 only from the signed macOS release artifact — publish-cask downloads exactly mark-macos-arm64-release by name into its own path instead of every run artifact, addresses the .sha256 sidecar by that explicit artifact path with no find/head selection over the staged tree, and coherence-checks the sidecar against a fresh hash of the signed DMG beside it, failing closed on [ReleaseCask][publish-cask][BLOCK_RELEASE_CASK_DIGEST_MISMATCH] before any cask mutation; the cask value itself stays the sidecar value per B2CR-3, prepare-publication&apos;s exactly-one inventory guard and pattern-based download are audited correct and unchanged, and the prerelease skip stays byte-identical." — without touching any other graph content.</Criterion>
+          <Criterion>.grace/verification/features.xml: inside V-M-046 append the next sequential Scenario entry (scenario-40, dated 2026-11-22) after scenario-39 (:2561) — "scenario-40 (C-RELEASE-CASK-SIGNED-DIGEST, 2026-11-22): the cask digest contract is pinned structurally in tests/renderer/release-governance.test.js — the publish-cask download step names exactly mark-macos-arm64-release with its own path (no all-artifact download), the sidecar and the signed DMG beside it are addressed by the explicit artifact paths /tmp/release-stage/mark-macos-arm64-release/Mark_${VER}_aarch64.dmg.sha256 and Mark_${VER}_aarch64.dmg, the coherence check re-hashes the signed DMG with sha256sum and fails closed on [ReleaseCask][publish-cask][BLOCK_RELEASE_CASK_DIGEST_MISMATCH] before gh auth setup-git and any cask mutation with no swallowed comparison, and the B2CR-3 policy (the cask carries the sidecar value, never a recomputed digest) stays; red controls mutate the workflow in memory to restore the broad unnamed download, remove the coherence check, reintroduce an unconstrained find | head -1 selection over the staged tree and swallow the comparison, each asserted to throw. Focused commands: node node_modules/vitest/vitest.mjs run tests/renderer/release-governance.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2, actionlint on release.yml, and npm run release:governance. Live evidence stays external: the first stable tag run through the narrowed handoff — the cask PR carrying the digest of the published signed DMG — is recorded in the change bundle after merge; a forced mismatch refusal is not inducible on a production tag without publishing a wrong sidecar, so the refusal evidence is the unit red controls plus the fail-closed construction, stated in the bundle and not discharged by any unit test." — mirroring the marker-naming convention of scenario-39 (no new Markers element) and without touching any other verification content.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="60">npm run release:governance</Command>
+          <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/release-governance.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2</Command>
+          <Command budgetSeconds="30">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/features.xml'); ET.parse('.grace/verification/features.xml')"</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Environment>Baseline is the current worktree (branch fix/cask-signed-digest, HEAD bb68fd6c) with node_modules installed (node_modules/vitest/vitest.mjs exists). Tasks run strictly sequentially T-001 through T-003; T-001 changes only the publish-cask job's download step, its selection block, and the workflow's own markup (version, MODULE_MAP entry, CHANGE_SUMMARY line) — every other job, step, permission, condition, artifact name and pinned action digest stays byte-identical, and the existing governance suite must stay green on the T-001 tree (no existing pin constrains the publish-cask download or selection today; the prerelease-equivalence pin on publishCaskJob's if-condition is untouched). T-002 adds the validator and the two tests with red controls that mutate only in-memory source strings, CRLF-tolerant regexes throughout, and leaves every existing test unweakened. T-003 adds only the docs passage, the one M-046 SummaryDelta and the one V-M-046 scenario. The focused runs must pass with no skips, retries or budget increases, and the combined diff must be limited to .github/workflows/release.yml (the two publish-cask step replacements, VERSION 3.10.0, the MODULE_MAP sentence, the CHANGE_SUMMARY line), tests/renderer/release-governance.test.js (assertCaskSignedDigest, the two tests, markup 2.5.0), docs/release-process.md (the two sentences in 4b), .grace/graph/features.xml (one dated M-046 SummaryDelta) and .grace/verification/features.xml (one V-M-046 scenario-40 entry). Behavior claims: the cask sha256 equals the sidecar value of mark-macos-arm64-release (the signed set), the hash is only a coherence check and never written into the cask, a missing sidecar or DMG, a digest mismatch or a tampered comparison each fail the job before gh auth setup-git and any cask mutation, and the prerelease skip and idempotent cask-PR handling are unchanged. The orchestrator runs the current/target/final grace-lint lifecycle gates itself (current before editing, target during implementation, final --run-commands before archive, current after); no command in this plan is self-referential to those gates. No apply/archive, commit/push, release, signing, version, tag, cask PR, merge or publication is authorized by this plan.</Environment>
+    </AcceptanceVerification>
+    <ExecutionMode>sequential</ExecutionMode>
+    <Lifecycle>Drafted 2026-11-22 from the approved spec for orchestrator admission; the orchestrator owns status transitions and the durable/final/archive/publication boundaries. Writing this draft approves neither implementation nor apply/archive, commit/push, lane admission, release, signing, tag, cask PR, merge or publication.</Lifecycle>
+  </C-RELEASE-CASK-SIGNED-DIGEST>
+</GraceChangePlan>
