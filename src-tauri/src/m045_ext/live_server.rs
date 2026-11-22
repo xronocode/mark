@@ -1217,6 +1217,25 @@ pub(super) async fn handle_pair<R: tauri::Runtime>(
         }
     }
 
+    // C-EXT-TRUST-COHERENCE: a successful pairing is proof — the honest
+    // replace just established the prior record dead (rebind) or fresh
+    // trust (first pair) — so a standing revoke-pending marker clears
+    // best-effort after the rebind proof, before the success answer.
+    let marker_id = req.extension_id.clone();
+    let cleared = tokio::task::spawn_blocking(move || super::auth::clear_revoke_pending(&marker_id))
+        .await
+        .map_err(|e| format!("credential worker failed: {e}"));
+    match cleared {
+        Ok(Ok(())) => safe_eprintln!(
+            "[ExtHost][live_server][BLOCK_PAIR_REVOKE_PENDING_CLEARED ext_id={}]",
+            req.extension_id,
+        ),
+        Ok(Err(e)) | Err(e) => safe_eprintln!(
+            "[ExtHost][live_server][BLOCK_PAIR_REVOKE_PENDING_CLEAR_FAILED ext_id={} reason={e}]",
+            req.extension_id,
+        ),
+    }
+
     safe_eprintln!(
         "[ExtHost][live_server][BLOCK_PAIR_OK ext_id={}]",
         req.extension_id,

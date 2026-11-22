@@ -18,6 +18,16 @@
 // END_MODULE_MAP
 
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 C-EXT-TRUST-COHERENCE T-004: the revoke-pending family —
+//     enable_after_failed_revocation_is_locked_to_revoke_pending,
+//     revoke_pending_clears_on_successful_disable_or_rebind (both
+//     clear-on-proof paths: the successful retry-disable and the
+//     successful prior-secret rebind) and
+//     unreadable_revoke_pending_marker_is_a_distinct_enable_refusal —
+//     committed failing-first (the revoke-pending API did not exist: the
+//     red run was the compile error, the C-STREAM-BUDGET style) and the
+//     fixture builder injects the marker test backend mechanically with
+//     Drop cleanup, no call site changes.
 //   - 2026-11-23 C-EXT-TRUST-COHERENCE T-001: failing-first fence pins —
 //     apply_fences_disable_crossing_paused_authentication and
 //     text_insert_fences_disable_crossing_paused_authentication (the
@@ -1050,6 +1060,11 @@ fn incoming_fixture_with_grant(enabled: bool, capabilities: &[&str], grant: bool
         super::auth::inject_test_grant_backend(&id, Ok(grant_store));
         super::auth::store_grant(&id, &approved).unwrap();
     }
+    // C-EXT-TRUST-COHERENCE: the revoke-pending marker lives beside the
+    // credential through its own backend, injected mechanically here so
+    // no call site changes (mirrors the grant backend).
+    let pending_store = Arc::new(DummyCredential::default());
+    super::auth::inject_test_pending_backend(&id, Ok(pending_store));
     let events = Arc::new(Mutex::new(Vec::new()));
     let seen = events.clone();
     app.listen("mt::text::op", move |event| {
@@ -1394,6 +1409,7 @@ impl Drop for IncomingFixture {
     fn drop(&mut self) {
         super::auth::clear_test_secret(&self.id);
         super::auth::clear_test_grant(&self.id);
+        super::auth::clear_test_pending(&self.id);
     }
 }
 
@@ -2101,6 +2117,81 @@ async fn context_disable_cancels_the_pending_read() {
     assert_eq!(apply_bound(&f, &fresh, Some(document_id), Some(document_generation)).await, StatusCode::CONFLICT, "the cancelled read recorded no binding");
 }
 // END_BLOCK_INCOMING_FENCE_PINS
+
+// START_BLOCK_REVOKE_PENDING_TESTS
+// C-EXT-TRUST-COHERENCE: a disable whose credential revocation failed
+// records a persistent revoke-pending marker beside the credential; the
+// retry-enable stays locked while the marker stands; and the marker
+// clears only on proof — a successful disable or a successful pairing.
+#[tokio::test]
+async fn enable_after_failed_revocation_is_locked_to_revoke_pending() {
+    let f = incoming_fixture(true, "text.insert");
+    f.credential.fail_delete.store(true, std::sync::atomic::Ordering::Relaxed);
+    assert_eq!(super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap_err(), "ext_disable_revoke_failed");
+    assert_eq!(super::auth::get_revoke_pending(&f.id).unwrap(), true, "the failed disable recorded its revoke-pending marker");
+    assert_eq!(super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap_err(), "ext_enable_revoke_pending");
+    assert!(f.app.state::<ExtRegistry>().get_manifest(&f.id).is_err(), "the locked enable leaves the registry disabled");
+    assert_eq!(super::auth::get_secret(&f.id).unwrap().as_deref(), Some(f.token.as_str()), "the locked enable re-keys nothing");
+    assert!(super::auth::validate_token(&f.id, &f.token), "the surviving credential is inert behind the enabled-state gate");
+    assert_old_token_fenced(&f).await;
+    assert!(f.events.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn revoke_pending_clears_on_successful_disable_or_rebind() {
+    // Proof path 1: the retry-disable succeeds and clears the marker;
+    // the disable-pair-enable trust reset then works exactly as
+    // fresh_pairing_restores_access pins it.
+    let f = incoming_fixture(true, "text.insert");
+    f.credential.fail_delete.store(true, std::sync::atomic::Ordering::Relaxed);
+    assert_eq!(super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap_err(), "ext_disable_revoke_failed");
+    assert_eq!(super::auth::get_revoke_pending(&f.id).unwrap(), true);
+    f.credential.fail_delete.store(false, std::sync::atomic::Ordering::Relaxed);
+    super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap();
+    assert_eq!(super::auth::get_revoke_pending(&f.id).unwrap(), false, "the successful disable cleared the marker");
+    let fresh = fresh_pair_secret(&f).await;
+    super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap();
+    assert_eq!(insert_fixture(&f, Some(&fresh)).await, StatusCode::OK);
+    assert_eq!(f.events.lock().unwrap().len(), 1);
+
+    // Proof path 2: a successful rebind after the failed disable (the
+    // prior-secret proof through pair_request) also clears the marker,
+    // after which enable proceeds and the granted route works with the
+    // fresh token.
+    let g = incoming_fixture(true, "text.insert");
+    g.credential.fail_delete.store(true, std::sync::atomic::Ordering::Relaxed);
+    assert_eq!(super::mt_ext_disable(g.id.clone(), g.app.state(), g.app.handle().clone()).await.unwrap_err(), "ext_disable_revoke_failed");
+    assert_eq!(super::auth::get_revoke_pending(&g.id).unwrap(), true);
+    let response = pair_request(&g, &g.id, Some(g.token.clone())).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(super::auth::get_revoke_pending(&g.id).unwrap(), false, "the successful rebind cleared the marker");
+    let bytes = axum::body::to_bytes(response.into_body(), 8192).await.unwrap();
+    let paired: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    let rebound = paired["shared_secret"].as_str().unwrap().to_string();
+    super::mt_ext_enable(g.id.clone(), g.app.state()).await.unwrap();
+    assert_eq!(insert_fixture(&g, Some(&g.token)).await, StatusCode::UNAUTHORIZED, "the prior token is dead");
+    assert_eq!(insert_fixture(&g, Some(&rebound)).await, StatusCode::OK, "the granted route works with the fresh token");
+    assert_eq!(g.events.lock().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn unreadable_revoke_pending_marker_is_a_distinct_enable_refusal() {
+    let f = incoming_fixture(true, "text.insert");
+    f.credential.fail_delete.store(true, std::sync::atomic::Ordering::Relaxed);
+    assert_eq!(super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap_err(), "ext_disable_revoke_failed");
+    assert_eq!(super::auth::get_revoke_pending(&f.id).unwrap(), true);
+    // Swap the marker backend to a failing read: without a trustworthy
+    // record the marker can never be proven absent, so the enable
+    // refuses on the same machine code through its distinct logged
+    // state, enables nothing and mints nothing.
+    super::auth::inject_test_pending_backend(&f.id, Err("dummy marker read access failed".to_string()));
+    assert!(super::auth::get_revoke_pending(&f.id).is_err(), "an unreadable marker is a read error, never an absent answer");
+    assert_eq!(super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap_err(), "ext_enable_revoke_pending");
+    assert!(f.app.state::<ExtRegistry>().get_manifest(&f.id).is_err(), "the refused enable leaves the registry disabled");
+    assert_eq!(super::auth::get_secret(&f.id).unwrap().as_deref(), Some(f.token.as_str()), "the refused enable mints nothing");
+    assert!(f.events.lock().unwrap().is_empty());
+}
+// END_BLOCK_REVOKE_PENDING_TESTS
 
 // START_BLOCK_GRANT_BOUND_SECURITY_TESTS
 // C-SEC-EXT-GRANT-BOUND: the approved incoming set is captured at pairing
