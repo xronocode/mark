@@ -18,6 +18,11 @@ import { setupTestPinia } from '../pinia'
 
 // ─── mocks ────────────────────────────────────────────────────────
 
+// POSIX path contract (the suite pins '/'-joined paths through the project
+// store; under the vite-8 define config.PATH_SEPARATOR follows the build
+// host, which on the Windows CI runner is '\\').
+vi.mock('@/config', () => ({ PATH_SEPARATOR: '/' }))
+
 vi.mock('@/services/notification', () => ({
   default: { notify: vi.fn(async () => undefined) }
 }))
