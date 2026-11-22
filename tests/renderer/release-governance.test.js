@@ -1006,7 +1006,7 @@ describe('release governance', () => {
     expect(() =>
       assertReleaseSigningSplit(
         releaseWorkflow.replace(
-          /- name: verify staged artifact digests\n(?:.|\n)*?(?=- name: import Apple signing certificate)/,
+          /- name: verify staged artifact digests\r?\n(?:.|\r|\n)*?(?=- name: import Apple signing certificate)/,
           ''
         ),
         postSplit
@@ -1016,8 +1016,7 @@ describe('release governance', () => {
     expect(() =>
       assertReleaseSigningSplit(
         releaseWorkflow.replace(
-          '- name: download staged release artifacts',
-          '- name: download staged release artifacts\n        env:\n          PROBE: secrets.APPLE_TEAM_ID'
+          /(download staged release artifacts)\r?\n/, '$1\r\n        env:\r\n          PROBE: secrets.APPLE_TEAM_ID'
         ),
         postSplit
       )
@@ -1089,8 +1088,8 @@ describe('release governance', () => {
     expect(() =>
       assertSplitPrereleaseEquivalence(
         releaseWorkflow.replace(
-          "    if: github.event_name == 'push' && needs.authorize-tag.result == 'success'\n    environment: release-signing",
-          "    if: github.event_name == 'push' && needs.authorize-tag.result == 'success' && needs.authorize-tag.outputs.prerelease != 'true'\n    environment: release-signing"
+          /(    if: github\.event_name == 'push' && needs\.authorize-tag\.result == 'success')\r?\n(    environment: release-signing)/,
+          "$1 && needs.authorize-tag.outputs.prerelease != 'true'\r\n$2"
         )
       )
     ).toThrow(/diverges/)
