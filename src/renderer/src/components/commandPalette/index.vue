@@ -123,6 +123,11 @@ const handleDialogClose = () => {
   selectedCommandIndex.value = -1
   query.value = ''
   availableCommands.value = []
+  // C-SEARCH-LIFECYCLE-DISCARD T-004: unload now really cancels the
+  // in-flight request and its rejection lands silently, so reset the
+  // busy flag here — otherwise the loading spinner strands into the
+  // next open.
+  searcherBusy.value = false
   if (currentCommand.value.unload) {
     currentCommand.value.unload()
   }
@@ -212,20 +217,32 @@ const search = (commandId = null) => {
   updateCommands()
 }
 
+// C-SEARCH-LIFECYCLE-DISCARD T-004: monotonic request sequence (the
+// linkPathPicker seq precedent) guarding updateCommands writes — a
+// resolution or rejection from a superseded request touches nothing and
+// the newest request solely owns the list. Equal consecutive queries
+// still supersede: the sequence advances per request, not per query text.
+let requestSeq = 0
+
 const updateCommands = () => {
   const queryString = query.value.trim()
 
   // Allow to handle search result by command (e.g. quick search).
   if (currentCommand.value.search) {
+    const seq = ++requestSeq
     searcherBusy.value = true
     currentCommand.value
       .search(queryString)
       .then((result) => {
+        // A superseded settlement drops before any state write.
+        if (seq !== requestSeq) return
         searcherBusy.value = false
         availableCommands.value = result || []
         selectedCommandIndex.value = availableCommands.value.length ? 0 : -1
       })
       .catch((error) => {
+        // A superseded settlement drops before any state write.
+        if (seq !== requestSeq) return
         // The query was cancel or restarted if `message` is null.
         if (error && error.message) {
           searcherBusy.value = false
