@@ -18,6 +18,17 @@
 // END_MODULE_MAP
 
 // START_CHANGE_SUMMARY
+//   - 2026-11-22 C-EXT-EDIT-PROOF T-006: honest retries — the loopback
+//     scripted-response fixture serve_scripted drives the new invoke pins
+//     invoke_carries_stable_idempotency_key_across_retries (a 503 then a
+//     200 both carry the same idempotency-key header),
+//     invoke_retries_429_once_honoring_retry_after (429 with a small
+//     Retry-After is retried once within the existing attempt budget with
+//     the honored wait) and invoke_retry_after_over_ceiling_waits_no_
+//     longer_than_ceiling (a hostile Retry-After is clamped to the named
+//     ceiling); stream_budget_patch_refuses_over_rate additionally pins
+//     the budget 429's retry-after header (integer seconds, bounded by the
+//     refill period).
 //   - 2026-11-22 C-EXT-EDIT-PROOF T-003: failing-first /ext/apply verdict
 //     and idempotency family — ext_apply_unknown_op_refused_with_zero_events
 //     (400, zero events, no applied:true), the ack verdict legs
@@ -2268,6 +2279,144 @@ async fn invoke_redirect_response_not_followed() {
     assert!(origin_server.join().unwrap().is_some());
     assert!(target_server.join().unwrap().is_none(), "health probe followed its redirect");
 }
+
+/// C-EXT-EDIT-PROOF: serve a scripted sequence of responses, one per
+/// incoming connection on the SAME loopback listener, collecting each
+/// observed request — the honest-retry fixture for the invoke pins (the
+/// internal retries reuse one URL, so both attempts land here).
+fn serve_scripted(
+    listener: std::net::TcpListener,
+    responses: Vec<(&'static str, String, &'static str)>,
+    wait_ms: u64,
+) -> std::thread::JoinHandle<Vec<String>> {
+    use std::io::{Read, Write};
+    listener.set_nonblocking(true).unwrap();
+    std::thread::spawn(move || {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_millis(wait_ms);
+        let mut observed = Vec::new();
+        for (status, headers, body) in responses {
+            let response = format!("HTTP/1.1 {status}\r\nContent-Length: {}\r\nConnection: close\r\n{headers}\r\n{body}", body.len());
+            let mut stream = loop {
+                match listener.accept() {
+                    Ok((stream, _)) => break stream,
+                    Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                        if std::time::Instant::now() >= deadline { return observed; }
+                        std::thread::sleep(std::time::Duration::from_millis(5));
+                    },
+                    Err(e) => panic!("fixture accept failed: {e}"),
+                }
+            };
+            stream.set_nonblocking(false).unwrap();
+            stream.set_read_timeout(Some(std::time::Duration::from_secs(2))).unwrap();
+            let mut request = Vec::new();
+            loop {
+                let mut bytes = [0u8; 4096];
+                let len = stream.read(&mut bytes).unwrap();
+                if len == 0 { break; }
+                request.extend_from_slice(&bytes[..len]);
+                assert!(request.len() < 16384, "fixture request bound");
+                if let Some(end) = request.windows(4).position(|part| part == b"\r\n\r\n") {
+                    let text = String::from_utf8_lossy(&request[..end]);
+                    let content_length = text.lines().find_map(|line| {
+                        let (name, value) = line.split_once(':')?;
+                        name.eq_ignore_ascii_case("content-length").then(|| value.trim().parse::<usize>().unwrap())
+                    }).unwrap_or(0);
+                    if request.len() >= end + 4 + content_length { break; }
+                }
+            }
+            stream.write_all(response.as_bytes()).unwrap();
+            observed.push(String::from_utf8(request).unwrap());
+        }
+        observed
+    })
+}
+
+fn observed_header(request: &str, header: &str) -> Option<String> {
+    request.to_ascii_lowercase().lines().find_map(|line| {
+        line.strip_prefix(&format!("{header}: ")).map(str::trim).map(str::to_string)
+    })
+}
+
+#[tokio::test]
+async fn invoke_carries_stable_idempotency_key_across_retries() {
+    let listener = fixture_listener("INVOKE_IDEMPOTENCY");
+    let mut manifest = test_manifest("idempotency-invoke-fixture");
+    manifest.discovery.base_url = format!("http://{}", listener.local_addr().unwrap());
+    manifest.invoke.timeout_secs = 5;
+    let server = serve_scripted(listener, vec![
+        ("503 Service Unavailable", String::new(), "unavailable"),
+        ("200 OK", String::new(), r#"{"fixture":"ok"}"#),
+    ], 5000);
+    let result = super::invoke::invoke_extension(&manifest, "text.insert", serde_json::json!({"text":"dummy body"}), Some("dummy-fixture-bearer"))
+        .await.unwrap();
+    assert_eq!(result["fixture"], "ok");
+    let requests = server.join().unwrap();
+    assert_eq!(requests.len(), 2, "the 503 was retried once");
+    let keys: Vec<Option<String>> = requests.iter()
+        .map(|request| observed_header(request, "idempotency-key"))
+        .collect();
+    let first = keys[0].clone().expect("every attempt carries the idempotency-key header");
+    assert!(!first.is_empty(), "the key is generated per logical call: {first}");
+    assert_eq!(keys[1], Some(first), "the same logical call reuses one key across retries");
+}
+
+#[tokio::test]
+async fn invoke_retries_429_once_honoring_retry_after() {
+    let listener = fixture_listener("INVOKE_429_RETRY");
+    let mut manifest = test_manifest("retry-429-invoke-fixture");
+    manifest.discovery.base_url = format!("http://{}", listener.local_addr().unwrap());
+    manifest.invoke.timeout_secs = 5;
+    let server = serve_scripted(listener, vec![
+        ("429 Too Many Requests", "retry-after: 1\r\n".to_string(), "slow down"),
+        ("200 OK", String::new(), r#"{"fixture":"ok"}"#),
+    ], 5000);
+    let started = std::time::Instant::now();
+    let result = super::invoke::invoke_extension(&manifest, "text.insert", serde_json::json!({"text":"dummy body"}), Some("dummy-fixture-bearer"))
+        .await.unwrap();
+    assert_eq!(result["fixture"], "ok");
+    let requests = server.join().unwrap();
+    assert_eq!(requests.len(), 2, "the 429 joined the existing single-retry budget");
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed >= std::time::Duration::from_millis(900),
+        "the wait honored the Retry-After header: {elapsed:?}"
+    );
+    assert!(
+        elapsed < std::time::Duration::from_secs(4),
+        "the honored wait stays bounded: {elapsed:?}"
+    );
+}
+
+#[tokio::test]
+async fn invoke_retry_after_over_ceiling_waits_no_longer_than_ceiling() {
+    let listener = fixture_listener("INVOKE_429_CEILING");
+    let mut manifest = test_manifest("ceiling-invoke-fixture");
+    manifest.discovery.base_url = format!("http://{}", listener.local_addr().unwrap());
+    manifest.invoke.timeout_secs = 5;
+    // A hostile Retry-After of 30 s must be clamped to the named ceiling.
+    let server = serve_scripted(listener, vec![
+        ("429 Too Many Requests", "retry-after: 30\r\n".to_string(), "slow down"),
+        ("200 OK", String::new(), r#"{"fixture":"ok"}"#),
+    ], 8000);
+    let started = std::time::Instant::now();
+    let result = super::invoke::invoke_extension(&manifest, "text.insert", serde_json::json!({"text":"dummy body"}), Some("dummy-fixture-bearer"))
+        .await.unwrap();
+    assert_eq!(result["fixture"], "ok");
+    let requests = server.join().unwrap();
+    assert_eq!(requests.len(), 2, "the clamped 429 was still retried once");
+    let elapsed = started.elapsed();
+    // The named ceiling: INVOKE_RETRY_MAX_WAIT = Duration::from_millis(2000)
+    // (pinned by the plan; the implementation declares the same constant).
+    let ceiling = std::time::Duration::from_millis(2000);
+    assert!(
+        elapsed >= ceiling - std::time::Duration::from_millis(100),
+        "the honored wait fills up to the ceiling: {elapsed:?} vs {ceiling:?}"
+    );
+    assert!(
+        elapsed < ceiling + std::time::Duration::from_millis(1100),
+        "a Retry-After over the ceiling never stalls the invoke: {elapsed:?} vs {ceiling:?}"
+    );
+}
 // END_BLOCK_LOOPBACK_URL_TESTS
 
 // START_BLOCK_STREAM_SECURITY_TESTS
@@ -2565,9 +2714,18 @@ async fn stream_budget_patch_refuses_over_rate() {
     let events_before = f.live_events.lock().unwrap().len();
 
     // A new-seq patch on the current base revision hits the exhausted
-    // bucket: 429 with the rate budget named.
+    // bucket: 429 with the rate budget named and the honest Retry-After
+    // header (integer seconds, bounded by the refill period).
     let response = budget_patch(&f, "session-budget-rate", 2, 2, "delta-2").await;
     assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+    let retry_after = response.headers().get("retry-after")
+        .expect("the budget 429 sends Retry-After")
+        .to_str().unwrap();
+    let retry_seconds: u64 = retry_after.parse().expect("integer seconds: {retry_after}");
+    assert!(
+        retry_seconds > 0 && retry_seconds <= super::live_server::STREAM_BUDGET_REFILL_SECS,
+        "Retry-After is bounded by STREAM_BUDGET_REFILL_SECS: {retry_seconds}"
+    );
     let body = budget_body(response).await;
     let error = body["error"].as_str().unwrap().to_string();
     assert!(error.contains("STREAM_BUDGET_RATE_PER_MINUTE"), "error must name the rate budget: {error}");

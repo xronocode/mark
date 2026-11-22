@@ -21,6 +21,12 @@
 //   STATUS:  Phase-B5b — handlers emit to frontend via live_bridge.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-22 C-EXT-EDIT-PROOF T-006: both directions of Retry-After
+//     are honest — the budget rate refusal's 429 (unchanged status, body
+//     and zero-mutation semantics) now carries a retry-after header of
+//     integer seconds derived from the bucket refill and bounded by
+//     STREAM_BUDGET_REFILL_SECS (handle_doc_patch returns a Response so
+//     the one header attaches; every other response is byte-identical).
 //   - 2026-11-22 C-EXT-EDIT-PROOF T-004: /ext/apply answers by fact —
 //     ExtApplyRequest gains the optional request_id idempotency key; the
 //     dedup short-circuit consults-and-registers atomically (bounded
@@ -1313,19 +1319,19 @@ pub(super) async fn handle_doc_patch<R: tauri::Runtime>(
     State(state): State<Arc<LiveServerState<R>>>,
     headers: HeaderMap,
     Json(req): Json<DocPatchRequest>,
-) -> impl IntoResponse {
+) -> axum::response::Response {
     let identity = match validate_bearer(&headers, &state).await {
         Ok(identity) => identity,
-        Err((status, error)) => return (status, Json(serde_json::json!({"error":error}))),
+        Err((status, error)) => return (status, Json(serde_json::json!({"error":error}))).into_response(),
     };
     let registry = state.app_handle.state::<super::registry::ExtRegistry>();
     let _stream_gate = registry.stream_gate.lock().await;
     let mut session_guard = state.session.lock().await;
     if !identity.is_enabled(&registry) {
-        return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({"error":"extension is not enabled"})));
+        return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({"error":"extension is not enabled"}))).into_response();
     }
     if !identity.owns(session_guard.as_ref()) {
-        return (StatusCode::CONFLICT, Json(serde_json::json!({"error":"session changed during authentication"})));
+        return (StatusCode::CONFLICT, Json(serde_json::json!({"error":"session changed during authentication"}))).into_response();
     }
 
     let session = match session_guard.as_mut() {
@@ -1338,13 +1344,15 @@ pub(super) async fn handle_doc_patch<R: tauri::Runtime>(
             return (
                 StatusCode::GONE,
                 Json(serde_json::json!({"error": "session is closed"})),
-            );
+            )
+                .into_response();
         }
         None => {
             return (
                 StatusCode::NOT_FOUND,
                 Json(serde_json::json!({"error": "no active session"})),
-            );
+            )
+                .into_response();
         }
     };
 
@@ -1358,7 +1366,8 @@ pub(super) async fn handle_doc_patch<R: tauri::Runtime>(
         return (
             StatusCode::CONFLICT,
             Json(serde_json::json!({"error": "session_id mismatch"})),
-        );
+        )
+            .into_response();
     }
 
     // Duplicate detection: if seq <= last_seq, this is a retransmit.
@@ -1382,7 +1391,8 @@ pub(super) async fn handle_doc_patch<R: tauri::Runtime>(
                 duplicate: true,
                 needs_resync: false,
             })),
-        );
+        )
+            .into_response();
     }
 
     // Base revision check: if base_revision != current revision,
@@ -1403,7 +1413,8 @@ pub(super) async fn handle_doc_patch<R: tauri::Runtime>(
                 duplicate: false,
                 needs_resync: true,
             })),
-        );
+        )
+            .into_response();
     }
 
     // Apply the patch: append or replace the section content (live-doc
@@ -1436,7 +1447,8 @@ pub(super) async fn handle_doc_patch<R: tauri::Runtime>(
                     STREAM_BUDGET_TOTAL_BYTES,
                 )
             })),
-        );
+        )
+            .into_response();
     }
     // C-STREAM-BUDGET: rate bucket — decided here, after the duplicate
     // and needs_resync short-circuits (both stay free: a needs_resync
@@ -1460,17 +1472,28 @@ pub(super) async fn handle_doc_patch<R: tauri::Runtime>(
                 STREAM_BUDGET_REFILL_SECS,
                 req.seq,
             );
-            return (
-                StatusCode::TOO_MANY_REQUESTS,
-                Json(serde_json::json!({
-                    "error": format!(
-                        "stream budget exceeded: patch rate exhausted (STREAM_BUDGET_RATE_PER_MINUTE {}, STREAM_BUDGET_RATE_BURST {}, refill {}s)",
-                        STREAM_BUDGET_RATE_PER_MINUTE,
-                        STREAM_BUDGET_RATE_BURST,
-                        STREAM_BUDGET_REFILL_SECS,
-                    )
-                })),
+            // C-EXT-EDIT-PROOF: the honest waiting signal in Mark's own
+            // refusal direction — integer seconds derived from the bucket
+            // refill, bounded by STREAM_BUDGET_REFILL_SECS. Budgets,
+            // statuses, bodies and zero-mutation semantics are unchanged.
+            let retry_after = (((1.0 - session.budget.credit).max(0.0)
+                * STREAM_BUDGET_REFILL_SECS as f64)
+                .ceil() as u64)
+                .clamp(1, STREAM_BUDGET_REFILL_SECS);
+            let body = serde_json::json!({
+                "error": format!(
+                    "stream budget exceeded: patch rate exhausted (STREAM_BUDGET_RATE_PER_MINUTE {}, STREAM_BUDGET_RATE_BURST {}, refill {}s)",
+                    STREAM_BUDGET_RATE_PER_MINUTE,
+                    STREAM_BUDGET_RATE_BURST,
+                    STREAM_BUDGET_REFILL_SECS,
+                )
+            });
+            let mut response = (StatusCode::TOO_MANY_REQUESTS, Json(body)).into_response();
+            response.headers_mut().insert(
+                axum::http::HeaderName::from_static("retry-after"),
+                axum::http::HeaderValue::from_str(&retry_after.to_string()).unwrap(),
             );
+            return response;
         }
     };
     if let Err(e) = apply_section_patch(
@@ -1493,7 +1516,8 @@ pub(super) async fn handle_doc_patch<R: tauri::Runtime>(
         return (
             StatusCode::BAD_REQUEST,
             Json(serde_json::json!({"error": e.to_string()})),
-        );
+        )
+            .into_response();
     }
     // C-STREAM-BUDGET: accepted — write back the debited/refilled
     // bucket and advance the cumulative total by the same gross bytes,
@@ -1544,6 +1568,7 @@ pub(super) async fn handle_doc_patch<R: tauri::Runtime>(
             needs_resync: false,
         })),
     )
+        .into_response()
 }
 
 /// POST /stream/close — end the live session.
