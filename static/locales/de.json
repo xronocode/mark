@@ -1610,6 +1610,8 @@
       "reopenClosedTab": "Geschlossenen Tab wieder öffnen",
       "missingNotice": "{name} ist nicht mehr verfügbar",
       "someMissingNotice": "{count} der geschlossenen Dateien sind nicht mehr verfügbar",
+      "unverifiedNotice": "{name} konnte nicht geprüft werden — der Eintrag bleibt in der Liste",
+      "someUnverifiedNotice": "{count} geschlossene Dateien konnten nicht geprüft werden — die Einträge bleiben in der Liste",
       "buttonLabel": "Geschlossene Tabs wieder öffnen ({count})"
     },
     "time": {

@@ -224,7 +224,10 @@ const serializedStoreMutation = (run) => {
 // transient failure can never erase positions forever.
 const STAT_NOT_FOUND_HINT = 'MT_FS_NOT_FOUND'
 
-const statFileExists = async (pathname) => {
+// C-SESSION-DURABILITY: exported for the recently-closed verdict reuse —
+// the tri-state discipline stays single-owned here (pageWidthStore.js
+// keeps its own duplicate helper, recorded as residue). Body untouched.
+export const statFileExists = async (pathname) => {
   const stat = typeof window !== 'undefined' &&
     window.fileUtils &&
     typeof window.fileUtils.stat === 'function'

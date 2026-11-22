@@ -1609,6 +1609,8 @@
       "reopenClosedTab": "重新打开已关闭标签页",
       "missingNotice": "{name} 已不可用",
       "someMissingNotice": "{count} 个已关闭的文件已不可用",
+      "unverifiedNotice": "无法检查 {name} — 它仍保留在列表中",
+      "someUnverifiedNotice": "{count} 个已关闭的文件无法检查 — 它们仍保留在列表中",
       "buttonLabel": "重新打开已关闭标签页（{count}）"
     },
     "time": {

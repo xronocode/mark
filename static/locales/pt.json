@@ -1611,6 +1611,8 @@
       "reopenClosedTab": "Reabrir aba fechada",
       "missingNotice": "{name} não está mais disponível",
       "someMissingNotice": "{count} dos arquivos fechados não estão mais disponíveis",
+      "unverifiedNotice": "Não foi possível verificar {name} — a entrada continua na lista",
+      "someUnverifiedNotice": "Não foi possível verificar {count} arquivos fechados — as entradas continuam na lista",
       "buttonLabel": "Reabrir abas fechadas ({count})"
     },
     "time": {

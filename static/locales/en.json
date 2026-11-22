@@ -1626,6 +1626,8 @@
       "reopenClosedTab": "Reopen closed tab",
       "missingNotice": "{name} is no longer available",
       "someMissingNotice": "{count} of the closed files are no longer available",
+      "unverifiedNotice": "{name} could not be checked — it stays in the list",
+      "someUnverifiedNotice": "{count} closed files could not be checked — they stay in the list",
       "buttonLabel": "Reopen closed tabs ({count})"
     },
     "time": {

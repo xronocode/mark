@@ -1609,6 +1609,8 @@
       "reopenClosedTab": "닫은 탭 다시 열기",
       "missingNotice": "{name}은(는) 더 이상 사용할 수 없어요",
       "someMissingNotice": "닫은 파일 중 {count}개를 더 이상 사용할 수 없어요",
+      "unverifiedNotice": "{name}을(를) 확인할 수 없어요 — 목록에 그대로 남아 있어요",
+      "someUnverifiedNotice": "닫은 파일 중 {count}개를 확인할 수 없어요 — 목록에 그대로 남아 있어요",
       "buttonLabel": "닫은 탭 다시 열기 ({count}개)"
     },
     "time": {

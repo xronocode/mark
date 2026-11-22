@@ -1609,6 +1609,8 @@
       "reopenClosedTab": "閉じたタブを再び開く",
       "missingNotice": "{name} は利用できなくなりました",
       "someMissingNotice": "閉じたファイルのうち {count} 件が利用できなくなりました",
+      "unverifiedNotice": "{name} を確認できませんでした — リストに残ります",
+      "someUnverifiedNotice": "閉じたファイルのうち {count} 件を確認できませんでした — リストに残ります",
       "buttonLabel": "閉じたタブを再び開く（{count}）"
     },
     "time": {
