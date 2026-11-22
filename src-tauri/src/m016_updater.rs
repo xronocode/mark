@@ -126,4 +126,36 @@ mod tests {
         assert_eq!(json["available"], false);
         assert!(json.get("installMethod").is_none());
     }
+
+    // ── C-UPDATER-NET-BOUNDS T-004: the check-deadline pins ─────────
+    // (the rollback_fetch_deadline_lives_in_the_client_builder
+    // precedent, m068_rollback.rs — the deadline provably lives in the
+    // plugin's own builder, never in a timer race around the call.)
+
+    #[test]
+    fn updater_check_deadline_lives_in_the_builder() {
+        let src = include_str!("m016_updater.rs");
+        let start = src
+            .find("pub async fn mt_updater_check")
+            .expect("the desktop check command exists");
+        let rest = &src[start..];
+        let end = rest
+            .find("#[cfg(feature = \"app-store\")]")
+            .expect("the app-store stub section follows the desktop command");
+        let body = &rest[..end];
+        for needle in [
+            "updater_builder()",
+            ".timeout(std::time::Duration::from_secs(UPDATER_CHECK_TIMEOUT_SECS))",
+        ] {
+            assert!(
+                body.contains(needle),
+                "the check deadline provably lives in the plugin builder: {needle}"
+            );
+        }
+    }
+
+    #[test]
+    fn updater_check_deadline_constant_is_pinned() {
+        assert_eq!(UPDATER_CHECK_TIMEOUT_SECS, 15);
+    }
 }

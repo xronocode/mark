@@ -2640,6 +2640,171 @@ mod rollback_core {
         assert!(live.join(MANIFEST_FILE).exists());
         assert!(!staging.exists());
     }
+
+    // ── C-UPDATER-NET-BOUNDS T-004: idempotent prepare through the
+    // ── root-explicit seam (the load_valid_live_at convention). The
+    // ── seam itself lands in T-005 — until then this pair is the
+    // ── honest compile red, recorded in the task log.
+
+    /// A minimal bundle fixture (the rollback_swap synthetic pattern):
+    /// Contents/MacOS/mark carrying `content`.
+    #[cfg(target_os = "macos")]
+    fn make_bundle(parent: &Path, name: &str, content: &str) -> PathBuf {
+        let b = parent.join(name);
+        fs::create_dir_all(b.join("Contents").join("MacOS")).unwrap();
+        fs::write(b.join("Contents").join("MacOS").join("mark"), content).unwrap();
+        b
+    }
+
+    /// Plant a staging set of the RUNNING version (previous_version ==
+    /// current_version()) into `staging` — the mirrored inverse of the
+    /// live set: this is exactly what an update attempt holds before
+    /// boot promotion.
+    fn stage_running_version_set(staging: &Path, macos_binary: &str) -> RollbackManifest {
+        fs::create_dir_all(staging).unwrap();
+        let version = current_version();
+        fs::write(staging.join(prefs_snapshot_name()), b"{\"theme\":\"paper\"}").unwrap();
+        let prefs_sha = sha256_file(&staging.join(prefs_snapshot_name())).unwrap();
+        let mut m = RollbackManifest {
+            schema: MANIFEST_SCHEMA,
+            previous_version: version.clone(),
+            platform: platform_key(),
+            staged_bundle: None,
+            prefs_snapshot: prefs_snapshot_name(),
+            bundle_sha256: None,
+            prefs_sha256: Some(prefs_sha),
+            created_at: 1,
+        };
+        #[cfg(target_os = "macos")]
+        {
+            let name = staged_bundle_name(&version);
+            let bin = staging.join(&name).join("Contents").join("MacOS").join("mark");
+            fs::create_dir_all(bin.parent().unwrap()).unwrap();
+            fs::write(&bin, macos_binary).unwrap();
+            m.staged_bundle = Some(name);
+            m.bundle_sha256 = Some(sha256_file(&bin).unwrap());
+        }
+        let _ = macos_binary;
+        write_manifest(staging, &m);
+        m
+    }
+
+    /// The bundle fixture handed to prepare_inner_at on macOS (the
+    /// re-copy source); None elsewhere.
+    fn injected_bundle(parent: &Path) -> Option<PathBuf> {
+        #[cfg(target_os = "macos")]
+        {
+            let _ = parent;
+            Some(make_bundle(parent, "Running.app", "running-binary"))
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            let _ = parent;
+            None
+        }
+    }
+
+    #[test]
+    fn prepare_reuse_skips_recopy_when_staging_reverifies() {
+        let root = TempDir::new().unwrap();
+        let staging = root.path().join(STAGING_DIR);
+        let m = stage_running_version_set(&staging, "running-binary");
+        // The mirrored-criterion proof: validate() rejects this exact
+        // set under the live-set rules (rollback-to-self) — so the
+        // reuse path demonstrably cannot route through
+        // load_valid_live/load_valid_live_at.
+        let err = m
+            .validate(&staging, current_version().as_str())
+            .unwrap_err();
+        assert!(err.contains("equals the running version"), "got {err}");
+
+        // A canary inside the staging set: a wipe-and-recopy deletes
+        // it, the reuse path keeps it.
+        fs::write(staging.join("canary.txt"), "untouched").unwrap();
+
+        let bundle_parent = TempDir::new().unwrap();
+        let bundle = injected_bundle(bundle_parent.path());
+        prepare_inner_at(root.path(), bundle.as_deref()).expect("reuse must succeed");
+
+        assert_eq!(
+            fs::read_to_string(staging.join("canary.txt")).unwrap(),
+            "untouched",
+            "an intact running-version staging set must be reused, not wiped"
+        );
+        // The staged manifest survives verbatim — a recopy would have
+        // stamped now_secs() over the planted created_at.
+        let raw = fs::read_to_string(staging.join(MANIFEST_FILE)).unwrap();
+        let after: RollbackManifest = serde_json::from_str(&raw).unwrap();
+        assert_eq!(after.created_at, 1, "the staged manifest was not rewritten");
+        assert_eq!(after.previous_version, current_version());
+        // Reuse never touches the live set.
+        assert!(
+            !root.path().join(LIVE_DIR).exists(),
+            "the reuse path must not produce a live/ set"
+        );
+    }
+
+    #[test]
+    fn prepare_recopies_on_torn_or_foreign_staging() {
+        // Three planted broken states; each must wipe and re-prepare
+        // exactly as today (canary gone, set rebuilt, manifest
+        // rewritten, Ok).
+        for case in ["torn_manifest", "foreign_version", "digest_mismatch"] {
+            let root = TempDir::new().unwrap();
+            let staging = root.path().join(STAGING_DIR);
+            fs::create_dir_all(&staging).unwrap();
+            fs::write(staging.join("canary.txt"), "doomed").unwrap();
+            match case {
+                // Unparseable manifest: the reuse criterion cannot read
+                // it — wipe and re-prepare.
+                "torn_manifest" => {
+                    fs::write(staging.join(MANIFEST_FILE), b"{ not json").unwrap();
+                }
+                // A foreign previous_version: the staged set does not
+                // belong to the running version — wipe and re-prepare.
+                "foreign_version" => {
+                    let mut m = stage_running_version_set(&staging, "running-binary");
+                    m.previous_version = "1.0.0".to_string();
+                    write_manifest(&staging, &m);
+                }
+                // Recorded digests disagree with the staged bytes —
+                // wipe and re-prepare.
+                "digest_mismatch" => {
+                    let mut m = stage_running_version_set(&staging, "running-binary");
+                    m.prefs_sha256 = Some("f".repeat(64));
+                    #[cfg(target_os = "macos")]
+                    {
+                        m.bundle_sha256 = Some("e".repeat(64));
+                    }
+                    write_manifest(&staging, &m);
+                }
+                _ => unreachable!(),
+            }
+
+            let bundle_parent = TempDir::new().unwrap();
+            let bundle = injected_bundle(bundle_parent.path());
+            prepare_inner_at(root.path(), bundle.as_deref())
+                .unwrap_or_else(|e| panic!("{case}: re-prepare must succeed: {e}"));
+
+            assert!(
+                !staging.join("canary.txt").exists(),
+                "{case}: a broken staging set is wiped before the recopy"
+            );
+            let raw = fs::read_to_string(staging.join(MANIFEST_FILE)).unwrap();
+            let after: RollbackManifest = serde_json::from_str(&raw).unwrap();
+            assert_eq!(after.previous_version, current_version(), "{case}");
+            assert_eq!(after.platform, platform_key(), "{case}");
+            assert_eq!(after.schema, MANIFEST_SCHEMA, "{case}");
+            // The rebuilt prefs digest re-verifies against the staged
+            // bytes (the prepare digest-readback discipline).
+            let prefs_sha = sha256_file(&staging.join(prefs_snapshot_name())).unwrap();
+            assert_eq!(after.prefs_sha256.as_deref(), Some(prefs_sha.as_str()), "{case}");
+            assert!(
+                !root.path().join(LIVE_DIR).exists(),
+                "{case}: the recopy path must not produce a live/ set"
+            );
+        }
+    }
 }
 
 #[cfg(all(test, not(feature = "app-store")))]
