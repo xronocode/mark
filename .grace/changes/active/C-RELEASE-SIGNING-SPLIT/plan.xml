@@ -1,0 +1,300 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-RELEASE-SIGNING-SPLIT>
+    <IntentSummary>Split release.yml's privileged build job into an unsigned build job and a separate sign job so dependency install scripts and Vite build plugins never execute in a job holding signing material: the build job loses environment: release-signing, id-token: write, attestations: write and every secrets.* reference, runs npm ci --ignore-scripts with exactly one allowlisted install-script entry (esbuild, the only hasInstallScript package this change allows, matching the authorize-tag :182 precedent), stages UNSIGNED bundles with a SHA-256 receipt per staged artifact reusing the existing .sha256 sidecar machinery, and keeps every gate that works on an unsigned bundle (repeated stable-lane admission, materials, preflight, typecheck, warnings allowlist, attributions, SBOM, unsigned-capable smoke per the release-tauri.yml ad-hoc precedent); a new sign job, needs-chained on build, is the only holder of the release-signing environment, the APPLE_*/TAURI_SIGNING_* secrets and the OIDC attestation authority — it downloads the build's artifacts, recomputes every digest against the recorded receipts and refuses the run on any mismatch before any signing step, then performs the Apple import/codesign/notarize/staple flow by re-signing the staged unsigned bundle and repackaging (never rebuilding — the tauri-action build+sign coupling is named, the sign-staged-bundle approach is the plan, rebuild-in-sign is out of bounds), signs the Tauri updater archives for both platform sets, recomposes the latest-platform.json fragments byte-identically with signatures produced here, and hosts the moved SLSA provenance and keyless cosign steps so they attest the signed release set; prepare-publication's needs list gains sign explicitly so no downstream stage bypasses signing. The trust model is needs-chain plus digest comparison against the build's receipts — no node_modules handoff, no cross-run trust. tests/renderer/release-governance.test.js lands the boundary-guard pins FIRST as T-001 freezing today's boundary (secrets only in the build job's two tauri steps, id-token: write in no job except build, manual-build and docs-security secret-free and environment-free), then each workflow-editing task consciously updates the affected pins with red controls; the prerelease lane and the C-RELEASE-BETA-CHECKS-GATE boundary stay byte-compatible in behavior; docs/release-process.md gains a signing section describing the unsigned-build/digest-verified-sign flow and the allowlist; release.yml's own GRACE markup, the M-046 SummaryDelta and V-M-046 are synchronized.</IntentSummary>
+    <Spec>C-RELEASE-SIGNING-SPLIT</Spec>
+    <ReferenceState>Authored 2026-11-22 against the read-only repo tree at the repository root; every line anchor below was re-verified directly against this tree on 2026-11-22 (the spec's anchors match). .github/workflows/release.yml VERSION 3.8.0: jobs authorize-tag (:102), manual-build (:275), build (:383), prepare-publication (:962), publish (:1123), publish-cask (:1248). The build job (:383) declares environment: release-signing (:387) with permissions contents: read, checks: read, id-token: write, attestations: write (:389-392) and a two-platform matrix (macos-15 aarch64-apple-darwin, windows-latest x86_64-pc-windows-msvc :393-407); it runs plain npm ci with lifecycle scripts (:472-473); the tauri-action steps carry TAURI_SIGNING_PRIVATE_KEY(_PASSWORD) (:517-518 macOS, :532-533 Windows) and, on macOS, APPLE_CERTIFICATE(_PASSWORD), APPLE_SIGNING_IDENTITY, APPLE_ID/PASSWORD/TEAM_ID (:519-524); "verify signed and notarized app" runs codesign --verify --deep --strict and spctl --assess (:537-547); the macOS smoke mounts the DMG and launches (:550-576); updater feed fragments consume *.sig files with graceful skip when signatures are missing (:667-697 macOS, :814-844 Windows); staging writes .sha256 sidecars — shasum -a 256 on macOS (:721) and a node-crypto hash on Windows (:865-868); SLSA build provenance (:879-889), cosign keyless sign-blob (:900-933) and the artifact uploads mark-${platform}-release (:935-960) are build-job steps consuming the job-wide id-token; prepare-publication needs [authorize-tag, build] (:964) and consumes the build artifacts plus needs.build.outputs.tag; publish keeps [authorize-tag, build, prepare-publication] (:1125) with the release environment and contents: write (:1134-1137); authorize-tag already runs npm ci --ignore-scripts (:181-182) and carries the C-RELEASE-BETA-CHECKS-GATE prerelease collection/gate steps; manual-build holds only contents: read with no environment and plain npm ci (:289-307). The in-repo precedents are unmodified reference topology: release-tauri.yml:136-149 runs an isolated unsigned tauri build via a config override that disables updater signing, followed by ad-hoc signing and smoke; manual-build is a full unsigned in-workflow builder. esbuild 0.28.2 carries hasInstallScript: true at package-lock.json:6481; tauri.conf.json:9 beforeBuildCommand is npm run build (package.json:11, vite build), executing the Vite plugins (vite.config.js:66-67) inside the secrets-bearing job. tests/renderer/release-governance.test.js VERSION 2.3.0 reads the checked-in release.yml as text with the split-slice style (authorizeTagJob splits on /^  manual-build:/m at :79), holds the assertGitleaksChecksumContract (:92) and assertPrereleaseChecksGate (:111) comment-blind red-control validators inside START_BLOCK_RELEASE_GOVERNANCE_TESTS (:69-:605), and its CHANGE_SUMMARY (:34-45) dates the beta-gate entry 2026-11-21. docs/release-process.md section 4a sits at :90-107 (the beta-gate sentence landed there) and section 5 begins at :109. .grace/graph/features.xml M-046 (:2376) accumulates dated SummaryDelta rows (the beta-gate delta at :2395); .grace/verification/features.xml V-M-046 (:2425) holds Command and Scenario entries with the highest scenario number 38 (scenario-38, C-RELEASE-BETA-CHECKS-GATE, 2026-11-21, :2559) — the next sequential Scenario is scenario-39. Deviation note: the worktree commit hash is not recorded here (no shell access from the drafting session); every file, line and byte-level anchor above was verified directly against this tree. Per the drafting instruction this plan carries no self-referential grace-lint MustPassCommand; the orchestrator runs the current/target/final lifecycle gates itself. The dependencies-review finding is quoted by key (release-build-scripts-share-signing-job, confirmed) because the JSONs number findings differently (F-001 in the review JSON, F-005 in the dependencies JSON, F-011 in the security JSON) — keys are quoted, never bare ids. Writing this draft approves neither implementation, apply/archive, commit/push, lane admission, release, signing, tag nor publication.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-046</Value>
+        <Value>.github/workflows/release.yml</Value>
+        <Value>tests/renderer/release-governance.test.js</Value>
+        <Value>.github/workflows/release-tauri.yml</Value>
+        <Value>docs/release-process.md</Value>
+        <Value>.grace/graph/features.xml</Value>
+        <Value>.grace/verification/features.xml</Value>
+      </MustExist>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text># VERSION: 3.8.0</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>environment: release-signing</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>id-token: write</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>attestations: write</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>- name: npm ci
+        run: npm ci</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>codesign --verify --deep --strict --verbose=4</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>subject-path: '/tmp/release/Mark_*.dmg'</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>cosign sign-blob --yes --bundle</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>needs: [authorize-tag, build]</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>run: npm ci --ignore-scripts</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>shasum -a 256</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>if: needs.authorize-tag.outputs.prerelease != 'true'</Text>
+      </MustContain>
+      <MustContain>
+        <File>package-lock.json</File>
+        <Text>"hasInstallScript": true</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-046</Module>
+      </MustVerify>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text># VERSION: 3.9.0</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>C-RELEASE-SIGNING-SPLIT</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>environment: release-signing</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>id-token: write</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>attestations: write</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>run: npm ci --ignore-scripts</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>node node_modules/esbuild/install.js</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>single approved install-script exception (esbuild)</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>verify staged artifact digests</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>BLOCK_SIGN_DIGEST_MISMATCH</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>signs digest-verified staged artifacts without rebuilding</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>needs: [authorize-tag, build, sign]</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>if: needs.authorize-tag.outputs.prerelease != 'true'</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>// VERSION: 2.4.0</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>C-RELEASE-SIGNING-SPLIT</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>assertReleaseSigningSplit</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>BLOCK_SIGN_DIGEST_MISMATCH</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/release-process.md</File>
+        <Text>### 4b. Signing boundary (C-RELEASE-SIGNING-SPLIT)</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/release-process.md</File>
+        <Text>npm ci --ignore-scripts</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/features.xml</File>
+        <Text>C-RELEASE-SIGNING-SPLIT</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/features.xml</File>
+        <Text>C-RELEASE-SIGNING-SPLIT</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/features.xml</File>
+        <Text>scenario-39</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>needs: [authorize-tag, build]</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/release-governance.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="60">actionlint .github/workflows/release.yml</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="60">npm run release:governance</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-046 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-046 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>.github/workflows/release.yml</File>
+      <File>tests/renderer/release-governance.test.js</File>
+      <File>docs/release-process.md</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/features.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Boundary-guard source pins FIRST: freeze today's pre-split signing boundary in the governance test before any release.yml edit</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Extend tests/renderer/release-governance.test.js inside START_BLOCK_RELEASE_GOVERNANCE_TESTS, keeping every existing test unweakened (the beta-checks-gate pins, the gitleaks checksum contract and the stable-lane pins all keep passing). Derive a buildJob slice and a sign-job-absence observation in the file's existing split style (buildJob splits the checked-in release.yml on the /^  prepare-publication:/m boundary so it ends at the next top-level job key), plus a manualBuildJob slice splitting on /^  build:/m, and pin TODAY's pre-split boundary exactly: the build job source declares environment: release-signing, carries id-token: write and attestations: write in its permissions block, and the only secrets.* references inside it are the two tauri-action steps' env blocks — TAURI_SIGNING_PRIVATE_KEY(_PASSWORD) on both platforms (:517-518, :532-533) and the seven APPLE_* entries on macOS only (:519-524); no step outside those two tauri steps in the build job references secrets.*; id-token: write and attestations: write exist in no other job of release.yml (authorize-tag keeps contents: read + checks: read, manual-build only contents: read, prepare-publication only contents: read, publish contents: write without id-token, publish-cask unchanged); manual-build and the governance workflow's docs-security job carry no secrets.* reference and no environment: declaration; the build job's install step is plain run: npm ci (:472-473) while authorize-tag keeps run: npm ci --ignore-scripts (:182); package-lock.json still marks esbuild hasInstallScript: true. A comment in the test names the finding by key (release-build-scripts-share-signing-job) and records that these pins freeze the pre-split boundary so the split's widening is a conscious, reviewed update to a green pin rather than unnoticed drift.</Criterion>
+          <Criterion>Add the comment-blind red-control validator assertReleaseSigningSplit(source, opts) mirroring the file's assertGitleaksChecksumContract/assertPrereleaseChecksGate precedent: it mutates only the in-memory source string (no network, no tracked-file edits) and rejects, each with a distinct expectation — a secrets.* reference appearing in any non-tauri build step; an id-token: write or attestations: write permission outside the designated holder job; a secrets.* reference or environment: declaration in manual-build or docs-security; and an npm ci in the designated holder job that lacks --ignore-scripts once the split lands (parameterized so the same validator drives both today's boundary via T-001's pins and the post-split boundary via the later tasks' updated pins, without weakening any control between states).</Criterion>
+          <Criterion>Synchronize the test file's local markup only: VERSION 2.3.0 to 2.4.0 and a dated 2026-11-22 CHANGE_SUMMARY entry for C-RELEASE-SIGNING-SPLIT describing the boundary-guard freeze. No edit to .github/workflows/release.yml or any other file — this task exists so the guard is green on the untouched workflow before T-002 touches it. Documentation comments are not mixed with secrets, pins or job-condition changes here because there are none: this task edits only the test file.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/release-governance.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Build-job hardening: ignore-scripts install with the single esbuild allowlist entry, environment/id-token/secrets removal, and unsigned bundle staging with per-artifact SHA-256 receipts</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Replace the build job's plain npm ci (:472-473) with run: npm ci --ignore-scripts followed by exactly one allowlisted script step that runs node node_modules/esbuild/install.js, preceded by a comment recording that esbuild is the single approved install-script exception (esbuild) — the only hasInstallScript package this change allows, matching the authorize-tag :182 precedent — and that any future entry requires a reviewed change; no second allowlist entry, no lifecycle scripts for platform packages, and the sign job must not run a plain npm ci either when it lands in T-003. The exact phrase "single approved install-script exception (esbuild)" appears in the workflow comment. Update T-001's guard pins for this install shape in the same task: the build-slice pin asserting plain npm ci becomes a pin asserting npm ci --ignore-scripts plus the single esbuild entry, with red controls rejecting a plain npm ci in the build slice, a second allowlisted script, or an allowlisted script for anything but esbuild.</Criterion>
+          <Criterion>Strip the signing material from the build job: delete the environment: release-signing declaration (:387) and the id-token: write and attestations: write permissions (:391-392) so build keeps exactly contents: read and checks: read; remove the env secrets from both tauri-action steps so they build UNSIGNED bundles (the macOS step loses the TAURI_SIGNING_PRIVATE_KEY(_PASSWORD) and seven APPLE_* entries, the Windows step its TAURI entries), rename them to state the unsigned output, and remove the now-unapplicable "verify signed and notarized app" step (:537-547) from build — Developer ID codesign/spctl verification moves to the sign job in T-003. Adapt the macOS smoke, bundle-size, warnings-allowlist, attributions and SBOM gates to the unsigned bundle without weakening any assertion that still applies (the smoke follows the release-tauri.yml ad-hoc precedent of :136-156 for launching an unsigned/ad-hoc-signed app; host-behavior proof stays with the live CI run, never asserted from local reasoning). Update T-001's guard pins in the same task: environment/id-token/secrets move from "in build" to "in no job yet except via the not-yet-existing sign job" — the conscious, reviewed widening the guard exists to force; red controls keep rejecting a secrets.*/id-token reappearance anywhere outside the single designated holder.</Criterion>
+          <Criterion>Make the staging steps record a SHA-256 receipt for EVERY staged artifact, extending the existing sidecar machinery — the macOS stage (:703-731) already writes the DMG sidecar via shasum -a 256 (:721) and gains receipts for the updater archive, SBOMs and notices; the Windows stage (:846-869) already hashes the installer (:865-868) and gains receipts for its remaining staged files — and the uploads (:935-960) carry the receipts so the sign job can verify the complete staged set. The artifact names mark-${{ matrix.platform.name }}-release stay unchanged. Synchronize release.yml's own GRACE markup in this task: VERSION 3.8.0 to 3.9.0, the MODULE_MAP build entry rewritten for the unsigned boundary (C-RELEASE-SIGNING-SPLIT named: unsigned build, receipts, no signing material), and a dated 2026-11-22 CHANGE_SUMMARY entry naming C-RELEASE-SIGNING-SPLIT and the build-job hardening; MODULE_CONTRACT and all other markup stay as-is. Keep every other byte of behavior: no new job in this task, no change to triggers, concurrency, the workflow-level permissions block, authorize-tag (the C-RELEASE-BETA-CHECKS-GATE steps and conditions byte-identical), manual-build, publish or publish-cask; the stable-lane-only skips (download admitted check evidence, repeat strict admission, materials, preflight — all if: needs.authorize-tag.outputs.prerelease != 'true') keep their exact conditions and bytes; the updater feed fragment steps keep their graceful skip when signatures are absent (their signed composition moves to the sign job in T-003).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="60">actionlint .github/workflows/release.yml</Command>
+          <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/release-governance.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>New sign job: digest verification, Apple re-sign/notarize/staple, Tauri updater signing, SLSA provenance and keyless cosign</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Add a new sign job to .github/workflows/release.yml (needs: [authorize-tag, build], strategy matrix mirroring the build job's platform set) that is the sole holder of the signing material: environment: release-signing, permissions id-token: write and attestations: write (the only job carrying either), and the APPLE_*/TAURI_* secrets exclusively in its steps. Its first step downloads the staged unsigned artifacts (actions/download-artifact) and verifies EVERY staged file against the build job's recorded SHA-256 receipts — a mismatch, a missing receipt or an unexpected extra staged file fails the job with the marker [ReleaseSign][sign][BLOCK_SIGN_DIGEST_MISMATCH] before any secret is touched; the verification compares recomputed shasum -a 256 digests against the receipts uploaded by T-002 and treats an absent receipt file itself as a failure. The macOS lane then re-signs the staged unsigned bundle without rebuilding: Apple certificate import from base64 secrets, codesign of the .app inside the staged .dmg bundle (or the staged .app artifact) with theDeveloper ID identity, notarization via notarytool with APPLE_ID/PASSWORD/TEAM_ID, staple, and the Developer ID codesign/spctl verification moved here from the old build step (:537-547); tauri-action's build+sign coupling is deliberately NOT used here — the plan signs the staged bundle, rebuild-in-sign is out of bounds. The Windows lane applies the Tauri updater signing to the staged unsigned installer/bundle with TAURI_SIGNING_PRIVATE_KEY(_PASSWORD). The SLSA provenance (actions/attest-build-provenance) and keyless cosign sign-blob steps (:879-933) move from the build job into the sign job unchanged in effect, now attesting the signed artifacts. The signed set uploads under the unchanged artifact names mark-${{ matrix.platform.name }}-release so downstream consumers see the same names as today. The build job keeps no environment, no id-token, no secrets — pins for this land in T-005.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="60">actionlint .github/workflows/release.yml</Command>
+          <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/release-governance.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>The sign job: digest verification before any signing, Apple re-sign/repackage/notarize/staple of the staged bundle, Tauri updater signing, SLSA and keyless cosign moved here</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Add a new sign job with a matrix mirroring build's two platforms (macos-15 aarch64-apple-darwin, windows-latest x86_64-pc-windows-msvc), needs: build, the same push-and-authorize-tag-success condition shape as build, environment: release-signing (the only job carrying it — the attachment point moves from build to sign; the environment's definition, reviewers and tag restriction are untouched), and permissions exactly contents: read, checks: read, id-token: write, attestations: write — the only place id-token: write and attestations: write exist in the workflow. APPLE_* and TAURI_SIGNING_PRIVATE_KEY(_PASSWORD) secrets are referenced only in this job. The MODULE_MAP gains a sign entry whose description contains the exact phrase "signs digest-verified staged artifacts without rebuilding".</Criterion>
+          <Criterion>The sign job's FIRST steps download the build job's mark-${{ matrix.platform.name }}-release artifacts and run a step named "verify staged artifact digests" that recomputes each staged artifact's SHA-256 against its recorded receipt and exits nonzero on any mismatch BEFORE any signing step, with ::error:: lines prefixed [ReleaseSign][sign][BLOCK_SIGN_DIGEST_MISMATCH] naming the offending artifact and both digests, and no status-swallowing construct around the comparison (no || true, no if-without-exit). The exact step name and marker are pinned in the governance test with red controls rejecting a sign job that signs before verifying, that swallows the mismatch exit, or that lacks the verification step. Only after verification pass do the signing steps run: on macOS, the tauri-action build+sign coupling is the named constraint — this change does NOT rebuild in the sign job (a silent fallback to rebuild-in-sign is out of bounds); the job re-signs the digest-verified staged .app (cert import from APPLE_CERTIFICATE, codesign with APPLE_SIGNING_IDENTITY), repackages the DMG and updater archive from the signed .app, submits to Apple notary and staples (notarytool/stapler via APPLE_ID/PASSWORD/TEAM_ID), then runs the Developer ID codesign/spctl verification moved from :537-547; on both platforms the Tauri updater signing (TAURI_SIGNING_PRIVATE_KEY(_PASSWORD)) produces the .sig files and the latest-platform.json fragments are recomposed here byte-identically to the current composition (:686-695, :833-842) with signatures produced in this job. Which repackage mechanism proves out is recorded with the first live CI run; if a detail defeats the sign-staged-bundle approach, the resolution is an owner-visible decision in the change bundle, not a rebuild.</Criterion>
+          <Criterion>Move the SLSA build-provenance steps (:879-889) and the cosign keyless sign-blob steps (:900-933) verbatim-in-shape from build into the sign job so provenance and keyless signatures attest the signed release set, and re-emit fresh .sha256 receipts for every artifact the sign job repackaged or signed (the asset inventory names prepare-publication consumes — Mark_${VER}_aarch64.dmg, .dmg.sha256, .dmg.bundle, .app.tar.gz, latest.json and the Windows set — stay exactly as today). Upload the signed set under the same mark-${{ matrix.platform.name }}-release artifact names for the downstream publication chain. Update the guard pins for the post-split shape in the same task: sign is the sole holder of environment/id-token/attestations/secrets with verify-then-sign ordering; build is free of all four. Keep every other byte of behavior: the prerelease lane needs no sign-side condition (prerelease and stable tags flow through the same split chain), authorize-tag stays byte-identical, no new secrets, no new workflow file, and the sign job declares no permission beyond the four above.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="60">actionlint .github/workflows/release.yml</Command>
+          <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/release-governance.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Needs-chain rewiring: publication strictly downstream of signing, with prerelease-lane equivalence pins</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Change prepare-publication's needs from [authorize-tag, build] (:964) to needs: [authorize-tag, build, sign]; publish keeps needs: [authorize-tag, build, prepare-publication] (:1125) unchanged so every publication path is transitively downstream of signing; publish keeps its release environment with contents: write (:1134-1137), its conditions, concurrency, tag triggers and the workflow-level permissions block byte-identical; prepare-publication continues reading needs.build.outputs.tag and consuming the same artifact names (its steps byte-identical except the needs line). The governance test pins the chain: sign needs build, prepare-publication's needs include sign, and no stage between build and prepare-publication bypasses sign — with a red control rejecting a needs list that drops sign.</Criterion>
+          <Criterion>Pin prerelease-lane equivalence explicitly: prerelease and stable tags flow through the same split build-to-sign chain; the prerelease-only skips (download admitted evidence, repeated strict admission, materials, preflight, identity artifact) keep their exact if: needs.authorize-tag.outputs.prerelease != 'true' conditions on build, where they live after the split; authorize-tag's C-RELEASE-BETA-CHECKS-GATE collection/gate steps and conditions are byte-identical (the existing prerelease pins in the test file keep passing unweakened); publish-cask's skip and publish's prerelease branch are untouched; the stable lane's admission, publication and cask semantics are unchanged. Red controls reject any new prerelease-condition divergence introduced by the split (a sign job conditioned on prerelease either way beyond the build-mirroring condition, or a moved skip condition).</Criterion>
+          <Criterion>Update the remaining guard pins to the final post-split boundary in the same task (the full widening now complete and reviewed): the whole-file assertions — id-token: write in exactly one job, environment: release-signing in exactly one job, APPLE_*/TAURI_* secrets in exactly one job, the old needs: [authorize-tag, build] string absent — plus the chain and equivalence pins of the two criteria above. No docs or graph/verification edits in this task: documentation is never mixed with secrets, pins or job-condition changes in the same task.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="60">actionlint .github/workflows/release.yml</Command>
+          <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/release-governance.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2</Command>
+          <Command budgetSeconds="60">npm run release:governance</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>Docs signing section, graph SummaryDelta, verification scenario-39, and the esbuild dry-run proof recorded as live-evidence acceptance</Title>
+        <DependsOn>T-005</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>docs/release-process.md gains one new subsection "### 4b. Signing boundary (C-RELEASE-SIGNING-SPLIT)" placed between section 4a (:90-107) and section 5 (:109), describing the owner-facing flow: the release build lane builds unsigned with npm ci --ignore-scripts and a single esbuild install-script exception, records SHA-256 receipts per staged artifact, and the release-signing sign job verifies every digest before any key material is used, then signs, notarizes and staples — the exact phrase "signs only digest-verified artifacts" appears in the section — with the allowlist's single-exception rule and the no-rebuild stance stated; no other section, heading or wording changes, and this task touches no workflow, secret, pin or job-condition content.</Criterion>
+          <Criterion>.grace/graph/features.xml: append one dated C-RELEASE-SIGNING-SPLIT SummaryDelta inside M-046 recording the new trust boundary — an unsigned build job (no environment, no OIDC, no secrets, ignore-scripts install with the single esbuild exception) hands over staged artifacts whose digests the sign job re-verifies against recorded receipts before the release-signing environment, APPLE_*/TAURI_* secrets and id-token/attestations OIDC (sole holders in the workflow) sign, repackage, notarize, staple and attest the signed set via SLSA provenance and keyless cosign, with prepare-publication needs-chained on sign so publication is never upstream of signing and the prerelease lane byte-compatible — without touching any other graph content.</Criterion>
+          <Criterion>.grace/verification/features.xml: inside V-M-046 append the next sequential Scenario entry (scenario-39, dated 2026-11-22) naming the structural pins (build job stripped of environment/id-token/attestations/secrets with the ignore-scripts-plus-single-esbuild-entry install shape, sign job sole holder with the BLOCK_SIGN_DIGEST_MISMATCH verify-then-sign step, the prepare-publication needs chain, prerelease equivalence), the red controls (secrets or id-token outside the sign job, a plain npm ci or second allowlist entry in the release lane, sign-before-verify or a swallowed mismatch exit, a needs list without sign), the focused commands — node node_modules/vitest/vitest.mjs run tests/renderer/release-governance.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2, actionlint on release.yml, npm run release:governance — and the live-evidence stance mirroring scenario-38: the dry-run proof that the esbuild allowlist keeps the release build working under --ignore-scripts elsewhere, the green split-lane prerelease run (receipts uploaded, digests verified, signed/notarized/stapled set with provenance and keyless signatures, publish exposing the prerelease without advancing releases/latest) and one forced digest-mismatch refusal recorded as refused are live CI evidence recorded in the change bundle after merge, not discharged by any unit test — without touching any other verification content.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="60">npm run release:governance</Command>
+          <Command budgetSeconds="60">actionlint .github/workflows/release.yml</Command>
+          <Command budgetSeconds="30">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/features.xml'); ET.parse('.grace/verification/features.xml')"</Command>
+        </Verification>
+      </T-006>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Environment>Baseline is the current repo tree with node_modules installed (node_modules/vitest/vitest.mjs exists). Tasks run strictly sequentially T-001 through T-006; T-001 MUST land and pass before any release.yml edit — the guard pins the pre-split boundary (secrets only in the build job's two tauri steps, id-token: write and attestations: write in no job except build, manual-build and docs-security secret-free and environment-free, plain npm ci in build versus the :182 ignore-scripts precedent) so every subsequent widening is a conscious, reviewed update to a green pin performed inside the same task that widens it. The focused runs must pass with no skips, retries or budget increases, and the combined diff must be limited to .github/workflows/release.yml (the split jobs, the ignore-scripts install with the single esbuild entry, the needs-chain rewiring, the version bump to 3.9.0, MODULE_MAP and CHANGE_SUMMARY markup), tests/renderer/release-governance.test.js (guard pins, assertReleaseSigningSplit red controls, post-split pins, markup 2.4.0), docs/release-process.md (the one new 4b signing section), .grace/graph/features.xml (one dated M-046 SummaryDelta) and .grace/verification/features.xml (one V-M-046 scenario-39 entry). Stable and prerelease behavior outside the split stays byte-compatible in behavior: authorize-tag including the C-RELEASE-BETA-CHECKS-GATE steps, the four build-side prerelease skips with their exact conditions, the publish prerelease branch and latest-advance assertion, the cask handoff, the manual-build and release-tauri.yml QA lanes (untouched reference topology), the release-signing environment's definition and reviewers, no new secrets, no npm dependency changes, no Rust or renderer product code, no new workflow file; the sign job declares exactly contents/checks/id-token/attestations and no step swallows the digest comparison's exit; no node_modules or build-cache artifact handoff between build and sign. The macOS hard lane is explicit: tauri-action couples build and sign today, so the sign job signs the digest-verified staged bundle (re-sign, repackage, notarize, staple) and never rebuilds — the mechanism that proves out is recorded with the first live CI run, and any blocker becomes an owner-visible decision in the change bundle, not a silent rebuild. The dry-run proof that the esbuild allowlist keeps the build green, the first beta/canary tag run through the split lane, and one forced digest-mismatch refusal are live CI evidence recorded in the change bundle after merge; no unit test claims to discharge them. The orchestrator runs the current/target/final grace-lint lifecycle gates itself (current before editing, target during implementation, final --run-commands before archive, current after); no command in this plan is self-referential to those gates. No apply/archive, commit/push, release, signing, version, tag or publication is authorized by this plan.</Environment>
+    </AcceptanceVerification>
+    <ExecutionMode>sequential</ExecutionMode>
+    <Lifecycle>Drafted 2026-11-22 from the approved spec for orchestrator admission; the orchestrator owns status transitions and the durable/final/archive/publication boundaries. Writing this draft approves neither implementation nor apply/archive, commit/push, lane admission, release, signing, tag or publication.</Lifecycle>
+  </C-RELEASE-SIGNING-SPLIT>
+</GraceChangePlan>
