@@ -65,6 +65,16 @@ const liveReloadGenerations = new Map()
 const renameEchoUntil = new Map()
 const RENAME_ECHO_WINDOW_MS = 2000
 
+// C-SESSION-WRITE-ATOMICITY: owner-confirmable proposal — the quit /
+// window-close prepareCommit races the session profile write against
+// this bound (consistent with the 400 ms autosave debounce and typical
+// prefs write latency). The save can delay the close at most this long,
+// never block it forever; on timeout the close proceeds honestly while
+// the single-transaction backend keeps the previous complete generation
+// on disk. An owner-amended value replaces the constant without
+// changing the mechanism.
+const SESSION_COMMIT_TIMEOUT_MS = 2000
+
 // C-EXTERNAL-RELOAD-OPERATION: one owner for reload admission, the 100ms
 // settle + disk read with liveness revalidation, and the replacement
 // commit (util/externalReload). Every external effect is injected; all
@@ -492,7 +502,7 @@ export const useEditorStore = defineStore('editor', {
           }),
           notify: (outcome, request) => this._notifyDocumentOperation(outcome, request),
           prepareCommit: request => ['quit','window-close'].includes(request.kind)
-            ? this._saveSessionState()
+            ? this._boundedSessionCommit()
             : Promise.all(request.owners.map(owner => {
               const tab=this.tabs.find(t=>t.id===owner.id && t.documentToken===owner.documentToken)
               return tab ? this._flushFilePositionForTab(tab) : null
@@ -600,6 +610,44 @@ export const useEditorStore = defineStore('editor', {
       }
     },
 
+    /**
+     * C-SESSION-WRITE-ATOMICITY: the quit/window-close session write is
+     * bounded — it races a fixed SESSION_COMMIT_TIMEOUT_MS timer so the
+     * save can delay the close at most two seconds, never forever.
+     * Write settled before the timer: the close proceeds with the
+     * write's outcome — a rejection is surfaced through the
+     * BLOCK_SESSION_WRITE_FAILED marker and still completes the close.
+     * Timer won: the BLOCK_SESSION_COMMIT_TIMEOUT marker is logged, the
+     * timer is cleaned up, and the close proceeds while the in-flight
+     * write settles in the background, where the single-transaction
+     * backend keeps the previous complete generation on disk. Always
+     * resolves (never rejects); the marker fields carry no query text,
+     * document contents or absolute user paths. Non-close kinds keep the
+     * exact current prepareCommit behavior (per-owner flushes, unbounded).
+     */
+    async _boundedSessionCommit() {
+      const write = this._saveSessionState().then(
+        () => true,
+        (error) => {
+          console.warn(`[Session][close][BLOCK_SESSION_WRITE_FAILED reason=${String(error?.message || error)}]`)
+          return false
+        }
+      )
+      let fireBound
+      const bound = new Promise((resolve) => {
+        fireBound = () => {
+          console.warn(`[Session][close][BLOCK_SESSION_COMMIT_TIMEOUT bound=${SESSION_COMMIT_TIMEOUT_MS}ms]`)
+          resolve(false)
+        }
+      })
+      const timer = setTimeout(fireBound, SESSION_COMMIT_TIMEOUT_MS)
+      try {
+        await Promise.race([write, bound])
+      } finally {
+        clearTimeout(timer)
+      }
+    },
+
     // END_BLOCK_QUIT_APP
 
     /**
@@ -652,10 +700,25 @@ export const useEditorStore = defineStore('editor', {
 
     async _saveSessionState() {
       const { tabs, active, folders, formats } = this._sessionSnapshot()
-      await ipcPrefs.set('lastSessionTabs', tabs).catch(() => {})
-      await ipcPrefs.set('lastSessionActive', active).catch(() => {})
-      await ipcPrefs.set('lastSessionFolders', folders).catch(() => {})
-      await ipcPrefs.set('lastSessionFormats', formats).catch(() => {})
+      // C-SESSION-WRITE-ATOMICITY: the four lastSession* keys go as ONE
+      // batched transaction (mt_prefs_set_many — one backend mutex
+      // acquisition, one atomic save, one broadcast), so the on-disk
+      // profile is always one complete generation, never a torn mix of
+      // two. The batch rejection is no longer swallowed: it is captured,
+      // the per-tab position flushes below still run afterwards in the
+      // current order regardless of the batch outcome (C-FILE-POSITION-
+      // MEMORY corner C-7), and the error is rethrown to the caller.
+      let batchError = null
+      try {
+        await ipcPrefs.setMany([
+          { key: 'lastSessionTabs', value: tabs },
+          { key: 'lastSessionActive', value: active },
+          { key: 'lastSessionFolders', value: folders },
+          { key: 'lastSessionFormats', value: formats }
+        ])
+      } catch (error) {
+        batchError = error
+      }
       // C-FILE-POSITION-MEMORY (corner C-7): the quit/save-session flush —
       // every open file's position lands on disk with the session paths, so
       // a relaunch restores both the tabs and the reading positions.
@@ -663,6 +726,7 @@ export const useEditorStore = defineStore('editor', {
         const tab = this.tabs.find((t) => t.pathname === p)
         return tab ? this._flushFilePositionForTab(tab) : null
       }))
+      if (batchError) throw batchError
     },
 
     START_SESSION_AUTOSAVE() {
@@ -673,7 +737,14 @@ export const useEditorStore = defineStore('editor', {
         () => JSON.stringify(this._sessionSnapshot()),
         () => {
           clearTimeout(timer)
-          timer = setTimeout(() => { void this._saveSessionState() }, 400)
+          timer = setTimeout(() => {
+            // C-SESSION-WRITE-ATOMICITY: an autosave failure surfaces
+            // through the console marker instead of an unhandled
+            // rejection or silence.
+            this._saveSessionState().catch((error) => {
+              console.warn(`[Session][prefs][BLOCK_SESSION_WRITE_FAILED reason=${String(error?.message || error)}]`)
+            })
+          }, 400)
         }
       )
     },
@@ -2530,7 +2601,7 @@ export const useEditorStore = defineStore('editor', {
 //   PURPOSE: Pinia state and actions for open documents, persistence, autosave, and filesystem reloads.
 //   SCOPE: Session-incarnation-owned live tabs; complete text/format checkpoints, composition-first format actions, immutable correlated saves and explicit-retry autosave guard; current export appearance/page snapshots and pre-Save Word options with independent native print geometry; transient Find visibility and selection-prefill ownership; tab lifecycle, content revisions, save outcomes, watcher coordination with dirty-buffer protection across async reloads, per-tab diff baselines (recording only — resolution lives in diffView.vue), the FIX-009 cold-start session offer, and the FORCE_CLOSE_TAB record hook into the recently-closed history.
 //   DEPENDS: ipc runtime, Pinia, editor/project/preferences/recentlyClosed stores, renderer bus, store/diffSnapshots, util/externalReload, documentFormat/documentSnapshot/documentOperations, util/exportPageDefaults, util/exportSettingsNavigation.
-//   LINKS: .grace/graph/features.xml M-032; .grace/verification/features.xml V-M-032; .grace/graph/runtime.xml M-011 and M-052; .grace/changes/active/C-EXTERNAL-RELOAD-OPERATION (one reload admission owner); .grace/changes/archive/C-FIX-016-AUTOSAVE-DISABLE-RACE; .grace/changes/archive/C-68 (opened baseline), .grace/changes/archive/C-43 (pre-reload ring); .grace/changes/archive/C-61 (PDF export + print); components/editorWithTabs/unsavedCloseDialog.js (FIX-011 CLOSE_UNSAVED_TAB confirm); .grace/changes/archive/C-FIX-009-SESSION-COLD-START and C-FIX-009-RECENTLY-CLOSED; util/pageWidthStore.js (C-PAGE-WIDTH-TABLES — RENAME/RENAME_IF_NEEDED also move the file's pageWidths entry); .grace/changes/archive/C-RENDER-REVIEW-FIXES (honest async notification actions).
+//   LINKS: .grace/graph/features.xml M-032; .grace/verification/features.xml V-M-032; .grace/graph/runtime.xml M-011 and M-052; .grace/changes/archive/C-EXTERNAL-RELOAD-OPERATION (one reload admission owner); .grace/changes/archive/C-FIX-016-AUTOSAVE-DISABLE-RACE; .grace/changes/archive/C-68 (opened baseline), .grace/changes/archive/C-43 (pre-reload ring); .grace/changes/archive/C-61 (PDF export + print); components/editorWithTabs/unsavedCloseDialog.js (FIX-011 CLOSE_UNSAVED_TAB confirm); .grace/changes/archive/C-FIX-009-SESSION-COLD-START and C-FIX-009-RECENTLY-CLOSED; util/pageWidthStore.js (C-PAGE-WIDTH-TABLES — RENAME/RENAME_IF_NEEDED also move the file's pageWidths entry); .grace/changes/archive/C-RENDER-REVIEW-FIXES (honest async notification actions).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -2542,6 +2613,7 @@ export const useEditorStore = defineStore('editor', {
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-21 C-DOCS-SYNC: C-EXTERNAL-RELOAD-OPERATION link repointed to .grace/changes/archive/ (the change archived); no behavior change.
 //   EXPORT: 2026-11-20 C-EXTERNAL-RELOAD-OPERATION: one util/externalReload owner for reload admission, settle/read and the replacement commit; APPLY_FILE_CHANGE and loadChange stay compatible thin adapters.
 //   CURRENT: 2026-11-12 C-EXPORT-SETTINGS-SECTION: snapshot current appearance/page defaults before export and preserve them across Word Save; print retains native-panel geometry.
 //   LAST_CHANGE: 2026-11-11 C-SEC-STREAM-TABS: route live updates through explicit session/tab store ownership and tombstone closed streams.

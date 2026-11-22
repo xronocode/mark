@@ -59,7 +59,7 @@ The 2.7.0 highlights — honest sessions, self-contained HTML export, the native
 
 Agents write plans, specs and reports as Markdown. In a terminal the tables collapse and the diagrams are code. Mark shows the finished page and lets you edit it in place.
 
-**Watch your agent write.** Keep the file open while an agent works on it. Every save on disk reloads the tab in place and keeps your scroll position, so you can follow a long pass and step in when it finishes. ⌘D shows exactly what the agent changed, against a snapshot Mark takes before every reload.
+**Watch your agent write.** Keep the file open while an agent works on it. Every save on disk reloads the tab in place and keeps your scroll position, so you can follow a long pass and step in when it finishes. A clean tab reloads silently; Mark asks before replacing unsaved edits. ⌘D shows exactly what the agent changed, against a snapshot Mark takes before every reload.
 
 <img src="docs/assets/readme/01-agents.png" alt="A plan document beside the folder tree, with Recent, Pinned and the page outline" width="800">
 
@@ -186,7 +186,7 @@ The Mark binary accepts these flags. On macOS, `open -a Mark --args --watch note
 | Flag | Effect |
 |:---|:---|
 | `--preview` | Open the file read-only; click to start editing |
-| `--watch` | Reload the file whenever it changes on disk, even if live reload is off in Settings |
+| `--watch` | Reload the file whenever it changes on disk, even if live reload is off in Settings; a clean tab reloads silently, and Mark asks before replacing unsaved edits |
 | `--diff` | Open the file in diff view |
 | `-d`, `--dir <DIR>` | Open a folder as the sidebar root |
 
@@ -196,7 +196,7 @@ Diff view (⌘D) compares the file with Mark's own snapshot from the last reload
 
 ## Build from source
 
-Requirements: Node.js 22, stable Rust, and on macOS the Xcode command line tools.
+Requirements: Node.js 22.22.2 or newer, stable Rust, and on macOS the Xcode command line tools.
 
 ```sh
 git clone https://github.com/xronocode/mark.git && cd mark
@@ -219,7 +219,7 @@ Mark began as a port of [MarkText](https://github.com/marktext/marktext) and wou
 
 ## Contributing
 
-Bug reports, ideas and pull requests are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md). To report a security problem, see [SECURITY.md](SECURITY.md).
+Bug reports, ideas and pull requests are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md). For a question about using Mark, ask in the [Q&A discussions](https://github.com/xronocode/mark/discussions/categories/q-a). To report a security problem, see [SECURITY.md](SECURITY.md).
 
 Documentation: [mark.xronocode.com](https://mark.xronocode.com). If Mark is useful to you, you can [support it on Ko-fi](https://ko-fi.com/xronocode).
 

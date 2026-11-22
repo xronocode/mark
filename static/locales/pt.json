@@ -83,7 +83,15 @@
       "error": "Erro de exportação",
       "imagesEmbeddedMessage": "{embedded} de {total} imagens incorporadas — imagens grandes ou ausentes mantêm os links originais",
       "errorExporting": "Erro ao exportar arquivo",
-      "settingsAction": "Configurações de exportação"
+      "settingsAction": "Configurações de exportação",
+      "embedConsentTitle": "Incorporar imagens de fora da pasta do documento?",
+      "embedConsentMessage": "{count} arquivo(s) de imagem fora do diretório do documento ({dir}) seriam lidos e incorporados: {paths}",
+      "embedConsentConfirm": "Incorporar estes arquivos",
+      "embedConsentCancel": "Ignorá-los",
+      "plantumlConsentTitle": "Diagramas PlantUML são renderizados pelo plantuml.com",
+      "plantumlConsentMessage": "{count} diagrama(s) PlantUML seriam enviados a {address} para renderização — o texto fonte do diagrama sai desta máquina",
+      "plantumlConsentConfirm": "Enviar ao plantuml.com",
+      "plantumlConsentCancel": "Manter o código localmente"
     },
     "resizeTable": "Redimensionar tabela",
     "vega-lite-start": "início vega-lite",
@@ -536,6 +544,7 @@
         "statusBar": "Mostrar a barra de status",
         "wordWrapInToc": "Quebrar títulos longos no índice",
         "titleBarStyleHelp": "Personalizada desenha a própria barra de título do Mark com abas. Requer reinicialização.",
+        "titleBarStyleWindowsHelp": "No Windows, «Personalizada» é a única escolha funcional: a janela do Mark é distribuída sem a moldura do sistema (sem decorações).",
         "hideScrollbar": "Ocultar barras de rolagem"
       },
       "text": {
@@ -1727,8 +1736,8 @@
     "search": {
       "searchInFolder": "Pesquisar na pasta...",
       "noResultsFound": "Nenhum resultado encontrado.",
-      "startTyping": "Escreva para pesquisar nos ficheiros Markdown das pastas abertas.",
-      "openFolder": "Abrir Pasta",
+      "searchFailed": "Search failed. Results may be missing.",
+      "resultsPartial": "Partial results — the search stopped early.",
       "showMoreMatches": "Mostrar mais correspondências",
       "noFolderOpen": "Nenhuma pasta aberta",
       "cancel": "Cancelar",

@@ -8,7 +8,7 @@
 #   SCOPE: generates /tmp/md-bench corpus, launches each editor in an
 #          isolated profile, sums RSS of app-owned processes, prints TSV.
 #   DEPENDS: bash, python3, ps, du, pgrep; editors at /Applications paths.
-#   LINKS: .grace/changes/active/C-14/ (benchmarks addendum); site/landing.
+#   LINKS: .grace/changes/archive/C-14/ (benchmarks addendum); site/landing.
 #   ROLE: SCRIPT
 #   MAP_MODE: LOCALS
 # END_MODULE_CONTRACT

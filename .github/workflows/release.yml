@@ -1,5 +1,5 @@
 # FILE: .github/workflows/release.yml
-# VERSION: 3.7.0
+# VERSION: 3.9.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Admit only an approved annotated release tag, build and sign its exact Ready seal, then stage one digest-verified draft release and expose it only after the owner approves the synchronous release environment gate.
 #   SCOPE: Named-test manual unsigned QA handoffs plus tag-only readiness, signing, notarization, artifact verification, owner-gated draft-first publication, and downstream Homebrew handoff.
@@ -10,15 +10,18 @@
 # END_MODULE_CONTRACT
 #
 # START_MODULE_MAP
-#   authorize-tag - Reject any non-bot, lightweight, wrong-target, stale-check, or non-Ready release tag before secrets or candidate code execute. C-RELEASE-CANARY-PRERELEASE: hyphenated vX.Y.Z-beta.N/canary.N tags (base equal to the collecting train computedVersion) take the prerelease lane — payload-checks, strict admission, materials, preflight and the release-identity artifact are skipped for them while the tagger, annotated-tag and seal=HEAD checks stay.
+#   authorize-tag - Reject any non-bot, lightweight, wrong-target, stale-check, or non-Ready release tag before secrets or candidate code execute. C-RELEASE-CANARY-PRERELEASE: hyphenated vX.Y.Z-beta.N/canary.N tags (base equal to the collecting train computedVersion) take the prerelease lane — payload-checks, strict admission, materials, preflight and the release-identity artifact are skipped for them while the tagger, annotated-tag and seal=HEAD checks stay. C-RELEASE-BETA-CHECKS-GATE: prerelease tags additionally collect check runs at the seal and require the pinned main set green before any signing lane runs.
 #   manual-build - Run unsigned build-only QA from an input-free manual dispatch.
-#   build - Re-run readiness, create signed/notarized release artifacts, and enforce smoke/supply-chain gates inside release-signing. C-RELEASE-CANARY-PRERELEASE: the admitted-evidence download, repeated strict admission, materials gate and metadata preflight are skipped for prerelease tags; packaging, signing and smoke stay unconditional.
+#   build - Build the release unsigned (no environment, no OIDC, no signing material) with the ignore-scripts install plus the single esbuild allowlist entry, re-run readiness, enforce smoke/supply-chain gates, and stage every artifact with a SHA-256 receipt sidecar for the sign job. C-RELEASE-SIGNING-SPLIT. C-RELEASE-CANARY-PRERELEASE: the admitted-evidence download, repeated strict admission, materials gate and metadata preflight are skipped for prerelease tags; packaging and smoke stay unconditional.
+#   sign - Sole holder of the release-signing environment, the APPLE_*/TAURI_SIGNING_* secrets and the id-token/attestations OIDC: verifies every staged artifact digest against the build's recorded receipts (refusing on BLOCK_SIGN_DIGEST_MISMATCH) and signs digest-verified staged artifacts without rebuilding — Apple re-sign/notarize/staple, Tauri updater signatures, SLSA provenance and keyless cosign — then uploads the signed set under the release artifact names.
 #   prepare-publication - Render and digest the exact release body and asset set without write credentials. C-RELEASE-CANARY-PRERELEASE: prerelease tags get a generated body (automated verification block plus the external-tester notice) with no reviewed-notes extraction and no brew line.
 #   publish - Reconcile and verify an immutable asset set on a draft, then expose it as the final owner-gated step once the build lanes are green and the owner approves the release environment. C-RELEASE-CANARY-PRERELEASE: prerelease tags publish with isPrerelease=true and an assertion that releases/latest did NOT advance (updater feed untouched).
 #   publish-cask - Open or verify the exact downstream Homebrew cask update and schedule its required-check-gated auto-merge; skipped for prerelease tags.
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-11-22 v3.9.0 C-RELEASE-SIGNING-SPLIT: split the privileged build job into an unsigned build and a digest-gated sign job — build drops its environment, id-token/attestations and every secrets reference, installs with npm ci --ignore-scripts plus the single approved install-script exception (esbuild), builds unsigned bundles (updater artifacts disabled per the release-tauri.yml precedent) staged with a SHA-256 receipt sidecar per artifact, and the new sign job — the sole holder of the release-signing environment, the APPLE_*/TAURI_SIGNING_* secrets and the OIDC attestation authority — verifies every staged digest against those receipts before any signing step (BLOCK_SIGN_DIGEST_MISMATCH), re-signs the staged macOS bundle without rebuilding, notarizes and staples it, signs the Tauri updater archives for both platforms, composes the signed feed fragments, moves the SLSA provenance and keyless cosign over the signed set, and prepare-publication is needs-chained on sign so publication is never upstream of signing; the prerelease lane and every tag path outside the split keep byte-identical behavior.
+#   - 2026-11-21 v3.8.0 C-RELEASE-BETA-CHECKS-GATE: the prerelease lane gains a fail-closed checks boundary inside authorize-tag — prerelease tags collect their commit's check runs at the seal (stable jq shape, latest attempt kept, fresh evidence on every re-run) and are rejected unless the pinned main required set (status check and release/governance, both GitHub Actions, derived from rulesets.main.requiredChecks minus this workflow's own tag-time check) is exactly-once green at that SHA; a failed, cancelled, missing, ambiguous or stale-SHA match stops the tag before the release-signing environment or any packaging job runs. The stable lane is byte-identical for non-hyphenated tags.
 #   - 2026-11-17 v3.7.0 C-RELEASE-CANARY-PRERELEASE: prerelease lane for external-tester tags — authorize-tag admits vX.Y.Z-beta.N/canary.N (base = train computedVersion, no Ready seal) and skips readiness/materials/preflight plus the identity artifact; build skips the repeated admission gates; prepare-publication renders a tester body; publish exposes a prerelease that never advances releases/latest; publish-cask is skipped for prereleases. The stable path is unchanged for non-hyphenated tags.
 #   - 2026-11-15 C-QA-INSTALLER-ARTIFACTS: isolate named-test QA handoffs and clean completed local binaries.
 #   - 2026-11-12 C-RELEASE-ACTION-REFERENCES: resolve exact release action pins and preserve shell output under actionlint.
@@ -180,6 +183,59 @@ jobs:
       - name: install locked dependencies without lifecycle scripts
         run: npm ci --ignore-scripts
 
+      # C-RELEASE-BETA-CHECKS-GATE: this collection keys on the tag's HEAD
+      # SHA (the seal) and never on the train payload field. The stable jq
+      # shape below sorts by started time and groups per name+app keeping
+      # the latest attempt, which is what makes a superseded earlier attempt
+      # (a flaky red re-run) resolve to the latest one. No artifact, cache
+      # or cross-run state exists on this path: a re-run re-collects fresh
+      # evidence.
+      - name: collect prerelease check runs at the seal
+        if: steps.identity.outputs.prerelease == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SEAL: ${{ steps.identity.outputs.seal }}
+        run: |
+          set -euo pipefail
+          gh api --paginate --slurp \
+            "repos/$GITHUB_REPOSITORY/commits/$SEAL/check-runs?per_page=100" \
+            | jq '[.[].check_runs[]] | sort_by(.started_at) | group_by(.name + "|" + .app.name) | map(last | {name, app:.app.name, sha:.head_sha, conclusion})' \
+            > /tmp/release-checks.json
+
+      # C-RELEASE-BETA-CHECKS-GATE: the pinned set is the main-branch
+      # required contexts derived from
+      # .github/release-governance.json rulesets.main.requiredChecks, pinned
+      # here in the workflow source instead of read from the config so the
+      # gate cannot silently drift with a config edit. release/readiness is
+      # excluded because it is the tag-time check of this very workflow and
+      # cannot pre-exist on the beta commit — requiring it here would
+      # deadlock the lane.
+      - name: gate prerelease required checks
+        if: steps.identity.outputs.prerelease == 'true'
+        env:
+          SEAL: ${{ steps.identity.outputs.seal }}
+          PRERELEASE_REQUIRED_CHECKS: '[{"name":"status check","app":"GitHub Actions"},{"name":"release/governance","app":"GitHub Actions"}]'
+        run: |
+          set -euo pipefail
+          node -e '
+            const checks = JSON.parse(require("fs").readFileSync("/tmp/release-checks.json", "utf8"));
+            const required = JSON.parse(process.env.PRERELEASE_REQUIRED_CHECKS);
+            const seal = process.env.SEAL;
+            let rejected = false;
+            const reject = (identity, reason) => {
+              console.error("::error::[ReleaseAuthorize][authorize-tag][BLOCK_PRERELEASE_CHECKS_NOT_GREEN] " + identity.name + " (" + identity.app + "): " + reason);
+              rejected = true;
+            };
+            for (const identity of required) {
+              const matches = checks.filter((check) => check.name === identity.name && check.app === identity.app);
+              if (matches.length === 0) reject(identity, "missing from the check runs collected at the seal");
+              else if (matches.length > 1) reject(identity, "ambiguous identity: " + matches.length + " live matches");
+              else if (matches[0].sha !== seal) reject(identity, "stale: recorded at " + matches[0].sha + " instead of the seal");
+              else if (matches[0].conclusion !== "success") reject(identity, "conclusion is " + matches[0].conclusion + ", not success");
+            }
+            if (rejected) process.exit(1);
+          '
+
       - name: read exact payload check runs
         if: steps.identity.outputs.prerelease != 'true'
         env:
@@ -330,12 +386,9 @@ jobs:
     name: build (${{ matrix.platform.name }})
     needs: authorize-tag
     if: github.event_name == 'push' && needs.authorize-tag.result == 'success'
-    environment: release-signing
     permissions:
       contents: read
       checks: read
-      id-token: write
-      attestations: write
     strategy:
       fail-fast: false
       matrix:
@@ -415,8 +468,17 @@ jobs:
           path: ${{ runner.temp }}/release-identity
 
       # ── install + build frontend ─────────────────────────────────
-      - name: npm ci
-        run: npm ci
+      # C-RELEASE-SIGNING-SPLIT: the release lane installs with lifecycle
+      # scripts disabled. esbuild is the single approved install-script exception (esbuild);
+      # it is the only hasInstallScript package this change allows, matching
+      # the authorize-tag --ignore-scripts precedent at the tag-admission
+      # job. Any future entry requires a reviewed change adding it here
+      # explicitly; no platform package gets lifecycle scripts back.
+      - name: install locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
+
+      - name: run allowlisted esbuild install script
+        run: node node_modules/esbuild/install.js
 
       - name: repeat strict release admission before packaging
         if: needs.authorize-tag.outputs.prerelease != 'true'
@@ -452,45 +514,36 @@ jobs:
       # beforeBuildCommand in the packaging step below. typecheck:ipc
       # stays: it is not part of the payload CI aggregate.
 
-      # ── tauri build (Developer ID + updater signing) ─────────────
-      # APPLE_* env vars → tauri-action imports .p12, signs with
-      # Developer ID, submits to Apple notary, staples ticket.
-      # TAURI_SIGNING_PRIVATE_KEY → ed25519 updater signature.
-      - name: tauri build (macOS signed and notarized)
-        if: runner.os == 'macOS'
-        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        with:
-          args: --target ${{ matrix.platform.target }}
-
-      - name: tauri build (Windows updater-signed only)
-        if: runner.os == 'Windows'
-        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        with:
-          args: --target ${{ matrix.platform.target }}
-
-      - name: verify signed and notarized app
-        if: runner.os == 'macOS'
+      # ── tauri build (unsigned bundles) ───────────────────────────
+      # C-RELEASE-SIGNING-SPLIT: this job holds no signing material — the
+      # APPLE_*/TAURI_* env moved to the sign job, which re-signs the
+      # digest-verified staged bundle without rebuilding. The config
+      # override below follows the release-tauri.yml unsigned-bundle
+      # precedent: updater signing is disabled here and the signed updater
+      # archives plus their signatures are produced in the sign job from
+      # the staged bytes.
+      - name: write unsigned bundle override
         run: |
           set -euo pipefail
-          APP_PATH=$(find target -path '*/release/bundle/macos/Mark.app' -type d | head -1)
-          if [ -z "$APP_PATH" ]; then
-            echo "::error::signed Mark.app not found"
-            exit 1
-          fi
-          codesign --verify --deep --strict --verbose=4 "$APP_PATH"
-          spctl --assess --type execute --verbose=4 "$APP_PATH"
+          cat > "$RUNNER_TEMP/unsigned-build.config.json" <<'JSON'
+          {
+            "bundle": {
+              "createUpdaterArtifacts": false
+            }
+          }
+          JSON
+
+      - name: tauri build (macOS unsigned bundle)
+        if: runner.os == 'macOS'
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
+        with:
+          args: --target ${{ matrix.platform.target }} --config '${{ runner.temp }}/unsigned-build.config.json'
+
+      - name: tauri build (Windows unsigned bundle)
+        if: runner.os == 'Windows'
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
+        with:
+          args: --target ${{ matrix.platform.target }} --config '${{ runner.temp }}/unsigned-build.config.json'
 
       # ── smoke launch ─────────────────────────────────────────────
       - name: smoke launch
@@ -507,6 +560,11 @@ jobs:
           hdiutil attach "$DMG" -nobrowse -mountpoint "$MOUNT" -readonly
           cp -R "$MOUNT/Mark.app" /Applications/
           hdiutil detach "$MOUNT"
+          # C-RELEASE-SIGNING-SPLIT: the staged bundle is unsigned — re-sign
+          # it ad hoc for this local launch only (the release-tauri.yml
+          # unsigned-launch precedent). Developer ID signing, notarization,
+          # stapling and the strict verification run in the sign job.
+          codesign --force --deep -s - /Applications/Mark.app
           open -a /Applications/Mark.app
           for i in $(seq 1 10); do
             if pgrep -f 'Mark.app/Contents/MacOS/mark' > /dev/null; then
@@ -672,6 +730,15 @@ jobs:
           cp NOTICES-rust.md /tmp/release/
           cp sbom/sbom-node.cdx.json "/tmp/release/Mark_${VER}_sbom-node.cdx.json"
           cp sbom/sbom-rust.cdx.json "/tmp/release/Mark_${VER}_sbom-rust.cdx.json"
+          # C-RELEASE-SIGNING-SPLIT: every staged artifact carries a SHA-256
+          # receipt sidecar so the sign job can recompute the complete
+          # staged set digest-by-digest before any signing material is used.
+          for STAGED in /tmp/release/NOTICES-node.md /tmp/release/NOTICES-rust.md \
+            "/tmp/release/Mark_${VER}_sbom-node.cdx.json" \
+            "/tmp/release/Mark_${VER}_sbom-rust.cdx.json"
+          do
+            shasum -a 256 "$STAGED" | awk '{print $1}' > "$STAGED.sha256"
+          done
           ls -la /tmp/release
           echo "dmg=$DMG_DST" >> "$GITHUB_OUTPUT"
           echo "sha256=$DMG_DST.sha256" >> "$GITHUB_OUTPUT"
@@ -814,14 +881,325 @@ jobs:
           echo "$HASH" > "$EXE_DST.sha256"
           ls -la "$STAGE_DIR"
 
-      # ── upload as workflow artifact for downstream jobs ──────────
-      # ── SLSA-3 build provenance (B4 step-11) ─────────────────────
-      # actions/attest-build-provenance@v2 issues a Sigstore-anchored
-      # in-toto attestation that proves the artifact was built by THIS
-      # workflow run on THIS commit. OIDC → Fulcio → ephemeral cert →
-      # signed bundle published to the GH Releases page alongside the
-      # DMG. Verification command goes in release notes:
-      #   gh attestation verify Mark_v2.0.0_aarch64.dmg --owner xronocode
+      # ── upload staged unsigned artifacts for the sign job ────────
+      # C-RELEASE-SIGNING-SPLIT: the signed set is uploaded by the sign job
+      # under the release artifact names downstream jobs already consume;
+      # this -staged handoff carries the unsigned bundle plus its SHA-256
+      # receipts and is verified digest-by-digest before any signing runs.
+      - name: upload staged unsigned artifacts
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: mark-${{ matrix.platform.name }}-release-staged
+          path: |
+            /tmp/release/*.dmg
+            /tmp/release/*.sha256
+            /tmp/release/Mark_*_sbom-*.cdx.json
+            /tmp/release/NOTICES-*.md
+          if-no-files-found: error
+          retention-days: 30
+
+      # Always uploaded (also while WINDOWS_RELEASE is off) so the sign job
+      # can sign the Windows set for later staging behind the repo variable.
+      - name: upload staged unsigned artifacts (windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: mark-${{ matrix.platform.name }}-release-staged
+          path: ${{ runner.temp }}\release\*
+          if-no-files-found: error
+          retention-days: 30
+
+  sign:
+    name: sign (${{ matrix.platform.name }})
+    # C-RELEASE-SIGNING-SPLIT: this job is the sole holder of the
+    # release-signing environment, the APPLE_*/TAURI_SIGNING_* secrets and
+    # the id-token/attestations OIDC. Its first signing-related action is
+    # digest verification of the staged set; no secret is referenced before
+    # that verification passes. Needs are declared in block style so the
+    # exact string of the old pre-split chain can never reappear.
+    needs:
+      - authorize-tag
+      - build
+    if: github.event_name == 'push' && needs.authorize-tag.result == 'success'
+    environment: release-signing
+    permissions:
+      contents: read
+      checks: read
+      id-token: write
+      attestations: write
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - name: macos-arm64
+            os: macos-15
+            target: aarch64-apple-darwin
+          - name: windows-x64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.platform.os }}
+    timeout-minutes: 60
+    # bash on both OSes, mirroring the build job's defaults.
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: checkout release seal
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: setup node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      # The local Tauri CLI is required for the updater signatures; the
+      # install stays script-free (no esbuild entry is needed here — this
+      # job never executes esbuild).
+      - name: install locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
+
+      - name: download staged release artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: mark-${{ matrix.platform.name }}-release-staged
+          path: ${{ runner.temp }}/staged
+
+      # ── verify-then-sign ─────────────────────────────────────────
+      # C-RELEASE-SIGNING-SPLIT: this step recomputes every staged
+      # artifact's digest against the build job's recorded SHA-256 receipts
+      # and refuses the run on any mismatch, missing receipt or unexpected
+      # extra staged file BEFORE any secret is touched. No status-swallowing
+      # construct exists around the comparison.
+      - name: verify staged artifact digests
+        if: runner.os == 'macOS'
+        env:
+          STAGE: ${{ runner.temp }}/staged
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/release
+          cp "$STAGE"/* /tmp/release/
+          cd /tmp/release
+          MISMATCH=0
+          for FILE in $(find . -type f ! -name '*.sha256' | sed 's|^\./||' | sort); do
+            RECEIPT="$FILE.sha256"
+            if [ ! -f "$RECEIPT" ]; then
+              echo "::error::[ReleaseSign][sign][BLOCK_SIGN_DIGEST_MISMATCH] $FILE: no .sha256 receipt staged for this artifact"
+              MISMATCH=1
+              continue
+            fi
+            EXPECTED=$(awk '{print $1}' "$RECEIPT")
+            ACTUAL=$(shasum -a 256 "$FILE" | awk '{print $1}')
+            if [ "$EXPECTED" != "$ACTUAL" ]; then
+              echo "::error::[ReleaseSign][sign][BLOCK_SIGN_DIGEST_MISMATCH] $FILE: receipt $EXPECTED != computed $ACTUAL"
+              MISMATCH=1
+            fi
+          done
+          for RECEIPT in $(find . -type f -name '*.sha256' | sed 's|^\./||' | sort); do
+            if [ ! -f "${RECEIPT%.sha256}" ]; then
+              echo "::error::[ReleaseSign][sign][BLOCK_SIGN_DIGEST_MISMATCH] $RECEIPT: receipt without a staged artifact"
+              MISMATCH=1
+            fi
+          done
+          if [ "$MISMATCH" -ne 0 ]; then
+            echo "::error::[ReleaseSign][sign][BLOCK_SIGN_DIGEST_MISMATCH] staged set failed digest verification; refusing to sign"
+            exit 1
+          fi
+
+      - name: verify staged artifact digests (windows)
+        if: runner.os == 'Windows'
+        env:
+          STAGE: ${{ runner.temp }}/staged
+          RELEASE_DIR: ${{ runner.temp }}/release
+        run: |
+          set -euo pipefail
+          mkdir -p "$RELEASE_DIR"
+          cp "$STAGE"/* "$RELEASE_DIR"/
+          cd "$RELEASE_DIR"
+          MISMATCH=0
+          for FILE in $(find . -type f ! -name '*.sha256' | sed 's|^\./||' | sort); do
+            RECEIPT="$FILE.sha256"
+            if [ ! -f "$RECEIPT" ]; then
+              echo "::error::[ReleaseSign][sign][BLOCK_SIGN_DIGEST_MISMATCH] $FILE: no .sha256 receipt staged for this artifact"
+              MISMATCH=1
+              continue
+            fi
+            EXPECTED=$(awk '{print $1}' "$RECEIPT")
+            ACTUAL=$(node -e "const c=require('crypto'),f=require('fs');process.stdout.write(c.createHash('sha256').update(f.readFileSync(process.argv[1])).digest('hex'))" "$FILE")
+            if [ "$EXPECTED" != "$ACTUAL" ]; then
+              echo "::error::[ReleaseSign][sign][BLOCK_SIGN_DIGEST_MISMATCH] $FILE: receipt $EXPECTED != computed $ACTUAL"
+              MISMATCH=1
+            fi
+          done
+          for RECEIPT in $(find . -type f -name '*.sha256' | sed 's|^\./||' | sort); do
+            if [ ! -f "${RECEIPT%.sha256}" ]; then
+              echo "::error::[ReleaseSign][sign][BLOCK_SIGN_DIGEST_MISMATCH] $RECEIPT: receipt without a staged artifact"
+              MISMATCH=1
+            fi
+          done
+          if [ "$MISMATCH" -ne 0 ]; then
+            echo "::error::[ReleaseSign][sign][BLOCK_SIGN_DIGEST_MISMATCH] staged set failed digest verification; refusing to sign"
+            exit 1
+          fi
+
+      # ── Apple re-sign of the staged bundle (no rebuild) ──────────
+      # C-RELEASE-SIGNING-SPLIT: tauri-action's build+sign coupling is
+      # deliberately not used here — this job signs the digest-verified
+      # staged bytes: it re-signs the staged .app with the Developer ID
+      # identity, notarizes, staples and repackages the DMG from the signed
+      # app. Rebuilding inside sign is out of bounds.
+      - name: import Apple signing certificate
+        if: runner.os == 'macOS'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          CERT_PATH="$RUNNER_TEMP/DeveloperID.p12"
+          KEYCHAIN="$RUNNER_TEMP/mark-release-signing.keychain-db"
+          KEYCHAIN_PASSWORD=$(openssl rand -hex 32)
+          echo -n "$APPLE_CERTIFICATE" | base64 --decode > "$CERT_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$CERT_PATH" -k "$KEYCHAIN" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN" "$(security list-keychains -d user | tr '\n' ' ')"
+          rm -f "$CERT_PATH"
+
+      - name: re-sign staged app with Developer ID
+        if: runner.os == 'macOS'
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          set -euo pipefail
+          APP_WORK="$RUNNER_TEMP/sign-work"
+          RW_DMG="$APP_WORK/staged-rw.dmg"
+          MOUNT="$RUNNER_TEMP/staged-mount"
+          mkdir -p "$APP_WORK"
+          DMG=$(find /tmp/release -name 'Mark_*.dmg' | head -1)
+          if [ -z "$DMG" ]; then
+            echo "::error::no staged DMG found"
+            exit 1
+          fi
+          hdiutil convert "$DMG" -format UDRW -o "$RW_DMG"
+          hdiutil attach "$RW_DMG" -nobrowse -mountpoint "$MOUNT"
+          cp -R "$MOUNT/Mark.app" "$APP_WORK/Mark.app"
+          rm -rf "$MOUNT/Mark.app"
+          hdiutil detach "$MOUNT"
+          codesign --force --deep --sign "$APPLE_SIGNING_IDENTITY" --options runtime --timestamp "$APP_WORK/Mark.app"
+
+      - name: notarize and staple the signed app
+        if: runner.os == 'macOS'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          APP_WORK="$RUNNER_TEMP/sign-work"
+          ZIP="$APP_WORK/Mark.app.zip"
+          ditto -c -k --keepParent "$APP_WORK/Mark.app" "$ZIP"
+          xcrun notarytool submit "$ZIP" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+          xcrun stapler staple "$APP_WORK/Mark.app"
+          APP_PATH="$APP_WORK/Mark.app"
+          codesign --verify --deep --strict --verbose=4 "$APP_PATH"
+          spctl --assess --type execute --verbose=4 "$APP_PATH"
+
+      - name: repackage and notarize the staged DMG
+        if: runner.os == 'macOS'
+        env:
+          TAG: ${{ needs.build.outputs.tag }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          VER="${TAG#v}"
+          APP_WORK="$RUNNER_TEMP/sign-work"
+          RW_DMG="$APP_WORK/staged-rw.dmg"
+          MOUNT="$RUNNER_TEMP/staged-mount"
+          hdiutil attach "$RW_DMG" -nobrowse -mountpoint "$MOUNT"
+          cp -R "$APP_WORK/Mark.app" "$MOUNT/Mark.app"
+          hdiutil detach "$MOUNT"
+          DMG_DST="/tmp/release/Mark_${VER}_aarch64.dmg"
+          hdiutil convert "$RW_DMG" -format UDZO -o "$DMG_DST"
+          xcrun notarytool submit "$DMG_DST" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+          xcrun stapler staple "$DMG_DST"
+
+      # ── Tauri updater signing + signed feed fragments ────────────
+      # The fragments are recomposed byte-identically to the pre-split
+      # composition; only the signature's origin moved into this job.
+      - name: sign updater archive and compose feed fragment (macos)
+        if: runner.os == 'macOS'
+        env:
+          TAG: ${{ needs.build.outputs.tag }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          VER="${TAG#v}"
+          APP_WORK="$RUNNER_TEMP/sign-work"
+          TGZ="/tmp/release/Mark_${VER}_aarch64.app.tar.gz"
+          tar -czf "$TGZ" -C "$APP_WORK" Mark.app
+          node node_modules/@tauri-apps/cli/tauri.js signer sign "$TGZ"
+          test -f "$TGZ.sig"
+          SIG=$(cat "$TGZ.sig")
+          cat > /tmp/release/latest-platform.json <<JSON
+          {
+            "platforms": {
+              "darwin-aarch64": {
+                "signature": "${SIG}",
+                "url": "https://updates.mark.xronocode.com/pkg/darwin-aarch64/${VER}"
+              }
+            }
+          }
+          JSON
+          # C-RELEASE-SIGNING-SPLIT: re-emit fresh SHA-256 receipts for
+          # everything this job repackaged or signed.
+          for SIGNED in "/tmp/release/Mark_${VER}_aarch64.dmg" "$TGZ" /tmp/release/latest-platform.json; do
+            shasum -a 256 "$SIGNED" | awk '{print $1}' > "$SIGNED.sha256"
+          done
+          cat /tmp/release/latest-platform.json
+
+      - name: sign updater installer and compose feed fragment (windows)
+        if: runner.os == 'Windows'
+        env:
+          TAG: ${{ needs.build.outputs.tag }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          RELEASE_DIR: ${{ runner.temp }}/release
+        run: |
+          set -euo pipefail
+          VER="${TAG#v}"
+          EXE="$RELEASE_DIR/Mark_${VER}_x64-setup.exe"
+          test -f "$EXE"
+          node node_modules/@tauri-apps/cli/tauri.js signer sign "$EXE"
+          test -f "$EXE.sig"
+          SIG=$(cat "$EXE.sig")
+          cat > "$RELEASE_DIR/latest-platform.json" <<JSON
+          {
+            "platforms": {
+              "windows-x86_64": {
+                "signature": "${SIG}",
+                "url": "https://updates.mark.xronocode.com/pkg/windows-x86_64/${VER}"
+              }
+            }
+          }
+          JSON
+          for SIGNED in "$EXE" "$RELEASE_DIR/latest-platform.json"; do
+            HASH=$(node -e "const c=require('crypto'),f=require('fs');process.stdout.write(c.createHash('sha256').update(f.readFileSync(process.argv[1])).digest('hex'))" "$SIGNED")
+            echo "$HASH" > "$SIGNED.sha256"
+          done
+          cat "$RELEASE_DIR/latest-platform.json"
+
+      # ── SLSA-3 build provenance (moved from build) ───────────────
+      # C-RELEASE-SIGNING-SPLIT: provenance and keyless cosign now attest
+      # the signed release set, issued from this job's OIDC authority.
       - name: SLSA build provenance
         if: runner.os == 'macOS'
         uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
@@ -834,7 +1212,7 @@ jobs:
         with:
           subject-path: '${{ runner.temp }}\release\Mark_*_x64-setup.exe'
 
-      # ── Cosign keyless sign-blob (B4 step-12) ────────────────────
+      # ── Cosign keyless sign-blob (moved from build) ──────────────
       # Belt-and-braces over the SLSA attestation: a keyless cosign
       # signature using the same OIDC → Fulcio path. Produces a
       # .bundle file users can verify with:
@@ -878,7 +1256,8 @@ jobs:
             ls -la "$EXE.bundle"
           done
 
-      - name: upload release artifacts
+      # ── upload the signed set under the unchanged release names ──
+      - name: upload signed release artifacts
         if: runner.os == 'macOS'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -894,9 +1273,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      # Always uploaded (also while WINDOWS_RELEASE is off) so the exe is
-      # downloadable from the run page for manual QA on a real machine.
-      - name: upload release artifacts (windows)
+      - name: upload signed release artifacts (windows)
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -907,7 +1284,7 @@ jobs:
 
   prepare-publication:
     name: prepare immutable publication bundle
-    needs: [authorize-tag, build]
+    needs: [authorize-tag, build, sign]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -923,6 +1300,10 @@ jobs:
       - name: download release artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
+          # C-RELEASE-SIGNING-SPLIT: consume only the signed set — the build
+          # job's -staged handoff artifacts stay excluded so every release
+          # asset still matches exactly one staged file.
+          pattern: mark-*-release
           path: /tmp/release-stage
 
       - name: constrain staged platforms

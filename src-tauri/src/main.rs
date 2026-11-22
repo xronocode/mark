@@ -12,7 +12,15 @@
 //                  tauri.v2.json fixture vs REGISTERED_COMMANDS parity
 //                  check. Drift → native dialog + exit(1).
 //              (4) tauri::Builder::default with M-013-B + m001_pdf
-//                  invoke handlers, then run.
+//                  invoke handlers, then run. Just before building, the
+//                  profile namespace binds through
+//                  mt_paths::resolve_boot_identifier at the unchanged
+//                  C-STABILIZE-PROFILE-ISOLATION point: debug builds default
+//                  to the dev namespace (com.xronocode.mark.dev), and
+//                  MARK_PROFILE_IDENTIFIER is a debug-only, non-default
+//                  escape hatch for migration testing whose invalid values
+//                  fail closed; release builds bind exactly the configured
+//                  Context identifier byte-identically.
 //   SCOPE:    process bootstrap orchestration only. NO command logic,
 //             NO file I/O, NO Tauri runtime work — that's after run().
 //             The Mark Text v1.x migration pipeline (legacy detection,
@@ -40,6 +48,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-21 C-DEV-ENV-ISOLATION: debug builds bind the dev namespace default through mt_paths::resolve_boot_identifier at the unchanged C-STABILIZE-PROFILE-ISOLATION boot point; MARK_PROFILE_IDENTIFIER is the debug-only, migration-testing escape hatch (fail-closed on invalid values); release binding stays byte-identical.
 //   - 2026-11-15 C-BOOKMARK-PERSISTENCE-DURABILITY: consume grant failures;
 //     install content-free main-window warning wakeups and readiness recovery.
 //   - 2026-11-11 C-SEC-STREAM-AUTH: manage shared live-session state and its event epoch so disable can close the owned stream before native credential I/O.
@@ -295,8 +304,23 @@ fn main() {
 
     // C-STABILIZE-PROFILE-ISOLATION: bind the exact generated configuration
     // before rollback, reconciliation, panic logging or preferences touch state.
+    // C-DEV-ENV-ISOLATION: the identifier is now selected through the pure
+    // resolve_boot_identifier at this same unchanged point. Debug builds
+    // (npm run tauri:dev and the dev-smoke cargo-built debug binary alike)
+    // default to the dev namespace so ordinary dev runs never touch the
+    // production profile; release builds compile to the identical configured
+    // binding. MARK_PROFILE_IDENTIFIER is the documented debug-only escape
+    // hatch (non-default, migration testing only) — a dev build using it can
+    // touch the production namespace, and an invalid value fails closed
+    // rather than silently binding either namespace.
     let context = tauri::generate_context!();
-    mt_paths::initialize_application_identifier(&context.config().identifier)
+    let boot_identifier = mt_paths::resolve_boot_identifier(
+        &context.config().identifier,
+        cfg!(debug_assertions),
+        std::env::var("MARK_PROFILE_IDENTIFIER").ok().as_deref(),
+    )
+    .expect("invalid application profile identifier");
+    mt_paths::initialize_application_identifier(&boot_identifier)
         .expect("invalid application profile identifier");
 
     // C-UPDATER-ROLLBACK T-004: --rollback runs strictly pre-boot, so a
@@ -891,6 +915,7 @@ fn main() {
             m001_pdf::mt_print_to_pdf,
             m005_prefs::mt_prefs_get,
             m005_prefs::mt_prefs_set,
+            m005_prefs::mt_prefs_set_many,
             m005_prefs::mt_prefs_get_all,
             m005_prefs::mt_workspace_set,
             m008_fonts::mt_fonts_list,

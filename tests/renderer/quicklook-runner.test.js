@@ -1,5 +1,5 @@
 // FILE: tests/renderer/quicklook-runner.test.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove QuickLook orchestration refuses missing, failed or unbounded evidence.
 //   SCOPE: Temporary source trees and injected host/process results; these doubles are not native boundary proof.
@@ -23,6 +23,7 @@
 //   SPEC_LIGHT_CONTRAST - the approved spec's expected unrounded light contrast table.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   - 2026-11-21 v1.2.0 C-QUICKLOOK-MDIT-BUMP: pin the packaged vendored releases — markdown-it 14.3.3 (closes audit F-001–F-004: linkify/smartquotes/multi-line definitions) and Highlight.js 11.12.0 (aging F-002).
 //   - 2026-11-12: bound fixture deletion retries for transient Windows ENOTEMPTY while deadline-failure receipt writes finish.
 //   - 2026-11-20: C-QUICKLOOK-SYNTAX-THEME 26-case protocol pins, theme failure controls and static light-palette coverage.
 //   LAST_CHANGE: 2026-11-20 C-QUICKLOOK-SYNTAX-THEME: 26-case protocol pins and deterministic light-palette coverage.
@@ -416,5 +417,21 @@ describe('QuickLook fail-closed orchestration', () => {
     try {
       await expect(runQuickLookChecks({ ...options, timeoutMs: 500 })).rejects.toMatchObject({ code: 'QL_DEADLINE' })
     } finally { spy.mockRestore() }
+  })
+})
+
+
+// C-QUICKLOOK-MDIT-BUMP: the packaged vendored dists are pinned to their
+// adopted releases so a future re-vendor cannot silently drift.
+describe('QuickLook packaged engine versions (C-QUICKLOOK-MDIT-BUMP)', () => {
+  it('pins the packaged markdown-it banner to the 14.3.3 release', async () => {
+    const mdit = await packagedResource('markdown-it.min.js')
+    expect(mdit.startsWith('/*! markdown-it 14.3.3 https://github.com/markdown-it/markdown-it @license MIT */')).toBe(true)
+  })
+
+  it('pins the packaged highlight.js header and versionString to the 11.12.0 release', async () => {
+    const hljs = await packagedResource('highlight.min.js')
+    expect(hljs.includes('Highlight.js v11.12.0')).toBe(true)
+    expect(hljs.includes('versionString="11.12.0"')).toBe(true)
   })
 })

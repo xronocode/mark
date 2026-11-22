@@ -1,0 +1,505 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-PREFS-TRUTH>
+    <IntentSummary>Make the preferences pipeline tell the truth end to end across eight coupled defects on the same prefs/theme surface (config-hygiene wave 11 plus frontend F-004/F-011, all re-verified live in the beta-gate-wave worktree on 2026-11-21): the single hydration load point (ASK_FOR_USER_PREFERENCE → SET_USER_PREFERENCE) validates every key documented in _shims/preferences/schema.json against its declared type/enum/range/pattern and repairs an invalid value in memory to its schema default exactly once per key with a loud BLOCK_PREFERENCES_REPAIR marker (F-007), so a hand-edited "autoSave": "false" string can no longer enable write-through autosave through the truthy store/editor.js gate and an autoSaveDelay of 0 can no longer reach setTimeout raw while the General tab renders 1-10 seconds; saving or resetting an empty customCss actually empties style#custom-styles instead of dying on a falsy early return (F-001/F-011); the theme application path stops letting its inline --editorAreaWidth mirror silently revert the saved global editorLineWidth on a tab without a per-document entry, extending the C-PAGE-WIDTH-TABLES precedence (document > theme > global) to the legacy global tier without forking a second writer (F-002); the documented schema stops contradicting the shipped autosave default (schema autoSave default false → true, pinned to preferenceDefaults() by a consistency test, with zero behaviour change — the C-AUTOSAVE-DEFAULT-ON factory true stays; F-005); tools/dev-smoke.sh dispatches explicitly so a typo'd argument prints usage and exits non-zero before touching the dev server, any process or any build, and --check exits non-zero on a dead server or a missing Mark process instead of always 0 (F-008/F-009); the two Mac App Store recipes converge on one build profile — mas-pkg.sh's hint names tauri.mas.conf.json and the stale mas.conf.json loses its divergent 2.5.0/2.5.1 metadata (keep-or-drop of bundleVersion is owner-review at PR time; F-006); the Appearance tab stops offering the no-op System frame choice on Windows where decorations:false and effectiveTitleBarStyle force custom (F-010); and a pinned per-document theme applies to the document surface only while sidebar, title bar and quick-settings keep following the global mode (frontend F-004), with unpin/tab-switch restoring today's contract.</IntentSummary>
+    <Spec>C-PREFS-TRUTH</Spec>
+    <ReferenceState>Authored 2026-11-21 against the read-only beta-gate-wave worktree (repo worktree rooted at the 2026-11-21 mainline inspection tree; the drafting session has no shell, so the worktree commit hash is not recorded here — every file, line and byte-level anchor below was verified directly against this tree). Hydration/defaults: src/renderer/src/_shims/preferences/schema.json declares autoSave type boolean default false at :2-6 (autoSaveDelay number 1000-10000 default 5000 at :7-13; codeFontSize declared number 12-28 at :243-249, yet the shipped consumer parses the legacy string form — see theme.js below; the schema carries enum/minimum/maximum/pattern for the other documented keys); src/renderer/src/store/preferences.js ships preferenceDefaults with autoSave: true under the C-AUTOSAVE-DEFAULT-ON comment at :210-213 and autoSaveDelay 5000 at :214, the hydration pass-through SET_USER_PREFERENCE copies any known key that is not null/undefined at :512-528, ASK_FOR_USER_PREFERENCE is the boot hydration that funnels through it, preferenceDefaults is the named factory reused by RESET_PREFERENCES_TO_DEFAULTS, and EXPERIMENTAL_SESSION_ONLY_KEYS marks the session-only surface. Theme/width: src/renderer/src/util/theme.js addThemeStyle mirrors every theme CSS variable INLINE on document.documentElement through the varRegex loop at :219-233 (:226 declares /--([\w-]+):\s*([^;}]+)/g), adds body.dark at :234-240, sets root.style.colorScheme at :257, calls syncNativeWindowTheme at :259 and ends with reapplyLastEditorWidth() at :280 — but util/pageWidth.js reapplyLastEditorWidth (:323-327, guarded at :324 by if (!lastAppliedEditorWidth || !doc || !doc.documentElement) return false) restores only widths recorded by the pipeline's single writer (START_BLOCK_WRITER :300-309, applyEditorWidth :311-321, clearAppliedEditorWidth :335+), so on a tab with no per-document entry the inline theme mirror outranks the legacy global tier that util/theme.js setEditorWidth writes into the editor-width style element at :290-296 (:293 `:root { --editorAreaWidth: calc(100px + ${value}); }`), fed by the editorLineWidth watcher in components/editorWithTabs/editor.vue at :2760-2763 and the Appearance text box at prefComponents/tabs/appearance/index.vue :74-81 (:77-80 input binding, :184 ref); addCommonStyle parses the legacy codeFontSize string form at :313-316 (Number.parseFloat, the C-49 contract); addCustomStyle returns early on a falsy customCss at :338-342 (:340 if (!customCss) return). Consumers: store/editor.js destructures autoSave at :1851 and gates write-through autosave at :1893 (if (changed &amp;&amp; !tab.isSaved &amp;&amp; pathname &amp;&amp; autoSave &amp;&amp; !tab.requiresExplicitSave)), destructures autoSaveDelay at :1905 and reaches setTimeout(..., autoSaveDelay) raw at :1913-1937 (:1937 }, autoSaveDelay)); pages/app.vue watches customCss at :266-268 and calls addCustomStyle; prefComponents/tabs/general/index.vue presents autoSaveDelaySeconds at :75-84 with the seconds↔ms conversion at :211-217; prefComponents/tabs/advanced/sheets/customCssSheet.vue save at :79-81 writes SET_SINGLE_PREFERENCE customCss. Windows/frame: src-tauri/tauri.windows.conf.json ships decorations:false at :16; components/titleBar/index.vue effectiveTitleBarStyle returns isWindows ? 'custom' : titleBarStyle.value at :712-714 with the C-15 rationale at :708-711, yet prefComponents/tabs/appearance/index.vue offers the title-bar select on all !isOsx platforms at :110-117 (v-if="!isOsx") with the static two-option array (custom/native) at :269-275. Pinned document theme: editor.vue imports addThemeStyle at :391 and applySurfaceTheme calls it at :2626-2627, applyDocumentSurfaceTheme applies entry.themeOverride through the same path at :2639-2646 (:2641-2642), applied at :2692 and restored through applySurfaceTheme(globalTheme) at :2636/:2746 — so a pin repaints the whole shell (root variables, body.dark, color-scheme, native window theme). Scripts/configs: tools/dev-smoke.sh takes MODE="${1:-full}" at :13 and dispatches with case --check / --quick / * at :124-137 (the * arm runs start_dev_server + build_binary + launch_mark), and health_report at :107-122 prints red lines but has no failing exit (server check :109-115, pgrep -f "target/debug/mark" :117-121); package.json carries dev:smoke/dev:check/dev:quick at :35-37 and test:e2e = playwright test --project chromium at :20. MAS: tools/build-mas.sh builds with --config src-tauri/tauri.mas.conf.json at :31 (that profile carries no version key — it inherits tauri.conf.json :4 version 2.8.2 — plus capabilities ["mas"], entitlements.mas.plist, signingIdentity, minimumSystemVersion 12.0) while tools/release/mas-pkg.sh :32-33 hints npx tauri build --config src-tauri/mas.conf.json --features app-store against the stale duplicate src-tauri/mas.conf.json carrying version 2.5.0 at :4 and bundle.macOS.bundleVersion 2.5.1 at :15; node tools/release-preflight.mjs is the existing version-source cross-check. Backend baseline: src-tauri/src/m005_prefs.rs declares "Schema validation is the renderer's job" at :64-66 and load_from only rejects non-object/corrupt JSON at :83-87 — the Rust store is NOT touched by this change (validation lands in the renderer), so the plan deliberately carries NO cargo test filter. Existing test anchors: tests/renderer/util/theme.test.js already covers addThemeStyle/setEditorWidth/addCustomStyle; tests/renderer/store/preference-defaults.test.js is the C-24 two-source default-pin pattern (store $state vs static/preference.json) that the schema consistency pin extends; the page-width suites are tests/renderer/util/page-width.test.js, tests/renderer/util/page-width-store.test.js, tests/renderer/store/editor-page-width.test.js and tests/renderer/components/editor-page-width-host.test.js; tests/e2e/page-width-panel.spec.ts holds the R-4 override test at :236 whose area gains the pinned-theme shell-scope expectations; tests/renderer/i18n/locale-keys.test.js gates the ten static/locales dictionaries (en, de, es, fr, ja, ko, pt, ru, zh-CN, zh-TW) and tests/renderer/pages/preference.test.js covers the Settings page. Graph/verification homes: M-005 at .grace/graph/runtime.xml :1268 with V-M-005 at .grace/verification/runtime.xml :1544; M-011 at runtime.xml :2629 with V-M-011 at verification/runtime.xml :3339; M-061 (page-width, claimed by C-PAGE-WIDTH-TABLES) at .grace/graph/performance.xml with V-M-061 at .grace/verification/performance.xml :1571 — the module ids follow the spec's provisional AffectedAreas assumption (M-005 prefs backend, M-011 editor shell/theme/prefs UI, M-061 width pipeline; dev-smoke and the MAS configs are script/config files without module cards). Per the drafting instruction this plan carries no SpecSha256 and no self-referential grace-lint MustPassCommand; the orchestrator runs the current/target/final grace-lint lifecycle gates itself. Writing this draft approves neither implementation, apply/archive, commit/push, nor any release, signing, tag or publication.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src/renderer/src/_shims/preferences/schema.json</Value>
+        <Value>src/renderer/src/store/preferences.js</Value>
+        <Value>src/renderer/src/util/theme.js</Value>
+        <Value>src/renderer/src/util/pageWidth.js</Value>
+        <Value>src/renderer/src/components/editorWithTabs/editor.vue</Value>
+        <Value>src/renderer/src/components/titleBar/index.vue</Value>
+        <Value>src/renderer/src/prefComponents/tabs/appearance/index.vue</Value>
+        <Value>src/renderer/src/prefComponents/tabs/advanced/sheets/customCssSheet.vue</Value>
+        <Value>tools/dev-smoke.sh</Value>
+        <Value>tools/build-mas.sh</Value>
+        <Value>tools/release/mas-pkg.sh</Value>
+        <Value>src-tauri/mas.conf.json</Value>
+        <Value>src-tauri/tauri.mas.conf.json</Value>
+        <Value>src-tauri/tauri.windows.conf.json</Value>
+        <Value>src-tauri/src/m005_prefs.rs</Value>
+        <Value>tests/renderer/util/theme.test.js</Value>
+        <Value>tests/renderer/store/preference-defaults.test.js</Value>
+        <Value>tests/renderer/util/page-width.test.js</Value>
+        <Value>tests/renderer/store/editor-page-width.test.js</Value>
+        <Value>tests/renderer/components/editor-page-width-host.test.js</Value>
+        <Value>tests/renderer/i18n/locale-keys.test.js</Value>
+        <Value>tests/e2e/page-width-panel.spec.ts</Value>
+      </MustExist>
+      <MustContain>
+        <File>src/renderer/src/_shims/preferences/schema.json</File>
+        <Text>  "autoSave": {
+    "description": "General--Save changes automatically shortly after you stop typing.",
+    "type": "boolean",
+    "default": false
+  },</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/preferences.js</File>
+        <Text>    // C-AUTOSAVE-DEFAULT-ON (external tester, 2026-11-16): write-through
+    // autosave is the expected default (Obsidian parity); an explicit
+    // persisted false keeps it off.
+    autoSave: true,</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/preferences.js</File>
+        <Text>        if (
+          preference[key] !== null &amp;&amp;
+          typeof preference[key] !== 'undefined' &amp;&amp;
+          typeof this[key] !== 'undefined'
+        ) {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/theme.js</File>
+        <Text>if (!customCss) return</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/theme.js</File>
+        <Text>const varRegex = /--([\w-]+):\s*([^;}]+)/g</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/theme.js</File>
+        <Text>result = `:root { --editorAreaWidth: calc(100px + ${value}); }`</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/pageWidth.js</File>
+        <Text>if (!lastAppliedEditorWidth || !doc || !doc.documentElement) return false</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/dev-smoke.sh</File>
+        <Text>MODE="${1:-full}"</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/dev-smoke.sh</File>
+        <Text>  *)
+    start_dev_server
+    build_binary
+    launch_mark
+    ;;
+esac</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/dev-smoke.sh</File>
+        <Text>if pgrep -f "target/debug/mark" &gt; /dev/null 2&gt;&amp;1; then</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/mas.conf.json</File>
+        <Text>"version": "2.5.0",</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/mas.conf.json</File>
+        <Text>"bundleVersion": "2.5.1"</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/release/mas-pkg.sh</File>
+        <Text>say "  npx tauri build --config src-tauri/mas.conf.json --features app-store"; exit 1; }</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/build-mas.sh</File>
+        <Text>--config src-tauri/tauri.mas.conf.json</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/tauri.windows.conf.json</File>
+        <Text>"decorations": false,</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/titleBar/index.vue</File>
+        <Text>return isWindows ? 'custom' : titleBarStyle.value</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/appearance/index.vue</File>
+        <Text>        &lt;cur-select
+          v-if="!isOsx"
+          :description="t('preferences.appearance.window.titleBarStyle')"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/appearance/index.vue</File>
+        <Text>const getTitleBarStyleOptions = () =&gt; [{
+  label: t('preferences.appearance.window.titleBarStyleCustom'),
+  value: 'custom'
+}, {
+  label: t('preferences.appearance.window.titleBarStyleNative'),
+  value: 'native'
+}]</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>const applySurfaceTheme = (themeId) =&gt; {
+  addThemeStyle(themeId)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>entry &amp;&amp; typeof entry.themeOverride === 'string' &amp;&amp; entry.themeOverride</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>watch(editorLineWidth, () =&gt; {
+  if (props.mirror) return
+  scheduleHostWidthFreshen()
+})</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>if (changed &amp;&amp; !tab.isSaved &amp;&amp; pathname &amp;&amp; autoSave &amp;&amp; !tab.requiresExplicitSave) {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>}, autoSaveDelay)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/pages/app.vue</File>
+        <Text>watch(customCss, (value) =&gt; {
+  addCustomStyle({ customCss: value })
+})</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/general/index.vue</File>
+        <Text>const autoSaveDelaySeconds = computed(() =&gt; {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>/// Loose-typed prefs store. Schema validation is the renderer's job</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-005</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-011</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-061</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src/renderer/src/store/preferences.js</File>
+        <Text>BLOCK_PREFERENCES_REPAIR</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/preferences.js</File>
+        <Text>_shims/preferences/schema.json</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/preferences.js</File>
+        <Text>C-PREFS-TRUTH</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/preferences-load-repair.test.js</File>
+        <Text>BLOCK_PREFERENCES_REPAIR</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/preferences-load-repair.test.js</File>
+        <Text>"autoSave": "false"</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/preferences-load-repair.test.js</File>
+        <Text>codeFontSize</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/preferences-load-repair.test.js</File>
+        <Text>autoSaveDelay</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/theme.js</File>
+        <Text>C-PREFS-TRUTH</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/theme.js</File>
+        <Text>custom-styles</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/util/theme.test.js</File>
+        <Text>C-PREFS-TRUTH</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/util/theme-width-precedence.test.js</File>
+        <Text>--editorAreaWidth</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/util/theme-width-precedence.test.js</File>
+        <Text>reapplyLastEditorWidth</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/_shims/preferences/schema.json</File>
+        <Text>  "autoSave": {
+    "description": "General--Save changes automatically shortly after you stop typing.",
+    "type": "boolean",
+    "default": true
+  },</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/preference-defaults.test.js</File>
+        <Text>_shims/preferences/schema.json</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/preference-defaults.test.js</File>
+        <Text>C-PREFS-TRUTH</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/dev-smoke.sh</File>
+        <Text>print_usage</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/dev-smoke.sh</File>
+        <Text>--full)</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/dev-smoke.sh</File>
+        <Text>C-PREFS-TRUTH</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/release/mas-pkg.sh</File>
+        <Text>--config src-tauri/tauri.mas.conf.json</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/release/mas-pkg.sh</File>
+        <Text>C-PREFS-TRUTH</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/appearance/index.vue</File>
+        <Text>isWindows</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/appearance/index.vue</File>
+        <Text>C-PREFS-TRUTH</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/prefComponents/appearance-title-bar.test.js</File>
+        <Text>isWindows</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/prefComponents/custom-css-sheet.test.js</File>
+        <Text>C-PREFS-TRUTH</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+        <Text>C-PREFS-TRUTH</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/page-width-panel.spec.ts</File>
+        <Text>C-PREFS-TRUTH</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/renderer/src/util/theme.js</File>
+        <Text>if (!customCss) return</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>tools/dev-smoke.sh</File>
+        <Text>  *)
+    start_dev_server
+    build_binary
+    launch_mark
+    ;;
+esac</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>tools/release/mas-pkg.sh</File>
+        <Text>src-tauri/mas.conf.json</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src-tauri/mas.conf.json</File>
+        <Text>"version": "2.5.0"</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src-tauri/mas.conf.json</File>
+        <Text>"bundleVersion": "2.5.1"</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/renderer/src/_shims/preferences/schema.json</File>
+        <Text>    "type": "boolean",
+    "default": false
+  },
+  "autoSaveDelay": {</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/renderer/src/prefComponents/tabs/appearance/index.vue</File>
+        <Text>const getTitleBarStyleOptions = () =&gt; [{
+  label: t('preferences.appearance.window.titleBarStyleCustom'),
+  value: 'custom'
+}, {
+  label: t('preferences.appearance.window.titleBarStyleNative'),
+  value: 'native'
+}]</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/store/preferences-load-repair.test.js tests/renderer/store/preference-defaults.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/util/theme.test.js tests/renderer/util/theme-width-precedence.test.js tests/renderer/util/page-width.test.js tests/renderer/store/editor-page-width.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/prefComponents/custom-css-sheet.test.js tests/renderer/prefComponents/appearance-title-bar.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="30">bash -n tools/dev-smoke.sh</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="120">node tools/release-preflight.mjs</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-005 />
+        <M-011 />
+        <M-061 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-005 />
+        <V-M-011 />
+        <V-M-061 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/renderer/src/store/preferences.js</File>
+      <File>src/renderer/src/_shims/preferences/schema.json</File>
+      <File>src/renderer/src/util/theme.js</File>
+      <File>src/renderer/src/prefComponents/tabs/advanced/sheets/customCssSheet.vue</File>
+      <File>src/renderer/src/prefComponents/tabs/appearance/index.vue</File>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <File>tools/dev-smoke.sh</File>
+      <File>tools/release/mas-pkg.sh</File>
+      <File>src-tauri/mas.conf.json</File>
+      <File>tests/renderer/store/preferences-load-repair.test.js</File>
+      <File>tests/renderer/store/preference-defaults.test.js</File>
+      <File>tests/renderer/util/theme.test.js</File>
+      <File>tests/renderer/util/theme-width-precedence.test.js</File>
+      <File>tests/renderer/prefComponents/custom-css-sheet.test.js</File>
+      <File>tests/renderer/prefComponents/appearance-title-bar.test.js</File>
+      <File>tests/e2e/page-width-panel.spec.ts</File>
+      <File>static/locales/en.json</File>
+      <File>static/locales/de.json</File>
+      <File>static/locales/es.json</File>
+      <File>static/locales/fr.json</File>
+      <File>static/locales/ja.json</File>
+      <File>static/locales/ko.json</File>
+      <File>static/locales/pt.json</File>
+      <File>static/locales/ru.json</File>
+      <File>static/locales/zh-CN.json</File>
+      <File>static/locales/zh-TW.json</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/graph/performance.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+      <File>.grace/verification/performance.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>F-007: schema-driven hydration validation with one-shot in-memory repair and BLOCK_PREFERENCES_REPAIR markers in SET_USER_PREFERENCE</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>src/renderer/src/store/preferences.js gains a schema-driven validator consulted by the single hydration load point so that SET_USER_PREFERENCE validates exactly the keys documented in src/renderer/src/_shims/preferences/schema.json before they enter the store: a value must satisfy the schema's declared "type", "enum" membership where declared, "minimum"/"maximum" for numbers and "pattern" for strings; a value failing its constraints is repaired IN MEMORY to the schema "default" (or the preferenceDefaults() factory value where the schema entry omits one) exactly once per key during hydration, and each repair emits a loud console marker of the shape [PREFERENCES][BLOCK_PREFERENCES_REPAIR] key=... raw=... reason=type|enum|min|max|pattern naming the key, the offending raw value and the reason. A fully valid profile loads byte-for-byte as today with zero repairs and zero markers; keys outside the documented schema, the session-only experimental keys, and null/undefined values keep today's pass-through untouched (the C-38 T-004 null-guard at :521-525 stays). After repair, both consumers agree on the corrected value: the Settings form (General tab toggle and the autoSaveDelaySeconds range) and the autosave pipeline (store/editor.js :1893 gate reading autoSave, :1937 setTimeout(..., autoSaveDelay)) — a saved "autoSave": "false" string no longer enables write-through autosave and a saved autoSaveDelay of 0/10001/non-number no longer reaches the timer raw.</Criterion>
+          <Criterion>Conservative scope, per the spec constraint: validation covers ONLY keys the documented schema declares, and documented legacy consumer value forms are NOT "repaired" — concretely codeFontSize stored as the string "14px" (the C-49 contract parsed by util/theme.js addCommonStyle via Number.parseFloat at theme.js :313-316, even though the schema declares type number at schema.json :243-249) passes through unvalidated and unmarked; where the schema and a consumer contract disagree on legacy value forms, the consumer contract wins and the key stays unvalidated until its schema entry is honest. The original preferences file is never rewritten: repair is in-memory at load time and persists only when the user next saves that key through the existing SET_SINGLE_PREFERENCE path, whose write semantics are unchanged; RESET_PREFERENCES_TO_DEFAULTS is unchanged beyond any shared-validator reuse; the backend store keeps m005_prefs.rs load_from semantics (no src-tauri change in this task).</Criterion>
+          <Criterion>New renderer suite tests/renderer/store/preferences-load-repair.test.js (house-style VERSION + START_MODULE_CONTRACT/MODULE_MAP/CHANGE_SUMMARY markup) covering at minimum: a hand-written but valid profile loads with zero repairs and zero markers; "autoSave": "false" (string) is repaired to true with exactly one marker naming key and reason; autoSaveDelay 0, 10001 and a non-number are each repaired to 5000 with one marker each; codeFontSize "14px" passes through unrepaired and unmarked; an unknown key and a session-only key pass through untouched; and the corrected store value is what the autosave gate and the General-tab presentation read. Store markup synchronized: preferences.js VERSION bump, a dated 2026-11-21 CHANGE_SUMMARY entry naming C-PREFS-TRUTH and the repair boundary, START_BLOCK_/END_BLOCK_ pairs unique and balanced.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/store/preferences-load-repair.test.js tests/renderer/store/preference-defaults.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>F-001/F-011: addCustomStyle empties the custom layer for real on sheet save and reset</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src/renderer/src/util/theme.js addCustomStyle loses the falsy-customCss early return (:340): saving an empty customCss now clears or empties the existing style#custom-styles element (empty its textContent when present; never force-create a fresh empty element when none exists) so the open window immediately returns to the active theme's styles — computed styles on themed elements return to the theme value — and a later non-empty save applies again through the same element. Both paths clear: the sheet save (customCssSheet.vue save :79-81 → SET_SINGLE_PREFERENCE customCss → app.vue watch :266-268 → addCustomStyle, including the cross-window broadcast echo) and the reset path (RESET_PREFERENCES_TO_DEFAULTS through the same watch). Verified for both a light and a dark active theme.</Criterion>
+          <Criterion>tests/renderer/util/theme.test.js gains the C-PREFS-TRUTH pins without weakening any existing test: after a non-empty apply, an empty save empties the custom-styles layer (textContent empty, computed style back to theme), a subsequent non-empty save applies again, and the empty path is exercised from a truthy-to-falsy store transition exactly as the watch delivers it.</Criterion>
+          <Criterion>New component test tests/renderer/prefComponents/custom-css-sheet.test.js: the sheet's save with an empty draft produces the customCss preference write that clears the stale layer (store mocked/asserted), and a non-empty draft produces the apply — the component's own template/markup beyond the save path is untouched (the AffectedAreas lists customCssSheet.vue as "save path only if needed"; if no component edit is required the file is unchanged and only the new test lands). House-style markup on the new test file; theme.js VERSION bump plus a dated CHANGE_SUMMARY entry naming C-PREFS-TRUTH.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/util/theme.test.js tests/renderer/prefComponents/custom-css-sheet.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>F-002: one width precedence across a theme switch — the legacy global tier keeps the saved editorLineWidth effective</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src/renderer/src/util/theme.js: after ANY theme application the effective --editorAreaWidth obeys the pipeline precedence per-document entry &gt; global setting &gt; theme/shipped default. Concretely: on a tab with no per-document width entry, a theme switch must not revert the saved global editorLineWidth — the theme stylesheet's re-declared --editorAreaWidth and the inline mirror (:219-233) must not out-rank the legacy global tier that setEditorWidth (:290-296) writes, in both switch orders (theme then width, width then theme); with a per-document entry the pipeline value still wins through reapplyLastEditorWidth (:280) exactly as shipped. The C-PAGE-WIDTH-TABLES locked model is NOT renegotiated: document &gt; theme &gt; global precedence, the single-writer rule (exactly one owner of the inline --editorAreaWidth at a time), render-time clamping with unmutated stored values, and reapplyLastEditorWidth's pipeline-tier contract stay intact — the fix extends the same precedence to the legacy global tier and forks no second writer; src/renderer/src/util/pageWidth.js semantics stay unchanged (its contract is explicitly out of scope; if a one-line ordering accommodation is unavoidable it must not alter the writer/reset contract and is recorded in the module markup).</Criterion>
+          <Criterion>New suite tests/renderer/util/theme-width-precedence.test.js: with a global editorLineWidth set and no per-document entry, applying another theme leaves the effective --editorAreaWidth matching the global setting (asserted against the resolved variable, both switch orders); with a recorded pipeline width, the pipeline value wins; and the reapplyLastEditorWidth contract (no-op when nothing recorded) is pinned unchanged. The existing page-width unit suites stay green UNCHANGED (tests/renderer/util/page-width.test.js and tests/renderer/store/editor-page-width.test.js pass with no edits).</Criterion>
+          <Criterion>theme.js carries a C-PREFS-TRUTH comment at the ordering fix; VERSION bump plus dated CHANGE_SUMMARY entry; no behaviour change to addThemeStyle beyond the width ordering and T-002's addCustomStyle path (the body.dark, color-scheme, syncNativeWindowTheme and CodeMirror skin behaviours stay byte-comparable).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/util/theme-width-precedence.test.js tests/renderer/util/page-width.test.js tests/renderer/store/editor-page-width.test.js --maxWorkers=2</Command>
+          <Command budgetSeconds="900">npm run build &amp;&amp; npx playwright test tests/e2e/page-width-panel.spec.ts --project=chromium</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>F-005: schema.json autoSave default aligned to the shipped factory true, pinned by a consistency test</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src/renderer/src/_shims/preferences/schema.json: the autoSave "default" flips false → true, matching preferenceDefaults() autoSave: true (C-AUTOSAVE-DEFAULT-ON, store/preferences.js :210-213). CAUTION: this is a docs/schema-truth fix ONLY — the factory value true and persisted-explicit-false semantics stay exactly as shipped, and an implementation that "fixes" F-005 by changing preferenceDefaults() to false violates the spec; no behaviour changes anywhere in this task.</Criterion>
+          <Criterion>tests/renderer/store/preference-defaults.test.js extends the existing C-24 two-source pattern with a drift pin: the suite now parses src/renderer/src/_shims/preferences/schema.json and asserts schema.autoSave.default equals the preferences store factory's autoSave (and schema.autoSaveDelay.default equals the factory autoSaveDelay), so any future drift between the documented default and the shipped factory fails CI. Existing C-24 pins unweakened; VERSION bump plus dated C-PREFS-TRUTH CHANGE_SUMMARY entry.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/store/preferences-load-repair.test.js tests/renderer/store/preference-defaults.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>F-008/F-009: dev-smoke explicit dispatch (typo exits before any side effect) and honest --check exit codes</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tools/dev-smoke.sh dispatches explicitly: the full cycle (start_dev_server, build_binary, launch_mark) runs for the no-argument invocation and for an explicit --full (new case arm) only; --quick keeps the quick path; --check runs health-only; ANY unknown argument prints usage via a new print_usage function and exits non-zero BEFORE touching the dev server, any process or any build — no server restart, no cargo build, no kill of a running Mark on the unknown path. The script stays bash with set -euo pipefail, no new dependencies, keeps its three npm script entries working unchanged (package.json dev:smoke/dev:check/dev:quick at :35-37), and its non-check behaviour stays byte-comparable apart from the dispatch arm; the stale MODE="${1:-full}" plus wildcard-full-dispatch shape is gone.</Criterion>
+          <Criterion>--check exits honestly: when the dev server is unreachable (check_dev_server non-200) or the Mark process is absent (pgrep -f "target/debug/mark"), the script exits non-zero; it exits 0 only when both the server answers HTTP 200 and the process is alive. The human-readable health report (green/red lines, the BLOCK_TITLEBAR_TRANSPARENT_OVERLAY_OK presence warning at :98-102) is kept; a C-PREFS-TRUTH comment in the script records the exit contract.</Criterion>
+          <Criterion>Recorded probes (evidence in the change bundle, run independently against a controlled state): bash -n tools/dev-smoke.sh passes; bash tools/dev-smoke.sh --chekc (typo) prints usage, exits non-zero, and a running sentinel survives untouched (no restart, no build, no kill) — verifiable by a background sentinel process surviving the probe; --check exits 0 with server HTTP 200 and process alive, exits non-zero with a dead server, and exits non-zero with a missing process.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="30">bash -n tools/dev-smoke.sh</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>F-006: one MAS recipe and one version source — mas-pkg.sh names tauri.mas.conf.json, mas.conf.json loses the divergent metadata</Title>
+        <DependsOn>T-005</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tools/release/mas-pkg.sh: the missing-app hint (:32-33) names the profile tools/build-mas.sh actually uses — src-tauri/tauri.mas.conf.json (suggesting ./tools/build-mas.sh as the primary recipe with the exact equivalent command shown) — and the string src-tauri/mas.conf.json disappears from the script. Metadata honesty only: no signing identity, entitlements, capability list or upload step changes anywhere; tools/build-mas.sh keeps --config src-tauri/tauri.mas.conf.json (:31) unchanged; a C-PREFS-TRUTH comment records the single-recipe decision.</Criterion>
+          <Criterion>src-tauri/mas.conf.json is aligned to the source of truth: the divergent "version": "2.5.0" (:4) is removed so the profile inherits version from tauri.conf.json (:4, 2.8.2 at drafting time), and the divergent bundle.macOS.bundleVersion "2.5.1" (:15) is removed as divergent. CAUTION: whether bundleVersion survives (and whether the whole mas.conf.json file survives) is an owner-review decision recorded before merge — if the owner elects to keep a distinct bundleVersion, its purpose is recorded in the file as a comment-adjacent note or in the change bundle, and if the owner elects to retire mas.conf.json entirely, the file is deleted and this plan's two MustNotContain pins on it convert to its absence from the tree (recorded deviation at apply time). Both documented MAS paths then produce the same app metadata for a given revision.</Criterion>
+          <Criterion>node tools/release-preflight.mjs passes with one coherent version source (its version-source cross-check stays green after the alignment).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="120">node tools/release-preflight.mjs</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>F-010: the Appearance title-bar row stops offering the no-op System frame choice on Windows</Title>
+        <DependsOn>T-006</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src/renderer/src/prefComponents/tabs/appearance/index.vue: on Windows the title-bar-style control no longer presents System as a working choice — either the Windows branch renders only the Custom option, or the System option is rendered disabled with an explicit why-this-is-disabled help line (Windows ships decorations:false per tauri.windows.conf.json :16 and components/titleBar/index.vue effectiveTitleBarStyle forces 'custom' on Windows :712-714, so the stored choice is silently ignored today). Implemented through explicit platform detection (isWindows alongside the existing isOsx import); the static two-option getTitleBarStyleOptions array becomes platform-aware or is replaced by platform-aware rows. The stored titleBarStyle preference semantics and the Linux and macOS rows are exactly as before (custom/native both offered and honored); no real Windows system frame is implemented (that is a separate owner-approved change).</Criterion>
+          <Criterion>If the disabled-with-help variant introduces a new user-visible string, it exists with non-empty native copy in all ten static/locales dictionaries (en, de, es, fr, ja, ko, pt, ru, zh-CN, zh-TW) per the ten-locale rule, and tests/renderer/i18n/locale-keys.test.js stays green; if the hidden variant ships with no new string, no locale edits happen in this task.</Criterion>
+          <Criterion>New suite tests/renderer/prefComponents/appearance-title-bar.test.js pinning the platform branch: on Windows no enabled System choice is presented (hidden, or disabled with the help line present), on Linux and macOS both options are offered exactly as today; appearance/index.vue carries the C-PREFS-TRUTH marker, a VERSION bump and a dated CHANGE_SUMMARY entry.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/prefComponents/appearance-title-bar.test.js tests/renderer/pages/preference.test.js --maxWorkers=2</Command>
+          <Command budgetSeconds="120">node node_modules/vitest/vitest.mjs run tests/renderer/i18n/locale-keys.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-007>
+      <T-008>
+        <Title>frontend F-004: a pinned per-document theme stays on the document — shell surfaces keep the global mode</Title>
+        <DependsOn>T-007</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src/renderer/src/components/editorWithTabs/editor.vue: the per-document theme pin (pageWidths entry.themeOverride applied through applyDocumentSurfaceTheme :2639-2646 / applySurfaceTheme :2626-2627) no longer runs the global addThemeStyle shell path for the pinned id — the pin applies its variables, dark classification and color-scheme to the DOCUMENT SURFACE (scoped to the editor host), while the shared shell surfaces — root-level variables the shell reads, body.dark, document color-scheme, native window theme (syncNativeWindowTheme), the file sidebar, the title bar and the quick-settings panel — keep following the global mode. Concretely: with global Ink and a light per-document pin, the document surface carries the pinned theme while sidebar/title-bar/quick-settings backgrounds follow Ink; a dark pin under a light global is the mirror case. Unpinning and tab switches restore the global theme on the surface exactly as today (the existing restore path through applySurfaceTheme(globalTheme) at :2636/:2746 keeps working, Auto-aware). The pinned-theme feature itself (View tab, entry.themeOverride model) is NOT redesigned, the global theme path remains the single global writer, and the width-host block's other contracts (single writer, canvas re-apply, freshen) are untouched. The C-PAGE-WIDTH-TABLES R-4 semantics of which theme id resolves for the surface stay as shipped — only the application scope changes.</Criterion>
+          <Criterion>tests/e2e/page-width-panel.spec.ts gains the pinned-theme shell-scope scenario in the R-4 override area (:236): with global Ink and a light per-document pin, document surface vs sidebar/title-bar/quick-settings backgrounds are asserted to follow pin vs global respectively, and unpin plus tab-switch restore the global theme. CAUTION: the concrete e2e expectations are owner-confirmed at PR review per the frontend audit's «Ограничить действие темы документа областью документа» checklist — this plan pins the scenario's existence and C-PREFS-TRUTH marker, not the assertion bytes, so the owner review can adjust expectations without re-planning; the same owner-confirmation gate applies to T-003's width e2e expectations.</Criterion>
+          <Criterion>editor.vue carries a C-PREFS-TRUTH comment at the scoped-application change, a VERSION bump and a dated CHANGE_SUMMARY entry; START_BLOCK_/END_BLOCK_ pairs stay unique and balanced; the module contract's SIDE_EFFECTS paragraph is updated to the document-scoped pin wording.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/components/editor-page-width-host.test.js tests/renderer/store/editor-page-width.test.js --maxWorkers=2</Command>
+          <Command budgetSeconds="900">npm run build &amp;&amp; npx playwright test tests/e2e/page-width-panel.spec.ts --project=chromium</Command>
+        </Verification>
+      </T-008>
+      <T-009>
+        <Title>Graph and verification deltas plus file-local markup synchronization across the touched modules</Title>
+        <DependsOn>T-008</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>.grace/graph/runtime.xml: one dated C-PREFS-TRUTH SummaryDelta inside M-005 (the hydration boundary now validates the documented schema and repairs invalid saved values in memory with BLOCK_PREFERENCES_REPAIR markers; the backend loose-typed store contract unchanged) and one inside M-011 (custom CSS empties for real; the legacy global width tier keeps precedence across a theme switch; the Windows no-op System frame choice removed; a pinned document theme stays on the document surface). .grace/graph/performance.xml: one dated C-PREFS-TRUTH SummaryDelta inside M-061 (the width precedence is extended to the legacy global tier without forking a second writer, and the pinned theme application is scoped to the document surface). No other graph content touched.</Criterion>
+          <Criterion>.grace/verification/runtime.xml V-M-005 and V-M-011 and .grace/verification/performance.xml V-M-061: the next sequential dated Scenario entries (2026-11-21) naming this plan's evidence — the repair matrix (invalid autoSave/autoSaveDelay repaired with one marker each, valid profile byte-identical, legacy codeFontSize "14px" untouched), the custom-CSS empty-save/reset clear and re-apply pair, the width-precedence both-orders pin with the pipeline tier unchanged, the schema/factory autosave consistency pin, the dev-smoke typo probe (side-effect-free non-zero) and the --check negative probes (dead server, missing process), the MAS single-recipe/version-source coherence, the Windows title-bar pin, and the pinned-theme shell-scope e2e under owner-confirmed expectations — plus this plan's focused commands (the three vitest sets, bash -n, release-preflight, the page-width-panel chromium run). No other verification content touched.</Criterion>
+          <Criterion>File-local GRACE markup synchronized in every touched module: store/preferences.js, util/theme.js, customCssSheet.vue (if touched), appearance/index.vue, editor.vue, tools/dev-smoke.sh (markup only if a file-local block exists), src-tauri config notes where the house style keeps them, and the new/updated test files carry VERSION + START_MODULE_CONTRACT/MODULE_MAP/CHANGE_SUMMARY; START_BLOCK_/END_BLOCK_ pairs unique and balanced everywhere; src/renderer/src/util/pageWidth.js remains untouched (contract unchanged per the spec constraint); the combined diff stays inside the ObservedWriteScope.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="60">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/runtime.xml'); ET.parse('.grace/graph/performance.xml'); ET.parse('.grace/verification/runtime.xml'); ET.parse('.grace/verification/performance.xml')"</Command>
+          <Command budgetSeconds="600">node node_modules/vitest/vitest.mjs run tests/renderer/store/preferences-load-repair.test.js tests/renderer/store/preference-defaults.test.js tests/renderer/util/theme.test.js tests/renderer/util/theme-width-precedence.test.js tests/renderer/prefComponents/custom-css-sheet.test.js tests/renderer/prefComponents/appearance-title-bar.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-009>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Environment>Baseline is the current beta-gate-wave worktree with node_modules installed (node_modules/vitest/vitest.mjs exists; playwright chromium available for the e2e runs). Tasks run strictly sequentially T-001 through T-009; the plan-level MustPassCommand set becomes fully meaningful as its files land (T-001 for the repair/defaults pair, T-002/T-003 for the theme/width pair, T-007 for the appearance pair, T-006 for release-preflight), and the focused runs must pass with no skips, retries or budget increases. Pre-archive sweep recorded as evidence: npx vitest run tests/renderer (full renderer sweep — the spec's VerificationIntent minimum), npm run build &amp;&amp; npm run test:e2e (chromium, including the page-width-panel width-precedence and pinned-theme scenarios), bash -n tools/dev-smoke.sh plus the three scripted probes (typo/run side-effect-free non-zero with a surviving sentinel; --check green on healthy, non-zero on a dead server, non-zero on a missing process, each run independently), and node tools/release-preflight.mjs (one coherent MAS/version source). CAUTION lines carried from the spec: (1) the autosave factory default stays true — aligning schema.json is a docs-truth fix, and any implementation that flips preferenceDefaults() to false violates the spec; (2) validation is limited to keys documented in schema.json, and documented legacy consumer value forms (codeFontSize stored as "14px" per the C-49 contract) are NOT repaired — unknown keys and session-only keys keep today's pass-through; (3) the e2e width-precedence and pinned-theme shell-scope expectations are owner-confirmed at PR review (the frontend audit checklist), which is why T-003/T-008 pin the scenarios, not their assertion bytes; (4) the MAS bundleVersion keep-or-drop (and mas.conf.json keep-or-retire) is an owner-review decision recorded before merge — the shipped default is keep-and-align, and retiring the file converts the two MustNotContain pins on it to its documented absence. The Rust store is untouched: m005_prefs.rs keeps load_from and its "Schema validation is the renderer's job" contract, validation lives entirely in the renderer, and consequently this plan carries NO cargo test filter (decision recorded per the drafting instruction). The combined diff must be limited to the ObservedWriteScope files (locale dictionaries only if the T-007 help string lands); the C-PAGE-WIDTH-TABLES locked model stays intact (document &gt; theme &gt; global, single writer, render-time clamping, reapplyLastEditorWidth's pipeline-tier contract), the three dev-smoke npm script entries and non-check behaviour stay byte-comparable, and no signing identity, entitlements, capability list or upload step changes in the MAS path. Every new or changed user-visible string follows the ten-locale rule with the locale-keys gate green. The orchestrator runs the grace lint lifecycle gates itself (current before editing, --change C-PREFS-TRUTH --assertions target during implementation, final --run-commands before archiving, current after) — no command in this plan self-references those gates. No apply/archive, commit/push, release, signing, version, tag or publication is authorized by this plan.</Environment>
+    </AcceptanceVerification>
+    <ExecutionMode>sequential</ExecutionMode>
+    <Lifecycle>Drafted 2026-11-21 from the C-PREFS-TRUTH spec for orchestrator admission; the orchestrator owns status transitions and the durable/final/archive boundaries. Writing this draft approves neither implementation nor apply/archive, commit/push, or any release, signing, tag or publication.</Lifecycle>
+  </C-PREFS-TRUTH>
+</GraceChangePlan>

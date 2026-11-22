@@ -17,6 +17,7 @@
 //   executable - Recognize existing ELF/PE/thin Mach-O and bounded validated universal Mach-O executables.
 //   namedExecutable - Match workspace output identities without dependency/object suffixes.
 //   present - Distinguish actual ENOENT from inaccessible/unknown owned paths.
+//   removeWithRetry - Bounded EBUSY/EPERM unlink retry for artifact cleanup (the Windows AV-lock window).
 //   validateRuntime - Fail closed before Cargo build on unsupported Node/POSIX execve runtimes.
 //   snapshotExecutables - Inventory recognized workspace executable names without dependency/build caches.
 //   sourceIdentity - Bind checkout revision and current tracked delta.
@@ -240,7 +241,22 @@ export function runOwned(file, args, {
   })
 }
 
-export function cleanupFiles(target, artifacts, errors, remove = path => fs.rmSync(path), stat = fs.lstatSync) {
+// Windows can keep a just-reaped test executable briefly locked (EBUSY/
+// EPERM, typically an antivirus scan); a bounded retry keeps the cleanup
+// honest instead of failing the suite on the platform's unlink timing.
+const removeWithRetry = (target, attempts = 20, delayMs = 50) => {
+  let lastError = null
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try { fs.rmSync(target, { force: true }); return } catch (error) {
+      if (!['EBUSY', 'EPERM'].includes(error?.code)) throw error
+      lastError = error
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, delayMs)
+    }
+  }
+  throw lastError
+}
+
+export function cleanupFiles(target, artifacts, errors, remove = removeWithRetry, stat = fs.lstatSync) {
   for (const item of artifacts) {
     try {
       if (!present(item.path, stat)) { item.available = false; continue }

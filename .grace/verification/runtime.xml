@@ -467,6 +467,7 @@
       </LegacyBase>
       <LegacySource>docs/verification-plan.xml: V-M-001</LegacySource>
             <scenario-sec-save-handle-m001>C-SEC-SAVE-HANDLE: save/snapshot race refusals — a leaf symlink planted in the window is refused, outer bytes untouched — verified by the two m001 race tests on the deterministic cfg-test seam.</scenario-sec-save-handle-m001>
+            <scenario-dev-env-isolation-boot-binding>C-DEV-ENV-ISOLATION: the dev namespace default binds through resolve_boot_identifier before any state access at the unchanged C-STABILIZE-PROFILE-ISOLATION boot point; release binaries keep binding exactly the configured Context identifier; MARK_PROFILE_IDENTIFIER is debug-gated, non-default, migration-testing-only and fails closed on invalid values (escape_hatch_override_is_debug_gated).</scenario-dev-env-isolation-boot-binding>
 </V-M-001>
     <V-M-002>
       <Priority>critical</Priority>
@@ -1116,7 +1117,7 @@
     <V-M-004>
       <Priority>critical</Priority>
       <Commands>
-        <Command>cd src-tauri &amp;&amp; cargo test --manifest-path src-tauri/Cargo.toml search</Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml search</Command>
       </Commands>
       <Scenarios>
         <Scenario>scenario-1: literal + regex + case-insensitive + whole-word options all work.</Scenario>
@@ -1540,6 +1541,7 @@
       </LegacyBase>
       <LegacySource>docs/verification-plan.xml: V-M-004</LegacySource>
             <scenario-search-session-completion>C-SEARCH-SESSION-COMPLETION: the session-trace family — two-root single-terminal, strictly increasing seq across the root boundary, pre/mid/between-root cancellation shapes, error stopping remaining roots for both adapters, one-shot finalize, post-terminal silence and cross-session isolation — runs through the production run_session; the renderer two-root scenarios drive the real consumer class with captured envelopes.</scenario-search-session-completion>
+            <scenario-search-error-visibility>C-SEARCH-ERROR-VISIBILITY: the honest rg error matrix and prompt cancel settle — rg_exit_two_is_single_error_terminal (exit 2 collapses to the single error terminal "rg exited with code 2" with zero post-terminal events, remaining roots never started and the partial marker set on already-streamed hits), rg_exit_codes_zero_and_one_complete_normally (codes 0/1 complete for injected and native rg plus walker parity), exclusions_applied_symmetrically and invalid_exclusion_mask_is_ignored_and_forces_partial (one compile_exclusion_masks semantics across walker override globs and rg --glob=! args; invalid masks never reach rg and force partial), max_file_size_suppressing_candidates_marks_terminal_partial, and silent_child_cancel_arrives_without_a_line (the bounded START_BLOCK_CANCEL_WATCHER kills and reaps a silent injected child without waiting for a stdout line, no registry mutation, no watcher-emitted terminals) — cargo test --manifest-path src-tauri/Cargo.toml --bin mark search; the renderer side pins parseSearchMaxFileSize at the store boundary, the store error/partialResults voice, didComplete propagation and read-only-facade wire compatibility through the vitest gate.</scenario-search-error-visibility>
 </V-M-004>
     <V-M-005>
       <Priority>high</Priority>
@@ -1548,6 +1550,7 @@
         <Command>cargo test --manifest-path src-tauri/Cargo.toml m005_prefs</Command>
       </Commands>
       <Scenarios>
+        <Scenario>C-PREFS-TRUTH (2026-11-21): the hydration repair matrix — a stored "autoSave": "false" string repairs to the schema default (true, C-AUTOSAVE-DEFAULT-ON parity) with exactly one [PREFERENCES][BLOCK_PREFERENCES_REPAIR] marker naming key/raw/reason, autoSaveDelay 0/10001 and a non-number each repair to 5000 with one marker (reason min/max/type), a fully valid profile loads with zero repairs and zero markers, the legacy codeFontSize '14px' string (the C-49 consumer contract) passes through unvalidated and unmarked, unknown keys and the session-only experimental keys keep the pass-through, and the corrected store values are what the autosave gate (store/editor.js autoSave/autoSaveDelay) and the General-tab seconds presentation read. Repair is in-memory only — the preferences file is never rewritten and the Rust store keeps its loose-typed load_from. Evidence: tests/renderer/store/preferences-load-repair.test.js and the schema/factory consistency pin in tests/renderer/store/preference-defaults.test.js (schema autoSave/autoSaveDelay defaults equal preferenceDefaults()). Focused command: node node_modules/vitest/vitest.mjs run tests/renderer/store/preferences-load-repair.test.js tests/renderer/store/preference-defaults.test.js --maxWorkers=2. No cargo filter: validation is the renderer's job.</Scenario>
         <Scenario>T-003: session-restore and editor-session-coldstart units prove named-path format records, text exclusion, frozen offers and legacy/invalid records. Internal format records are not user-reset settings.</Scenario>
         <Scenario>scenario-5 (C-PUBLIC-REPOSITORY-HYGIENE): the complete retained legacy fixture corpus has six valid JSON examples, synthetic home paths and an exact SHA-256/size manifest; captured profiles and browser runtime files are absent. Exact obsolete QA, handoff and generated showcase paths stay absent and ignored, while authored work and release screenshot evidence stay present. Checkout attributes pin the seven hashed example/manifest files to LF, and verification uses portable path separators and manifest line delimiters on Windows.</Scenario>
         <Scenario>scenario-1: set→get roundtrip for all known pref keys.</Scenario>
@@ -1586,6 +1589,7 @@
         store scenarios and markers above remain authoritative.
       </RetiredByC-13>
             <scenario-sec-save-handle-m005>C-SEC-SAVE-HANDLE: reference-only — the m005_prefs suite (19/19) is untouched evidence.</scenario-sec-save-handle-m005>
+            <scenario-session-write-atomicity>C-SESSION-WRITE-ATOMICITY (2026-11-21): the session profile batch and quarantine-on-load — set_many_writes_session_profile_in_one_transaction proves exactly ONE rename through the injected-rename seam (save_with_rename / set_many_with_rename, the m068 promote_staging_over_live precedent), a complete new generation on disk and every key readable by a fresh PrefsState; set_many_failure_keeps_previous_generation_and_never_promotes_tmp proves the previous generation survives an injected rename failure with the error surfaced and no partial or mixed content; corrupt_store_file_is_quarantined_aside_not_overwritten proves the corrupt bytes move intact to the preferences.json.corrupt sibling, a missing store file quarantines nothing, and a post-quarantine save leaves the evidence untouched; corrupt_json_falls_back_to_empty and non_object_root_is_corrupt gain the sibling-bytes assertions with their empty-defaults assertions intact. New markers [Prefs][load][BLOCK_PREFS_QUARANTINED] and [Prefs][load][BLOCK_PREFS_QUARANTINE_FAILED]. Commands: cargo test --manifest-path src-tauri/Cargo.toml --bin mark prefs and the focused renderer vitest set (session-restore, editor-session-coldstart, document-operations, runtime-prefs).</scenario-session-write-atomicity>
 </V-M-005>
     <V-M-006>
       <Priority>medium</Priority>
@@ -2378,7 +2382,7 @@
       <Priority>high</Priority>
       <Commands>
         <Command>npx vitest run tests/renderer/commands/fileEncoding.test.js tests/renderer/commands/lineEnding.test.js tests/renderer/commands/trailingNewline.test.js</Command>
-        <Command>cd src-tauri &amp;&amp; cargo test --manifest-path src-tauri/Cargo.toml menu</Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml menu</Command>
         <Command>npx vitest run tests/renderer/commands/shortcut-routing-audit.test.js tests/renderer/commands/menu-consistency.test.js</Command>
         <Command>npx vitest run tests/renderer/commands/index.test.js tests/renderer/commands/paragraph-shortcuts.test.js tests/renderer/pages/app-deep.test.js</Command>
       <Command>npx --no-install vitest run tests/renderer/util/split-commands.test.js tests/renderer/commands/index.test.js</Command>
@@ -3339,6 +3343,8 @@
     <V-M-011>
       <Priority>critical</Priority>
       <Commands>
+        <Command>node node_modules/vitest/vitest.mjs run tests/renderer/prefComponents/tabsBar.test.js tests/renderer/pages/common/sheet.test.js</Command>
+        <Command>npx playwright test tests/e2e/compact-windows-fit.spec.ts tests/e2e/page-width-panel.spec.ts tests/e2e/settings-shell.spec.ts --project=chromium</Command>
         <Command>node node_modules/vitest/vitest.mjs run tests/renderer/bookmark-persistence-warning.test.js tests/renderer/bootstrap-ipc.test.ts tests/renderer/store/bootstrap-ipc-coverage.test.js --maxWorkers=2</Command>
         <Command>node node_modules/vitest/vitest.mjs run tests/renderer/components/projectSearch/index.test.js tests/renderer/chrome/chrome-platform.test.js tests/renderer/store/search.test.ts tests/renderer/store/search-coverage.test.js --maxWorkers=2</Command>
         <Command>node node_modules/vitest/vitest.mjs run tests/renderer/util/extension-theme-tokens.test.js tests/renderer/components/extensionGallery.test.js tests/renderer/components/extensionGallery/index.test.js tests/renderer/components/liveViewer.test.js tests/renderer/components/liveViewer/index.test.js tests/renderer/store/live-stream-ownership.test.js</Command>
@@ -3547,6 +3553,26 @@
         <Command>npx --no-install vitest run tests/renderer/prefComponents/keybindings-deep.test.js tests/renderer/pages/keybindings.test.js tests/renderer/pages/keybindingConfigurator.test.js tests/renderer/pages/shortcut-dialog.test.js</Command>
       </Commands>
       <Scenarios>
+        <Scenario>
+          C-COMPACT-WINDOWS-FIT: at the fixed 640x620 Settings window the
+          overflow walker covers .pref-toolbar and .pref-toolbar * beside
+          .pref-body * — every .pref-tab rect stays inside the viewport
+          and the toolbar reports no horizontal overflow, including the
+          de-locale stress run (language: 'de', the longest shipped tab
+          label "Erscheinungsbild") in both parity runs, with the mac
+          76px floor kept, the base min-width: 0 allowance and the shared
+          label ellipsis pinned by tabsBar.test.js; real Tab reaches the
+          settings toolbar tab and the open Advanced sheet's Close button
+          showing the canon 2px var(--prefAccent) outline at 1px offset;
+          the shared sheet traps focus via the element-plus ElFocusTrap
+          deep import — initial focus inside the panel, Tab/Shift+Tab
+          wrap in both directions never reaching the dimmed page behind,
+          focus restored to the invoking control on both close paths
+          (Escape and the Close button) — pinned by the new
+          tests/renderer/pages/common/sheet.test.js and the
+          compact-windows-fit sheet groups.
+        </Scenario>
+        <Scenario>C-PREFS-TRUTH (2026-11-21): the custom-CSS empty-save/reset clear and re-apply pair — theme.test.js pins the truthy→falsy watch delivery emptying the existing style#custom-styles element under a light and a dark active theme (never force-creating a fresh empty one) with a later non-empty save applying again through the same element, and custom-css-sheet.test.js pins the sheet's empty-draft save producing the clearing customCss write and a non-empty draft producing the apply; the width story for this module rides V-M-061; the schema/factory autosave consistency pin lands in preference-defaults.test.js; the dev-smoke typo probe (bash tools/dev-smoke.sh --chekc prints usage, exits non-zero before touching the server, any process or any build — a running sentinel survives) and the --check negative probes (non-zero on a dead server, non-zero on a missing process, 0 only on server HTTP 200 + process alive) with bash -n tools/dev-smoke.sh; the MAS single-recipe/version-source coherence (tools/release/mas-pkg.sh names tauri.mas.conf.json via tools/build-mas.sh, the stale mas.conf.json loses its divergent 2.5.0/2.5.1 metadata, node tools/release-preflight.mjs stays green); the Windows title-bar pin (tests/renderer/prefComponents/appearance-title-bar.test.js — System rendered disabled with the titleBarStyleWindowsHelp why-line on Windows, Linux custom/native both enabled, macOS row hidden; tests/renderer/i18n/locale-keys.test.js green across all ten locales); and the pinned-theme shell-scope e2e under owner-confirmed expectations (tests/e2e/page-width-panel.spec.ts C-PREFS-TRUTH scenario — the document surface carries the pin while sidebar/title-bar/quick-settings carry the global mode, unpin and tab switch restore; tests/renderer/components/editor-page-width-host.test.js pins the scoped apply/restore seam deterministically). Focused commands: node node_modules/vitest/vitest.mjs run tests/renderer/prefComponents/custom-css-sheet.test.js tests/renderer/prefComponents/appearance-title-bar.test.js --maxWorkers=2; node node_modules/vitest/vitest.mjs run tests/renderer/i18n/locale-keys.test.js --maxWorkers=2; node node_modules/vitest/vitest.mjs run tests/renderer/components/editor-page-width-host.test.js tests/renderer/store/editor-page-width.test.js --maxWorkers=2; npm run build &amp;&amp; npx playwright test tests/e2e/page-width-panel.spec.ts --project=chromium.</Scenario>
         <scenario-bookmark-durability-v-m-011>C-BOOKMARK-PERSISTENCE-DURABILITY: boot and live wakeups drain in serialized order; secondary windows cannot consume global warnings. Tests cover cold recovery, no pending state, invoke rejection, overlapping wakeups and actual sticky notification-store deduplication.</scenario-bookmark-durability-v-m-011>
         <scenario-settings-keyboard-focus>C-SETTINGS-KEYBOARD-FOCUS: real Tab or explicitly recorded WebKit Option-Tab reaches the shared switch, native select and segment controls in Paper and Ink; a two-pixel preference-accent outline with one-pixel offset identifies focus separately from on/selected/nearest-preset state and disappears on Tab away. The existing Chromium and webkit-settings settings-shell command covers actual Settings and Quick Settings consumers, textbox and pointer-first controls, unchanged values/geometry/aria-checked and zero additional preference writes after observed fixture bootstrap persistence. Runtime templates/scripts and all other component styles remain unchanged. Native application observations and owner/platform verdicts remain separate from renderer-shim evidence.</scenario-settings-keyboard-focus>
         <scenario-project-search-chrome-accent>Project-search active option text and borders follow the existing scenario-56 chrome accent contract, matching document-search active controls. Built-renderer comparison in Paper/Ink covers all three options, inactive/active/hover states and a narrow desktop viewport while preserving search behavior and document theme colors. Browser evidence does not replace native owner/platform acceptance.</scenario-project-search-chrome-accent>
@@ -5959,6 +5985,8 @@
             <scenario-table-dialog-verification>C-TABLE-DIALOG-CREATION-VERIFICATION: real-mount dialog lifecycle — stable row focus through the trap-ordered claim, 4×3 defaults with 1–30/1–20 limits, Cancel-no-create, exactly one createTable with typed dimensions — verified by the restored component cases with ten mutation probes plus the three browser scenarios in chromium and webkit-tables.</scenario-table-dialog-verification>
         <scenario-external-reload-operation>C-EXTERNAL-RELOAD-OPERATION: the owner matrix — policy rows, ready-data admission, settle/read races (edits during settle never start a read), one-shot generation-bound confirmation lifecycle, choice-time vs dispatch-time captures, attempt identity binding across close/reopen/rename, manifest and commit pins preserving the legacy order, stale/declined/skipped byte-identical mutation controls — verified by the 109-test trio plus the live-reload-scroll browser scenarios.</scenario-external-reload-operation>
         <scenario-sec-edit-targeting-m011>C-SEC-EDIT-TARGETING: the editor gate — foreign instance, stale generation, missing binding and never-rendered identity all reject insert/transform/undo before any mutation (including the whole-document fallback), matched bindings proceed, diff guard still first — verified by the nine-case editor_ext_targeting family plus the relay pins (270 renderer tests green).</scenario-sec-edit-targeting-m011>
+        <scenario-session-write-atomicity>C-SESSION-WRITE-ATOMICITY (2026-11-21): the renderer session write and the bounded close — session-restore unit pins prove exactly one batched ipcPrefs.setMany profile write carrying the four lastSession* keys with the exact snapshot values, no per-key ipcPrefs.set, and a rejecting setMany surfacing through _saveSessionState while the position-flush spy still ran; document-operations pins driven by the real store wiring prove close_waits_for_session_write_confirmation_before_destroy (commit only after the write settles), bounded_timeout_still_closes_honestly (the real 2000 ms bound with BLOCK_SESSION_COMMIT_TIMEOUT bound=2000ms) and rejected_session_write_still_closes (BLOCK_SESSION_WRITE_FAILED and the close completes). Markers [Session][close][BLOCK_SESSION_COMMIT_TIMEOUT bound=2000ms], [Session][close][BLOCK_SESSION_WRITE_FAILED] and [Session][prefs][BLOCK_SESSION_WRITE_FAILED]. The characterization spec is rebound to exactly one mt_prefs_set_many batch with no per-key mt_prefs_set session write and the invoke log pinning mt_prefs_set_many. Command: npx playwright test --project chromium --project webkit-perf tests/e2e/session-restore.spec.ts tests/e2e/multi-root-workspace.spec.ts tests/e2e/perf/characterization-save-close.spec.ts.</scenario-session-write-atomicity>
+        <scenario-project-search-honest-voice>C-SEARCH-ERROR-VISIBILITY: the ProjectSearch overlay renders the localized failure line (sideBar.search.searchFailed) instead of the "No results found." empty state when the search fails, a partial notice (sideBar.search.resultsPartial) accompanies a marked result set, a cancelled search shows neither and resolves quietly, stale generations cannot write, and parseSearchMaxFileSize parses the documented size strings at the store boundary (invalid limits never spawn) — pinned in tests/renderer/components/projectSearch/index.test.js, which also carries the all-ten locale presence/non-empty pin for the new keys with startTyping/openFolder retired; the dead legacy sidebar panel (sideBar/search.vue, searchToolbar.vue and their four dedicated suites) is absent while the live find-bar, searchResultItem and tree suites stay green — vitest gate over store/search.test.ts, store/search-coverage.test.js, ipc/runtime-search.test.ts, node/ripgrepSearcher-deep.test.js, projectSearch/index.test.js, i18n/locale-keys.test.js and the sideBar/searchResultItem, tree and components/search suites.</scenario-project-search-honest-voice>
 </V-M-011>
     <V-M-012>
       <Priority>critical</Priority>
@@ -6063,6 +6091,7 @@
               <Command>npx playwright test tests/e2e/table-bar-menu.spec.ts --project=chromium --project=webkit-tables</Command>
 <Command>npx --no-install vitest run tests/renderer/muya/history-external-commit.test.js tests/renderer/muya/footnote-options.test.js</Command>
         <Command>node node_modules/@playwright/test/cli.js test tests/e2e/markdown-render.spec.ts --project chromium</Command>
+        <Command>npx vitest run tests/renderer/util/export-plantuml-gate.test.js</Command>
       </Commands>
       <Scenarios>
         <scenario-mutation-empty-root>The actual Muya observer callback handles bulk root insertions without total-child-count reads while retaining observer registration, empty/text/comment-only root crash events and warnings, final-DOM replacement semantics, nested/non-child-list filtering, table-removal detection and live recovery between records. Existing open-file timing budgets remain unchanged; local profiles and renderer timings are diagnostic evidence, not native or hosted acceptance.</scenario-mutation-empty-root>
@@ -8480,6 +8509,7 @@
             <scenario-table-profile-schema>C-TABLE-PROFILE-SCHEMA: the shared schema owner behind both persisted-entry consumers — six historical mode families through each adapter, array/width edge shapes, the intentional truthy-empty-ratios vs null asymmetry, input immutability and legacy-precedence change detection — verified by the four-suite delegation pins and the table-width-persistence plus table-modes browser scenarios.</scenario-table-profile-schema>
         <scenario-table-layout-completion>C-TABLE-LAYOUT-COMPLETION: the completion matrix — every COMPLETION_CAUSE × readiness × write-permit outcome including hidden/zero-geometry deferred layout, rollback baselines, reset re-fit-before-persist, remember-off gating, measurement-independence and read-only absence-of-write — verified by the 151-test three-suite run plus the four table browser specs in both engines (86 passed).</scenario-table-layout-completion>
         <scenario-pele-html-postprocess>C-PELE-HTML-POSTPROCESS: export post-processing parity — pie donut-hole geometry/fill across appearances, kanban byte-parity with the post-processor output, flowchart no-op, both export APIs carrying processed SVG with preserved theme variables, and mixed valid/invalid sources — verified by the 54-test four-suite run plus the diagram-appearance browser scenarios in both engines (14 passed).</scenario-pele-html-postprocess>
+        <scenario-plantuml-export-gate>C-EXPORT-BOUNDARIES: the export-time PlantUML consent gate — countPlantUMLFences counts exact-case 'plantuml' fences (``` and ~~~, fence state tracked, unclosed counts from its opening; mermaid/vega-lite/flowchart/sequence tags and inline backticks never count) and plantUMLSourcePlaceholder emits exactly one pre.ag-plantuml-export-source with the escapeHTML'd literal source, no plantuml.com URL and no img element; generate() reads the opaque plantumlRemoteConsent options key and renderDiagram's plantuml branch inserts the remote img only on consent. muya/lib/index.js, parser/render/plantuml.js and the live preview are untouched; pinned by tests/renderer/util/export-plantuml-gate.test.js plus the export-plantuml-consent wiring pins.</scenario-plantuml-export-gate>
 </V-M-012>
     <V-M-013>
       <Priority>high</Priority>
@@ -9690,7 +9720,7 @@
     <V-M-015>
       <Priority>medium</Priority>
       <Commands>
-        <Command>cd src-tauri &amp;&amp; cargo test --manifest-path src-tauri/Cargo.toml pandoc</Command>
+        <Command>cargo test --manifest-path src-tauri/Cargo.toml pandoc</Command>
       </Commands>
       <Scenarios>
         <Scenario>scenario-1: pandoc on PATH → convert sample.docx → markdown.</Scenario>
@@ -12112,6 +12142,7 @@
         </negative-assertions>
       </LegacyBase>
       <LegacySource>docs/verification-plan.xml: V-M-022</LegacySource>
+      <scenario-dev-env-isolation-namespace>C-DEV-ENV-ISOLATION: dev_namespace_default_resolves_disjoint_roots proves the dev default resolves cache and data roots disjoint from and tagged with com.xronocode.mark.dev versus release; canonical_identifier_preserves_existing_cache_and_data_roots stays green byte-identically; escape_hatch_override_is_debug_gated pins the debug-only override semantics (cargo test --manifest-path src-tauri/Cargo.toml --bin mark mt_paths).</scenario-dev-env-isolation-namespace>
     </V-M-022>
     <LegacyConflictEvidence>
       <Record>

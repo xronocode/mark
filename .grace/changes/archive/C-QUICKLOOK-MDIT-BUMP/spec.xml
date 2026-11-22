@@ -1,0 +1,57 @@
+<GraceChangeSpec graceVersion="4.0" status="applied">
+  <C-QUICKLOOK-MDIT-BUMP>
+    <Summary>Refresh the two vendored QuickLook preview scripts to the pinned upstream releases — markdown-it 14.2.0 → 14.3.3 and Highlight.js 11.9.0 → 11.12.0 — by replacing the packaged minified resources with byte-exact upstream dist builds, recording upstream integrity notes and adding version-pinning assertions to the existing runner unit suite, with no renderer, policy, feature or npm-dependency change.</Summary>
+    <Problem>The packaged QuickLook resources lag upstream. Current-state inspection confirms the in-file version records: mark-quicklook/Sources/PreviewExtension/Resources/markdown-it.min.js line 1 carries the banner `markdown-it 14.2.0 ... @license MIT`, and highlight.min.js carries `Highlight.js v11.9.0 (git: f47103d4f1)` plus `t.versionString="11.9.0"`. The audit's findings F-001–F-004 (linkify fixes, smartquotes/typographer fixes, multi-line definition-list fixes) are closed upstream in markdown-it 14.3.3; these are exactly the surfaces the QuickLook bootstrap enables (MarkdownRenderer.swift configures `linkify: true, typographer: true` with `html: false`). Highlight.js 11.12.0 closes the audit's aging finding F-002 on the packaged highlight engine. No exploit or preview compromise is claimed; this is a bounded maintenance refresh of vendored bytes under the accepted content boundary.</Problem>
+    <Relationship>Bounded maintenance on the M-073 packaged resources. It modifies only vendored script bytes and version-pin assertions on top of the applied and archived C-QUICKLOOK-CONTENT-BOUNDARY (hardening boundary) and C-QUICKLOOK-SYNTAX-THEME (light palette); it does not reopen any of their decisions. Composed against the current beta-gate-wave worktree; the plan must re-verify file digests on the fresh head before approval.</Relationship>
+    <Goals>
+      <Goal>mark-quicklook/Sources/PreviewExtension/Resources/markdown-it.min.js is byte-exact the upstream markdown-it 14.3.3 browser dist build (minified markdown-it.min.js from the published release), preserving its upstream MIT license banner updated to `markdown-it 14.3.3 ... @license MIT`.</Goal>
+      <Goal>mark-quicklook/Sources/PreviewExtension/Resources/highlight.min.js is byte-exact the upstream Highlight.js 11.12.0 browser bundle (common build), preserving its upstream BSD-3-Clause header updated to `Highlight.js v11.12.0` and the in-file `versionString="11.12.0"`.</Goal>
+      <Goal>Integrity notes are recorded in the change bundle: upstream versions and tags/sha256 of the exact dist artifacts adopted, and the mapping to audit findings (markdown-it 14.3.3 closes F-001–F-004; Highlight.js 11.12.0 closes aging F-002).</Goal>
+      <Goal>The existing M-073 verification stays authoritative: the complete 26-case native fail-closed matrix, the zero-observer-request invariant and the runner's byte-integrity snapshot all pass on the refreshed scripts unchanged.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Write scope is exactly these three paths: mark-quicklook/Sources/PreviewExtension/Resources/markdown-it.min.js, mark-quicklook/Sources/PreviewExtension/Resources/highlight.min.js, tests/renderer/quicklook-runner.test.js. The following remain byte-identical: style.css, github-dark.css (including its C-QUICKLOOK-SYNTAX-THEME provenance header referencing the 11.9.0 GitHub Light color roles — the palette is a local adaptation and is not re-derived by this change), MarkdownRenderer.swift, PreviewProvider.swift, MarkPreview.entitlements, tools/check-quicklook.mjs, mark-quicklook/MarkQuickLook.xcodeproj/project.pbxproj, package.json and every NOTICES-node.md/NOTICES-rust.md record (the vendored copies are not npm or Cargo dependencies and are not covered by those generators).</Constraint>
+      <Constraint>The refreshed files are the unmodified upstream dist artifacts for the pinned versions: no local patches, no re-minification, no bundler output substitution, no feature-set rebuild. The resource names, bundleResource load order (markdown-it.min then highlight.min before the nonce-gated bootstrap) and the RESOURCE_FILES list in tools/check-quicklook.mjs are unchanged.</Constraint>
+      <Constraint>No renderer or policy change: the embedded bootstrap options (html: false, linkify: true, typographer: true, the hljs.highlight/getLanguage callback), the per-render nonce CSP, base64 document embedding, raw-HTML stripping, escaped titles, ephemeral WKWebView store, navigation/new-window denial, embedded-raster-only image policy and the absent network-client entitlement are all preserved byte-for-byte. No new required or optional native case; all existing 26 named cases stay mandatory and unchanged.</Constraint>
+      <Constraint>Version-pin assertions are added to tests/renderer/quicklook-runner.test.js (the suite that already owns runner orchestration proofs): they must fail on the current 14.2.0/11.9.0 bytes (failing-first evidence) and pass only when the packaged files carry exactly the pinned upstream versions (markdown-it banner 14.3.3; highlight.js header v11.12.0 and versionString 11.12.0). No assertion may be weakened, skipped or relaxed; existing runner assertions are otherwise untouched.</Constraint>
+      <Constraint>package.json, package-lock.json and the npm dependency graph are out of scope: the app renderer's own markdown-it chain (node_modules, vite.config.js grouping) is a separate dependency handled by dependabot. This change touches only the vendored QuickLook copies, which are loaded as classic scripts by the Swift renderer, not imported by the app.</Constraint>
+      <Constraint>License records travel with the upstream bytes: the markdown-it MIT banner and the Highlight.js BSD-3-Clause header must be present and version-consistent in the refreshed files. No repo-level NOTICE file change is required or authorized by this change.</Constraint>
+      <Constraint>Execute sequentially against the current graph. Preserve M-073/V-M-073 ownership, the M-046 quicklook-native hosted gate role, all runner deadlines, budgets and safety assertions; no signing, version, entitlement or installation change; frozen archived bundles stay immutable.</Constraint>
+    </Constraints>
+    <ObservedWriteScope>
+      <File>mark-quicklook/Sources/PreviewExtension/Resources/markdown-it.min.js</File>
+      <File>mark-quicklook/Sources/PreviewExtension/Resources/highlight.min.js</File>
+      <File>tests/renderer/quicklook-runner.test.js</File>
+    </ObservedWriteScope>
+    <NonGoals>
+      <NonGoal>No renderer-side markdown-it or highlight.js change: no app renderer dependency bump, no package.json/lockfile edit, no muya or vite grouping change; the npm graph is dependabot-owned.</NonGoal>
+      <NonGoal>No feature change: no new syntax languages or themes, no typography or rendering behavior tuning, no MarkdownRenderer option change, no CSP/entitlement/navigation policy change, no QuickLook UI change.</NonGoal>
+      <NonGoal>No github-dark.css or style.css change: the accepted light palette and its 11.9.0-role provenance header remain as shipped by C-QUICKLOOK-SYNTAX-THEME.</NonGoal>
+      <NonGoal>No release, tag, app-version, signing, installation, LaunchServices registration or workflow change is authorized by this change; the vendored refresh is verified through the existing unsigned fixture path only.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <Criterion>Vendored bytes match the upstream published releases for the pinned versions: markdown-it.min.js equals the markdown-it 14.3.3 dist markdown-it.min.js artifact and highlight.min.js equals the Highlight.js 11.12.0 published browser bundle; SHA-256 digests of the adopted artifacts are recorded in the change bundle next to the upstream release identifiers.</Criterion>
+      <Criterion>Failing-first evidence: the new version-pin assertions in tests/renderer/quicklook-runner.test.js fail on the unchanged 14.2.0/11.9.0 bytes and pass after the refresh; they assert the markdown-it banner version 14.3.3 and the highlight.js header/versionString 11.12.0 exactly, with no looser matching.</Criterion>
+      <Criterion>node tools/check-quicklook.mjs passes on the refreshed resources: compilation, all 26 mandatory native cases (including highlight, markdown, raw-content negatives, repeat-preview and both theme cases) pass, observer request count stays zero, and source/bundle SHA-256 snapshots are internally consistent with the new bytes.</Criterion>
+      <Criterion>License records are consistent: the refreshed markdown-it.min.js retains an `@license MIT` banner naming 14.3.3 and the refreshed highlight.min.js retains a BSD-3-Clause header naming v11.12.0; no other file's license or attribution text changed.</Criterion>
+      <Criterion>The unsigned MarkPreview extension build, the runner unit suite, GRACE current/target/final gates and normal commit/push/review checks pass for the final candidate; the hosted quicklook-native job (M-046-owned) stays green and required.</Criterion>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-073 />
+      <File>mark-quicklook/Sources/PreviewExtension/Resources/markdown-it.min.js</File>
+      <File>mark-quicklook/Sources/PreviewExtension/Resources/highlight.min.js</File>
+      <File>tests/renderer/quicklook-runner.test.js</File>
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>node tools/check-quicklook.mjs</ExpectedCommand>
+      <ExpectedCommand>npx --no-install vitest run tests/renderer/quicklook-runner.test.js tests/renderer/release-github-controls.test.js --maxWorkers=2</ExpectedCommand>
+      <ExpectedCommand>xcodebuild -project mark-quicklook/MarkQuickLook.xcodeproj -target MarkPreview -configuration Debug SYMROOT="$PWD/.claude/quicklook-content-boundary/target-build/products" OBJROOT="$PWD/.claude/quicklook-content-boundary/target-build/intermediates" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= REGISTER_APP_WITH_LAUNCH_SERVICES=NO SKIP_INSTALL=YES build</ExpectedCommand>
+      <ExpectedEvidence>The plan records, before any write on the fresh head: SHA-256 of both vendored files (failing-first pinning evidence on the 14.2.0/11.9.0 bytes), then the upstream release identifiers and SHA-256 of the adopted 14.3.3/11.12.0 artifacts, and after the write re-runs the full native matrix. Byte equality with the upstream artifacts (or digests recorded from the release downloads) is the integrity proof; the native 26-case green run with zero observer requests is the behavior proof. A plan binds these before approval.</ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>The upstream markdown-it 14.3.3 dist build still exposes the same browser global consumed by the bootstrap (`window.markdownit`) and Highlight.js 11.12.0 keeps `hljs.highlight`/`hljs.getLanguage`; the unchanged native matrix proves the integration on the actual bytes.</Assumption>
+      <Assumption>The update mechanism is replacement from upstream release artifacts (manual vendor refresh); no dedicated refresh script exists in tools/, so provenance is established by recorded release identifiers and digests rather than a script.</Assumption>
+      <Assumption>Writing this draft approves no plan, implementation, apply/archive or release; drafting only proposes the pinned versions and the bounded scope.</Assumption>
+    </Assumptions>
+  </C-QUICKLOOK-MDIT-BUMP>
+</GraceChangeSpec>

@@ -1,0 +1,198 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-RELEASE-BETA-CHECKS-GATE>
+    <IntentSummary>Give release.yml's prerelease lane a lightweight fail-closed required-checks gate: authorize-tag (which already holds checks: read) collects check runs for the tag's HEAD SHA — the seal, never the payload train field — using the stable lane's exact collection shape (paginated check-runs API, sorted by started time, grouped per name+app keeping the latest attempt, one checks file), then a new prerelease-only gate step requires the two main required contexts pinned explicitly in the workflow source — "status check" and "release/governance" (GitHub Actions), derived from .github/release-governance.json rulesets.main.requiredChecks minus release/readiness, which is this very job's tag-time check and cannot pre-exist on the beta commit — to exist exactly once at that SHA with conclusion success before the release-signing environment or any packaging job runs; a failed, cancelled, or missing check, a match at any other SHA, or an ambiguous identity rejects the tag, and publish stays protected transitively (build requires authorize-tag success, publish requires build). The stable lane keeps byte-identical behavior for non-hyphenated tags, the lane gains no new job, artifact, permission, secret, environment or dependency, re-runs re-collect fresh evidence with no cross-run state, and source-pinned structural tests with deterministic red fixtures (failure, cancelled, missing, stale SHA, superseded rerun) plus a red control for the absent gate or list pin the whole contract; docs/release-process.md section 4a documents the owner-facing fail-closed semantics: promote before main CI is green and the tag run is rejected until a re-run sees the commit green.</IntentSummary>
+    <Spec>C-RELEASE-BETA-CHECKS-GATE</Spec>
+    <ReferenceState>Authored 2026-11-21 against the read-only canary-beta-wave worktree: .github/workflows/release.yml VERSION 3.7.0 carries the C-RELEASE-CANARY-PRERELEASE lane — the identity step outputs prerelease (:112, :177) after the admission branch at :152-172; the four skip-conditioned authorize-tag steps sit at :183-219 ("read exact payload check runs" :183-193 writes /tmp/release-checks.json through the exact jq shape [.[].check_runs[]] | sort_by(.started_at) | group_by(.name + "|" + .app.name) | map(last | {name, app:.app.name, sha:.head_sha, conclusion}), then strict admission, materials/preflight and the release-identity artifact upload, each behind if: steps.identity.outputs.prerelease != 'true'); build repeats the skip for the admitted-evidence download and repeated strict admission (:411-441); publish branches prerelease at :1162-1180; publish-cask is skipped at :1197-1199. .github/release-governance.json rulesets.main.requiredChecks (:73-77) lists status check, release/governance and release/readiness (all github-actions) — the beta set is the first two; release/readiness is the authorize-tag job's own check (job name release/readiness, produced by this very workflow on the tag event) and cannot pre-exist on the tagged commit, so requiring it in-workflow would deadlock the lane — the exclusion rationale the workflow comment must record. tests/renderer/release-governance.test.js VERSION 2.2.0 already reads the checked-in release.yml as text, pins shapes by split slices, and rejects in-memory mutations through the assertGitleaksChecksumContract red-control precedent; tests/renderer/action-ref-check.test.js VERSION 1.0.0 is the workflow-structure companion suite in the focused pair. docs/release-process.md section 4a "Prerelease builds for external testers" (:90-104) documents the beta path this change extends. .grace/graph/features.xml holds M-046 with dated SummaryDelta rows and VerificationRef V-M-046; .grace/verification/features.xml V-M-046 holds Command and Scenario entries (highest scenario number 37 at drafting time). The repo actionlint canon runs `actionlint .github/workflows/release.yml` against the release workflow (C-RELEASE-ACTION-REFERENCES: actionlint v1.7.12, actionlint 0 findings, obtained outside the repository from its official release only if no matching reviewed tool is available). Deviation note: the worktree commit hash is not recorded here (no shell access from the drafting session); every file, line and byte-level anchor above was verified directly against this tree. Per the drafting instruction this plan carries no self-referential grace-lint MustPassCommand; the orchestrator runs the current/target/final lifecycle gates itself. Writing this draft approves neither implementation, apply/archive, commit/push, lane admission, release, signing, tag nor publication.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-046</Value>
+        <Value>.github/workflows/release.yml</Value>
+        <Value>.github/release-governance.json</Value>
+      </MustExist>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>if: steps.identity.outputs.prerelease != 'true'</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>sort_by(.started_at) | group_by(.name + "|" + .app.name) | map(last | {name, app:.app.name, sha:.head_sha, conclusion})</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text># VERSION: 3.7.0</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/release-governance.json</File>
+        <Text>"requiredChecks": [
+        { "context": "status check", "integrationSlug": "github-actions" },
+        { "context": "release/governance", "integrationSlug": "github-actions" },
+        { "context": "release/readiness", "integrationSlug": "github-actions" }
+      ]</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-046</Module>
+      </MustVerify>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text># VERSION: 3.8.0</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>C-RELEASE-BETA-CHECKS-GATE</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>if: steps.identity.outputs.prerelease == 'true'</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>commits/$SEAL/check-runs</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>PRERELEASE_REQUIRED_CHECKS</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>{"name":"status check","app":"GitHub Actions"},{"name":"release/governance","app":"GitHub Actions"}</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>rulesets.main.requiredChecks</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>cannot pre-exist on the beta commit</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>BLOCK_PRERELEASE_CHECKS_NOT_GREEN</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>sort_by(.started_at) | group_by(.name + "|" + .app.name) | map(last | {name, app:.app.name, sha:.head_sha, conclusion})</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>run: npm run release:readiness -- --mode strict --tag "$TAG" --payload "$PAYLOAD" --seal "$SEAL" --head "$HEAD_SHA" --checks-file /tmp/release-checks.json</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>CHECKS_FILE: ${{ runner.temp }}/release-identity/release-checks.json</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>if: needs.authorize-tag.outputs.prerelease != 'true'</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>// VERSION: 2.3.0</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>C-RELEASE-BETA-CHECKS-GATE</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>assertPrereleaseChecksGate</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>PRERELEASE_REQUIRED_CHECKS</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/release-process.md</File>
+        <Text>fails closed until main CI is green at the tagged commit</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/features.xml</File>
+        <Text>C-RELEASE-BETA-CHECKS-GATE</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/features.xml</File>
+        <Text>C-RELEASE-BETA-CHECKS-GATE</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>checks-gate:</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>prerelease-identity</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>"release/readiness"</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/release-governance.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="60">actionlint .github/workflows/release.yml</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-046 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-046 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>.github/workflows/release.yml</File>
+      <File>tests/renderer/release-governance.test.js</File>
+      <File>docs/release-process.md</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/features.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Prerelease checks-gate in authorize-tag: seal-keyed collection reusing the stable jq shape plus the fail-closed pinned-set gate</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Add a prerelease-only collection step to authorize-tag, placed strictly after "install locked dependencies without lifecycle scripts" and strictly before the stable "read exact payload check runs" step, carrying exactly if: steps.identity.outputs.prerelease == 'true'. Its env takes GH_TOKEN from github.token and SEAL from steps.identity.outputs.seal, and its run block — set -euo pipefail retained — pipes gh api --paginate --slurp over repos/$GITHUB_REPOSITORY/commits/$SEAL/check-runs?per_page=100 through the byte-identical stable jq shape ([.[].check_runs[]] | sort_by(.started_at) | group_by(.name + "|" + .app.name) | map(last | {name, app:.app.name, sha:.head_sha, conclusion})) into /tmp/release-checks.json. A preceding comment records that the collection keys on the tag's HEAD SHA (the seal) and never on the train payload field, that the jq shape's sort-then-group-keeping-last resolution is what makes a superseded earlier attempt (a flaky red re-run) resolve to the latest attempt, and that no artifact, cache or cross-run state exists on this path — a re-run re-collects fresh evidence. The checks-file JSON shape is identical to the stable lane's (same jq, same fields name/app/sha/conclusion, same path); the stable collection step itself keeps its exact bytes including its != 'true' condition.</Criterion>
+          <Criterion>Add the prerelease-only gate step immediately after the collection step, carrying exactly if: steps.identity.outputs.prerelease == 'true', with an env block holding SEAL from steps.identity.outputs.seal and PRERELEASE_REQUIRED_CHECKS pinned to exactly the compact JSON list [{"name":"status check","app":"GitHub Actions"},{"name":"release/governance","app":"GitHub Actions"}]. The env is preceded by a comment recording the derivation source (.github/release-governance.json rulesets.main.requiredChecks), why the list is pinned in the workflow source rather than read from the config (so the gate cannot silently drift with a config edit), and the release/readiness exclusion with its deadlock rationale: it is the tag-time check of this very workflow and cannot pre-exist on the beta commit — the comment names release/readiness unquoted so the file never contains the quoted form that would add it to the pinned set. The run block evaluates fail-closed through the job's already-set-up Node 22 (no npm dependency, no new tool): load /tmp/release-checks.json, then for each required identity (name + app) require exactly one match — zero matches is a missing required check, more than one an ambiguous identity — require the match's sha to equal SEAL (a match recorded at any other SHA is stale and fails), and require conclusion to be exactly success (failure, cancelled, and every other non-success conclusion fail); every rejection emits a ::error:: line prefixed [ReleaseAuthorize][authorize-tag][BLOCK_PRERELEASE_CHECKS_NOT_GREEN] naming the offending identity and reason, and the script exits nonzero without any status-swallowing construct around the evaluation. The gate runs no release:readiness, release:materials or release:preflight invocation, uploads no artifact (the release-identity artifact stays stable-only), and the step must not swallow its evaluation's exit status.</Criterion>
+          <Criterion>Keep every other byte of behavior: no new job anywhere in the file (the string checks-gate: never appears — the gate lives inside authorize-tag), no change to the job-level permissions (authorize-tag keeps exactly contents: read and checks: read, both already sufficient for the check-runs read), no change to triggers, concurrency, the workflow-level permissions block, the manual-build/build/prepare-publication/publish/publish-cask jobs, the build-side prerelease skips (if: needs.authorize-tag.outputs.prerelease != 'true'), the publish prerelease branch or the cask skip. Synchronize the file-local GRACE markup: VERSION 3.7.0 to 3.8.0; the MODULE_MAP authorize-tag entry gains a C-RELEASE-BETA-CHECKS-GATE sentence (prerelease tags additionally collect check runs at the seal and require the pinned main set green before any signing lane runs); a dated 2026-11-21 CHANGE_SUMMARY entry names C-RELEASE-BETA-CHECKS-GATE and the added prerelease boundary; MODULE_CONTRACT and all other markup stay as-is.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="60">actionlint .github/workflows/release.yml</Command>
+          <Command budgetSeconds="120">node node_modules/vitest/vitest.mjs run tests/renderer/action-ref-check.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Structural tests: positive gate pins, deterministic fail-closed fixture matrix with rerun supersession, and in-memory red controls</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Extend tests/renderer/release-governance.test.js inside START_BLOCK_RELEASE_GOVERNANCE_TESTS, keeping every existing test unweakened: an authorize-tag job slice and prerelease collection/gate step slices are derived by the file's existing split style, and positive pins assert both new steps carry the prerelease-only condition if: steps.identity.outputs.prerelease == 'true'; the collection step hits commits/$SEAL/check-runs (seal-keyed, no $PAYLOAD reference in either prerelease step), reuses the exact stable jq shape and writes /tmp/release-checks.json; the gate step carries PRERELEASE_REQUIRED_CHECKS whose pinned list contains exactly the two required identities status check and release/governance (both app GitHub Actions) and no third entry; the comment records the rulesets.main.requiredChecks derivation and the release/readiness exclusion rationale; the BLOCK_PRERELEASE_CHECKS_NOT_GREEN marker is present; collection orders before gate; the authorize-tag slice still contains the four stable != 'true' step conditions, the strict-admission run line and the release-identity artifact (stable lane byte-identical), and no new job key appears. The existing stable-lane pins elsewhere in the file keep passing.</Criterion>
+          <Criterion>Add a pure in-test validator assertPrereleaseChecksGate(checks, required, seal) mirroring the gate's evaluation (exactly-one match per name+app, sha equals seal, conclusion exactly success, otherwise reject with the identity and reason) and drive it with deterministic fixture JSON: a status check conclusion failure is rejected; status check cancelled is rejected; a required name absent from the collection is rejected; both checks success but recorded at a stale SHA is rejected; both checks success at the exact seal SHA passes; and a fixture carrying a superseded earlier attempt (same name+app, older started_at, red conclusion) plus a later success resolves to the latest attempt through the same sort-by-started-time, group-by-name-and-app, keep-last shape and passes. Add red controls that mutate only the checked-in workflow source string in memory (no tracked-file edits, no network) and reject each mutation with a distinct expectation: removing the PRERELEASE_REQUIRED_CHECKS env from the gate step is rejected as a missing pinned list; removing the gate step is rejected as a missing gate; stripping the gate's condition or flipping it to != 'true' is rejected as a gate that is not prerelease-only. Test comments note, in the gitleaks digest-pin stance, that shape pins cannot distinguish the pinned list from some other well-formed set — set truth is anchored by the reviewed diff plus the recorded rulesets.main.requiredChecks derivation, never by a runtime fetch.</Criterion>
+          <Criterion>Synchronize the test file's local markup: VERSION 2.2.0 to 2.3.0 and a dated 2026-11-21 CHANGE_SUMMARY entry for C-RELEASE-BETA-CHECKS-GATE; no changes to tests/renderer/action-ref-check.test.js, any tools/*.mjs helper, test configuration or other test file.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/renderer/release-governance.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Graph and verification deltas plus the owner-facing fail-closed note in release-process section 4a</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>.grace/graph/features.xml: append one dated C-RELEASE-BETA-CHECKS-GATE SummaryDelta inside M-046 recording the new prerelease boundary — a beta/canary tag run collects its commit's check runs at the seal and authorize-tag rejects the tag unless the pinned main required set (status check and release/governance, release/readiness excluded as this workflow's own tag-time check) is exactly-once green at that SHA, with the stable lane byte-identical — without touching any other graph content.</Criterion>
+          <Criterion>.grace/verification/features.xml: inside V-M-046 append the next sequential Scenario entry (scenario-38 at drafting time, dated 2026-11-21) naming the structural pins (pinned in-workflow list, prerelease-only conditions, seal-keyed collection with the reused jq shape), the deterministic fixture matrix (failure, cancelled, missing, stale SHA, superseded rerun, green-at-seal), the red controls (missing list, missing gate, non-prerelease-only gate), and the focused commands — the vitest pair node node_modules/vitest/vitest.mjs run tests/renderer/release-governance.test.js tests/renderer/action-ref-check.test.js --maxWorkers=2, actionlint on release.yml, and npm run release:governance — without touching any other verification content.</Criterion>
+          <Criterion>docs/release-process.md section 4a only: add one sentence stating that a prerelease tag run verifies its commit's pinned required checks at the exact tag commit and fails closed until main CI is green at the tagged commit — the exact phrase "fails closed until main CI is green at the tagged commit" — so promoting before the commit's main CI is green is rejected until a re-run re-collects fresh evidence and passes; no other section, heading or wording changes.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="60">npm run release:governance</Command>
+          <Command budgetSeconds="60">actionlint .github/workflows/release.yml</Command>
+          <Command budgetSeconds="30">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/features.xml'); ET.parse('.grace/verification/features.xml')"</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Environment>Baseline is the current canary-beta-wave worktree with node_modules installed (node_modules/vitest/vitest.mjs exists). Tasks run strictly sequentially T-001 then T-002 then T-003; the two-file vitest command becomes fully meaningful only after T-002 lands the pins. The focused runs must pass with no skips, retries or budget increases, and the combined diff must be limited to .github/workflows/release.yml (the two prerelease-only steps, the version bump, MODULE_MAP and CHANGE_SUMMARY markup), tests/renderer/release-governance.test.js (new pins, fixture matrix, red controls, markup), docs/release-process.md (the one section 4a sentence), .grace/graph/features.xml (one dated M-046 SummaryDelta) and .grace/verification/features.xml (one V-M-046 Scenario entry plus command references). The stable lane must stay byte-identical for non-hyphenated tags: every existing step condition (the four steps.identity.outputs.prerelease != 'true' authorize-tag skips and the needs.authorize-tag.outputs.prerelease != 'true' build/publish-cask skips), the strict admission set with its digest-verified release-identity artifact, the feed-advance verification and the cask handoff keep their exact bytes; the additions live strictly inside authorize-tag; no new job, no permission beyond the job's existing contents: read and checks: read, no secret, environment, branch-protection or ruleset API call, no npm dependency and no new workflow file; the gate keys on the tag's HEAD SHA (seal), never the payload field; the checks-file JSON shape is identical to the stable lane's; fail-closed semantics are documented for the owner in section 4a (promote before CI green is rejected until green, re-run recovers without manual intervention). After merge, the first real beta/canary tag run is the live evidence — the gate step green in the authorize-tag log at the tag SHA — and one forced red control recorded as rejected by the gate remains external follow-up evidence no unit test claims to discharge. The orchestrator runs the current/target/final grace-lint lifecycle gates itself (current before editing, target during implementation, final --run-commands before archive, current after); no command in this plan is self-referential to those gates. No apply/archive, commit/push, release, signing, version, tag or publication is authorized by this plan.</Environment>
+    </AcceptanceVerification>
+    <ExecutionMode>sequential</ExecutionMode>
+    <Lifecycle>Drafted 2026-11-21 from the approved spec for orchestrator admission; the orchestrator owns status transitions and the durable/final/archive/publication boundaries. Writing this draft approves neither implementation nor apply/archive, commit/push, lane admission, release, signing, tag or publication.</Lifecycle>
+  </C-RELEASE-BETA-CHECKS-GATE>
+</GraceChangePlan>

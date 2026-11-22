@@ -1,10 +1,10 @@
 // FILE: src-tauri/src/m013b/search.rs
-// VERSION: 2.3.0-beta
+// VERSION: 2.4.0-beta
 // START_MODULE_CONTRACT
 //   PURPOSE: Run cancellable content searches and stream bounded result batches to the renderer.
-//   SCOPE: Tauri search commands, rg JSON-process transport, embedded ignore/regex fallback, search-session coordination (session-wide seq, exactly one terminal), cancellation, and search-event payloads.
+//   SCOPE: Tauri search commands, rg JSON-process transport (exit-status honesty, bounded stderr capture, cancel watcher), embedded ignore/regex fallback, shared exclusion-mask compilation, search-session coordination (session-wide seq, exactly one terminal), cancellation, and search-event payloads (additive optional partial flag).
 //   DEPENDS: ignore, regex, serde_json, tauri, m010_security, m013b::error, m013b::state.
-//   LINKS: M-004, V-M-004, Phase-B2 step-4, C-SEARCH-SESSION-COMPLETION.
+//   LINKS: M-004, V-M-004, Phase-B2 step-4, C-SEARCH-SESSION-COMPLETION, C-SEARCH-ERROR-VISIBILITY.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -15,19 +15,21 @@
 //   MAX_LINE_BYTES - Maximum line size admitted by the embedded fallback.
 //   SearchOptions - Search preferences accepted from the renderer.
 //   SearchHit - One normalized text-match result.
-//   SearchEvent - Batched search-event wire payload.
+//   SearchEvent - Batched search-event wire payload (additive optional partial flag on terminals).
 //   SearchSink - Event-sink abstraction shared by Tauri and tests.
 //   SearchRegistry - Registry of cancellable in-flight searches.
 //   SearchTerminal - Which single terminal kind (complete/cancelled/error) ends a session.
 //   SearchSessionCoordinator - Session-wide owner of the seq counter and the single terminal.
 //   run_session - Execute one full search session across every validated root.
 //   run_search - Embedded walker adapter emitting match batches through the session coordinator.
+//   compile_exclusion_masks - Shared mask semantics for walker filtering and rg --glob=! args; invalid masks explicitly ignored.
 //   mt_search_spawn - Validate and start an asynchronous rg-backed search.
 //   mt_search_cancel - Cancel an in-flight search by id (flag flip; the terminal comes from the session coordinator).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2.3.0-beta - C-SEARCH-SESSION-COMPLETION T-001: SearchSessionCoordinator owns the session-wide seq and the single terminal (complete/cancelled/error); run_search/run_ripgrep emit match batches only, run_session finalizes exactly once across all roots and both engines — no per-root terminals, no seq restart.
+//   LAST_CHANGE: 2.4.0-beta - C-SEARCH-ERROR-VISIBILITY T-001/T-003: rg honesty and prompt cancel settle — stderr piped with a bounded START_BLOCK_RIPGREP_STDERR_CAPTURE tail (BLOCK log only, never the wire error), child exit status reaped and checked (0/1 normal, >=2 the single "rg exited with code N" error class), START_BLOCK_CANCEL_WATCHER thread kills+waits a silent child without needing a stdout line, compile_exclusion_masks applied symmetrically (walker filter + rg --glob=! args; invalid masks explicitly ignored), additive optional SearchEvent.partial with finalize(terminal, error, partial) computed conservatively in run_session.
+//   PREVIOUS: 2.3.0-beta - C-SEARCH-SESSION-COMPLETION T-001: SearchSessionCoordinator owns the session-wide seq and the single terminal (complete/cancelled/error); run_search/run_ripgrep emit match batches only, run_session finalizes exactly once across all roots and both engines — no per-root terminals, no seq restart.
 //   PREVIOUS: 2.2.0-beta - C-15 T-W2: ripgrep_available probe — desktop builds without a system rg (typical Windows) degrade to the in-process walker with BLOCK_RIPGREP_FALLBACK marker.
 //   PREVIOUS: 2.1.1-beta - Defined injectable rg execution so spawn-failure tests remain deterministic under parallel cargo test.
 //   PREVIOUS: 2026-04-28 B2-step-4 - Replaced stubs with ignore/regex fallback, streaming batches, cancellation, and SearchRegistry.
@@ -69,10 +71,16 @@ pub const MAX_LINE_BYTES: usize = 1024 * 1024;
 /// (post-JSON-flatten in v1.2.3 ripgrepSearcher fix). camelCase
 /// rename_all matches the renderer payload exactly.
 ///
+/// C-SEARCH-ERROR-VISIBILITY: `exclusions` masks are now applied
+/// symmetrically by both engines through compile_exclusion_masks (the
+/// walker filters entries; rg receives each valid mask as a --glob!=!
+/// argument); invalid masks are explicitly ignored on both sides and
+/// only force the session's partial flag.
+///
 /// allow(dead_code) on the struct — leading/trailing context lines and
-/// inclusions/exclusions globs are part of the contract but not yet
-/// wired into run_search. Tracked: F-SEARCH-CONTEXT-LINES + F-SEARCH-
-/// INCLUDE-EXCLUDE-GLOBS for B3 follow-up.
+/// inclusions globs are part of the contract but not yet wired into
+/// run_search. Tracked: F-SEARCH-CONTEXT-LINES + F-SEARCH-INCLUDE-
+/// EXCLUDE-GLOBS for B3 follow-up.
 #[allow(dead_code)]
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
@@ -100,8 +108,13 @@ pub struct SearchHit {
 }
 
 /// Outbound event payload. Renderer parses {searchId, kind, hits[],
-/// error?}. The kind discriminator is "match" | "complete" | "error" |
-/// "cancelled" — same shape M-013-A's RipgrepDirectorySearcher expects.
+/// error?, partial?}. The kind discriminator is "match" | "complete" |
+/// "error" | "cancelled" — same shape M-013-A's RipgrepDirectorySearcher
+/// expects. C-SEARCH-ERROR-VISIBILITY: `partial` is one additive
+/// optional flag, absent on match events and always present on the
+/// single terminal event, honestly marking truncated/incomplete result
+/// sets (error/cancelled with streamed hits, or complete with a size
+/// limit or an active exclusion mask).
 #[derive(Serialize, Debug, Clone)]
 pub struct SearchEvent {
     #[serde(rename = "searchId")]
@@ -111,6 +124,8 @@ pub struct SearchEvent {
     pub hits: Vec<SearchHit>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub partial: Option<bool>,
     pub seq: u32,
 }
 
@@ -224,6 +239,7 @@ impl SearchSessionCoordinator {
             kind: "match".to_string(),
             hits,
             error: None,
+            partial: None,
             seq,
         });
         true
@@ -231,7 +247,10 @@ impl SearchSessionCoordinator {
 
     /// Emit the session's single terminal event. Later calls are
     /// no-ops that return false: terminal finalization cannot occur twice.
-    fn finalize(&mut self, terminal: SearchTerminal, error: Option<String>) -> bool {
+    /// C-SEARCH-ERROR-VISIBILITY: `partial` honestly marks the result set
+    /// (true on error/cancelled with streamed hits, or on complete with a
+    /// size limit or an active exclusion mask — computed by run_session).
+    fn finalize(&mut self, terminal: SearchTerminal, error: Option<String>, partial: bool) -> bool {
         if self.finished {
             return false;
         }
@@ -248,6 +267,7 @@ impl SearchSessionCoordinator {
             kind: kind.to_string(),
             hits: vec![],
             error,
+            partial: Some(partial),
             seq,
         });
         true
@@ -294,24 +314,33 @@ fn run_session_with_program(
     coordinator: &mut SearchSessionCoordinator,
 ) -> (u32, &'static str) {
     let mut total_hits: u32 = 0;
+    // C-SEARCH-ERROR-VISIBILITY: honest partial accounting. A complete
+    // terminal must not silently claim completeness when a size limit or
+    // at least one exclusion mask (valid or explicitly-ignored invalid)
+    // was active; error/cancelled terminals are partial whenever hits
+    // were already streamed.
+    let masks = compile_exclusion_masks(opts.exclusions.as_ref());
+    let size_limit_active = opts.max_file_size.is_some();
     for root in roots {
         if cancel.load(Ordering::SeqCst) {
             break;
         }
         let result = if in_process {
             run_search(root, pattern, opts, cancel.clone(), coordinator)
-                .map_err(|e| e.message)
+                .map_err(|e| (0u32, e.message))
         } else {
             run_ripgrep_with_program(rg_program, root, pattern, opts, cancel.clone(), coordinator)
         };
         match result {
             Ok(hits) => total_hits += hits,
-            Err(e) => {
+            Err((root_streamed, e)) => {
+                total_hits += root_streamed;
                 safe_eprintln!(
                     "[Search][run][BLOCK_RIPGREP_FAILED search_id={} err={e}]",
                     coordinator.search_id()
                 );
-                coordinator.finalize(SearchTerminal::Error, Some(e));
+                let partial = total_hits > 0;
+                coordinator.finalize(SearchTerminal::Error, Some(e), partial);
                 return (total_hits, "error");
             }
         }
@@ -321,7 +350,13 @@ fn run_session_with_program(
     } else {
         SearchTerminal::Complete
     };
-    coordinator.finalize(terminal, None);
+    let partial = match terminal {
+        SearchTerminal::Complete => {
+            size_limit_active || masks.invalid_count > 0 || !masks.valid.is_empty()
+        }
+        _ => total_hits > 0,
+    };
+    coordinator.finalize(terminal, None, partial);
     (total_hits, terminal_kind_name(terminal))
 }
 
@@ -350,6 +385,61 @@ fn build_matcher(pattern: &str, opts: &SearchOptions) -> Result<regex::Regex, re
     RegexBuilder::new(&wrapped)
         .case_insensitive(!opts.is_case_sensitive.unwrap_or(false))
         .build()
+}
+
+/// Shared exclusion-mask semantics for BOTH engines (C-SEARCH-ERROR-VISIBILITY).
+/// Each mask is validated once here and consumed two ways: the embedded
+/// walker applies every valid mask through ignore's override globs (the
+/// same gitignore-style globset engine rg uses for `--glob`), and the rg
+/// transport receives every valid raw mask verbatim as a `--glob=!mask`
+/// argument.
+///
+/// Documented semantics (defined exactly once):
+/// - masks match against the entry's path RELATIVE to its search root
+///   (rg matches against the per-root relative path as well);
+/// - a bare mask (no `/`) matches the basename at any depth and the
+///   walker prunes the whole masked subtree, mirroring rg's `--glob`
+///   behavior; gitignore-style glob syntax otherwise (`*` does not
+///   cross path separators);
+/// - case-SENSITIVE (the documented choice; matches rg's default);
+/// - an INVALID mask (empty/whitespace-only, NUL byte, or a glob the
+///   engine rejects — e.g. an unclosed `[`) is explicitly ignored per
+///   this change's recorded choice: never passed to rg, never used by
+///   the walker — it only increments `invalid_count` so the session's
+///   terminal can force the honest partial flag.
+struct ExclusionMasks {
+    /// Raw valid mask texts, passed to rg as `--glob=!mask` verbatim.
+    valid: Vec<String>,
+    /// Invalid masks dropped by both engines; forces the partial flag.
+    invalid_count: usize,
+}
+
+fn compile_exclusion_masks(exclusions: Option<&Vec<String>>) -> ExclusionMasks {
+    let mut valid = Vec::new();
+    let mut invalid_count = 0usize;
+    // The "!"-prefixed override form is the exclusion class of the same
+    // gitignore-style glob engine rg uses for --glob; the builder root is
+    // irrelevant for a syntax validity check. add() alone validates.
+    let mut validator = ignore::overrides::OverrideBuilder::new(Path::new(""));
+    for raw in exclusions.into_iter().flatten() {
+        let trimmed = raw.trim();
+        if trimmed.is_empty() || trimmed.contains('\0') {
+            invalid_count += 1;
+            continue;
+        }
+        match validator.add(&format!("!{trimmed}")) {
+            Ok(_) => valid.push(trimmed.to_string()),
+            Err(_) => {
+                // Invalid mask: explicitly ignored by BOTH engines —
+                // never handed to rg, never used by the walker.
+                invalid_count += 1;
+            }
+        }
+    }
+    ExclusionMasks {
+        valid,
+        invalid_count,
+    }
 }
 
 /// Embedded walker adapter: run a content search across one root,
@@ -393,6 +483,26 @@ pub fn run_search(
         .follow_links(opts.follow_symlinks.unwrap_or(false));
     if let Some(max_size) = opts.max_file_size {
         walker.max_filesize(Some(max_size));
+    }
+
+    // C-SEARCH-ERROR-VISIBILITY: exclusion masks filter entries BEFORE any
+    // file is opened, through ignore's override globs — the same
+    // gitignore-style glob engine rg receives as --glob=! arguments (see
+    // compile_exclusion_masks for the one documented mask semantics).
+    // The walker prunes masked subtrees natively; invalid masks were
+    // dropped at compile time and only force the session's partial flag.
+    let exclusion_masks = compile_exclusion_masks(opts.exclusions.as_ref());
+    if !exclusion_masks.valid.is_empty() {
+        let mut builder = ignore::overrides::OverrideBuilder::new(root);
+        for mask in &exclusion_masks.valid {
+            // compile_exclusion_masks already validated the glob syntax;
+            // a divergent error here degrades to "ignored" exactly like an
+            // invalid mask rather than failing the session.
+            let _ = builder.add(&format!("!{mask}"));
+        }
+        if let Ok(overrides) = builder.build() {
+            walker.overrides(overrides);
+        }
     }
 
     let mut batch: Vec<SearchHit> = Vec::with_capacity(DEFAULT_BATCH_SIZE);
@@ -584,7 +694,7 @@ fn run_ripgrep(
     opts: &SearchOptions,
     cancel: Arc<AtomicBool>,
     coordinator: &mut SearchSessionCoordinator,
-) -> Result<u32, String> {
+) -> Result<u32, (u32, String)> {
     run_ripgrep_with_program(
         std::ffi::OsStr::new("rg"),
         root,
@@ -596,11 +706,11 @@ fn run_ripgrep(
 }
 
 // START_CONTRACT: run_ripgrep_with_program
-//   PURPOSE: Run the rg transport with an explicitly selected executable for deterministic failure verification.
+//   PURPOSE: Run the rg transport with an explicitly selected executable for deterministic failure verification; the child's exit status decides normal completion (0/1) versus the single error terminal class, and its stderr feeds a bounded BLOCK-log-only capture.
 //   INPUTS: { rg_program: &OsStr - executable path/name, remaining inputs: same as run_ripgrep }
-//   OUTPUTS: { Result<u32, String> - per-root total hits, or a stable spawn/stream error }
-//   SIDE_EFFECTS: Spawns and waits for the selected child process; emits match batches through the coordinator.
-//   LINKS: run_ripgrep, run_session, V-M-004 scenario-5
+//   OUTPUTS: { Result<u32, (u32, String)> - per-root total hits, or the streamed-so-far total plus a stable spawn/stream/exit-status error class }
+//   SIDE_EFFECTS: Spawns the selected child process; a START_BLOCK_CANCEL_WATCHER thread kills+waits a silent child on the cancel flag and reaps it exactly once; a bounded stderr capture thread drains the pipe to the BLOCK log only; emits match batches through the coordinator (terminals are owned by run_session).
+//   LINKS: run_ripgrep, run_session, compile_exclusion_masks, V-M-004 scenario-5, C-SEARCH-ERROR-VISIBILITY
 // END_CONTRACT: run_ripgrep_with_program
 fn run_ripgrep_with_program(
     rg_program: &std::ffi::OsStr,
@@ -609,8 +719,8 @@ fn run_ripgrep_with_program(
     opts: &SearchOptions,
     cancel: Arc<AtomicBool>,
     coordinator: &mut SearchSessionCoordinator,
-) -> Result<u32, String> {
-    use std::io::{BufRead, BufReader};
+) -> Result<u32, (u32, String)> {
+    use std::io::{BufRead, BufReader, Read};
     use std::process::{Command, Stdio};
 
     // START_BLOCK_BUILD_RIPGREP_COMMAND
@@ -636,11 +746,19 @@ fn run_ripgrep_with_program(
     if opts.follow_symlinks.unwrap_or(false) {
         cmd.arg("--follow");
     }
+    // C-SEARCH-ERROR-VISIBILITY: exclusion masks go to rg symmetrically
+    // with the walker — each VALID mask verbatim as a --glob=! argument
+    // (compile_exclusion_masks); invalid masks are explicitly ignored
+    // here and only force the session's partial flag.
+    let exclusions = compile_exclusion_masks(opts.exclusions.as_ref());
+    for mask in &exclusions.valid {
+        cmd.arg(format!("--glob=!{mask}"));
+    }
     if let Some(max) = opts.max_file_size {
         cmd.arg(format!("--max-filesize={max}"));
     }
     cmd.arg("--").arg(pattern).arg(root);
-    cmd.stdout(Stdio::piped()).stderr(Stdio::null());
+    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
     // END_BLOCK_BUILD_RIPGREP_COMMAND
 
     // START_BLOCK_SPAWN_RIPGREP_PROCESS
@@ -649,10 +767,76 @@ fn run_ripgrep_with_program(
         coordinator.search_id(),
         root.display()
     );
-    let mut child = cmd.spawn().map_err(|e| format!("spawn rg: {e}"))?;
-    let stdout = child.stdout.take().ok_or("no stdout")?;
+    let mut child = cmd.spawn().map_err(|e| (0u32, format!("spawn rg: {e}")))?;
+    let stdout = child.stdout.take().ok_or((0u32, "no stdout".to_string()))?;
+    let mut stderr = child.stderr.take().ok_or((0u32, "no stderr".to_string()))?;
     let reader = BufReader::new(stdout);
     // END_BLOCK_SPAWN_RIPGREP_PROCESS
+
+    // START_BLOCK_RIPGREP_STDERR_CAPTURE
+    // Bounded stderr capture (C-SEARCH-ERROR-VISIBILITY): a small fixed
+    // cap so a chatty child can neither deadlock on a full pipe nor
+    // allocate without bound; the drained tail reaches the BLOCK log
+    // only — captured stderr text never enters the wire error field.
+    const STDERR_CAPTURE_CAP_BYTES: usize = 8 * 1024;
+    let stderr_handle = std::thread::spawn(move || {
+        let mut captured: Vec<u8> = Vec::new();
+        let mut chunk = [0u8; 1024];
+        loop {
+            match stderr.read(&mut chunk) {
+                Ok(0) => break,
+                Ok(n) => {
+                    let room = STDERR_CAPTURE_CAP_BYTES.saturating_sub(captured.len());
+                    if room > 0 {
+                        let take = n.min(room);
+                        captured.extend_from_slice(&chunk[..take]);
+                    }
+                    // Cap reached: keep draining to EOF without retaining.
+                }
+                Err(_) => break,
+            }
+        }
+        captured
+    });
+    // END_BLOCK_RIPGREP_STDERR_CAPTURE
+
+    // START_BLOCK_CANCEL_WATCHER
+    // C-SEARCH-ERROR-VISIBILITY T-003: a quiet rg child must not hold the
+    // session hostage until its next stdout line. A bounded watcher
+    // thread observes the cancel flag, kills the child on the flag,
+    // waits for it and exits. It never removes registry entries and
+    // never emits a terminal — SearchSessionCoordinator (run_session)
+    // stays the single terminal owner. The watcher owns the child and
+    // reaps it exactly once; the main path observes the exit status
+    // through the channel below.
+    let watcher_stop = Arc::new(AtomicBool::new(false));
+    let (status_tx, status_rx) = std::sync::mpsc::channel();
+    let watcher = {
+        let cancel_for_watcher = Arc::clone(&cancel);
+        let stop_for_watcher = Arc::clone(&watcher_stop);
+        std::thread::spawn(move || {
+            let mut child = child;
+            if cancel_for_watcher.load(Ordering::SeqCst) {
+                let _ = child.kill();
+            } else {
+                loop {
+                    if cancel_for_watcher.load(Ordering::SeqCst) {
+                        let _ = child.kill();
+                        break;
+                    }
+                    if stop_for_watcher.load(Ordering::SeqCst) {
+                        break;
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(5));
+                }
+            }
+            // Reap exactly once here — the killed or naturally exited
+            // child cannot leak as a zombie.
+            let status = child.wait();
+            let _ = status_tx.send(status);
+        })
+    };
+    // END_BLOCK_CANCEL_WATCHER
 
     let mut total: u32 = 0;
     let mut batch: Vec<SearchHit> = Vec::with_capacity(DEFAULT_BATCH_SIZE);
@@ -660,7 +844,8 @@ fn run_ripgrep_with_program(
 
     for line in reader.lines() {
         if cancel.load(Ordering::SeqCst) {
-            let _ = child.kill();
+            // The watcher owns kill+wait; EOF from the kill unblocks this
+            // loop even when the child never produced another line.
             break;
         }
         let line = match line {
@@ -720,7 +905,46 @@ fn run_ripgrep_with_program(
 
     coordinator.emit_matches(std::mem::take(&mut batch));
 
-    let _ = child.wait();
+    // C-SEARCH-ERROR-VISIBILITY: stop the watcher cleanly when no cancel
+    // raced in, then observe the reaped child's exit status through the
+    // watcher channel (the watcher reaps exactly once; this side never
+    // blocks on wait() itself).
+    watcher_stop.store(true, Ordering::SeqCst);
+    if watcher.join().is_err() {
+        return Err((0u32, "rg watcher thread failed".to_string()));
+    }
+    let status = match status_rx.recv() {
+        Ok(Ok(status)) => status,
+        Ok(Err(e)) => return Err((0u32, format!("wait rg: {e}"))),
+        Err(_) => return Err((0u32, "rg watcher dropped the exit status".to_string())),
+    };
+    let stderr_bytes = stderr_handle.join().unwrap_or_default();
+    let stderr_tail = String::from_utf8_lossy(&stderr_bytes);
+    if !stderr_tail.is_empty() {
+        // BLOCK log only — the captured tail never enters the wire error.
+        safe_eprintln!(
+            "[Search][rg][BLOCK_RIPGREP_STDERR_TAIL bytes={} tail={}]",
+            stderr_tail.len(),
+            stderr_tail
+        );
+    }
+
+    // Exit-status honesty: codes 0 (matches) and 1 (no matches) keep
+    // completing normally; any other exit — when not cancelled — is the
+    // single error terminal class. The message carries the exit code
+    // only: captured stderr text, query text, match contents and user
+    // paths never enter the wire error field.
+    if !cancel.load(Ordering::SeqCst) {
+        let abnormal = match status.code() {
+            Some(code) if code != 0 && code != 1 => Some(format!("rg exited with code {code}")),
+            Some(_) => None,
+            None => Some("rg exited with code signal".to_string()),
+        };
+        if let Some(message) = abnormal {
+            safe_eprintln!("[Search][rg][BLOCK_RIPGREP_EXIT class={message}]");
+            return Err((total, message));
+        }
+    }
     let _ = pattern_len; // reserved for future range-end calc
     Ok(total)
 }
@@ -1185,14 +1409,29 @@ mod tests {
             kind: "match".to_string(),
             hits: vec![],
             error: None,
+            partial: None,
             seq: 3,
         };
         let s = serde_json::to_string(&ev).unwrap();
         assert!(s.contains("\"searchId\":\"s-1\""), "got {s}");
         assert!(s.contains("\"seq\":3"));
-        // Empty hits + None error skipped per skip_serializing_if.
+        // Empty hits + None error + None partial skipped per skip_serializing_if.
         assert!(!s.contains("\"hits\""));
         assert!(!s.contains("\"error\""));
+        // C-SEARCH-ERROR-VISIBILITY: the additive optional partial field
+        // keeps absent-field serialization on match events…
+        assert!(!s.contains("\"partial\""));
+        // …and pins the terminal shape: partial always present on terminals.
+        let terminal = SearchEvent {
+            search_id: "s-1".to_string(),
+            kind: "complete".to_string(),
+            hits: vec![],
+            error: None,
+            partial: Some(true),
+            seq: 4,
+        };
+        let t = serde_json::to_string(&terminal).unwrap();
+        assert!(t.contains("\"partial\":true"), "got {t}");
     }
 
     #[test]
@@ -1374,7 +1613,415 @@ mod tests {
             &mut coordinator,
         );
         assert!(result.is_err(), "invalid rg executable must fail to spawn");
-        assert!(result.unwrap_err().contains("spawn rg"));
+        assert!(result.unwrap_err().1.contains("spawn rg"));
+    }
+
+    /// Write a unix executable script into a temp dir and return its path.
+    /// Deterministic injection seam for run_ripgrep_with_program — never
+    /// mutates process-global PATH (Rust tests run in parallel).
+    #[cfg(unix)]
+    fn write_exec_script(dir: &Path, name: &str, body: &str) -> PathBuf {
+        use std::os::unix::fs::PermissionsExt;
+        let path = dir.join(name);
+        write(&path, body).unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        path
+    }
+
+    // ─── C-SEARCH-ERROR-VISIBILITY: rg honesty family ──────────────────
+    // Failing-first receipts (traced against the pre-change tree): the old
+    // transport nulled stderr, never read the child's exit status and
+    // returned Ok(total) unconditionally, so
+    // every scenario below either saw a normal completion where the single
+    // error terminal belongs, no partial marker at all, or a cancel that
+    // only settled when the child's next stdout line arrived.
+
+    #[test]
+    #[cfg(unix)]
+    fn rg_exit_two_is_single_error_terminal() {
+        // (a) An injected rg program that streams one match, then exits 2:
+        // exactly one error terminal with the stable "rg exited with code 2"
+        // class message (captured stderr text never enters the wire), zero
+        // post-terminal events, the second root never started, and the
+        // partial marker set because hits were already streamed.
+        let dir = TempDir::new().unwrap();
+        let script = write_exec_script(
+            dir.path(),
+            "rg-exit-two.sh",
+            "#!/bin/sh\nprintf '%s\\n' '{\"type\":\"match\",\"data\":{\"path\":{\"text\":\"streamed-hit.md\"},\"line_number\":3,\"lines\":{\"text\":\"needle here\\n\"},\"submatches\":[{\"match\":{\"text\":\"needle\"},\"start\":0,\"end\":6}]}}'\necho 'regex compile boom' >&2\nexit 2\n",
+        );
+        let root_a = TempDir::new().unwrap();
+        write(root_a.path().join("a.md"), "needle\n").unwrap();
+        let root_b = TempDir::new().unwrap();
+        write(root_b.path().join("b.md"), "needle\n").unwrap();
+        let (tx, rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let mut coordinator = SearchSessionCoordinator::new("rg-exit-two".to_string(), sink);
+        let roots = vec![root_a.path().to_path_buf(), root_b.path().to_path_buf()];
+        let opts = SearchOptions::default();
+        let cancel = Arc::new(AtomicBool::new(false));
+        let (total, kind) = run_session_with_program(
+            script.as_os_str(),
+            &roots,
+            "needle",
+            &opts,
+            false,
+            cancel,
+            &mut coordinator,
+        );
+        assert_eq!(kind, "error");
+        assert_eq!(total, 1, "the streamed hit before the failure counts");
+        let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+        assert_eq!(count_terminals(&events), 1, "exactly one terminal; got {events:?}");
+        let last = events.last().unwrap();
+        assert_eq!(last.kind, "error");
+        assert_eq!(
+            last.error.as_deref(),
+            Some("rg exited with code 2"),
+            "stable class message carries the exit code only (no stderr text); got {last:?}"
+        );
+        assert_eq!(
+            last.partial,
+            Some(true),
+            "error terminal with already-streamed hits must carry the partial marker"
+        );
+        assert!(
+            !events
+                .iter()
+                .any(|e| e.hits.iter().any(|h| h.path.ends_with("b.md"))),
+            "remaining roots must not be started after the error; events={events:?}"
+        );
+        assert!(
+            events[..events.len() - 1].iter().all(|e| e.kind == "match"),
+            "zero post-terminal events — only match events precede the terminal; got {events:?}"
+        );
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn rg_exit_codes_zero_and_one_complete_normally() {
+        // (b) Exit codes 0 and 1 keep completing normally — 1 = no matches.
+        // Both engines: the embedded walker completes normally for
+        // matches and no-matches alike, and the injected rg program proves
+        // the transport rule deterministically.
+        let dir = TempDir::new().unwrap();
+
+        // Injected rg exit 0 with a streamed match: normal completion, and
+        // a complete terminal without limits is NOT partial.
+        let exit_zero = write_exec_script(
+            dir.path(),
+            "rg-exit-zero.sh",
+            "#!/bin/sh\nprintf '%s\\n' '{\"type\":\"match\",\"data\":{\"path\":{\"text\":\"hit.md\"},\"line_number\":1,\"lines\":{\"text\":\"needle\\n\"},\"submatches\":[{\"match\":{\"text\":\"needle\"},\"start\":0,\"end\":6}]}}'\nexit 0\n",
+        );
+        {
+            let (tx, rx) = mpsc::channel();
+            let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+            let mut coordinator =
+                SearchSessionCoordinator::new("rg-exit-zero".to_string(), sink);
+            let roots = vec![dir.path().to_path_buf()];
+            let opts = SearchOptions::default();
+            let cancel = Arc::new(AtomicBool::new(false));
+            let (total, kind) = run_session_with_program(
+                exit_zero.as_os_str(),
+                &roots,
+                "needle",
+                &opts,
+                false,
+                cancel,
+                &mut coordinator,
+            );
+            assert_eq!(kind, "complete");
+            assert_eq!(total, 1);
+            let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+            let last = events.last().unwrap();
+            assert_eq!(last.kind, "complete");
+            assert_eq!(
+                last.partial,
+                Some(false),
+                "complete without size limit or masks is not partial"
+            );
+        }
+
+        // Injected rg exit 1 = no matches: still normal completion.
+        let exit_one = write_exec_script(dir.path(), "rg-exit-one.sh", "#!/bin/sh\nexit 1\n");
+        {
+            let (tx, rx) = mpsc::channel();
+            let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+            let mut coordinator =
+                SearchSessionCoordinator::new("rg-exit-one".to_string(), sink);
+            let roots = vec![dir.path().to_path_buf()];
+            let opts = SearchOptions::default();
+            let cancel = Arc::new(AtomicBool::new(false));
+            let (total, kind) = run_session_with_program(
+                exit_one.as_os_str(),
+                &roots,
+                "needle",
+                &opts,
+                false,
+                cancel,
+                &mut coordinator,
+            );
+            assert_eq!(kind, "complete", "exit 1 (no matches) stays normal");
+            assert_eq!(total, 0);
+            let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+            assert_eq!(events.last().unwrap().kind, "complete");
+        }
+
+        // Walker parity: no matches → normal complete.
+        {
+            let empty = TempDir::new().unwrap();
+            let (total, kind, rx) = run_session_one_root(
+                "walker-no-match",
+                empty.path(),
+                "needle",
+                &SearchOptions::default(),
+                Arc::new(AtomicBool::new(false)),
+            );
+            assert_eq!(total, 0);
+            assert_eq!(kind, "complete");
+            let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+            assert_eq!(events.last().unwrap().kind, "complete");
+        }
+
+        // Native rg parity (availability-guarded): no matches → rg exit 1 →
+        // normal completion.
+        if rg_available() {
+            let (tx, rx) = mpsc::channel();
+            let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+            let mut coordinator =
+                SearchSessionCoordinator::new("rg-native-exit-one".to_string(), sink);
+            let roots = vec![dir.path().to_path_buf()];
+            let opts = SearchOptions::default();
+            let cancel = Arc::new(AtomicBool::new(false));
+            let (total, kind) = run_session(
+                &roots,
+                "zz-no-such-needle-zz",
+                &opts,
+                false,
+                cancel,
+                &mut coordinator,
+            );
+            assert_eq!(kind, "complete", "native rg exit 1 stays normal");
+            assert_eq!(total, 0);
+            let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+            assert_eq!(events.last().unwrap().kind, "complete");
+        }
+    }
+
+    #[test]
+    fn exclusions_applied_symmetrically() {
+        // (c) One shared mask semantics: a masked file is absent while an
+        // unmasked sibling with the same needle is present — in the
+        // embedded walker and, availability-guarded, in rg.
+        let dir = TempDir::new().unwrap();
+        write(dir.path().join("secret.md"), "needle\n").unwrap();
+        write(dir.path().join("public.md"), "needle\n").unwrap();
+        let opts = SearchOptions {
+            exclusions: Some(vec!["secret.md".to_string()]),
+            ..Default::default()
+        };
+
+        // Embedded walker leg: the compiled mask filters before opening.
+        {
+            let (total, kind, rx) = run_session_one_root(
+                "s-excl-walker",
+                dir.path(),
+                "needle",
+                &opts,
+                Arc::new(AtomicBool::new(false)),
+            );
+            assert_eq!(total, 1, "only the unmasked sibling matches");
+            assert_eq!(kind, "complete");
+            let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+            assert!(
+                !events
+                    .iter()
+                    .any(|e| e.hits.iter().any(|h| h.path.ends_with("secret.md"))),
+                "masked file must be absent; events={events:?}"
+            );
+            assert!(
+                events
+                    .iter()
+                    .any(|e| e.hits.iter().any(|h| h.path.ends_with("public.md"))),
+                "unmasked sibling must be present; events={events:?}"
+            );
+            let terminal = events.last().unwrap();
+            assert_eq!(terminal.kind, "complete");
+            assert_eq!(
+                terminal.partial,
+                Some(true),
+                "a complete terminal under an active mask must be partial"
+            );
+        }
+
+        // rg leg (availability-guarded): --glob=!secret.md symmetric.
+        if rg_available() {
+            let (tx, rx) = mpsc::channel();
+            let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+            let mut coordinator = SearchSessionCoordinator::new("s-excl-rg".to_string(), sink);
+            let roots = vec![dir.path().to_path_buf()];
+            let cancel = Arc::new(AtomicBool::new(false));
+            let (total, kind) =
+                run_session(&roots, "needle", &opts, false, cancel, &mut coordinator);
+            assert_eq!(total, 1, "rg applies the same mask symmetrically");
+            assert_eq!(kind, "complete");
+            let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+            assert!(
+                !events
+                    .iter()
+                    .any(|e| e.hits.iter().any(|h| h.path.ends_with("secret.md"))),
+                "rg must exclude the masked file too; events={events:?}"
+            );
+            assert!(
+                events
+                    .iter()
+                    .any(|e| e.hits.iter().any(|h| h.path.ends_with("public.md"))),
+                "rg must keep the unmasked sibling; events={events:?}"
+            );
+            assert_eq!(events.last().unwrap().partial, Some(true));
+        }
+    }
+
+    #[test]
+    fn invalid_exclusion_mask_is_ignored_and_forces_partial() {
+        // (d) An invalid mask (unclosed `[` — a glob compile error) is
+        // explicitly ignored per this plan's recorded choice: never passed
+        // to rg (which would exit 2 on a bad glob), never used by the
+        // walker — and it forces the terminal's partial flag so
+        // completeness is never silently claimed.
+        let dir = TempDir::new().unwrap();
+        write(dir.path().join("a.md"), "needle\n").unwrap();
+        let opts = SearchOptions {
+            exclusions: Some(vec!["[".to_string()]),
+            ..Default::default()
+        };
+
+        // Walker leg: the invalid mask filters nothing.
+        {
+            let (total, kind, rx) = run_session_one_root(
+                "s-invalid-mask-walker",
+                dir.path(),
+                "needle",
+                &opts,
+                Arc::new(AtomicBool::new(false)),
+            );
+            assert_eq!(total, 1, "invalid mask must not filter the walker");
+            assert_eq!(kind, "complete");
+            let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+            assert_eq!(events.last().unwrap().kind, "complete");
+            assert_eq!(
+                events.last().unwrap().partial,
+                Some(true),
+                "invalid mask forces the honest partial flag"
+            );
+        }
+
+        // rg leg (availability-guarded): if "[" were ever passed as
+        // --glob=![, rg would exit 2 and the session would end in the
+        // error terminal — normal completion proves the invalid mask was
+        // ignored on the rg side as well.
+        if rg_available() {
+            let (tx, rx) = mpsc::channel();
+            let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+            let mut coordinator =
+                SearchSessionCoordinator::new("s-invalid-mask-rg".to_string(), sink);
+            let roots = vec![dir.path().to_path_buf()];
+            let cancel = Arc::new(AtomicBool::new(false));
+            let (total, kind) =
+                run_session(&roots, "needle", &opts, false, cancel, &mut coordinator);
+            assert_eq!(kind, "complete", "invalid mask must never reach rg");
+            assert_eq!(total, 1);
+            let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+            assert_eq!(events.last().unwrap().partial, Some(true));
+        }
+    }
+
+    #[test]
+    fn max_file_size_suppressing_candidates_marks_terminal_partial() {
+        // (e) A max_file_size that suppresses candidates (big.md skipped by
+        // the walker ceiling) marks the complete terminal partial —
+        // completeness is never silently claimed.
+        let dir = TempDir::new().unwrap();
+        let big = "needle\n".repeat(20_000);
+        write(dir.path().join("big.md"), big).unwrap();
+        write(dir.path().join("small.md"), "needle\n").unwrap();
+        let opts = SearchOptions {
+            max_file_size: Some(1024),
+            ..Default::default()
+        };
+        let (total, kind, rx) = run_session_one_root(
+            "s-partial-size",
+            dir.path(),
+            "needle",
+            &opts,
+            Arc::new(AtomicBool::new(false)),
+        );
+        assert_eq!(total, 1, "only small.md is searched under the ceiling");
+        assert_eq!(kind, "complete");
+        let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+        assert_eq!(events.last().unwrap().kind, "complete");
+        assert_eq!(
+            events.last().unwrap().partial,
+            Some(true),
+            "a size-limit-suppressed candidate set must be marked partial"
+        );
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn silent_child_cancel_arrives_without_a_line() {
+        // T-003: a deterministic silent child (no stdout at all, sleeps
+        // well past the deadline) through the run_ripgrep_with_program
+        // program-injection seam — unix-gated, no PATH mutation anywhere.
+        // The single cancelled terminal arrives within the test deadline
+        // without any child output line; the child is killed and reaped
+        // (run_ripgrep_with_program only returns after the watcher joined,
+        // and the watcher exits only after kill + wait).
+        let dir = TempDir::new().unwrap();
+        let script = write_exec_script(
+            dir.path(),
+            "silent-rg.sh",
+            "#!/bin/sh\n# no stdout at all; exec so kill hits the sleeper itself (a forked\n# grandchild would hold the stdout pipe open for the full sleep)\nexec sleep 30\n",
+        );
+        let root = TempDir::new().unwrap();
+        write(root.path().join("a.md"), "needle\n").unwrap();
+        let (tx, rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let mut coordinator = SearchSessionCoordinator::new("rg-silent".to_string(), sink);
+        let cancel = Arc::new(AtomicBool::new(false));
+        let cancel_for_thread = cancel.clone();
+        let roots = vec![root.path().to_path_buf()];
+        let opts = SearchOptions::default();
+        let handle = std::thread::spawn(move || {
+            run_session_with_program(
+                script.as_os_str(),
+                &roots,
+                "needle",
+                &opts,
+                false,
+                cancel_for_thread,
+                &mut coordinator,
+            )
+        });
+        // Let the silent child spawn and block with no output.
+        std::thread::sleep(Duration::from_millis(200));
+        let started = std::time::Instant::now();
+        cancel.store(true, Ordering::SeqCst);
+        let (total, kind) = handle.join().unwrap();
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < Duration::from_secs(10),
+            "cancel must settle a silent child promptly (watcher kill+wait); took {elapsed:?}"
+        );
+        assert_eq!(kind, "cancelled");
+        assert_eq!(total, 0, "a silent child streams no hits");
+        let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+        assert_eq!(count_terminals(&events), 1, "exactly one terminal; got {events:?}");
+        assert_eq!(events.last().unwrap().kind, "cancelled");
+        assert!(
+            !events.iter().any(|e| e.kind == "match"),
+            "no child output line ever arrived; events={events:?}"
+        );
     }
 
     #[test]
@@ -1772,8 +2419,8 @@ mod tests {
         let (tx, rx) = mpsc::channel();
         let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
         let mut coordinator = SearchSessionCoordinator::new("s-unit".to_string(), sink);
-        assert!(coordinator.finalize(SearchTerminal::Complete, None));
-        assert!(!coordinator.finalize(SearchTerminal::Cancelled, None));
+        assert!(coordinator.finalize(SearchTerminal::Complete, None, false));
+        assert!(!coordinator.finalize(SearchTerminal::Cancelled, None, true));
         assert!(!coordinator.emit_matches(vec![SearchHit {
             path: "x.md".to_string(),
             line: 1,

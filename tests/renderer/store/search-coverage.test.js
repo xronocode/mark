@@ -250,4 +250,93 @@ describe('store/search — coverage gaps', () => {
 
     expect(s.error).toBe('')
   })
+
+  // ─── C-SEARCH-ERROR-VISIBILITY T-002 coverage ────────────────────────
+  describe('store boundary size parsing and honest failure (C-SEARCH-ERROR-VISIBILITY)', () => {
+    const tick = async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    }
+
+    it('parseSearchMaxFileSize converts the documented schema values to bytes', async () => {
+      const { parseSearchMaxFileSize } = await import('@/store/search')
+      expect(parseSearchMaxFileSize('1048576')).toBe(1048576)
+      expect(parseSearchMaxFileSize('1K')).toBe(1024)
+      expect(parseSearchMaxFileSize('2M')).toBe(2097152)
+      expect(parseSearchMaxFileSize('3G')).toBe(3221225472)
+      expect(parseSearchMaxFileSize('')).toBe(null)
+    })
+
+    it('an invalid size limit blocks dispatch without spawning', async () => {
+      projectStateProxy.projectTrees = [{ pathname: '/proj' }]
+      preferencesProxy.searchMaxFileSize = 'abc'
+      const { useSearchStore } = await import('@/store/search')
+      const s = useSearchStore()
+      s.keyword = 'q'
+      s.runSearch()
+      expect(searchSpy).not.toHaveBeenCalled()
+      expect(s.running).toBe(false)
+      expect(s.error).toBe('Invalid max file size: abc')
+    })
+
+    it('the store forwards the parsed byte limit, not the raw string', async () => {
+      projectStateProxy.projectTrees = [{ pathname: '/proj' }]
+      preferencesProxy.searchMaxFileSize = '2M'
+      const promiseLike = Promise.resolve()
+      promiseLike.cancel = vi.fn()
+      searchSpy.mockReturnValue(promiseLike)
+      const { useSearchStore } = await import('@/store/search')
+      const s = useSearchStore()
+      s.keyword = 'q'
+      s.runSearch()
+      expect(searchSpy).toHaveBeenCalledTimes(1)
+      const [, , opts] = searchSpy.mock.calls[0]
+      expect(opts.maxFileSize).toBe(2097152)
+    })
+
+    it('error with partial terminal keeps only live-root results and marks them partial', async () => {
+      projectStateProxy.projectTrees = [{ pathname: '/proj' }]
+      let rejectOuter
+      const inner = new Promise((_resolve, reject) => { rejectOuter = reject })
+      inner.cancel = vi.fn()
+      inner.catch(() => {})
+      searchSpy.mockImplementation((_roots, _kw, opts) => {
+        opts.didMatch({ filePath: '/proj/kept.md', matches: [{ line: 1 }] })
+        opts.didMatch({ filePath: '/elsewhere/dropped.md', matches: [{ line: 2 }] })
+        opts.didComplete({ partial: true })
+        Promise.resolve().then(() => rejectOuter(new Error('rg exited with code 2')))
+        return inner
+      })
+      const { useSearchStore } = await import('@/store/search')
+      const s = useSearchStore()
+      s.keyword = 'q'
+      s.runSearch()
+      await tick()
+      expect(s.error).toBe('rg exited with code 2')
+      expect(s.partialResults).toBe(true)
+      expect(s.results).toHaveLength(1)
+      expect(s.results[0].filePath).toBe('/proj/kept.md')
+    })
+
+    it('repeated didComplete deliveries cannot double-write partial state', async () => {
+      projectStateProxy.projectTrees = [{ pathname: '/proj' }]
+      const promiseLike = Promise.resolve()
+      promiseLike.cancel = vi.fn()
+      searchSpy.mockImplementation((_roots, _kw, opts) => {
+        opts.didComplete({ partial: true })
+        opts.didComplete({ partial: false })
+        return promiseLike
+      })
+      const { useSearchStore } = await import('@/store/search')
+      const s = useSearchStore()
+      s.keyword = 'q'
+      s.runSearch()
+      await tick()
+      // The searcher fires didComplete exactly once per terminal; the
+      // store's latest observed flag wins without re-running anything.
+      expect(s.partialResults).toBe(false)
+      expect(s.running).toBe(false)
+    })
+  })
 })

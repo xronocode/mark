@@ -1,0 +1,213 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-DEV-ENV-ISOLATION>
+    <Name>Dev environment isolation: dev profile namespace default, owned-PID dev-smoke cycle, POSIX review-lane handoff docs — implementation plan</Name>
+    <Created>2026-11-21</Created>
+    <Spec>C-DEV-ENV-ISOLATION</Spec>
+    <IntentSummary>Give ordinary dev runs their own profile namespace, make the dev-smoke cycle kill only what it spawned, and document the security gate's POSIX-only review-lane lock as a Windows handoff — no release-behavior change, no Windows lock implementation. Baseline hazards, all anchor-verified on the 2026-11-21 mainline inspection tree.rs:296-300 passes the Context identifier (com.xronocode.mark, src-tauri/tauri.conf.json:5) into mt_paths::initialize_application_identifier before any state access, so npm run tauri:dev and the dev:smoke/dev:quick/dev:check cycles read and write the real user profile through the already-landed mt_paths per-identifier roots (mt_paths.rs:29 and 96-173, C-STABILIZE-PROFILE-ISOLATION lineage); (2) tools/dev-smoke.sh answers a busy port or stale process list by killing processes it never spawned — pkill -f "target/debug/mark" (:41-44), pkill -f "vite.*serve" and pkill -f "npm run dev" (:46-50) — and adopts any HTTP 200 on the fixed shared port 1420 as its own dev server (:52-58); no owned-PID record exists (the only captured PID is a local $! in launch_mark, :73-74); (3) tools/security_gate.py takes POSIX-only fcntl/flock lane locks before any candidate work (function-scoped import fcntl :1269, flock LOCK_EX|LOCK_NB :1277) and stock Windows Python fails at that import with no documented handoff; CONTRIBUTING.md:70 defers to docs/commit-push-safety.md, whose model-review section (:49-75) names no supported hosts and no carry-across procedure. The change: (1) mt_paths.rs gains DEV_BUNDLE_ID "com.xronocode.mark.dev" (validator-compatible under valid_application_identifier; value and env name confirmed by the owner and recorded in the change bundle before implementation) and a pure resolve_boot_identifier(configured, debug_enabled, env_override); main.rs keeps the exact C-STABILIZE-PROFILE-ISOLATION binding point and order but selects the identifier through resolve_boot_identifier under cfg!(debug_assertions) with the documented MARK_PROFILE_IDENTIFIER escape hatch (debug-only, non-default, for migration testing; invalid override fails closed) — release binaries bind exactly the configured Context identifier and canonical paths stay byte-identical; (2) dev-smoke.sh records the PIDs it spawns (dev server and mark binary) in a run-scoped pidfile (path overridable via MARK_DEV_PIDFILE for fixtures), restart/cleanup kills only recorded still-owned PIDs, a busy or foreign-answering dev port produces an honest owner report (lsof/ps: PID and command) and fails the run, a foreign 200 is never adopted as readiness, --check stays health-only, MARK_SKIP_MIGRATION and the BLOCK-marker launch verification keep their semantics, and the script gains a module contract; (3) documentation only for the gate: a POSIX-only lane-lock note in security_gate.py's module contract (behavior, command surface and receipts unchanged; tests/security/test_security_gate.py passes without edits), supported review hosts named in CONTRIBUTING.md together with the dev-profile default and escape hatch, and the Windows-candidate handoff (exact candidate identity and receipt carried to a supported POSIX review host) in docs/commit-push-safety.md. Proof is failing-first: the mt_paths pin family gains dev_namespace_default_resolves_disjoint_roots and escape_hatch_override_is_debug_gated while canonical_identifier_preserves_existing_cache_and_data_roots stays green untouched, and the new tests/tools/dev-smoke.test.mjs pins refuses_foreign_pids, busy_port_reports_owner_and_does_not_kill, kills_only_spawned_pids and adopts_no_foreign_200 — red evidence recorded against the pristine delivery-baseline head before green on the changed tree; the audit's real two-working-copies concurrency check stays a hosted/manual acceptance step. Governance: one appended SummaryDelta and one appended V- scenario per affected anchor (M-001/M-022 in runtime xml, M-064 in features xml; V-M-064 lives in .grace/verification/features.xml, added to the write scope by baseline binding since the spec enumerated only verification/runtime.xml); the audit assumption mapping (the brief's "busy-port = kill via lsof" wording vs the observed pkill-pattern and blind-HTTP-200 mechanism) is recorded; no grace-lint command appears inside this plan; this draft was written against the 2026-11-21 mainline inspection tree.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src-tauri/src/mt_paths.rs</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src-tauri/src/main.rs</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tools/dev-smoke.sh</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tools/security_gate.py</Value>
+      </MustExist>
+      <MustExist>
+        <Value>CONTRIBUTING.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/commit-push-safety.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/security/test_security_gate.py</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.grace/graph/runtime.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.grace/graph/features.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.grace/verification/runtime.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.grace/verification/features.xml</Value>
+      </MustExist>
+      <MustContain><File>src-tauri/src/main.rs</File><Text>mt_paths::initialize_application_identifier(&amp;context.config().identifier)</Text></MustContain>
+      <MustContain><File>src-tauri/src/main.rs</File><Text>C-STABILIZE-PROFILE-ISOLATION: bind the exact generated configuration</Text></MustContain>
+      <MustContain><File>src-tauri/src/mt_paths.rs</File><Text>pub const APP_BUNDLE_ID: &amp;str = "com.xronocode.mark";</Text></MustContain>
+      <MustContain><File>src-tauri/tauri.conf.json</File><Text>"identifier": "com.xronocode.mark"</Text></MustContain>
+      <MustContain><File>tools/dev-smoke.sh</File><Text>pkill -f "target/debug/mark"</Text></MustContain>
+      <MustContain><File>tools/dev-smoke.sh</File><Text>pkill -f "vite.*serve"</Text></MustContain>
+      <MustContain><File>tools/dev-smoke.sh</File><Text>pkill -f "npm run dev"</Text></MustContain>
+      <MustContain><File>tools/dev-smoke.sh</File><Text>DEV_URL="http://localhost:1420"</Text></MustContain>
+      <MustContain><File>tools/dev-smoke.sh</File><Text>Dev server already running (HTTP $code)</Text></MustContain>
+      <MustContain><File>tools/security_gate.py</File><Text>import fcntl</Text></MustContain>
+      <MustContain><File>tools/security_gate.py</File><Text>fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)</Text></MustContain>
+      <MustContain><File>CONTRIBUTING.md</File><Text>follow the [deterministic safety protocol](docs/commit-push-safety.md)</Text></MustContain>
+      <MustContain><File>docs/commit-push-safety.md</File><Text>required only for Windows-version testing</Text></MustContain>
+      <MustNotContain><File>src-tauri/src/mt_paths.rs</File><Text>com.xronocode.mark.dev</Text></MustNotContain>
+      <MustNotContain><File>src-tauri/src/main.rs</File><Text>MARK_PROFILE_IDENTIFIER</Text></MustNotContain>
+      <MustNotContain><File>tools/dev-smoke.sh</File><Text>MARK_DEV_PIDFILE</Text></MustNotContain>
+      <MustNotContain><File>tools/dev-smoke.sh</File><Text>START_MODULE_CONTRACT</Text></MustNotContain>
+      <MustNotContain><File>tools/security_gate.py</File><Text>POSIX-only lane lock</Text></MustNotContain>
+      <MustNotContain><File>CONTRIBUTING.md</File><Text>com.xronocode.mark.dev</Text></MustNotContain>
+      <MustNotContain><File>docs/commit-push-safety.md</File><Text>Windows-authored candidate</Text></MustNotContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-001</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-022</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-064</Module>
+      </MustVerify>
+      <MustExist>
+        <Value>tests/tools/dev-smoke.test.mjs</Value>
+      </MustExist>
+      <MustContain><File>src-tauri/src/mt_paths.rs</File><Text>pub const DEV_BUNDLE_ID: &amp;str = "com.xronocode.mark.dev";</Text></MustContain>
+      <MustContain><File>src-tauri/src/mt_paths.rs</File><Text>fn resolve_boot_identifier</Text></MustContain>
+      <MustContain><File>src-tauri/src/mt_paths.rs</File><Text>dev_namespace_default_resolves_disjoint_roots</Text></MustContain>
+      <MustContain><File>src-tauri/src/mt_paths.rs</File><Text>escape_hatch_override_is_debug_gated</Text></MustContain>
+      <MustContain><File>src-tauri/src/main.rs</File><Text>resolve_boot_identifier</Text></MustContain>
+      <MustContain><File>src-tauri/src/main.rs</File><Text>cfg!(debug_assertions)</Text></MustContain>
+      <MustContain><File>src-tauri/src/main.rs</File><Text>MARK_PROFILE_IDENTIFIER</Text></MustContain>
+      <MustContain><File>src-tauri/src/main.rs</File><Text>context.config().identifier</Text></MustContain>
+      <MustContain><File>src-tauri/src/main.rs</File><Text>initialize_application_identifier</Text></MustContain>
+      <MustContain><File>src-tauri/tauri.conf.json</File><Text>"identifier": "com.xronocode.mark"</Text></MustContain>
+      <MustContain><File>tools/dev-smoke.sh</File><Text>MARK_DEV_PIDFILE</Text></MustContain>
+      <MustContain><File>tools/dev-smoke.sh</File><Text>START_MODULE_CONTRACT</Text></MustContain>
+      <MustContain><File>tools/dev-smoke.sh</File><Text>lsof</Text></MustContain>
+      <MustContain><File>tests/tools/dev-smoke.test.mjs</File><Text>refuses_foreign_pids</Text></MustContain>
+      <MustContain><File>tests/tools/dev-smoke.test.mjs</File><Text>busy_port_reports_owner_and_does_not_kill</Text></MustContain>
+      <MustContain><File>tests/tools/dev-smoke.test.mjs</File><Text>kills_only_spawned_pids</Text></MustContain>
+      <MustContain><File>tests/tools/dev-smoke.test.mjs</File><Text>adopts_no_foreign_200</Text></MustContain>
+      <MustContain><File>tools/security_gate.py</File><Text>POSIX-only lane lock</Text></MustContain>
+      <MustContain><File>tools/security_gate.py</File><Text>fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)</Text></MustContain>
+      <MustContain><File>CONTRIBUTING.md</File><Text>com.xronocode.mark.dev</Text></MustContain>
+      <MustContain><File>CONTRIBUTING.md</File><Text>MARK_PROFILE_IDENTIFIER</Text></MustContain>
+      <MustContain><File>CONTRIBUTING.md</File><Text>flock</Text></MustContain>
+      <MustContain><File>docs/commit-push-safety.md</File><Text>Windows-authored candidate</Text></MustContain>
+      <MustContain><File>docs/commit-push-safety.md</File><Text>candidate identity</Text></MustContain>
+      <MustContain><File>docs/commit-push-safety.md</File><Text>receipt</Text></MustContain>
+      <MustContain><File>.grace/graph/runtime.xml</File><Text>C-DEV-ENV-ISOLATION</Text></MustContain>
+      <MustContain><File>.grace/graph/features.xml</File><Text>C-DEV-ENV-ISOLATION</Text></MustContain>
+      <MustContain><File>.grace/verification/runtime.xml</File><Text>scenario-dev-env-isolation-boot-binding</Text></MustContain>
+      <MustContain><File>.grace/verification/runtime.xml</File><Text>scenario-dev-env-isolation-namespace</Text></MustContain>
+      <MustContain><File>.grace/verification/features.xml</File><Text>scenario-dev-env-isolation-gate-handoff</Text></MustContain>
+      <MustNotContain><File>tools/dev-smoke.sh</File><Text>pkill -f</Text></MustNotContain>
+      <MustNotContain><File>tools/security_gate.py</File><Text>msvcrt</Text></MustNotContain>
+      <MustNotContain><File>tools/security_gate.py</File><Text>LockFileEx</Text></MustNotContain>
+      <MustNotContain><File>tools/security_gate.py</File><Text>win32file</Text></MustNotContain>
+      <MustNotContain><File>tests/tools/dev-smoke.test.mjs</File><Text>pkill -f</Text></MustNotContain>
+      <MustPassCommand>
+        <Command budgetSeconds="600">cargo test --manifest-path src-tauri/Cargo.toml --bin mark mt_paths</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="240">npx vitest run tests/tools/dev-smoke.test.mjs</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="120">python3 tests/security/test_security_gate.py</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="60">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/runtime.xml'); ET.parse('.grace/graph/features.xml'); ET.parse('.grace/verification/runtime.xml'); ET.parse('.grace/verification/features.xml')"</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-001 />
+        <M-022 />
+        <M-064 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-001 />
+        <V-M-022 />
+        <V-M-064 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src-tauri/src/mt_paths.rs</File>
+      <File>src-tauri/src/main.rs</File>
+      <File>tools/dev-smoke.sh</File>
+      <File>tools/security_gate.py</File>
+      <File>CONTRIBUTING.md</File>
+      <File>docs/commit-push-safety.md</File>
+      <File>tests/tools/dev-smoke.test.mjs</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+      <File>.grace/verification/features.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Debug-gated dev namespace default: DEV_BUNDLE_ID + pure resolve_boot_identifier in M-022, main.rs boot-point selection with the MARK_PROFILE_IDENTIFIER escape, failing-first mt_paths pins</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Owner confirmation lands before implementation: the dev default value `com.xronocode.mark.dev` and the escape-hatch env name `MARK_PROFILE_IDENTIFIER` (MARK_SKIP_MIGRATION precedent shape) are recorded as owner-confirmed (or owner-adjusted, with every downstream mention updated) in the change bundle before any code edit; `com.xronocode.mark.dev` passes mt_paths' existing valid_application_identifier (dot parts of alnum/dash/underscore).</Criterion>
+          <Criterion>src-tauri/src/mt_paths.rs gains `pub const DEV_BUNDLE_ID: &amp;str = "com.xronocode.mark.dev";` and a pure selection function `resolve_boot_identifier(configured: &amp;str, debug_enabled: bool, env_override: Option&lt;&amp;str&gt;) -> Result&lt;String, ...&gt;` (name pinned so lint detects the design): debug_enabled=false returns the configured identifier regardless of any override (release builds cannot be diverted); debug_enabled=true with no override returns DEV_BUNDLE_ID; debug_enabled=true with a valid override returns the override; an invalid override fails closed (Err, never a silent fallback to either namespace). The function validates through the existing valid_application_identifier and performs no I/O; APP_BUNDLE_ID, initialize_application_identifier, application_identifier and every path resolver keep their current behavior and signatures byte-identically. The module contract (SCOPE/DEPENDS), MODULE_MAP and CHANGE_SUMMARY gain the C-DEV-ENV-ISOLATION entries.</Criterion>
+          <Criterion>src-tauri/src/main.rs keeps the exact C-STABILIZE-PROFILE-ISOLATION binding point and order — after CLI parse with help/version still exiting without profile access, before rollback, reconciliation, panic logging or any preferences access — but now binds `mt_paths::resolve_boot_identifier(&amp;context.config().identifier, cfg!(debug_assertions), std::env::var("MARK_PROFILE_IDENTIFIER").ok().as_deref())` so debug builds (npm run tauri:dev and the dev-smoke cargo-built debug binary alike) default to the dev namespace while release builds compile to the identical configured binding; the `.expect("invalid application profile identifier")` fail-closed behavior is preserved. The module contract boot-order text and CHANGE_SUMMARY name the debug-gated dev default and the escape hatch; the escape hatch is documented as non-default, migration-testing-only, with its risk (a dev build touching the production namespace) stated honestly.</Criterion>
+          <Criterion>Failing-first Rust pins land in src-tauri/src/mt_paths.rs (authored first, red-proven against the pristine delivery-baseline head in a scratch worktree with the red run output and baseline digests recorded in the change bundle, then green on the changed tree): `dev_namespace_default_resolves_disjoint_roots` — with the existing mock_env synthetic environment lookup and the *_for_identifier_from_env resolvers, the dev identifier resolves cache and data roots disjoint from the release roots and carrying the dev identifier, extending the configured_identifiers_have_disjoint_cache_and_data_roots family; `escape_hatch_override_is_debug_gated` — resolve_boot_identifier honors a valid override when debug_enabled=true, defaults to DEV_BUNDLE_ID when debug_enabled=true and no override, and returns the configured identifier when debug_enabled=false even with an override present (the release-absence proof); `canonical_identifier_preserves_existing_cache_and_data_roots` and the rest of the mt_paths module stay green without weakened or relaxed assertions.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">cargo test --manifest-path src-tauri/Cargo.toml --bin mark mt_paths</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Owned-PID dev-smoke cycle: run-scoped pidfile, honest busy-port owner report, no blind 200 adoption, module contract</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tools/dev-smoke.sh records the PIDs this run spawns (the dev server root process and the mark binary) in a run-scoped pidfile whose path is overridable via `MARK_DEV_PIDFILE` (fixture seam; default stays under /tmp alongside the existing logs). The restart and cleanup paths kill ONLY recorded, liveness-checked, still-owned PIDs — no pattern matching, no port-based killing; stale/dead entries are pruned from the pidfile. The three pkill patterns (pkill -f "target/debug/mark", pkill -f "vite.*serve", pkill -f "npm run dev") are removed; the script contains no `pkill -f` at all.</Criterion>
+          <Criterion>Readiness becomes ownership-aware: a 200 on the fixed dev port counts as this build's ready server only when the pidfile-recorded dev server is alive; a 200 from an untracked owner, or a busy/unhealthy port with no owned recorded server, produces an honest ownership report naming the owner process (PID and command, via host lsof/ps — no new dependencies) and FAILS the run — never a blind adoption, never a kill of the foreign owner. --check mode keeps reporting health without killing anything (it may name the port owner diagnostically). MARK_SKIP_MIGRATION launch usage, the BLOCK-marker launch verification (marker-count threshold and BLOCK_TITLEBAR_TRANSPARENT_OVERLAY_OK check), the log paths and all exit semantics keep their current meaning.</Criterion>
+          <Criterion>tools/dev-smoke.sh gains a START_MODULE_CONTRACT/END_MODULE_CONTRACT block (ROLE: SCRIPT) documenting the owned-PID discipline (kill only what this run recorded), the honest busy-port report and refusal semantics, and the MARK_DEV_PIDFILE fixture override; the usage header and the red/green/yellow reporting style stay accurate and unchanged in voice.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="30">bash -n tools/dev-smoke.sh</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>POSIX review-lane handoff documentation: security_gate.py contract note, CONTRIBUTING supported-hosts and dev-profile notes, commit-push-safety Windows handoff</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tools/security_gate.py is touched only inside its module contract text: the DEPENDS/SCOPE note records that the review lanes take POSIX-only fcntl/flock locks (the exact pinned phrase `POSIX-only lane lock`), that stock Windows Python cannot run the review, and that a Windows-authored candidate is carried to a supported POSIX review host preserving its exact candidate identity and receipt. No behavior, command surface, receipt format or lock implementation changes: `import fcntl`, the lane() flock and the whole review() body stay byte-identical, and tests/security/test_security_gate.py passes WITHOUT edits. No Windows lock code of any kind appears (no msvcrt, no LockFileEx, no win32file, no pure-Python lock alternative).</Criterion>
+          <Criterion>CONTRIBUTING.md, at the deterministic-safety-protocol deferral line (:70 area), names the supported hosts for the mandatory pre-commit/pre-push review — POSIX flock lanes (macOS and Linux); stock Windows Python cannot take the lane lock — and, where the dev workflow is described, documents the dev-profile default (debug builds bind com.xronocode.mark.dev, so dev runs resolve preferences, session profile, crash logs, bookmarks, extension state, credentials, rollback staging and default-handler targeting under the dev roots, never the production profile) and the MARK_PROFILE_IDENTIFIER escape hatch (debug-only, non-default, for migration testing, with its production-namespace risk stated). English throughout; no version, release or install guidance changes.</Criterion>
+          <Criterion>docs/commit-push-safety.md, in the model-review section (:49-75 area), describes the Windows-candidate handoff: the supported review hosts are named, and a Windows-authored candidate is carried to a supported POSIX review host with its EXACT candidate identity preserved (identical bytes and manifest resolving to the identical identity) and its receipt carried across, so the review and any override stay bound to the same candidate; the gate's behavior is unchanged on every host and the handoff is documentation only — no Windows lock implementation exists or is planned by this change. The existing "Windows machine is required only for Windows-version testing" sentence stays consistent with the new handoff text.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="30">python3 -m py_compile tools/security_gate.py</Command>
+          <Command budgetSeconds="120">python3 tests/security/test_security_gate.py</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Failing-first dev-smoke fixture pins, graph/verification deltas for M-001/M-022/M-064, full green sweep and integrity evidence</Title>
+        <DependsOn>T-001, T-002, T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The new tests/tools/dev-smoke.test.mjs (vitest) drives tools/dev-smoke.sh in per-test sandboxes — a fresh tmpdir with its own `git init` root so the script's git-rev-parse cd resolves inside the sandbox, a sandbox HOME, and a PATH shimmed with stub process tools (scriptable curl HTTP codes, scriptable lsof/ps owner output, a recording kill shim; the pidfile steered via MARK_DEV_PIDFILE) — carrying exactly the four spec-named pins and no weaker duplicates: `refuses_foreign_pids` (a foreign process matching the old patterns is not killed when it is absent from the run's pidfile), `busy_port_reports_owner_and_does_not_kill` (a foreign listener on the dev port produces the ownership report with PID and command and the run fails with zero kill invocations), `kills_only_spawned_pids` (the restart and cleanup paths kill exactly the pidfile-recorded PIDs and nothing else), `adopts_no_foreign_200` (a 200 from an untracked port owner is not reported as this build's ready server). Red-first evidence is real, not asserted: the pins are run once against the pristine delivery-baseline dev-smoke.sh bytes materialized into the same sandbox harness, the all-red outcome and the baseline script digest are recorded in the change bundle before the green run on the changed script, and no existing or new assertion is weakened, skipped or relaxed. The audit's real two-working-copies concurrency check (launch in one worktree leaves the other worktree's processes, logs and profile untouched) remains a hosted/manual acceptance step recorded in the change bundle and is NOT substituted by a shim.</Criterion>
+          <Criterion>Governance deltas land in the C-QUICKLOOK-SYNTAX-THEME precedent shape — appended lines only, nothing rewritten: .grace/graph/runtime.xml gains exactly one appended SummaryDelta line inside M-001 (C-DEV-ENV-ISOLATION: debug-gated dev namespace default and the MARK_PROFILE_IDENTIFIER escape at the unchanged boot binding point; release binding byte-identical) and exactly one inside M-022 (C-DEV-ENV-ISOLATION: DEV_BUNDLE_ID plus the pure resolve_boot_identifier and the disjoint-roots pin-family extension); .grace/graph/features.xml gains exactly one appended SummaryDelta line inside M-064 (C-DEV-ENV-ISOLATION: POSIX-only lane lock recorded in the contract plus the documented Windows handoff — documentation only); .grace/verification/runtime.xml gains exactly one appended scenario element `scenario-dev-env-isolation-boot-binding` inside V-M-001 (dev default binds before any state access, release unchanged, escape debug-gated and fail-closed) and one `scenario-dev-env-isolation-namespace` inside V-M-022 (disjoint dev/release roots pin, byte-identical canonical pin, debug-gated escape pin); .grace/verification/features.xml gains exactly one appended scenario element `scenario-dev-env-isolation-gate-handoff` inside V-M-064 (contract note moves no behavior; gate suite green unchanged). No other module's entry is touched, no ownership, contract, acceptance or marker markup is rewritten, frozen archived bundles stay immutable, and V-M-064's existing command (the tests/security unittest discovery) keeps passing.</Criterion>
+          <Criterion>Full green sweep on the changed tree, all within budget: the cargo mt_paths filter (new pins plus the untouched legacy pins including boot-order protection for the C-STABILIZE-PROFILE-ISOLATION binding discipline), the new vitest fixture suite, and the unedited tests/security/test_security_gate.py all pass; the four governance XML files parse; the verification of record for the change is exactly these commands — no grace-lint command appears inside this plan (lint runs only in the external phases: current before editing, target during implementation, final --run-commands before archiving, current after).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">cargo test --manifest-path src-tauri/Cargo.toml --bin mark mt_paths</Command>
+          <Command budgetSeconds="240">npx vitest run tests/tools/dev-smoke.test.mjs</Command>
+          <Command budgetSeconds="120">python3 tests/security/test_security_gate.py</Command>
+          <Command budgetSeconds="60">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/runtime.xml'); ET.parse('.grace/graph/features.xml'); ET.parse('.grace/verification/runtime.xml'); ET.parse('.grace/verification/features.xml')"</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Criterion>Dev namespace default with release byte-identity (spec AC-1): TargetAssertions pin DEV_BUNDLE_ID "com.xronocode.mark.dev", the pure resolve_boot_identifier and its call in main.rs next to the preserved initialize_application_identifier/Context-identifier binding; the BaselineAssertions/TargetAssertions MustNotContain pair on mt_paths.rs makes the dev identifier lint-detectable in both directions; the escape-hatch facts are proven by escape_hatch_override_is_debug_gated (debug honored, release ignores the override entirely) and canonical_identifier_preserves_existing_cache_and_data_roots stays green unchanged, so release binaries keep binding exactly the configured Context identifier with canonical paths byte-identical. The dev value and the MARK_PROFILE_IDENTIFIER name carry the owner's recorded confirmation in the change bundle before implementation (spec Assumptions 1-2 resolved by record, not silence).</Criterion>
+      <Criterion>dev-smoke kills only what it spawned and reports honestly (spec AC-2): the three BaselineAssertions pkill pins and the TargetAssertions `pkill -f` MustNotContain make the pattern-kill removal lint-detectable; the four fixture pins (refuses_foreign_pids, busy_port_reports_owner_and_does_not_kill, kills_only_spawned_pids, adopts_no_foreign_200) are named verbatim in TargetAssertions against tests/tools/dev-smoke.test.mjs, are red on the pristine baseline script bytes with the run and digest recorded in the change bundle, and pass only on the owned-PID implementation; --check stays kill-free and MARK_SKIP_MIGRATION plus BLOCK-marker launch semantics are preserved.</Criterion>
+      <Criterion>Existing suites stay green without weakened assertions (spec AC-3): the full mt_paths test module (including the boot-order discipline protecting C-STABILIZE-PROFILE-ISOLATION's bind-before-state-access order, whose binding point in main.rs is preserved and whose canonical-path pins stay untouched) and tests/security/test_security_gate.py pass unedited; no assertion anywhere in the touched suites is relaxed, skipped or loosened.</Criterion>
+      <Criterion>Documentation and handoff complete (spec AC-4): CONTRIBUTING.md names the POSIX flock supported review hosts, the dev-profile default and the debug-only MARK_PROFILE_IDENTIFIER escape; docs/commit-push-safety.md carries the Windows-authored-candidate handoff preserving exact candidate identity and receipt (TargetAssertions pin the handoff phrases while the existing Windows-version-testing sentence stays); tools/security_gate.py's contract records the POSIX-only lane lock with zero behavior movement, proven by the unchanged gate suite.</Criterion>
+      <Criterion>Governance synchronized and scope honest (spec AC-5 + Constraints): exactly one appended SummaryDelta per graph anchor (M-001, M-022 in .grace/graph/runtime.xml; M-064 in .grace/graph/features.xml) and exactly one appended scenario per verification anchor (V-M-001, V-M-022 in .grace/verification/runtime.xml; V-M-064 in .grace/verification/features.xml); the verification-features file is added to ObservedWriteScope by baseline binding because V-M-064 factually lives there in the prepared delivery tree while the spec enumerated only verification/runtime.xml — a recorded baseline divergence, not a scope expansion beyond the audited tree. src-tauri/tauri.conf.json is pinned unchanged in both assertion sets and is NOT in the write scope, so release identity, version, bundle identity and updater behavior cannot move through this change.</Criterion>
+      <Criterion>CAUTION set carried: (1) release identifier behavior stays byte-identical — the dev default and the escape hatch are compiled debug-gated and release binaries ignore them; (2) the escape hatch is documentation-first, debug-only, non-default, fail-closed on invalid values, and never binds the production namespace silently; (3) dev-smoke never kills unrecorded PIDs — no pkill remains in the script and the kill path reads only the run's pidfile; (4) no Windows lock code lands in any form; (5) the audit Assumption mapping is recorded: the brief's "dev-smoke kills PIDs by port (busy-port = kill, not report)" wording corresponds to no lsof-by-port kill in any inspected copy — the observed hazards are the broad pkill -f pattern kills (dev-smoke.sh:41-50) firing on the restart path and the blind HTTP-200 adoption on fixed port 1420 (dev-smoke.sh:52-58); this plan remediates the observed mechanism and introduces lsof/ps-based ownership reporting; (6) this draft was written against the 2026-11-21 mainline inspection tree.</Criterion>
+      <Criterion>Phase discipline: approval of the spec and of this plan does not approve apply/archive, lane departure or release; grace lint runs only in the external target/final phases with the pinned suites as leaf evidence gates; this plan contains no self-referential grace-lint MustPassCommand; no version bump, no release publication, no deploy.</Criterion>
+    </AcceptanceVerification>
+  </C-DEV-ENV-ISOLATION>
+</GraceChangePlan>

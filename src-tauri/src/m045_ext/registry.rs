@@ -5,7 +5,7 @@
 //   SCOPE:   State management only. No I/O, no HTTP. Enable/disable
 //            persists to m005_prefs via a helper (deferred to B2b wiring).
 //   DEPENDS: manifest::ExtensionManifest, std::sync::Mutex, tokio::sync::Mutex.
-//   CHANGE_SUMMARY: 2026-11-11 C-SEC-STREAM-AUTH: serialize stream mutations and stamp enabled identities across credential I/O.
+//   CHANGE_SUMMARY: 2026-11-21 C-SEC-EXT-GRANT-BOUND: peek_manifest answers the stored manifest regardless of enabled state for the pairing-time grant capture and the enable coverage gate; get_manifest/enable/disable/register/authorization_epoch unchanged. 2026-11-11 C-SEC-STREAM-AUTH: serialize stream mutations and stamp enabled identities across credential I/O.
 //   LINKS:   .grace/graph/features.xml M-045;
 //            .grace/graph/features.xml M-045 (PhaseRef Phase-B2b.)
 //   STATUS:  Phase-B2b initial.
@@ -213,6 +213,16 @@ impl ExtRegistry {
             Some(_) => Err(format!("extension '{id}' is disabled")),
             None => Err(format!("extension '{id}' not found")),
         }
+    }
+
+    /// Read the stored manifest regardless of enabled state. Its single
+    /// purpose is C-SEC-EXT-GRANT-BOUND's pairing-time grant capture (and
+    /// the enable coverage gate) for a disabled-but-registered extension —
+    /// get_manifest keeps refusing disabled ids, and an unregistered id
+    /// answers None so pairing stores the honest empty grant.
+    pub fn peek_manifest(&self, id: &str) -> Option<ExtensionManifest> {
+        let map = self.extensions.lock().ok()?;
+        map.get(id).map(|state| state.manifest.clone())
     }
 }
 // END_BLOCK_REGISTRY

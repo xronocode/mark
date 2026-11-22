@@ -31,7 +31,7 @@ The [engineering protocol](docs/engineering-protocol.md#modification-checklist) 
 
 ## Build
 
-Requirements: Node.js 22, Rust 1.99.0 (selected by the checked-in `rust-toolchain.toml` via [rustup](https://rustup.rs)), and on macOS the Xcode command line tools. On Linux, the Tauri system packages listed in [`.github/workflows/test.yml`](.github/workflows/test.yml) (WebKitGTK 4.1 and friends).
+Requirements: Node.js 22.22.2 or newer (exact minimum pinned in `.nvmrc`; CI runs the rolling latest 22.x), Rust 1.99.0 (selected by the checked-in `rust-toolchain.toml` via [rustup](https://rustup.rs)), and on macOS the Xcode command line tools. On Linux, the Tauri system packages listed in [`.github/workflows/test.yml`](.github/workflows/test.yml) (WebKitGTK 4.1 and friends).
 
 ```sh
 git clone https://github.com/xronocode/mark.git && cd mark
@@ -41,6 +41,19 @@ npm run tauri build     # build a release bundle
 ```
 
 The commands below cover the desktop app and renderer. Edit this repository's documentation under `docs/`; the documentation website uses a separate project.
+
+### Dev profile namespace
+
+Debug builds (`npm run tauri dev` and the dev-smoke cycle) bind the dev
+profile namespace `com.xronocode.mark.dev` by default, so ordinary dev runs
+resolve preferences, the persisted session profile, crash logs, security
+bookmarks, extension state and credentials, rollback staging and
+default-handler targeting under the dev roots — never the production
+profile. Release builds keep the configured identifier byte-identically. To
+deliberately bind the production namespace from a debug build (migration
+testing only), set `MARK_PROFILE_IDENTIFIER=com.xronocode.mark` before
+launch. The escape hatch is debug-only and non-default: a dev build using it
+can write the real user profile, and an invalid value fails closed at boot.
 
 Other useful scripts from `package.json`:
 
@@ -67,7 +80,7 @@ Mark is developed with GRACE, a set of conventions that keeps a large codebase n
 
 The project's current state is described in `.grace/`: `context/` holds requirements and technology choices, `graph/` the module graph, `verification/` which tests cover which module, and `changes/` the approved change specs and plans. When you change what a module does, update its contract and the matching graph and verification entries. Check `current` before editing, run the active change's `target` assertions during implementation, then run `final --run-commands` before archiving and rerun `current` afterwards. The [Engineering protocol](docs/engineering-protocol.md) contains the complete commands, contract, markup and verification rules. For a small bug fix you rarely need more than to keep the existing markers intact and add a line to the file's `CHANGE_SUMMARY`.
 
-Before committing or pushing, follow the [deterministic safety protocol](docs/commit-push-safety.md). Acceptance and release are separate states; the [release-train protocol](docs/release-trains/README.md) is authoritative for both.
+Before committing or pushing, follow the [deterministic safety protocol](docs/commit-push-safety.md). The mandatory pre-commit/pre-push review runs on POSIX flock lanes, so the supported review hosts are macOS and Linux; stock Windows Python cannot take the lane lock. A candidate authored on Windows is carried to a supported POSIX review host as described in the [safety protocol](docs/commit-push-safety.md). Acceptance and release are separate states; the [release-train protocol](docs/release-trains/README.md) is authoritative for both.
 
 ## Pull requests
 

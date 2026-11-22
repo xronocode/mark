@@ -83,7 +83,15 @@
       "error": "내보내기 오류",
       "imagesEmbeddedMessage": "전체 {total}개 중 {embedded}개의 이미지를 포함했습니다. 크기가 크거나 찾을 수 없는 이미지는 원래 링크로 유지됩니다",
       "errorExporting": "파일 내보내기 오류",
-      "settingsAction": "내보내기 설정"
+      "settingsAction": "내보내기 설정",
+      "embedConsentTitle": "문서 폴더 외부의 이미지를 포함할까요?",
+      "embedConsentMessage": "문서 디렉터리({dir}) 외부의 이미지 파일 {count}개를 읽어 포함합니다: {paths}",
+      "embedConsentConfirm": "이 파일들 포함",
+      "embedConsentCancel": "건너뛰기",
+      "plantumlConsentTitle": "PlantUML 다이어그램은 plantuml.com에서 렌더링됩니다",
+      "plantumlConsentMessage": "{count}개의 PlantUML 다이어그램이 렌더링을 위해 {address}로 전송됩니다 — 다이어그램 소스 텍스트가 이 컴퓨터를 벗어납니다",
+      "plantumlConsentConfirm": "plantuml.com으로 보내기",
+      "plantumlConsentCancel": "소스를 로컬에 유지"
     },
     "resizeTable": "표 크기 조정",
     "vega-lite-start": "vega-lite 시작",
@@ -536,6 +544,7 @@
         "statusBar": "상태 표시줄 보기",
         "wordWrapInToc": "목차에서 긴 제목 줄바꿈",
         "titleBarStyleHelp": "사용자 정의는 탭이 있는 Mark 고유의 제목 표시줄을 그립니다. 재시작이 필요합니다.",
+        "titleBarStyleWindowsHelp": "Windows에서는 '사용자 정의'만 실제로 동작합니다. Mark 창은 시스템 테두리 없이(장식 없이) 배포됩니다.",
         "hideScrollbar": "스크롤바 숨기기"
       },
       "text": {
@@ -1718,8 +1727,8 @@
     "search": {
       "searchInFolder": "폴더에서 검색...",
       "noResultsFound": "결과를 찾을 수 없습니다.",
-      "startTyping": "입력하면 열려 있는 폴더의 Markdown 파일을 검색합니다.",
-      "openFolder": "폴더 열기",
+      "searchFailed": "Search failed. Results may be missing.",
+      "resultsPartial": "Partial results — the search stopped early.",
       "showMoreMatches": "더 많은 일치 항목 보기",
       "noFolderOpen": "열린 폴더 없음",
       "cancel": "취소",

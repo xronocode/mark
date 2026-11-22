@@ -1,5 +1,5 @@
 // FILE: tests/renderer/store/session-restore.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-69 session restore of store/editor.js — the snapshot (tab paths in order, active tab, project roots), the boot gate (restore only on a cold launch without files and with restoreSessionOnLaunch on; the debounced autosave starts only after it), the restore order (folders → files through mt::open-file → active tab) and the skip of missing paths.
 //   SCOPE: _sessionSnapshot, _saveSessionState, START_SESSION_AUTOSAVE, BOOT_SESSION, RESTORE_SESSION, the APPLY_BOOTSTRAP_EDITOR hook.
@@ -23,11 +23,19 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-19 C-69: new — the boot-gate case fails if the autosave starts before the restore (an empty boot would overwrite the session), the order case fails without the folder/active steps.
+//   LAST_CHANGE: v1.1.0 - 2026-11-21 C-SESSION-WRITE-ATOMICITY: the
+//   in-memory ipcPrefs mock gains setMany (same PREFS map semantics) and
+//   new pins prove _saveSessionState issues exactly ONE batched write
+//   carrying the four session keys with the exact snapshot values, NO
+//   per-key ipcPrefs.set for any lastSession* key, and that a rejecting
+//   setMany makes _saveSessionState reject while the position-flush spy
+//   still ran.
+//   v1.0.0 - 2026-10-19 C-69: new — the boot-gate case fails if the autosave starts before the restore (an empty boot would overwrite the session), the order case fails without the folder/active steps.
 // END_CHANGE_SUMMARY
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setupTestPinia } from '../pinia'
+import { ipcPrefs } from '@/ipc/runtime'
 
 const PREFS = new Map()
 const FILES = new Set()
@@ -48,7 +56,8 @@ vi.mock('@/ipc/runtime', () => ({
   ipcPrefs: {
     get: vi.fn(async (k) => (PREFS.has(k) ? PREFS.get(k) : null)),
     set: vi.fn(async (k, v) => { PREFS.set(k, v) }),
-    getAll: vi.fn(async () => ({}))
+    getAll: vi.fn(async () => ({})),
+    setMany: vi.fn(async (entries) => { for (const e of entries) PREFS.set(e.key, e.value) })
   }
 }))
 vi.mock('@/services/notification', () => ({ default: { notify: vi.fn(async () => undefined) } }))
@@ -116,6 +125,59 @@ describe('session snapshot (C-69 R-1)', () => {
     expect(PREFS.get('lastSessionTabs')).toEqual(['/proj/a.md', '/proj/b.md'])
     expect(PREFS.get('lastSessionActive')).toBe('/proj/b.md')
     expect(PREFS.get('lastSessionFolders')).toEqual(['/proj'])
+  })
+})
+
+// ── C-SESSION-WRITE-ATOMICITY: one batched profile write ───────────
+
+describe('batched session write (C-SESSION-WRITE-ATOMICITY)', () => {
+  const namedTab = (pathname) => ({
+    pathname,
+    encoding: { encoding: 'utf8', isBom: false },
+    lineEnding: 'lf',
+    trimTrailingNewline: 3,
+    isSaved: true
+  })
+
+  it('_saveSessionState issues exactly one setMany whose entries carry the four session keys with the exact snapshot values and NO per-key ipcPrefs.set for any lastSession* key', async () => {
+    projectStore.projectTrees.push({ pathname: '/proj', name: 'proj', folders: [], files: [] })
+    editorStore.tabs = [namedTab('/proj/a.md'), { pathname: '' }, namedTab('/proj/b.md')]
+    editorStore.currentFile = editorStore.tabs[2]
+
+    await editorStore._saveSessionState()
+
+    expect(ipcPrefs.setMany).toHaveBeenCalledTimes(1)
+    const entries = ipcPrefs.setMany.mock.calls[0][0]
+    expect(entries.map((e) => e.key)).toEqual([
+      'lastSessionTabs', 'lastSessionActive', 'lastSessionFolders', 'lastSessionFormats'
+    ])
+    const byKey = Object.fromEntries(entries.map((e) => [e.key, e.value]))
+    // Exact snapshot values: tab paths in order with untitled skipped,
+    // the active pathname, the project roots, the format records.
+    expect(byKey.lastSessionTabs).toEqual(['/proj/a.md', '/proj/b.md'])
+    expect(byKey.lastSessionActive).toBe('/proj/b.md')
+    expect(byKey.lastSessionFolders).toEqual(['/proj'])
+    expect(Array.isArray(byKey.lastSessionFormats)).toBe(true)
+    expect(byKey.lastSessionFormats).toHaveLength(2)
+    // No per-key write for any session key; the in-memory PREFS map
+    // semantics are preserved (setMany wrote it) so downstream reads
+    // behave as before.
+    for (const key of ['lastSessionTabs', 'lastSessionActive', 'lastSessionFolders', 'lastSessionFormats']) {
+      expect(ipcPrefs.set).not.toHaveBeenCalledWith(key, expect.anything())
+    }
+    expect(PREFS.get('lastSessionTabs')).toEqual(['/proj/a.md', '/proj/b.md'])
+    expect(PREFS.get('lastSessionActive')).toBe('/proj/b.md')
+  })
+
+  it('a rejecting setMany makes _saveSessionState reject while the position-flush spy still ran', async () => {
+    ipcPrefs.setMany.mockImplementationOnce(async () => { throw new Error('MT_PREFS_SET_MANY_FAILED') })
+    const flushSpy = vi.spyOn(editorStore, '_flushFilePositionForTab')
+    editorStore.tabs = [namedTab('/proj/a.md')]
+    editorStore.currentFile = editorStore.tabs[0]
+
+    await expect(editorStore._saveSessionState()).rejects.toThrow('MT_PREFS_SET_MANY_FAILED')
+    expect(flushSpy).toHaveBeenCalledTimes(1)
+    expect(flushSpy).toHaveBeenCalledWith(editorStore.tabs[0])
   })
 })
 

@@ -1,5 +1,5 @@
 // FILE: tests/renderer/store/autoUpdates.test.js
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-66 automatic-update gate — the full decision table
 //            (24 h throttle, What's New deferral, App Store gate, switch
@@ -28,7 +28,16 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.3.0 - 2026-11-03 C-RENDER-REVIEW-FIXES T-006: the
+//   LAST_CHANGE: v1.4.0 - 2026-11-21 C-WIN-ROLLBACK-PANIC T-004: the
+//   settle pins — the newly-reachable mt_rollback_restore rejection
+//   classes (spawn_blocking join failure, rollback restore deadline
+//   expiry, pending-installer decline) each settle into the same
+//   localized rollback.restoreFailedTitle/Body error notice (source
+//   'rollback', the card hidden before the attempt, the raw error
+//   console-only, zero unhandled rejections); the store action
+//   CONFIRM_ROLLBACK itself is expected untouched (no bounded-wait
+//   guard: every command path now settles).
+//   v1.3.0 - 2026-11-03 C-RENDER-REVIEW-FIXES T-006: the
 //   prefs-skip boot-notice pins — a fresh mt_rollback_restore_outcome
 //   record raises exactly one sticky localized warning notice
 //   (rollback.prefsSkipped*, dedupKey 'rollback-prefs-skipped', source
@@ -669,6 +678,77 @@ describe('autoUpdates — rollback confirmation (CONFIRM_ROLLBACK, C-RENDER-REVI
     expect(invoke).toHaveBeenCalledWith('mt_rollback_restore')
     expect(store.rollback.visible).toBe(false)
     expect(useNotificationsStore().stack).toHaveLength(0)
+  })
+})
+
+describe('autoUpdates — rollback settle pins (CONFIRM_ROLLBACK, C-WIN-ROLLBACK-PANIC)', () => {
+  beforeEach(() => {
+    setupTestPinia()
+    vi.clearAllMocks()
+  })
+
+  const armRollback = (store) => {
+    store.rollback = { visible: true, previousVersion: '2.9.0', currentVersion: '2.9.1' }
+  }
+
+  // The backend rejection classes that become reachable once the
+  // restore core runs off the async task under a deadline with the
+  // pending-installer gate (T-001/T-002/T-003): the join-failure and
+  // deadline strings from mt_rollback_restore, the gate-decline string
+  // restore_inner maps to the exit-8 outcome. Each must settle into
+  // the SAME localized notice — never a silently unresolved invoke.
+  const settleRejections = [
+    'rollback restore join: injected join failure',
+    'Rollback restore timed out',
+    'Rollback pending: the pending installer may still be running — no second installer for Mark 2.9.0 was launched. Try again later.'
+  ]
+
+  it('every newly-reachable rejection class settles into the same localized notice with zero unhandled rejections', async () => {
+    const rejections = []
+    const onUnhandled = (reason) => rejections.push(reason)
+    process.on('unhandledRejection', onUnhandled)
+
+    for (const [i, rawError] of settleRejections.entries()) {
+      const store = useAutoUpdatesStore()
+      armRollback(store)
+      const visibleAtInvoke = []
+      const invoke = vi.fn().mockImplementation(async () => {
+        visibleAtInvoke.push(store.rollback.visible)
+        // A plain-string rejection: the Rust command rejects with a
+        // String, the invoke seam surfaces it verbatim.
+        throw rawError
+      })
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      await store.CONFIRM_ROLLBACK({ invokeFn: invoke })
+
+      expect(invoke).toHaveBeenCalledTimes(1)
+      expect(invoke).toHaveBeenCalledWith('mt_rollback_restore')
+      // The card hides BEFORE the attempt (unchanged order) and stays
+      // hidden after the rejection.
+      expect(visibleAtInvoke).toEqual([false])
+      expect(store.rollback.visible).toBe(false)
+      // The raw error stays console-only; the GUI gets the localized
+      // copy from the same keys for every class.
+      expect(error).toHaveBeenCalledWith(
+        '[autoUpdates][CONFIRM_ROLLBACK][BLOCK_RESTORE_FAILED]',
+        rawError
+      )
+      expect(useNotificationsStore().stack).toHaveLength(i + 1)
+      const notice = useNotificationsStore().stack[i]
+      expect(notice.severity).toBe('error')
+      expect(notice.sticky).toBe(true)
+      expect(notice.source).toBe('rollback')
+      expect(notice.title).toBe(t('rollback.restoreFailedTitle'))
+      expect(notice.message).toBe(t('rollback.restoreFailedBody'))
+      expect(notice.message).not.toContain(rawError)
+      error.mockRestore()
+    }
+
+    // Give an unhandled rejection (if one existed) a macrotask to surface.
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(rejections).toEqual([])
+    process.off('unhandledRejection', onUnhandled)
   })
 })
 

@@ -83,7 +83,15 @@
       "error": "Error de exportación",
       "imagesEmbeddedMessage": "{embedded} de {total} imágenes incrustadas — las imágenes grandes o ausentes conservan sus enlaces originales",
       "errorExporting": "Error al exportar archivo {type}",
-      "settingsAction": "Ajustes de exportación"
+      "settingsAction": "Ajustes de exportación",
+      "embedConsentTitle": "¿Incrustar imágenes de fuera de la carpeta del documento?",
+      "embedConsentMessage": "{count} archivo(s) de imagen fuera del directorio del documento ({dir}) se leerían e incrustarían: {paths}",
+      "embedConsentConfirm": "Incrustar estos archivos",
+      "embedConsentCancel": "Omitirlos",
+      "plantumlConsentTitle": "Los diagramas PlantUML se renderizan en plantuml.com",
+      "plantumlConsentMessage": "{count} diagrama(s) PlantUML se enviarían a {address} para su renderizado — el texto fuente del diagrama sale de esta máquina",
+      "plantumlConsentConfirm": "Enviar a plantuml.com",
+      "plantumlConsentCancel": "Conservar el origen localmente"
     },
     "resizeTable": "Redimensionar tabla",
     "vega-lite-start": "inicio de vega-lite",
@@ -536,6 +544,7 @@
         "statusBar": "Mostrar la barra de estado",
         "wordWrapInToc": "Ajustar los encabezados largos en el esquema",
         "titleBarStyleHelp": "Personalizada muestra la barra de título propia de Mark con pestañas. Requiere reiniciar.",
+        "titleBarStyleWindowsHelp": "En Windows, «Personalizada» es la única opción funcional: la ventana de Mark se distribuye sin el marco del sistema (sin decoraciones).",
         "hideScrollbar": "Ocultar las barras de desplazamiento"
       },
       "text": {
@@ -1726,8 +1735,8 @@
     "search": {
       "searchInFolder": "Buscar en carpeta...",
       "noResultsFound": "No se encontraron resultados.",
-      "startTyping": "Escribe para buscar en los archivos Markdown de las carpetas abiertas.",
-      "openFolder": "Abrir Carpeta",
+      "searchFailed": "Search failed. Results may be missing.",
+      "resultsPartial": "Partial results — the search stopped early.",
       "showMoreMatches": "Mostrar más coincidencias",
       "noFolderOpen": "No hay carpeta abierta",
       "cancel": "Cancelar",

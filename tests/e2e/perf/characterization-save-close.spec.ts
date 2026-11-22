@@ -1,5 +1,5 @@
 // FILE: tests/e2e/perf/characterization-save-close.spec.ts
-// VERSION: 1.1.1
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Freeze the CURRENT observable save / Save As / Save All / Save & Close / Quit / session / reader output behavior of the renderer at the boundaries named by R-6, dual-recording every known-defect observation instead of blessing it.
 //   SCOPE: Renderer-only (vite preview + Tauri shim, WebKit) against the committed semantic-edge corpus: FILE_SAVE, APPLY_SAVE_OUTCOME revision ownership, FILE_SAVE_AS (payload + overwrite-by-path), ASK_FOR_SAVE_ALL(false) mt_save_tabs no-op, CLOSE_TAB -> unsaved-close dialog -> mt_save_and_close_tabs, edit-after-payload-before-close race, QUIT_APP dialogs/payloads, _saveSessionState prefs writes, muya-derived wordCount/TOC/cursor, whole-document Copy as Markdown and styled-HTML export, and the --new-window no-op. It does NOT cover real Tauri IPC, real disk bytes, native WKWebView, or the multi-window behavior F-MULTI-WINDOW will add.
@@ -38,6 +38,14 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   LAST_CHANGE: v1.2.0 - 2026-11-21 C-SESSION-WRITE-ATOMICITY: the
+//   session-prefs characterization pin is rebound from the three per-key
+//   mt_prefs_set writes to exactly ONE mt_prefs_set_many batch carrying
+//   the whole profile (tabs/active/folders/formats with the current
+//   validated-record shape); the invoke log pins the batch command and
+//   still rejects the backend broadcast command, and a live mt_prefs_set
+//   recorder proves no per-key session write remains. All other
+//   characterization boundaries are unchanged.
 //   LAST_CHANGE: v1.1.1 - 2026-11-12: follow direct HTML Save while preserving canonical reader assertions and requiring one Save and one write.
 //   LAST_CHANGE: v1.1.0 - 2026-11-02 C-LARGE-DOC-WAVE-A T-006: added the
 //   WAVEA_EXPERIMENTAL beforeAll hook — bootEditor/openFileTab now import
@@ -377,7 +385,7 @@ test.describe('save / close / session characterization (C-LARGE-DOC-STAGE-0 T-00
     })
   }
 
-  test('_saveSessionState writes lastSessionTabs/lastSessionActive/lastSessionFolders through mt_prefs_set', async ({ page }) => {
+  test('_saveSessionState writes the lastSessionTabs/lastSessionActive/lastSessionFolders/lastSessionFormats profile through mt_prefs_set_many', async ({ page }) => {
     await openFixture(page)
     const snapshot = await storeState(page)
     const expected = {
@@ -396,7 +404,15 @@ test.describe('save / close / session characterization (C-LARGE-DOC-STAGE-0 T-00
 
     await page.evaluate(() => {
       const w = window as any
+      w.__prefsBatchWrites = []
       w.__prefsWrites = []
+      // C-SESSION-WRITE-ATOMICITY: the batch recorder for the session
+      // profile plus a live single-key recorder so the no-per-key-
+      // session-write assertion has a transport to observe.
+      w.__mockInvoke.mt_prefs_set_many = (args: any) => {
+        w.__prefsBatchWrites.push(args)
+        return null
+      }
       w.__mockInvoke.mt_prefs_set = (args: any) => {
         w.__prefsWrites.push(args)
         return null
@@ -408,27 +424,43 @@ test.describe('save / close / session characterization (C-LARGE-DOC-STAGE-0 T-00
       const store = (document.querySelector('#app') as any).__vue_app__.config.globalProperties.$pinia._s.get('editor')
       void store._saveSessionState()
     })
-    await page.waitForFunction(() => {
-      const writes = (window as any).__prefsWrites || []
-      return ['lastSessionTabs', 'lastSessionActive', 'lastSessionFolders'].every((key) =>
-        writes.some((entry: any) => entry.key === key)
-      )
-    })
-    const writes = await page.evaluate(() => (window as any).__prefsWrites)
-    const valueOf = (key: string) => {
-      const matches = writes.filter((entry: any) => entry.key === key)
-      expect(matches.length).toBeGreaterThan(0)
-      return matches[matches.length - 1].value
+    await page.waitForFunction(() => ((window as any).__prefsBatchWrites || []).length > 0)
+    const batches = await page.evaluate(() => (window as any).__prefsBatchWrites)
+    // Exactly ONE mt_prefs_set_many call carries the whole profile — one
+    // transaction, not four per-key writes.
+    expect(batches).toHaveLength(1)
+    const entries = batches[0].entries
+    const byKey = Object.fromEntries(entries.map((e: any) => [e.key, e.value]))
+    expect(Object.keys(byKey)).toEqual([
+      'lastSessionTabs', 'lastSessionActive', 'lastSessionFolders', 'lastSessionFormats'
+    ])
+    expect(byKey.lastSessionTabs).toEqual(expected.tabs)
+    expect(byKey.lastSessionActive).toBe(expected.active)
+    expect(byKey.lastSessionFolders).toEqual(expected.folders)
+    // Format records keep the current validated-record shape: a named
+    // pathname plus the frozen format policy and the dirty intent.
+    expect(Array.isArray(byKey.lastSessionFormats)).toBe(true)
+    for (const record of byKey.lastSessionFormats as any[]) {
+      expect(record.pathname).toBe(NAMED_PATH)
+      expect(record.format).toEqual(expect.objectContaining({
+        encoding: expect.any(String),
+        isBom: expect.any(Boolean),
+        lineEnding: expect.any(String),
+        finalNewline: expect.any(Number)
+      }))
+      expect(typeof record.dirty).toBe('boolean')
     }
-    // The real transport is ipcPrefs.set -> ipcInvoke('mt::prefs::set') ->
-    // shim mapping 'mt_prefs_set'; mt_set_user_preference is the backend
-    // broadcast command and is NOT the write channel.
-    expect(valueOf('lastSessionTabs')).toEqual(expected.tabs)
-    expect(valueOf('lastSessionActive')).toBe(expected.active)
-    expect(valueOf('lastSessionFolders')).toEqual(expected.folders)
+    // The real transport resolves the raw command name; mt_set_user_
+    // preference is the backend broadcast command and is NOT the write
+    // channel.
     const log: string[] = await invokeLog(page)
-    expect(log).toContain('mt_prefs_set')
+    expect(log).toContain('mt_prefs_set_many')
     expect(log).not.toContain('mt_set_user_preference')
+    // No per-key mt_prefs_set write occurred for any lastSession* key.
+    const perKey = await page.evaluate(() => (window as any).__prefsWrites || [])
+    for (const key of ['lastSessionTabs', 'lastSessionActive', 'lastSessionFolders', 'lastSessionFormats']) {
+      expect(perKey.some((entry: any) => entry.key === key)).toBe(false)
+    }
   })
 
   // ------------------------------------------------------------------

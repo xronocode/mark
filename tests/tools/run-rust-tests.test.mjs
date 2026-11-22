@@ -41,7 +41,11 @@ import { EventEmitter } from 'node:events'
 import { spawn } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 import { createHash, randomUUID } from 'node:crypto'
-import { beforeAll, afterAll, afterEach, describe, expect, it } from 'vitest'
+import { beforeAll, afterAll, afterEach, describe, expect, it, vi } from 'vitest'
+
+// Spawn-fixture suites drive real child processes through shims; the 5 s
+// vitest default flakes on loaded shared runners (C-CI-TOOLS-TIMEOUT).
+vi.setConfig({ testTimeout: 30000 })
 import { runRustTests, runExecutable, runOwned, cleanupFiles, validateRuntime, snapshotExecutables } from '../../tools/run-rust-tests.mjs'
 
 const helper = resolve('tools/run-rust-tests.mjs')
@@ -598,8 +602,12 @@ describe('Cargo-preserving parent and actual executable runner', () => {
       env: { ...f.options.environment, MARK_RUST_TEST_STATE: statePath }, signals, graceMs: f.options.graceMs })
     f.pending.add(running)
     try {
-      await waitUntil(() => fs.existsSync(f.proof))
-      const ready = JSON.parse(fs.readFileSync(f.proof, 'utf8').trim())
+      // existsSync fires on creation, before the writer flushes — wait for
+      // PARSEABLE content (the empty-read race flakes loaded runners).
+      let ready = null
+      await waitUntil(() => {
+        try { ready = JSON.parse(fs.readFileSync(f.proof, 'utf8').trim()); return true } catch { return false }
+      })
       expect(ready.beforeExecRecorded).toBe(true)
       expect(ready.receipt.nativePid).toBe(ready.pid)
       expect(ready.receipt.sha256).toBe(control.executables[0].sha256)

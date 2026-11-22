@@ -1,0 +1,327 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-DOCS-SYNC>
+    <IntentSummary>Docs-and-records wave 13: synchronize documentation, notices and GRACE records with the shipped truth, with no product, workflow, dependency or version change. (oss F-002) Give the node notices an honest file-icons license: a pinned name@version → license/repository override in tools/build-notices-node.mjs for git-hosted deps whose license-checker detection fails (file-icons@2.1.47 is MIT per the lockfile), with NOTICES-node.md regenerated in the same commit because tools/verify-attributions.sh diffs them in CI. (oss F-004) Give questions a direct route: README's Contributing section and the issue-template contact links both point at the public GitHub Discussions Q&amp;A category. (ai F-007) Stop quoting a Wrangler version in the gateway README — the manifest and lockfile are the version source. (ai F-008) Repoint the ten stale .grace/changes/active LINK references to their existing archive packages, links only, no prose rewrites. (cognitive F-001) Name the real external-reload module in the M-032 card (util/externalReload.js beside store/editor.js) and add its targeted suites to V-M-032's commands. (cognitive F-002) Align docs/release-process.md section 5 with the authoritative section 4a channel rules — stable/mintable example tags, per-channel releases/latest outcomes, the --prerelease=false claim dropped. (cognitive F-003) State the live-reload guards (clean tab reloads silently; Mark asks before replacing unsaved edits) in the README watch paragraph, the --watch flag row and both guides, en and ru in sync. (cognitive F-006) Record the restored-cursor legacy exclusion in the V-M-063 unmounted-tail scenario with the owner decision and pinning test. (ai F-009) Fix the three doubled Cargo manifest paths in .grace/verification/runtime.xml (V-M-004 search, V-M-009 menu, V-M-015 pandoc) to run from the repo root. Governance edits are additive-only maintenance; frozen docs/*.xml, docs/migrations/** and archived change bundles stay untouched; this plan carries no self-referential grace-lint MustPassCommand — the orchestrator runs the current/target/final lifecycle gates itself.</IntentSummary>
+    <Spec>C-DOCS-SYNC</Spec>
+    <ReferenceState>Authored 2026-11-21 against the read-only repo at the repository root, every anchor read directly in this tree. NOTICES-node.md:454-458 carries "## UNLICENSED (1)" with the row "| file-icons | 2.1.47 | https://github.com/file-icons/atom |" while package-lock.json:6666-6669 records "license": "MIT" for the same pinned git+ssh revision (file-icons/atom#2852086); tools/build-notices-node.mjs groups packages by the license-checker license string (:53-63) with no override input, and tools/verify-attributions.sh v1.1.0 regenerates to a tmp file and diffs against the committed notice. README.md:62 promises "Every save on disk reloads the tab in place and keeps your scroll position"; the --watch row (:189) says "Reload the file whenever it changes on disk, even if live reload is off in Settings"; Contributing (:220-224) names bugs, ideas, security and the docs site but no Q&amp;A. .github/ISSUE_TEMPLATE/config.yml offers only Documentation and Security contact links with blank_issues_enabled: false. static/guide/en.md:14 ("every save reloads the page and keeps your place") and ru.md:14 repeat the unguarded promise. tools/stats-gateway/README.md:185 states "The dedicated manifest pins Wrangler 4.159.0" while tools/stats-gateway/package.json:7 pins "wrangler": "4.162.0". docs/release-process.md section 4a (:90-107, as restated by the approved C-RELEASE-BETA-CHECKS-GATE) is the authoritative channel truth — a prerelease "never becomes releases/latest: the in-app updater feed stays on the previous stable tag" — while section 5 (:109-129) edits notes on a "v2.X.Y-beta" tag (:116, :118) and asserts beta tags publish with `--prerelease=false` "so `/releases/latest` advances for the in-app updater" (:125-127); "v2.X.Y-beta" and "--prerelease=false" occur nowhere else in the file. The ten stale active/ LINK references, one per file except worker.mjs: src/muya/lib/tableResize/index.js:7 (C-TABLE-LAYOUT-COMPLETION), src/muya/lib/tableResize/tableLayoutSchema.js:7 and src/renderer/src/util/tableLayoutRatios.js:7 (C-TABLE-PROFILE-SCHEMA), src/renderer/src/store/editor.js:2533 and src/renderer/src/util/externalReload.js:7 (C-EXTERNAL-RELOAD-OPERATION), src/renderer/src/store/recentlyClosed.js:21-22 (C-FIX-009-RECENTLY-CLOSED, wrapped across the line break), tools/benchmark/editors-bench.sh:11 (C-14), tools/stats-gateway/query.mjs:22 and worker.mjs:42 (C-STATS-READOUT), tools/stats-gateway/tables.mjs:15 and worker.mjs:46 (C-STATS-DASH-PUSH) — each of the ten files contains no other .grace/changes/active/ reference, and every target package was confirmed present under .grace/changes/archive. The M-032 card (.grace/graph/features.xml:160-202) names only store/editor.js and preferences.js in PlannedPath (:181) and KnowledgeGraphPath (:201); V-M-032 (.grace/verification/features.xml:653-664) lists six store suites and no external-reload test; tests/renderer/util/external-reload.test.js and tests/renderer/store/live-reload.test.js exist. The V-M-063 unmounted-tail scenario (.grace/verification/performance.xml:1670-1679) lists "restored remembered cursor position" among navigations that land through the on-demand mount, contrary to the C-LARGE-DOC-WAVE-A owner decision (b) kept LEGACY and pinned by editor-progressive-mount.test.js:748. The three doubled Cargo commands in .grace/verification/runtime.xml — V-M-004 :1119 (search), V-M-009 :2381 (menu), V-M-015 :9695 (pandoc) — each read "cd src-tauri &amp;&amp; cargo test --manifest-path src-tauri/Cargo.toml …", resolving to the nonexistent src-tauri/src-tauri/Cargo.toml. Deviation note: the drafting session had no shell, so no command was executed and no commit hash is recorded here; all file, line and byte-level anchors above were verified by direct reads. Writing this draft approves neither implementation, apply/archive, commit/push, lane admission, release, signing, tag nor publication.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>NOTICES-node.md</Value>
+        <Value>tools/build-notices-node.mjs</Value>
+        <Value>tools/verify-attributions.sh</Value>
+        <Value>README.md</Value>
+        <Value>.github/ISSUE_TEMPLATE/config.yml</Value>
+        <Value>static/guide/en.md</Value>
+        <Value>static/guide/ru.md</Value>
+        <Value>tools/stats-gateway/README.md</Value>
+        <Value>docs/release-process.md</Value>
+        <Value>.grace/graph/features.xml</Value>
+        <Value>.grace/verification/features.xml</Value>
+        <Value>.grace/verification/performance.xml</Value>
+        <Value>.grace/verification/runtime.xml</Value>
+        <Value>tests/renderer/publication-privacy.test.js</Value>
+        <Value>tests/renderer/release-preflight.test.js</Value>
+        <Value>tests/renderer/util/external-reload.test.js</Value>
+        <Value>tests/renderer/store/live-reload.test.js</Value>
+        <Value>.grace/changes/archive/C-TABLE-LAYOUT-COMPLETION</Value>
+        <Value>.grace/changes/archive/C-EXTERNAL-RELOAD-OPERATION</Value>
+      </MustExist>
+      <MustContain>
+        <File>NOTICES-node.md</File>
+        <Text>## UNLICENSED (1)
+
+| Package | Version | Repository |
+|---|---|---|
+| file-icons | 2.1.47 | https://github.com/file-icons/atom |</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/stats-gateway/README.md</File>
+        <Text>The dedicated manifest pins Wrangler 4.159.0</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/muya/lib/tableResize/index.js</File>
+        <Text>LINKS: .grace/changes/active/C-TABLE-LAYOUT-COMPLETION</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/release-process.md</File>
+        <Text>so `/releases/latest` advances for</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/release-process.md</File>
+        <Text>v2.X.Y-beta</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/runtime.xml</File>
+        <Text>cd src-tauri &amp;&amp; cargo test --manifest-path src-tauri/Cargo.toml search</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-032</Module>
+      </MustVerify>
+      <MustContain>
+        <File>tools/build-notices-node.mjs</File>
+        <Text>LICENSE_OVERRIDES</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/build-notices-node.mjs</File>
+        <Text>file-icons@2.1.47</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>discussions/categories/q-a</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>clean tab</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>asks before replacing unsaved edits</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/ISSUE_TEMPLATE/config.yml</File>
+        <Text>discussions/categories/q-a</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/guide/en.md</File>
+        <Text>clean tab</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/guide/en.md</File>
+        <Text>asks before replacing unsaved edits</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/guide/ru.md</File>
+        <Text>чистая вкладка</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/guide/ru.md</File>
+        <Text>несохранённые правки</Text>
+      </MustContain>
+      <MustContain>
+        <File>tools/stats-gateway/README.md</File>
+        <Text>The manifest and the committed lockfile are the version source</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/release-process.md</File>
+        <Text>never advances `releases/latest`</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/muya/lib/tableResize/index.js</File>
+        <Text>.grace/changes/archive/C-TABLE-LAYOUT-COMPLETION</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/features.xml</File>
+        <Text>src/renderer/src/util/externalReload.js</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/features.xml</File>
+        <Text>C-DOCS-SYNC</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/features.xml</File>
+        <Text>tests/renderer/util/external-reload.test.js</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/performance.xml</File>
+        <Text>C-LARGE-DOC-WAVE-A</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/performance.xml</File>
+        <Text>editor-progressive-mount.test.js</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/runtime.xml</File>
+        <Text>cargo test --manifest-path src-tauri/Cargo.toml search</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/runtime.xml</File>
+        <Text>cargo test --manifest-path src-tauri/Cargo.toml menu</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/runtime.xml</File>
+        <Text>cargo test --manifest-path src-tauri/Cargo.toml pandoc</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>NOTICES-node.md</File>
+        <Text>## UNLICENSED (1)</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>NOTICES-node.md</File>
+        <Text>| UNLICENSED | 1 |</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>tools/stats-gateway/README.md</File>
+        <Text>4.159.0</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>docs/release-process.md</File>
+        <Text>--prerelease=false</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>docs/release-process.md</File>
+        <Text>v2.X.Y-beta</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>docs/release-process.md</File>
+        <Text>so `/releases/latest` advances</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>.grace/verification/performance.xml</File>
+        <Text>restored
+          remembered cursor position</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>.grace/verification/runtime.xml</File>
+        <Text>cd src-tauri &amp;&amp; cargo test --manifest-path src-tauri/Cargo.toml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/muya/lib/tableResize/index.js</File>
+        <Text>.grace/changes/active/</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/muya/lib/tableResize/tableLayoutSchema.js</File>
+        <Text>.grace/changes/active/</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/renderer/src/util/tableLayoutRatios.js</File>
+        <Text>.grace/changes/active/</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>.grace/changes/active/</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/renderer/src/util/externalReload.js</File>
+        <Text>.grace/changes/active/</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/renderer/src/store/recentlyClosed.js</File>
+        <Text>.grace/changes/active/</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>tools/benchmark/editors-bench.sh</File>
+        <Text>.grace/changes/active/</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>tools/stats-gateway/query.mjs</File>
+        <Text>.grace/changes/active/</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>tools/stats-gateway/tables.mjs</File>
+        <Text>.grace/changes/active/</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>tools/stats-gateway/worker.mjs</File>
+        <Text>.grace/changes/active/</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command budgetSeconds="300">./tools/verify-attributions.sh</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="300">npx vitest run tests/renderer/publication-privacy.test.js tests/renderer/release-preflight.test.js</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="60">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/features.xml'); ET.parse('.grace/verification/features.xml'); ET.parse('.grace/verification/performance.xml'); ET.parse('.grace/verification/runtime.xml')"</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-032 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-032 />
+        <V-M-063 />
+        <V-M-004 />
+        <V-M-009 />
+        <V-M-015 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>NOTICES-node.md</File>
+      <File>tools/build-notices-node.mjs</File>
+      <File>README.md</File>
+      <File>.github/ISSUE_TEMPLATE/config.yml</File>
+      <File>static/guide/en.md</File>
+      <File>static/guide/ru.md</File>
+      <File>tools/stats-gateway/README.md</File>
+      <File>src/muya/lib/tableResize/index.js</File>
+      <File>src/muya/lib/tableResize/tableLayoutSchema.js</File>
+      <File>src/renderer/src/util/tableLayoutRatios.js</File>
+      <File>src/renderer/src/store/editor.js</File>
+      <File>src/renderer/src/util/externalReload.js</File>
+      <File>src/renderer/src/store/recentlyClosed.js</File>
+      <File>tools/benchmark/editors-bench.sh</File>
+      <File>tools/stats-gateway/query.mjs</File>
+      <File>tools/stats-gateway/tables.mjs</File>
+      <File>tools/stats-gateway/worker.mjs</File>
+      <File>docs/release-process.md</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/features.xml</File>
+      <File>.grace/verification/performance.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Honest file-icons notice: pinned license override in the node-notices generator, NOTICES-node.md regenerated in the same change</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>tools/build-notices-node.mjs gains a pinned LICENSE_OVERRIDES map consulted after the license-checker license string is read, keyed "name@version" → {license, repository}, carrying exactly one entry: "file-icons@2.1.47" → MIT with repository https://github.com/file-icons/atom — sourced from package-lock.json:6666-6669, where the lockfile records "license": "MIT" for the pinned git+ssh revision whose installed metadata lacks a detectable license field. The override applies only to that exact name@version (a future real version bump re-enters normal detection), only rescues deps that license-checker lands in the UNLICENSED/UNKNOWN bucket, and changes nothing else: grouping, sorting, the self-package exclusion, header/footer and every other emitted byte stay identical. A code comment records the lockfile as the override source and the CI coupling: the committed NOTICES-node.md and this generator must move together because tools/verify-attributions.sh diffs them. Where the file header carries CHANGE_SUMMARY markup, add a dated 2026-11-21 line naming C-DOCS-SYNC.</Criterion>
+          <Criterion>NOTICES-node.md is regenerated with the overridden generator and committed in the same change — never hand-edited, never without the generator: file-icons 2.1.47 appears under the MIT section with the upstream repository URL; the "## UNLICENSED (1)" section and its "| UNLICENSED | 1 |" summary row disappear; the "## Unlicense (1)" robust-predicates section and every other row, section order and byte stay exactly as the pipeline emits, so verify-attributions' regeneration diff is clean.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">./tools/verify-attributions.sh</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>README, guides, gateway README and release-doc truth: Q&amp;A route, live-reload guards, Wrangler deference, section 5 aligned to 4a</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Questions route (oss F-004): README.md's Contributing section names the public Q&amp;A category — link https://github.com/xronocode/mark/discussions/categories/q-a — alongside the existing bug/idea/security routes, so a reader can tell a question from an error report from a confidential message; .github/ISSUE_TEMPLATE/config.yml gains one contact link (an "ask a question" entry pointing at the same discussions/categories/q-a URL) beside the existing Documentation and Security links; blank_issues_enabled stays false and no existing link is removed or reworded beyond the addition.</Criterion>
+          <Criterion>Live-reload guards (cognitive F-003): the README.md watch paragraph (:62) and the --watch flag row (:189) each state the shipped guards in the README's existing voice — a clean tab reloads silently, and Mark asks before replacing unsaved edits; static/guide/en.md item 2 and static/guide/ru.md item 2 carry the same two guards (ru: чистая вкладка; спросит, прежде чем заменить несохранённые правки), en and ru staying semantically in sync; no other README/guide claim, heading or list item changes and the guards stay one clause each, not a manual.</Criterion>
+          <Criterion>Wrangler deference (ai F-007): the tools/stats-gateway/README.md sentence claiming a pinned version number is replaced so the file contains no Wrangler version literal ("4.159.0" gone, no other version quoted in its place) and states that the manifest and the committed lockfile are the version source; the surrounding instructions — verify the installed CLI, the wrapper invokes only the prepared local CLI — keep their meaning unchanged.</Criterion>
+          <Criterion>Release notes channel truth (cognitive F-002), docs/release-process.md section 5 only: the note-editing examples use a tag section 4a can mint — the stable v2.X.Y form, or the vX.Y.Z-beta.N form when a prerelease is meant — so "v2.X.Y-beta" no longer appears; the "--prerelease=false so `/releases/latest` advances" claim is replaced by the per-channel observable outcome already defined in section 4a, stated so that editing notes on a prerelease tag never advances `releases/latest` (the updater feed stays on the previous stable tag) while a stable tag advances it and the feed serves the new version. Section 4a is authoritative and stays byte-identical — section 5 aligns to it, never the reverse; no heading, other section or step changes.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx vitest run tests/renderer/publication-privacy.test.js tests/renderer/release-preflight.test.js</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Governance maintenance: ten archive repoints, M-032 module truth, V-M-032 commands, V-M-063 legacy exception, three runnable Cargo commands</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Stale links (ai F-008), additive-only: in each of the ten files — src/muya/lib/tableResize/index.js:7 (C-TABLE-LAYOUT-COMPLETION), src/muya/lib/tableResize/tableLayoutSchema.js:7 and src/renderer/src/util/tableLayoutRatios.js:7 (C-TABLE-PROFILE-SCHEMA), src/renderer/src/store/editor.js:2533 and src/renderer/src/util/externalReload.js:7 (C-EXTERNAL-RELOAD-OPERATION), src/renderer/src/store/recentlyClosed.js:21-22 (C-FIX-009-RECENTLY-CLOSED, wrapped), tools/benchmark/editors-bench.sh:11 (C-14), tools/stats-gateway/query.mjs:22, tables.mjs:15 and worker.mjs:42/46 (C-STATS-READOUT, C-STATS-DASH-PUSH) — the .grace/changes/active/&lt;pkg&gt; LINK becomes the package's actual .grace/changes/archive/&lt;pkg&gt; path (same filenames, no prose rewrite, no link added or dropped); after the repoint none of the ten files contains a .grace/changes/active/ reference; where a touched file carries a CHANGE_SUMMARY block, append one dated 2026-11-21 line naming C-DOCS-SYNC. No other header content, VERSION or contract text changes.</Criterion>
+          <Criterion>M-032 card (cognitive F-001), .grace/graph/features.xml only inside M-032: PlannedPath and Sources/KnowledgeGraphPath gain src/renderer/src/util/externalReload.js — named as the module owning reload admission, re-confirmation and replacement — beside the existing src/renderer/src/store/editor.js entry point and preferences.js; one dated SummaryDelta or Summary annotation names C-DOCS-SYNC and the documentation-only nature of the delta; Priority, Type, Status, PhaseRef, Dependencies, VerificationRef, Contract and every other card element stay byte-identical.</Criterion>
+          <Criterion>V-M-032 commands (cognitive F-001), .grace/verification/features.xml only inside V-M-032: the Commands list gains one entry running the module's targeted suites — npx vitest run tests/renderer/util/external-reload.test.js tests/renderer/store/live-reload.test.js — beside the existing six-suite and editor-deep2 commands; no existing command, scenario, marker or assertion is deleted or weakened, so contract → module → checks is walkable from the card.</Criterion>
+          <Criterion>V-M-063 unmounted-tail scenario (cognitive F-006), .grace/verification/performance.xml: "restored remembered cursor position" leaves the list of navigations that land through the on-demand mount; the scenario instead records the legacy-path exception — restored-cursor and blocks-cache opens keep the LEGACY path per the C-LARGE-DOC-WAVE-A owner decision (b), pinned by editor-progressive-mount.test.js — while scroll jump, search hit, TOC/link jump and jump-to-end keep their mount claims; every other V-M-063 scenario stays byte-identical; the edit carries the C-DOCS-SYNC attribution per the repo's dated scenario style.</Criterion>
+          <Criterion>Runnable Rust checks (ai F-009), .grace/verification/runtime.xml: the three doubled commands in V-M-004 (search, :1119), V-M-009 (menu, :2381) and V-M-015 (pandoc, :9695) each drop the "cd src-tauri &amp;&amp;" prefix, becoming cargo test --manifest-path src-tauri/Cargo.toml &lt;filter&gt; executed from the repo root; the test filters, surrounding commands and every other V-M-004/V-M-009/V-M-015 entry stay unchanged; no fourth command is touched.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="60">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/features.xml'); ET.parse('.grace/verification/features.xml'); ET.parse('.grace/verification/performance.xml'); ET.parse('.grace/verification/runtime.xml')"</Command>
+          <Command budgetSeconds="120">npx vitest run tests/renderer/util/external-reload.test.js tests/renderer/store/live-reload.test.js</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Gates: full target-assertion set green, diff confined to the declared scope, one live proof of the fixed Rust command</Title>
+        <DependsOn>T-001, T-002, T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>All TargetAssertions hold on the final tree: verify-attributions green (NOTICES and its generator moved together); the boundary/release pins green; zero .grace/changes/active/ references remain in any of the ten repointed files; the M-032/V-M-032/V-M-063/runtime.xml pins present; the three MustPassCommands pass with no skips, retries or budget increases.</Criterion>
+          <Criterion>The fixed search command is proven live once from the repo root — cargo test --manifest-path src-tauri/Cargo.toml search — demonstrating the V-M-004 entry runs exactly as now written; the menu and pandoc forms share the identical fix shape.</Criterion>
+          <Criterion>The combined diff is limited to the 22 ObservedWriteScope files and, within them, to the declared sections: no frozen docs/*.xml, no docs/migrations/**, no .grace/changes/archive/** or other active change bundle bytes; no product code, workflow, dependency, lockfile or version change; en.md and ru.md guard wording consistent; guide and README claims outside the named spots untouched. grace current assertions are green before and after the wave (orchestrator-owned lifecycle gates).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml search</Command>
+          <Command budgetSeconds="300">./tools/verify-attributions.sh</Command>
+          <Command budgetSeconds="300">npx vitest run tests/renderer/publication-privacy.test.js tests/renderer/release-preflight.test.js</Command>
+          <Command budgetSeconds="120">npx vitest run tests/renderer/util/external-reload.test.js tests/renderer/store/live-reload.test.js</Command>
+          <Command budgetSeconds="60">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/features.xml'); ET.parse('.grace/verification/features.xml'); ET.parse('.grace/verification/performance.xml'); ET.parse('.grace/verification/runtime.xml')"</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Environment>Baseline is the current repo tree with node_modules installed and the Rust toolchain available (the cargo command compiles the existing src-tauri crate). Tasks run sequentially T-001 → T-002 → T-003 → T-004; T-004's gates are meaningful only after the earlier tasks land their edits. The combined diff must be exactly the 22 ObservedWriteScope files: NOTICES-node.md plus its generator (license override and regenerated notice moving together — committing either alone fails the CI regenerate-diff), README.md (Contributing Q&amp;A link; the watch paragraph and --watch row guard clauses, nothing else), .github/ISSUE_TEMPLATE/config.yml (one added contact link), static/guide/en.md and ru.md (item 2 guards, semantically in sync), tools/stats-gateway/README.md (the one version sentence), docs/release-process.md (section 5 only; section 4a stays byte-identical and remains the authoritative channel truth — section 5 aligns to it, never the reverse), the ten LINKS-only repoints (headers otherwise unchanged, dated CHANGE_SUMMARY lines only where the file carries the block), and the four governance XML files edited additively only (M-032 path/summary truth, one V-M-032 command entry, the V-M-063 scenario exception text, three fixed Cargo commands) with no scenario, priority, marker, assertion or link deleted. Frozen docs/*.xml, docs/migrations/** and archived change bundles stay untouched. No product code, workflow, dependency, lockfile, version, updater or release-lane behaviour changes anywhere. The orchestrator runs the grace-lint lifecycle gates itself (current before editing, target for C-DOCS-SYNC during implementation, final --run-commands before archive, current after); no command in this plan is self-referential to those gates. Writing this draft approves neither implementation, apply/archive, commit/push, lane admission, release, signing, tag nor publication.</Environment>
+    </AcceptanceVerification>
+    <ExecutionMode>sequential</ExecutionMode>
+    <Lifecycle>Drafted 2026-11-21 from the approved spec C-DOCS-SYNC for orchestrator admission; the orchestrator owns status transitions and the durable/final/archive/publication boundaries. Writing this draft approves neither implementation nor apply/archive, commit/push, lane admission, release, signing, tag or publication.</Lifecycle>
+  </C-DOCS-SYNC>
+</GraceChangePlan>

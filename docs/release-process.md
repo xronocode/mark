@@ -96,31 +96,56 @@ the `release-authorize` approval then mints the Release Bot annotated tag at
 current main HEAD (no Ready seal), and the synchronous `release` Environment
 approval publishes. The tag run rides the prerelease lane: no Ready seal,
 no strict readiness, no materials or preflight gates, and a generated body
-with the tester notice instead of reviewed notes. Publication exposes a
+with the tester notice instead of reviewed notes. The run still verifies its
+commit's pinned required checks at the exact tag commit and fails closed until main CI is green at the tagged commit — promoting before the commit's
+main CI is green is rejected until a re-run re-collects fresh evidence and
+passes. Publication exposes a
 GitHub **prerelease** that never becomes `releases/latest`: the in-app updater
 feed stays on the previous stable tag and the Homebrew cask handoff is
 skipped. Testers install from the direct asset links over their existing
 installation and roll back by reinstalling the stable DMG. A prerelease is
 not a train dispatch and records no acceptance.
 
+### 4b. Signing boundary (C-RELEASE-SIGNING-SPLIT)
+
+The tag run splits into an unsigned build lane and a separate signing lane.
+The build job holds no environment, no OIDC and no secrets: it installs with
+`npm ci --ignore-scripts` — the allowlist carries the single approved
+install-script exception (esbuild), and any further entry requires a reviewed
+change — builds both platform bundles unsigned, and records a SHA-256
+receipt sidecar for every staged artifact. The `release-signing` sign job is
+the only holder of the Apple and Tauri updater secrets and of the OIDC
+attestation authority. It downloads the staged set, recomputes every digest
+against the recorded receipts and refuses the run on any mismatch — missing
+receipts and unexpected extra files fail it too — before any key material is
+used: it signs only digest-verified artifacts. It re-signs the staged macOS
+bundle with the Developer ID identity without rebuilding, notarizes and
+staples it, produces the Tauri updater signatures for both platforms, and
+issues the SLSA provenance and the keyless cosign signatures over the signed
+set. Publication is needs-chained on signing, so no downstream stage can
+bypass it, and the prerelease lane rides the same split chain.
+
 ## 5. Release notes
 
 The workflow publishes only the automated verification block. Once the release
 is live, prepend the drafted English “What's new” section and keep the automated
-block below a `---` separator:
+block below a `---` separator. The commands use the stable `v2.X.Y` tag; for a
+prerelease, substitute the `vX.Y.Z-beta.N` form section 4a mints:
 
 ```sh
-gh release view v2.X.Y-beta -R xronocode/mark --json body --jq '.body' > /tmp/rel-body.md
+gh release view v2.X.Y -R xronocode/mark --json body --jq '.body' > /tmp/rel-body.md
 # prepend the user-facing section, then:
-gh release edit v2.X.Y-beta -R xronocode/mark --notes-file /tmp/rel-combined.md
+gh release edit v2.X.Y -R xronocode/mark --notes-file /tmp/rel-combined.md
 ```
 
 Derive the content from the frozen train, shipped change specs and exact release
 diff (`git log vPREV..vNEW --oneline` plus the relevant spec names, summaries and
 decisions).
 
-Beta tags are published as normal releases (`--prerelease=false` on the
-draft-to-published edit, asserted by tests), so `/releases/latest` advances for
-the in-app updater. A release is live
+The `releases/latest` outcome follows the channel (section 4a). Editing notes
+on a prerelease tag (`vX.Y.Z-beta.N`) never advances `releases/latest`: the
+in-app updater feed stays on the previous stable tag. A stable tag advances
+`releases/latest` when the tag run publishes it, and the feed serves the new
+version. A stable release is live
 only when `https://github.com/xronocode/mark/releases/latest/download/latest.json`
 serves the new version.

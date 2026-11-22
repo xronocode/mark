@@ -111,9 +111,14 @@
 //   persistAndApply - the write path (tier choice + store/prefs writes + pipeline apply + the host announcement).
 //   announcePageStateChange - the mt::document-page-state-changed bus emit the editor host re-reads the entry on.
 //   applyPipeline - resolveEffectiveWidth over the canvas + applyEditorWidth (one inline custom property, never a content re-render).
+//   focus (C-COMPACT-WINDOWS-FIT R-3) - the footer Reset .linkish carries the canon :focus-visible accent outline.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   LAST_CHANGE: 2026-11-21 C-COMPACT-WINDOWS-FIT R-3: the footer Reset
+//   link carries the canon :focus-visible outline (2px solid
+//   var(--prefAccent), 1px offset); row arithmetic and write paths are
+//   unchanged.
 //   LAST_CHANGE: v1.1.0 - 2026-11-03 C-PAGE-WIDTH-TABLES host wiring
 //   wave: the write paths (persistAndApply, onReset) announce the saved
 //   document tier on the renderer bus (mt::document-page-state-changed)
@@ -440,6 +445,13 @@ onBeforeUnmount(() => {
   border: 0;
   cursor: pointer;
   padding: 0;
+}
+
+/* C-SETTINGS-KEYBOARD-FOCUS canon: visible only for keyboard focus;
+   the hover underline stays the pointer affordance. */
+.quick-page-tab .linkish:focus-visible {
+  outline: 2px solid var(--prefAccent);
+  outline-offset: 1px;
 }
 
 .quick-page-tab .linkish:hover {

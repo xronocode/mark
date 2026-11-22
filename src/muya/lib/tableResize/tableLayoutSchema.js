@@ -4,7 +4,7 @@
 //   PURPOSE: C-TABLE-PROFILE-SCHEMA the single pure owner of the persisted table-layout schema — the valid mode set and the legacy fullWidth/fit precedence, the positive-finite width/manual/ratio/tableWidth decoding, and the two meaningful-entry (non-husk) drop rules shared by the Muya sanitizer (sanitizePersistedEntries) and the renderer migration (migrateTableEntry). Field extraction, mode/legacy precedence and meaningful-entry logic live ONLY here; the consumer adapters keep their own boundary decisions (the 48 px display clamp, the ratio copy versus unit-sum normalization, the explicit-Auto handling).
 //   SCOPE: TABLE_LAYOUT_MODES, isTableLayoutMode, isPositiveFinite, resolveTableLayoutMode, filterPositiveWidths, deriveManualFlags, deriveTableWidth, areStorableRatios, isMeaningfulEntry — pure decoding only. No px floor, no clamp, no ratio normalization, no storage/geometry policy: those stay with the named adapters (lib/tableResize/index.js, renderer util tableLayoutRatios.js).
 //   DEPENDS: none (framework-free pure functions; no DOM, IPC, storage, window, Vue or Node runtime dependency — Muya stays self-contained).
-//   LINKS: .grace/changes/active/C-TABLE-PROFILE-SCHEMA (spec + plan); .grace/graph/runtime.xml M-012 and .grace/graph/performance.xml M-061 (the consumer records); lib/tableResize/index.js (sanitizePersistedEntries — the Muya-direct adapter); renderer util tableLayoutRatios.js (migrateTableEntry — the store-side adapter; renderer→muya import direction only); .grace/changes/archive/C-PAGE-WIDTH-TABLES T-007/T-008 (the schema v2 origin).
+//   LINKS: .grace/changes/archive/C-TABLE-PROFILE-SCHEMA (spec + plan); .grace/graph/runtime.xml M-012 and .grace/graph/performance.xml M-061 (the consumer records); lib/tableResize/index.js (sanitizePersistedEntries — the Muya-direct adapter); renderer util tableLayoutRatios.js (migrateTableEntry — the store-side adapter; renderer→muya import direction only); .grace/changes/archive/C-PAGE-WIDTH-TABLES T-007/T-008 (the schema v2 origin).
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -22,6 +22,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-21 C-DOCS-SYNC: C-TABLE-PROFILE-SCHEMA link repointed to .grace/changes/archive/ (the change archived); no behavior change.
 //   CURRENT: 2026-11-19 C-TABLE-PROFILE-SCHEMA: new pure owner — the
 //   persisted-layout field validation, legacy mode precedence and
 //   meaningful-entry rules move here from the two independently maintained

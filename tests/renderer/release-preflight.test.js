@@ -220,13 +220,20 @@ describe('production release workflow', () => {
     })
   })
 
-  it('verifies signature and Gatekeeper before smoke launch', () => {
-    const smokeIndex = commandIndex('- name: smoke launch')
-    expect(commandIndex('codesign --verify --deep --strict')).toBeLessThan(
-      smokeIndex
-    )
-    expect(commandIndex('spctl --assess --type execute')).toBeLessThan(
-      smokeIndex
+  it('verifies signature and Gatekeeper inside the sign job before the signed-set upload', () => {
+    // C-RELEASE-SIGNING-SPLIT: the build job smokes the UNSIGNED bundle
+    // (ad-hoc launch, the release-tauri.yml precedent); the codesign/spctl
+    // verification moved to the sign job and precedes its signed-set upload.
+    const signStart = workflow.indexOf('  sign:')
+    expect(signStart, 'the sign job must exist').toBeGreaterThan(-1)
+    const signEnd = workflow.indexOf('  prepare-publication:')
+    const signLane = workflow.slice(signStart, signEnd)
+    const verifyIndex = signLane.indexOf('codesign --verify --deep --strict')
+    expect(verifyIndex).toBeGreaterThan(-1)
+    expect(signLane.indexOf('spctl --assess --type execute')).toBeGreaterThan(-1)
+    expect(signLane.indexOf('spctl --assess --type execute')).toBeGreaterThan(verifyIndex)
+    expect(signLane.indexOf('- name: upload signed')).toBeGreaterThan(
+      signLane.indexOf('spctl --assess --type execute')
     )
   })
 

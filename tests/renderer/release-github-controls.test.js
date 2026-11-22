@@ -212,7 +212,10 @@ describe('release GitHub trust boundaries', () => {
     expect(manual).not.toMatch(/APPLE_|TAURI_SIGNING|release-signing|publish/)
     expect(release.jobs.build.if).toContain("github.event_name == 'push'")
     expect(release.jobs.build.needs).toBe('authorize-tag')
-    expect(release.jobs.build.environment).toBe('release-signing')
+    // C-RELEASE-SIGNING-SPLIT: the environment moved to the sign job —
+    // build stays unsigned and environment-free.
+    expect(release.jobs.build.environment).toBeUndefined()
+    expect(release.jobs.sign.environment).toBe('release-signing')
   })
 
   it('makes each manual QA verification fail the job before unsigned packaging', () => {
@@ -359,9 +362,13 @@ describe('release GitHub trust boundaries', () => {
     expect(releaseSource.indexOf('repeat strict release admission before packaging')).toBeLessThan(
       releaseSource.indexOf('uses: tauri-apps/tauri-action@')
     )
+    // C-RELEASE-SIGNING-SPLIT: build keeps only the read pair; the OIDC
+    // permissions live in the sign job.
     expect(release.jobs.build.permissions).toEqual({
       contents: 'read',
-      checks: 'read',
+      checks: 'read'
+    })
+    expect(release.jobs.sign.permissions).toMatchObject({
       'id-token': 'write',
       attestations: 'write'
     })

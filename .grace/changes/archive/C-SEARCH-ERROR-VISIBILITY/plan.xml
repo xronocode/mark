@@ -1,0 +1,188 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-SEARCH-ERROR-VISIBILITY>
+    <Name>Honest search failure and truncation visibility — implementation plan</Name>
+    <ChangeRef>C-SEARCH-ERROR-VISIBILITY</ChangeRef>
+    <Created>2026-11-21</Created>
+    <Spec>C-SEARCH-ERROR-VISIBILITY</Spec>
+
+    <IntentSummary>Make folder search honest about failure and truncation in src-tauri/src/m013b/search.rs and the renderer search voice: the rg transport checks the child exit status (0/1 stay normal completion, >=2 becomes the single error terminal through the existing SearchSessionCoordinator) with bounded stderr capture feeding diagnostics instead of Stdio::null, a bounded cancel watcher settles a silent rg child promptly without waiting for its next stdout line, exclusion masks are applied symmetrically by both engines through one shared mask-semantics helper (walker filtering plus rg --glob=! arguments, invalid masks explicitly ignored while forcing the partial flag), the renderer parses the documented maxFileSize string ("123", "1K", "2M", "3G") at the store boundary before invoke, the store sets its error state on rejection and keeps already-streamed hits only when marked partial, and the ProjectSearch overlay renders localized failure and partial states distinct from "No results found." — all through one additive optional partial field on the existing SearchEvent envelope. The dead legacy sidebar search panel (sideBar/search.vue, searchToolbar.vue, four dedicated test files, two orphaned locale keys in ten locales) is removed in the same zone after the death evidence is re-verified on the delivery baseline. SearchSessionCoordinator stays the single terminal owner and src/renderer/src/ipc/runtime/search.ts stays byte-for-byte read-only.</IntentSummary>
+
+    <ReferenceState>Authored 2026-11-21 as a draft against the current read-only state of the canary-beta-gate-wave tree (technical-debt lane); this plan names the spec by the Spec element and pins no SpecSha256 until admission. Verified defect shapes in the current tree: src-tauri/src/m013b/search.rs run_ripgrep_with_program pipes stderr to Stdio::null(), breaks the read loop silently on stream errors, discards child.wait() via `let _ = child.wait();` and returns Ok(total) unconditionally, so rg exit 2 (bad pattern, unreadable tree) is indistinguishable from exit 1 (no matches); the cancel flag is checked only inside the blocking `for line in reader.lines()` loop, so a quiet rg child keeps running after mt_search_cancel; SearchOptions carries exclusions and max_file_size: Option&lt;u64&gt; but no engine applies the masks and the renderer sends the documented size string verbatim. src/renderer/src/store/search.js passes `maxFileSize: preferencesStore.searchMaxFileSize || null` unconverted, and its .catch clears results and logs without ever setting this.error. src/renderer/src/components/projectSearch/index.vue destructures the store's error ref but its template renders only "Searching…", "No results found." and the summary. src/renderer/src/components/sideBar/search.vue and searchToolbar.vue are imported by no production file (the sidebar shell is Files-only since C-40 T-003; the live overlay is ProjectSearch mounted from pages/app.vue); only their four dedicated test files import them, and sideBar.search.startTyping / sideBar.search.openFolder have no other reader in src or tests. The search-input-composition worktree (C-SEARCH-INPUT-COMPOSITION-CONTRACT: exclusion-glob implementation, size ingress tests) is a divergent scope this plan neither depends on nor absorbs; the actual lane baseline is revalidated before implementation, and if composition changes are ever combined, both scopes stay separate and the composition regressions are rerun on that baseline. Delivery is sequential through the repository technical-debt lane; lane departure into main and train accounting remain separate owner-controlled steps. Approval of the spec alone does not approve this plan, execution, apply/archive or release.</ReferenceState>
+
+    <BaselineAssertions>
+      <MustExist><Value>src-tauri/src/m013b/search.rs</Value></MustExist>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>cmd.stdout(Stdio::piped()).stderr(Stdio::null());</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>let _ = child.wait();</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>let _ = pattern_len; // reserved for future range-end calc</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>Ok(total)</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>for line in reader.lines() {</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>pub max_file_size: Option&lt;u64&gt;,</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>pub exclusions: Option&lt;Vec&lt;String&gt;&gt;,</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/search.js</File><Text>.catch((err) =&gt; {</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/search.js</File><Text>log.error('Error while searching in directory:', err)</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/search.js</File><Text>maxFileSize: preferencesStore.searchMaxFileSize || null,</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/projectSearch/index.vue</File><Text>const { results, running, error } = storeToRefs(searchStore)</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/projectSearch/index.vue</File><Text>{{ t('sideBar.search.noResultsFound') }}</Text></MustContain>
+      <MustExist><Value>src/renderer/src/components/sideBar/search.vue</Value></MustExist>
+      <MustExist><Value>src/renderer/src/components/sideBar/searchToolbar.vue</Value></MustExist>
+      <MustExist><Value>tests/renderer/components/sideBar/search.test.js</Value></MustExist>
+      <MustExist><Value>tests/renderer/components/sideBar/search-fn.test.js</Value></MustExist>
+      <MustExist><Value>tests/renderer/components/sideBar/searchToolbar.test.js</Value></MustExist>
+      <MustExist><Value>tests/renderer/components/sideBar/searchToolbar-fn.test.js</Value></MustExist>
+      <MustContain><File>static/locales/en.json</File><Text>"startTyping"</Text></MustContain>
+    </BaselineAssertions>
+
+    <TargetAssertions>
+      <MustVerify><Module>M-004</Module></MustVerify>
+      <MustVerify><Module>M-011</Module></MustVerify>
+      <MustVerify><Module>M-013</Module></MustVerify>
+      <MustVerify><Module>V-M-004</Module></MustVerify>
+      <MustVerify><Module>V-M-011</Module></MustVerify>
+      <MustNotContain><File>src-tauri/src/m013b/search.rs</File><Text>let _ = child.wait();</Text></MustNotContain>
+      <MustNotContain><File>src-tauri/src/m013b/search.rs</File><Text>cmd.stdout(Stdio::piped()).stderr(Stdio::null());</Text></MustNotContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>cmd.stdout(Stdio::piped()).stderr(Stdio::piped());</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>// START_BLOCK_RIPGREP_STDERR_CAPTURE</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>// END_BLOCK_RIPGREP_STDERR_CAPTURE</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>let status = child.wait()</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>status.code()</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>code != 0 &amp;&amp; code != 1</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>rg exited with</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>fn compile_exclusion_masks</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>--glob=!</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>pub partial: Option&lt;bool&gt;,</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>fn finalize(&amp;mut self, terminal: SearchTerminal, error: Option&lt;String&gt;, partial: bool) -&gt; bool</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>// START_BLOCK_CANCEL_WATCHER</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>// END_BLOCK_CANCEL_WATCHER</Text></MustContain>
+      <MustContain><File>src/renderer/src/_shims/install-window-globals.js</File><Text>partial: m.partial === true</Text></MustContain>
+      <MustContain><File>src/renderer/src/node/ripgrepSearcher.js</File><Text>didComplete</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/search.js</File><Text>parseSearchMaxFileSize</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/search.js</File><Text>this.error = errorMessage</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/search.js</File><Text>partialResults</Text></MustContain>
+      <!-- NonGoal pin: the unreachable legacy 100-results throttle string stays exactly as it is (spec NonGoals; the Rust path emits no searchedPaths events, so the didSearchPaths cap cannot fire). -->
+      <MustContain><File>src/renderer/src/store/search.js</File><Text>Showing first 100 results only</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/projectSearch/index.vue</File><Text>t('sideBar.search.searchFailed')</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/projectSearch/index.vue</File><Text>t('sideBar.search.resultsPartial')</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>"searchFailed"</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>"resultsPartial"</Text></MustContain>
+      <MustNotExist><Value>src/renderer/src/components/sideBar/search.vue</Value></MustNotExist>
+      <MustNotExist><Value>src/renderer/src/components/sideBar/searchToolbar.vue</Value></MustNotExist>
+      <MustNotExist><Value>tests/renderer/components/sideBar/search.test.js</Value></MustNotExist>
+      <MustNotExist><Value>tests/renderer/components/sideBar/search-fn.test.js</Value></MustNotExist>
+      <MustNotExist><Value>tests/renderer/components/sideBar/searchToolbar.test.js</Value></MustNotExist>
+      <MustNotExist><Value>tests/renderer/components/sideBar/searchToolbar-fn.test.js</Value></MustNotExist>
+      <MustNotContain><File>static/locales/en.json</File><Text>"startTyping"</Text></MustNotContain>
+      <MustPassCommand><Command budgetSeconds="60">! grep -rq "sideBar/search.vue\|sideBar/searchToolbar\|SearchToolbar" src/</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="900">npx --no-install vitest run tests/renderer/store/search.test.ts tests/renderer/store/search-coverage.test.js tests/renderer/ipc/runtime-search.test.ts tests/renderer/node/ripgrepSearcher-deep.test.js tests/renderer/components/projectSearch/index.test.js tests/renderer/i18n/locale-keys.test.js</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="600">npx --no-install vitest run tests/renderer/components/sideBar/searchResultItem.test.js tests/renderer/components/sideBar/tree.test.js tests/renderer/components/search.test.js tests/renderer/components/search-fn.test.js tests/renderer/components/search-deep.test.js</Command></MustPassCommand>
+    </TargetAssertions>
+
+    <DurableScope>
+      <GraphAnchors><M-004/><M-011/><M-013/></GraphAnchors>
+      <VerificationAnchors><V-M-004/><V-M-011/></VerificationAnchors>
+    </DurableScope>
+
+    <ObservedWriteScope>
+      <File>src-tauri/src/m013b/search.rs</File>
+      <File>src/renderer/src/store/search.js</File>
+      <File>src/renderer/src/components/projectSearch/index.vue</File>
+      <File>src/renderer/src/node/ripgrepSearcher.js</File>
+      <File>src/renderer/src/_shims/install-window-globals.js</File>
+      <File>src/renderer/src/components/sideBar/search.vue (deleted)</File>
+      <File>src/renderer/src/components/sideBar/searchToolbar.vue (deleted)</File>
+      <File>static/locales/en.json</File>
+      <File>static/locales/de.json</File>
+      <File>static/locales/es.json</File>
+      <File>static/locales/fr.json</File>
+      <File>static/locales/ja.json</File>
+      <File>static/locales/ko.json</File>
+      <File>static/locales/pt.json</File>
+      <File>static/locales/ru.json</File>
+      <File>static/locales/zh-CN.json</File>
+      <File>static/locales/zh-TW.json</File>
+      <File>tests/renderer/store/search.test.ts</File>
+      <File>tests/renderer/store/search-coverage.test.js</File>
+      <File>tests/renderer/ipc/runtime-search.test.ts</File>
+      <File>tests/renderer/node/ripgrepSearcher-deep.test.js</File>
+      <File>tests/renderer/components/projectSearch/index.test.js</File>
+      <File>tests/renderer/components/sideBar/search.test.js (deleted)</File>
+      <File>tests/renderer/components/sideBar/search-fn.test.js (deleted)</File>
+      <File>tests/renderer/components/sideBar/searchToolbar.test.js (deleted)</File>
+      <File>tests/renderer/components/sideBar/searchToolbar-fn.test.js (deleted)</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+    </ObservedWriteScope>
+
+    <ImplementationPlan>
+      <T-001>
+        <Title>Backend rg honesty: exit-status check, bounded stderr capture, symmetric exclusions and honest partial flags</Title>
+        <DependsOn/>
+        <AcceptanceCriteria>
+          <Criterion>Add failing-first inline #[cfg(test)] tests in src-tauri/src/m013b/search.rs that fail against the current tree: (a) rg_exit_two_is_single_error_terminal — an injected rg program (temp-dir executable script or the existing invalid-executable seam; a real rg with an invalid regex under the existing rg_available() guard may serve as the second proof) that exits >=2 yields exactly one error terminal with a non-empty stable message of the failure class, zero post-terminal events, remaining roots not started, and the partial marker set when hits were already streamed; (b) exit codes 0 and 1 keep completing normally (1 = no matches) for both engines; (c) exclusions_applied_symmetrically — a masked file is absent while an unmasked sibling with the same needle is present, in the embedded walker and in rg (availability-guarded); (d) an invalid exclusion mask is explicitly ignored per this plan's recorded choice — never passed to rg, never used by the walker — and forces the terminal's partial flag so completeness is never silently claimed; (e) a max_file_size that suppresses candidates marks the complete terminal partial. Record the failing receipts before implementing.</Criterion>
+          <Criterion>Rework run_ripgrep_with_program inside the existing START_BLOCK_BUILD_RIPGREP_COMMAND / START_BLOCK_SPAWN_RIPGREP_PROCESS structure: pipe stderr (cmd.stdout(Stdio::piped()).stderr(Stdio::piped());) and capture it under a new paired // START_BLOCK_RIPGREP_STDERR_CAPTURE / // END_BLOCK_RIPGREP_STDERR_CAPTURE marker with a bounded reader (small fixed cap) so a chatty child cannot deadlock and its tail reaches the BLOCK log only; after the read loop, reap the child (let status = child.wait()) and treat status.code() 0 and 1 as normal completion while any other code (when not cancelled) returns Err(format!("rg exited with code …")) — a stable, non-empty class message that carries the exit code only: captured stderr text, query text, match contents and user paths never enter the wire error field. Keep the --json argument set, all existing option flags, both command names, the mt::search-event channel, kind values, hits/error payload fields, batch size, per-line cap, M-010 root validation, engine selection (App Store in-process, missing-rg fallback with BLOCK_RIPGREP_FALLBACK) and traversal order unchanged. The availability probe keeps its fully-qualified std::process::Stdio::null() plumbing.</Criterion>
+          <Criterion>Apply exclusion masks symmetrically through one shared helper fn compile_exclusion_masks (mask semantics defined once: matching against the path relative to its root, one documented case-sensitivity choice): the embedded walker filters entries against the compiled masks before opening files, and the rg path passes each valid mask as a --glob=! argument. Keep walker max_filesize application as it is. Extend SearchEvent with one additive optional field `pub partial: Option&lt;bool&gt;,` under #[serde(default, skip_serializing_if = "Option::is_none")] so absent-field serialization is preserved (the existing camelCase/skip test stays green and is extended to pin the partial shape), and extend the coordinator's finalization to `fn finalize(&amp;mut self, terminal: SearchTerminal, error: Option&lt;String&gt;, partial: bool) -&gt; bool` with run_session computing the flag conservatively: true on an error or cancelled terminal when hits were already streamed, and on a complete terminal when a size limit or at least one valid exclusion mask was active. SearchSessionCoordinator stays the only terminal emitter; no new terminal kind, no second channel. Update the file-local MODULE_CONTRACT, MODULE_MAP, START_BLOCK_/END_BLOCK_ pairs (unique, matched) and CHANGE_SUMMARY and bump the module version.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Renderer error voice: size parsing at the store boundary, store error/partial state, localized overlay failure line through shim and legacy searcher</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/renderer/store/search.test.ts and tests/renderer/store/search-coverage.test.js gain failing-first pins for the store boundary: parseSearchMaxFileSize (in src/renderer/src/store/search.js, before invoke) accepts the documented preferences-schema format — "1048576", "1K", "2M", "3G", empty → no limit — and converts to bytes; an invalid limit sets the store's error state with a stable message, performs no searcher call and no spawn, and leaves running false; a valid limit that suppresses candidates marks the result set partial.</Criterion>
+          <Criterion>The store's rejection path stops swallowing: the .catch keeps the generation guard, sets this.error = errorMessage (non-empty, derived from the rejection's message class), keeps already-streamed collected results only when marked partial (partialResults state — never silently kept or silently dropped), clears running/activeCancel, and never renders as the plain empty state; a cancelled search still resolves quietly without a failure message; stale generations still cannot write; the hardcoded `Showing first 100 results only` throttle line stays byte-for-byte untouched (NonGoal).</Criterion>
+          <Criterion>Propagate the additive partial field without API change: the _shims/install-window-globals.js mt::search-event translation branch forwards `partial: m.partial === true` on terminal events only; src/renderer/src/node/ripgrepSearcher.js propagates it from the shim messages through one additive optional options callback `didComplete` fired exactly once per terminal with { partial } — the search() signature, thenable/cancel contract and every other channel stay unchanged; tests/renderer/node/ripgrepSearcher-deep.test.js pins the propagation and tests/renderer/ipc/runtime-search.test.ts keeps the read-only facade in src/renderer/src/ipc/runtime/search.ts byte-for-byte unchanged while pinning wire compatibility.</Criterion>
+          <Criterion>src/renderer/src/components/projectSearch/index.vue renders the failure honestly: the error branch (t('sideBar.search.searchFailed')) takes precedence over the "No results found." empty branch, a partial notice (t('sideBar.search.resultsPartial')) accompanies a marked result set, and a cancelled search shows neither; tests/renderer/components/projectSearch/index.test.js pins error-not-empty (localized failure line instead of noResultsFound), the quiet cancel, stale-generation protection and the partial notice. New locale keys sideBar.search.searchFailed and sideBar.search.resultsPartial are added to all ten static/locales files (en, de, es, fr, ja, ko, pt, ru, zh-CN, zh-TW) following the C-62 all-locales pattern; the all-ten presence/non-empty pin lives in the scoped renderer suites (tests/renderer/i18n/locale-keys.test.js is a gate, not a write target, and stays green).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">npx --no-install vitest run tests/renderer/store/search.test.ts tests/renderer/store/search-coverage.test.js tests/renderer/ipc/runtime-search.test.ts tests/renderer/node/ripgrepSearcher-deep.test.js tests/renderer/components/projectSearch/index.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Cancel settles promptly: bounded cancel watcher kills and reaps a silent rg child without waiting for a line</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Add a failing-first test silent_child_cancel_arrives_without_a_line using the existing run_ripgrep_with_program program-injection seam with a deterministic silent child (a temp-dir executable script that emits no stdout and sleeps well past the deadline; unix-gated, no PATH mutation anywhere): the single cancelled terminal arrives within the test deadline without any child output line, the child is killed and reaped, and pre-cancel, mid-stream, between-roots, repeated and post-completion cancellation keep exactly one terminal with the existing cancellation suites green and unweakened.</Criterion>
+          <Criterion>Implement the watcher inside a paired // START_BLOCK_CANCEL_WATCHER / // END_BLOCK_CANCEL_WATCHER marker in run_ripgrep_with_program: a bounded watcher thread observes the cancel flag, kills the child on the flag and waits for it, then exits; the main read loop no longer requires a stdout line to observe cancellation. The watcher must not remove registry entries, must not emit any terminal (SearchSessionCoordinator stays the single terminal owner through run_session), must stay inside run_ripgrep_with_program, and must exit after kill and wait; the embedded walker keeps its existing between-files cancel checks; registry lifecycle (insert on spawn, remove after the worker finishes) and the 120 ms listen warm-up stay unchanged.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Dead legacy sidebar search panel removal after baseline re-verification</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Re-verify the F-001 death evidence on the actual delivery baseline before deleting: no production importer mounts src/renderer/src/components/sideBar/search.vue or searchToolbar.vue (verified 2026-11-21 in the inspection tree: only their four dedicated test files import them; the sidebar shell is Files-only; the live overlay is ProjectSearch from pages/app.vue) and sideBar.search.startTyping / sideBar.search.openFolder have no reader outside the dead components. If either check fails on the baseline, the removal drops out of this change and stays recorded as dead-code F-001; the tasks below execute only on a passing re-verification.</Criterion>
+          <Criterion>Delete the two legacy components and their four dedicated test files (tests/renderer/components/sideBar/search.test.js, search-fn.test.js, searchToolbar.test.js, searchToolbar-fn.test.js), remove sideBar.search.startTyping and sideBar.search.openFolder from all ten static/locales files, and rewrite the stale store/search.js header comment that still names sideBar/search.vue and the SearchToolbar so no src/ reference to the dead panel remains. The shared search store, searchResultItem.vue and the live ProjectSearch overlay stay; the in-document find bar src/renderer/src/components/search/index.vue and its suites are untouched (naming trap: that file is LIVE).</Criterion>
+          <Criterion>Regression gate stays green without weakened assertions: the sideBar searchResultItem and tree suites, the live find-bar suites, the locale-keys gate and the commands heading-search / e2e search-bar surfaces (e2e run separately by the owner; the vitest gate here covers the component and i18n suites).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="60">! grep -rq "sideBar/search.vue\|sideBar/searchToolbar\|SearchToolbar" src/</Command>
+          <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/components/sideBar/searchResultItem.test.js tests/renderer/components/sideBar/tree.test.js tests/renderer/components/search.test.js tests/renderer/components/search-fn.test.js tests/renderer/components/search-deep.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Graph and verification deltas plus exact-candidate acceptance evidence</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Update .grace/graph/runtime.xml so M-004 (module map and file-local contracts: rg status/stderr handling, cancel watcher, compile_exclusion_masks, partial field, finalize signature) and M-011 (projectSearch overlay error/partial states; dead-panel removal reflected) describe the final implementation; M-013 anchors stay consistent with the read-only facade; keep unrelated XML content untouched. Update .grace/verification/runtime.xml V-M-004 (error matrix: exit 2 → single error terminal, codes 0/1 normal; cancellation prompt-settle scenarios; exclusion symmetry; honest partial flags) and V-M-011 (localized failure/partial rendering, quiet cancel, dead-panel absence).</Criterion>
+          <Criterion>Run target and final assertions on the actual lane baseline with the spec commands; if the delivery baseline absorbed C-SEARCH-INPUT-COMPOSITION-CONTRACT, keep both scopes separable and rerun its search-size-ingress and search-exclusions-ingress regressions on that baseline before this gate; keep the baseline defect receipts recorded in the spec as problem proof rather than relabeled post-fix evidence; record native rg transport, App Store build and owner acceptance as explicitly open unless separately obtained; no apply/archive, commit/push or lane departure inside this plan.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command>
+          <Command budgetSeconds="900">npx --no-install vitest run tests/renderer/store/search.test.ts tests/renderer/store/search-coverage.test.js tests/renderer/ipc/runtime-search.test.ts tests/renderer/node/ripgrepSearcher-deep.test.js tests/renderer/components/projectSearch/index.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+          <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/components/sideBar/searchResultItem.test.js tests/renderer/components/sideBar/tree.test.js tests/renderer/components/search.test.js tests/renderer/components/search-fn.test.js tests/renderer/components/search-deep.test.js</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+
+    <AcceptanceVerification>
+      <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command>
+      <Command budgetSeconds="900">npx --no-install vitest run tests/renderer/store/search.test.ts tests/renderer/store/search-coverage.test.js tests/renderer/ipc/runtime-search.test.ts tests/renderer/node/ripgrepSearcher-deep.test.js tests/renderer/components/projectSearch/index.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+      <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/components/sideBar/searchResultItem.test.js tests/renderer/components/sideBar/tree.test.js tests/renderer/components/search.test.js tests/renderer/components/search-fn.test.js tests/renderer/components/search-deep.test.js</Command>
+      <Environment>Baseline is the current main of the delivery tree, executed in the repository root of the actual technical-debt lane worktree with cargo and installed node_modules available. The composition worktree scope is explicitly separate: never run this gate on a tree that absorbed C-SEARCH-INPUT-COMPOSITION-CONTRACT changes; if that scope is ever combined, keep both scopes separate and rerun its tests/renderer/search-size-ingress.test.ts and tests/renderer/search-exclusions-ingress.test.ts regressions on that baseline before this gate. Tests never mutate process-global PATH: engine-failure and silent-child proofs use the run_ripgrep_with_program program-injection seam (and the existing availability guards for native rg), because the App Store build never spawns rg and the missing-rg fallback on Windows is the legitimate walker path, not a failure state. All commands must pass with no skips, retries, budget increases or weakened assertions; SearchSessionCoordinator remains the single terminal owner throughout, the unreachable legacy 100-results throttle stays untouched as a recorded NonGoal, and hosted supported-host checks plus native/manual acceptance records stay separate from these controlled diagnostics and remain open until separately obtained.</Environment>
+    </AcceptanceVerification>
+  </C-SEARCH-ERROR-VISIBILITY>
+</GraceChangePlan>

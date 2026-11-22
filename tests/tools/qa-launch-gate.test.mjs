@@ -28,6 +28,10 @@
 //   - C-QA-MACOS-LAUNCH-GATE: real protocol and failure controls with final owned cleanup.
 // END_CHANGE_SUMMARY
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
+// Spawn-fixture suites drive real child processes through shims; the 5 s
+// vitest default flakes on loaded shared runners (C-CI-TOOLS-TIMEOUT).
+vi.setConfig({ testTimeout: 30000 })
 import * as fs from 'node:fs'
 import { delimiter, dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'

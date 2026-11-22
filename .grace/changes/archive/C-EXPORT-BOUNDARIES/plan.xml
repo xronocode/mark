@@ -1,0 +1,268 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-EXPORT-BOUNDARIES>
+    <Name>Export boundary consent gates plus the funneled diff sidecar read — implementation plan</Name>
+    <Created>2026-11-21</Created>
+    <Spec>C-EXPORT-BOUNDARIES</Spec>
+    <IntentSummary>Close the three 2026-11-21 re-audit leaks against the post-#298 beta-gate-wave tree, all code facts verified at their cited lines. (1) Image embed scope gate: src/renderer/src/util/exportImages.js gains a pure scope classifier isInDocumentScope(resolvedPath, baseDir) — separators normalized to '/', trailing-slash-tolerant, segment-boundary prefix match (baseDir '/docs' never claims '/docsfiles/x.png'), case-insensitive only under isWindows() — and embedLocalImages(html, baseDir, { requestScopeConsent } = {}) becomes a two-phase pass: classify first, and when deduplicated out-of-scope candidates (resolvable local paths with a known MIME that WOULD be read) exist, ask the caller once via await requestScopeConsent(candidatePaths); the granted subset (exactly the listed files) embeds through the unchanged stat/cap/read path, everything else out-of-scope keeps its src and counts skipped; with no callback the consent default is declined, so in-scope embedding (corner C-1) and all skip semantics are unchanged while the C-2 absolute-path embed dies. Consent is requested per export and never persisted. (2) PlantUML export consent, gate location pinned: RENDER-TIME, inside src/muya/lib/utils/exportHtml.js (in ObservedWriteScope), NOT a renderer post-render strip — the deflate+base64url URL cannot be inverted back to source in editor.vue without a net-new inflate dependency, which this boundary change forbids, and muya/lib/index.js stays untouched because Muya#exportStyledHTML(options) already forwards the options bag verbatim into ExportHtml.generate(options), so editor.vue adds one opaque key plantumlRemoteConsent to the calls it already makes in both the styledHtml (editor.vue:2273) and docx (editor.vue:2315) branches; exportHtml.js exports two pure helpers — countPlantUMLFences(markdown) (fenced blocks whose trimmed info string is exactly 'plantuml', ``` and ~~~ fences, fence-state tracked, used by editor.vue to decide whether to ask) and plantUMLSourcePlaceholder(rawCode) (the pinned declined shape: exactly one pre.ag-plantuml-export-source holding the escapeHTML'd literal diagram source, no plantuml.com URL) — and renderDiagram's plantuml branch (exportHtml.js:186-190) calls diagram.insertImgElement(diagramContainer) only when generate() saw plantumlRemoteConsent:true, otherwise it inserts the placeholder; src/muya/lib/parser/render/plantuml.js itself is NOT in the write scope and is not touched (PLANTUML_URL and the remote transport stay as-is; only the export-time disclosure is new), and the live-preview fetch at muya/lib/parser/render/index.js:396 is OUT of scope (editor-preview behavior, own follow-up). (3) Funneled diff sidecar read with the disclosed semantic choice, exactly one made: FENCE-AT-M031, chosen over riding fs_read_inner as-is and justified — fs_read_inner would (a) route the read through m047_bookmarks::ensure_access bookmark semantics this surface does not declare, (b) replace the sidecar read's strict UTF-8 failure (V-M-031 F7: invalid UTF-8 → error, no git fallback inside the command) with M-014 detect-and-decode bytes-replacement, silently changing diff baseline bytes for legacy-encoded sidecars, and (c) is an IpcError API while mt_diff_baseline is Result&lt;String, String&gt; whose renderer catch path must not move. So src-tauri/src/m031_diff.rs takes the SecurityCtx (sec: State&lt;'_, SecurityCtx&gt; — Tauri injects it, the diffView.vue invoke('mt_diff_baseline', { path }) call shape is unchanged, main.rs:982 registration unchanged) and delegates to mt_diff_baseline_inner(path, sandbox), which fences the '{path}.before' read with m010_security::check_path reused AS-IS (lexical + canonical + NUL/overlong, E6 symlink resolution included), a regular-file gate, and the reused crate::m013b::fs::MAX_READ_BYTES cap, then keeps std::fs::read_to_string(&amp;validated) — F7 preserved; denials surface as Err strings carrying the existing family codes (MT_FS_PATH_DENIED from check_path, MT_FS_NOT_REGULAR, MT_FS_TOO_LARGE) with safe_eprintln [m031][diff][BLOCK_BASELINE_FAILED reason=sandbox_violation|not_regular_file|oversize], and the renderer's existing baseline-failure notice path consumes them unchanged; the git-show fallback and the app-store refusal are untouched, and a valid in-sandbox sidecar reads exactly as before. Consent UI reuses existing surfaces only, no new component file and no new dependency: editor.vue raises the two cards through the notice.notify facade (services/notification), which forwards sticky/dedupKey/actions into store/notifications NOTIFY — the components/rollbackConfirm/index.vue pattern (sticky entry, dedupKey singleton, Confirm/Cancel actions resolving a Promise, DISMISS on decision) re-expressed inline; the embed card dedupKey 'export-embed-consent' lists the deduplicated resolved paths and their count, the PlantUML card dedupKey 'export-plantuml-consent' names exactly https://www.plantuml.com/plantuml, the per-diagram count and what leaves (the diagram source text); console markers stay count-only per the V-M-065 privacy convention — full resolved paths appear solely inside the consent dialog. Declining PlantUML exports diagrams as the pinned placeholder (no plantuml.com URL in the artifact); declining the embed leaves out-of-scope img srcs untouched and counts them skipped so the existing embedded/total notice stays honest. i18n: eight editor.export.* keys (embedConsentTitle/embedConsentMessage/embedConsentConfirm/embedConsentCancel, plantumlConsentTitle/plantumlConsentMessage/plantumlConsentConfirm/plantumlConsentCancel; placeholders {count}/{dir}/{paths} and {count}/{address}) land in all ten locale files as line surgery in the same change. Tests are red-first where the defect is pinned: the exportImages scope/consent pins and the re-pinned C-2 fail on pre-fix code (which embeds '/irrelevant/base' absolute paths), the new plantuml-gate pins fail pre-fix (render inserts the remote img unconditionally), and the m031 sandbox-violation fixture fails pre-fix (bytes returned) and passes post-fix (denied, no bytes). Execution mode: T-001..T-005 strictly sequential (single-writer discipline; the suggested order with each task's own pins attached to the task that turns them green); no grace-lint command appears inside this plan — lint runs only in the external target/final phases; no new IPC commands, no settings UI, no remembered consent, no release actions.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src/renderer/src/util/exportImages.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/renderer/src/components/editorWithTabs/editor.vue</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/muya/lib/utils/exportHtml.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/muya/lib/parser/render/plantuml.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src-tauri/src/m031_diff.rs</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src-tauri/src/m010_security.rs</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src-tauri/src/m013b/fs.rs</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/renderer/util/exportImages.test.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/renderer/components/editor-export-images.test.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/renderer/src/components/rollbackConfirm/index.vue</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/renderer/src/store/notifications.js</Value>
+      </MustExist>
+      <MustContain><File>src/renderer/src/util/exportImages.js</File><Text>export async function embedLocalImages(html, baseDir)</Text></MustContain>
+      <MustContain><File>src/renderer/src/util/exportImages.js</File><Text>const bytes = await ipcFs.readBinary(resolved)</Text></MustContain>
+      <MustContain><File>src/renderer/src/util/exportImages.js</File><Text>if (/^(?:https?|data):/i.test(src)) return null</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>const { html, embedded, total, skipped } = await embedLocalImages(rawHtml, documentDir)</Text></MustContain>
+      <MustContain><File>src/muya/lib/parser/render/plantuml.js</File><Text>const PLANTUML_URL = 'https://www.plantuml.com/plantuml'</Text></MustContain>
+      <MustContain><File>src/muya/lib/utils/exportHtml.js</File><Text>diagram.insertImgElement(diagramContainer)</Text></MustContain>
+      <MustContain><File>src-tauri/src/m031_diff.rs</File><Text>pub fn mt_diff_baseline(path: String) -&gt; Result&lt;String, String&gt;</Text></MustContain>
+      <MustContain><File>src-tauri/src/m031_diff.rs</File><Text>let content = std::fs::read_to_string(before_path)</Text></MustContain>
+      <MustContain><File>src-tauri/src/m031_diff.rs</File><Text>std::env::temp_dir()</Text></MustContain>
+      <MustContain><File>src-tauri/src/m010_security.rs</File><Text>pub fn check_path(sandbox: &amp;Path, requested: &amp;Path) -&gt; Result&lt;PathBuf, SecurityError&gt;</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/fs.rs</File><Text>pub const MAX_READ_BYTES: u64 = 10 * 1024 * 1024;</Text></MustContain>
+      <MustContain><File>tests/renderer/util/exportImages.test.js</File><Text>embeds an absolute POSIX path and leaves no absolute path in the output (C-2)</Text></MustContain>
+      <MustContain><File>tests/renderer/util/exportImages.test.js</File><Text>'/irrelevant/base'</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-export-images.test.js</File><Text>'&lt;html&gt;&lt;body&gt;doc&lt;/body&gt;&lt;/html&gt;',
+      '/tmp'</Text></MustContain>
+      <MustNotContain><File>src/renderer/src/util/exportImages.js</File><Text>BLOCK_EMBED_SCOPE_</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>plantumlRemoteConsent</Text></MustNotContain>
+      <MustNotContain><File>src/muya/lib/utils/exportHtml.js</File><Text>plantumlRemoteConsent</Text></MustNotContain>
+      <MustNotContain><File>src-tauri/src/m031_diff.rs</File><Text>SecurityCtx</Text></MustNotContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-065</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-066</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-031</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-012</Module>
+      </MustVerify>
+      <MustContain><File>src/renderer/src/util/exportImages.js</File><Text>isInDocumentScope</Text></MustContain>
+      <MustContain><File>src/renderer/src/util/exportImages.js</File><Text>embedLocalImages(html, baseDir, { requestScopeConsent } = {})</Text></MustContain>
+      <MustContain><File>src/renderer/src/util/exportImages.js</File><Text>BLOCK_EMBED_SCOPE_CONSENT</Text></MustContain>
+      <MustContain><File>src/renderer/src/util/exportImages.js</File><Text>BLOCK_EMBED_SCOPE_DECLINED</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>plantumlRemoteConsent</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>countPlantUMLFences</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>requestScopeConsent</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>embedLocalImages(rawHtml, documentDir, { requestScopeConsent })</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>dedupKey: 'export-embed-consent'</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>dedupKey: 'export-plantuml-consent'</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>BLOCK_PLANTUML_EXPORT_CONSENT</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>BLOCK_PLANTUML_EXPORT_DECLINED</Text></MustContain>
+      <MustContain><File>src/muya/lib/utils/exportHtml.js</File><Text>plantumlRemoteConsent</Text></MustContain>
+      <MustContain><File>src/muya/lib/utils/exportHtml.js</File><Text>export function countPlantUMLFences</Text></MustContain>
+      <MustContain><File>src/muya/lib/utils/exportHtml.js</File><Text>export function plantUMLSourcePlaceholder</Text></MustContain>
+      <MustContain><File>src/muya/lib/utils/exportHtml.js</File><Text>ag-plantuml-export-source</Text></MustContain>
+      <MustContain><File>src-tauri/src/m031_diff.rs</File><Text>sec: State&lt;'_, SecurityCtx&gt;</Text></MustContain>
+      <MustContain><File>src-tauri/src/m031_diff.rs</File><Text>fn mt_diff_baseline_inner(path: &amp;str, sandbox: &amp;Path) -&gt; Result&lt;String, String&gt;</Text></MustContain>
+      <MustContain><File>src-tauri/src/m031_diff.rs</File><Text>m010_security::check_path(sandbox, Path::new(&amp;before_str))</Text></MustContain>
+      <MustContain><File>src-tauri/src/m031_diff.rs</File><Text>std::fs::read_to_string(&amp;validated)</Text></MustContain>
+      <MustContain><File>src-tauri/src/m031_diff.rs</File><Text>MAX_READ_BYTES</Text></MustContain>
+      <MustContain><File>src-tauri/src/m031_diff.rs</File><Text>BLOCK_BASELINE_FAILED</Text></MustContain>
+      <MustContain><File>src-tauri/src/m031_diff.rs</File><Text>reason=sandbox_violation</Text></MustContain>
+      <MustContain><File>src-tauri/src/m031_diff.rs</File><Text>MT_FS_PATH_DENIED</Text></MustContain>
+      <MustContain><File>src-tauri/src/m031_diff.rs</File><Text>MT_FS_NOT_REGULAR</Text></MustContain>
+      <MustContain><File>src-tauri/src/m031_diff.rs</File><Text>START_MODULE_CONTRACT</Text></MustContain>
+      <MustContain><File>src-tauri/src/m031_diff.rs</File><Text>START_CHANGE_SUMMARY</Text></MustContain>
+      <MustContain><File>tests/renderer/util/exportImages.test.js</File><Text>not embed an out-of-scope absolute path without consent</Text></MustContain>
+      <MustContain><File>tests/renderer/util/exportImages.test.js</File><Text>embeds exactly the granted subset of the consented list</Text></MustContain>
+      <MustContain><File>tests/renderer/util/exportImages.test.js</File><Text>still embeds an in-scope sibling image (C-1 unchanged)</Text></MustContain>
+      <MustContain><File>tests/renderer/util/exportImages.test.js</File><Text>re-pinned to consent semantics (C-2)</Text></MustContain>
+      <MustContain><File>tests/renderer/util/export-plantuml-gate.test.js</File><Text>countPlantUMLFences</Text></MustContain>
+      <MustContain><File>tests/renderer/util/export-plantuml-gate.test.js</File><Text>plantUMLSourcePlaceholder</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-export-images.test.js</File><Text>export-plantuml-consent</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-export-images.test.js</File><Text>export-embed-consent</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>"embedConsentTitle"</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>"embedConsentMessage"</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>"embedConsentConfirm"</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>"embedConsentCancel"</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>"plantumlConsentTitle"</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>"plantumlConsentMessage"</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>"plantumlConsentConfirm"</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>"plantumlConsentCancel"</Text></MustContain>
+      <MustContain><File>static/locales/de.json</File><Text>"plantumlConsentTitle"</Text></MustContain>
+      <MustContain><File>static/locales/es.json</File><Text>"plantumlConsentTitle"</Text></MustContain>
+      <MustContain><File>static/locales/fr.json</File><Text>"plantumlConsentTitle"</Text></MustContain>
+      <MustContain><File>static/locales/ja.json</File><Text>"plantumlConsentTitle"</Text></MustContain>
+      <MustContain><File>static/locales/ko.json</File><Text>"plantumlConsentTitle"</Text></MustContain>
+      <MustContain><File>static/locales/pt.json</File><Text>"plantumlConsentTitle"</Text></MustContain>
+      <MustContain><File>static/locales/ru.json</File><Text>"plantumlConsentTitle"</Text></MustContain>
+      <MustContain><File>static/locales/zh-CN.json</File><Text>"plantumlConsentTitle"</Text></MustContain>
+      <MustContain><File>static/locales/zh-TW.json</File><Text>"plantumlConsentTitle"</Text></MustContain>
+      <MustContain><File>.grace/graph/features.xml</File><Text>C-EXPORT-BOUNDARIES</Text></MustContain>
+      <MustContain><File>.grace/graph/runtime.xml</File><Text>C-EXPORT-BOUNDARIES</Text></MustContain>
+      <MustContain><File>.grace/verification/features.xml</File><Text>BLOCK_BASELINE_FAILED</Text></MustContain>
+      <MustContain><File>.grace/verification/features.xml</File><Text>BLOCK_EMBED_SCOPE_CONSENT</Text></MustContain>
+      <MustContain><File>.grace/verification/runtime.xml</File><Text>export-plantuml-gate</Text></MustContain>
+      <MustNotContain><File>src/renderer/src/util/exportImages.js</File><Text>embedLocalImages(html, baseDir)</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>await embedLocalImages(rawHtml, documentDir)</Text></MustNotContain>
+      <MustNotContain><File>src/muya/lib/utils/exportHtml.js</File><Text>PLANTUML_URL</Text></MustNotContain>
+      <MustNotContain><File>src-tauri/src/m031_diff.rs</File><Text>std::fs::read_to_string(before_path)</Text></MustNotContain>
+      <MustNotContain><File>tests/renderer/util/exportImages.test.js</File><Text>embeds an absolute POSIX path and leaves no absolute path in the output (C-2)</Text></MustNotContain>
+      <MustNotContain><File>src-tauri/src/m031_diff.rs</File><Text>std::env::temp_dir()</Text></MustNotContain>
+      <MustPassCommand>
+        <Command budgetSeconds="300">npx vitest run tests/renderer/util/exportImages.test.js tests/renderer/components/editor-export-images.test.js tests/renderer/util/export-plantuml-gate.test.js</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/components/diff-theme-sync.test.js tests/renderer/components/diffView.test.js tests/renderer/components/diff-view-snapshot.test.js tests/renderer/components/diff-opened-baseline.test.js tests/renderer/components/diff-view.test.js tests/renderer/store/diff-snapshots.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m031_diff</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m013b::fs</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m010_security</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-065 />
+        <M-066 />
+        <M-031 />
+        <M-012 />
+        <M-013-B />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-065 />
+        <V-M-031 />
+        <V-M-012 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/renderer/src/util/exportImages.js</File>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <File>src/muya/lib/utils/exportHtml.js</File>
+      <File>src-tauri/src/m031_diff.rs</File>
+      <File>static/locales/de.json</File>
+      <File>static/locales/en.json</File>
+      <File>static/locales/es.json</File>
+      <File>static/locales/fr.json</File>
+      <File>static/locales/ja.json</File>
+      <File>static/locales/ko.json</File>
+      <File>static/locales/pt.json</File>
+      <File>static/locales/ru.json</File>
+      <File>static/locales/zh-CN.json</File>
+      <File>static/locales/zh-TW.json</File>
+      <File>tests/renderer/util/exportImages.test.js</File>
+      <File>tests/renderer/components/editor-export-images.test.js</File>
+      <File>tests/renderer/util/export-plantuml-gate.test.js</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/features.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>M-065 embed scope gate: pure scope classifier, two-phase consent pass, declined accounting, and the unit matrix re-pinned to consent semantics</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>exportImages.js gains the pure scope classifier beside resolveImageSrc, inside a paired START_BLOCK_SCOPE_GATE / END_BLOCK_SCOPE_GATE block: isInDocumentScope(resolvedPath, baseDir) returns false for a falsy baseDir, normalizes both sides to forward slashes, strips trailing slashes, and requires a segment-boundary prefix match (resolved equals the base or starts with base + '/'; '/docs' never claims '/docsfiles/x.png'), comparing case-insensitively only when isWindows() is true; the classifier reads no DOM, performs no I/O, and resolveImageSrc is untouched (the preserved behaviors stay pinned: remote http(s) and data: sources return null and are untouched, generic UNC passes through uncounted, an untitled document's relative srcs stay uncounted).</Criterion>
+          <Criterion>embedLocalImages becomes the two-phase consent pass with the exact signature embedLocalImages(html, baseDir, { requestScopeConsent } = {}): phase 1 DOM-walks the imgs and classifies every resolvable local src with a known MIME (IMAGE_MIME_BY_EXT unchanged) — in-scope candidates and all unchanged behaviors proceed exactly as today; out-of-scope candidates are collected deduplicated by resolved path and, when non-empty, logged count-only as [export][embed-images][BLOCK_EMBED_SCOPE_CONSENT outOfScope=N] and then granted = await requestScopeConsent(candidatePaths) — the callback receives the deduplicated resolved-path list and returns the granted subset; with no callback provided the grant is empty (declined-by-default, logged [export][embed-images][BLOCK_EMBED_SCOPE_DECLINED declined=K]). Phase 2 keeps the existing per-path outcome cache and stat → regular-file → EMBED_CAP_BYTES (8 MiB, unchanged) → readBinary → data: URL path for in-scope references and for granted out-of-scope references alike; an out-of-scope reference whose resolved path is not in the grant keeps its src untouched and counts skipped, so embedded/total/skipped accounting stays honest and the caller's existing skipped-notice logic needs no change; no read (stat or readBinary) of any out-of-scope path happens before the consent callback resolves, and declined refs trigger zero I/O; the pass never throws on an image (unchanged).</Criterion>
+          <Criterion>tests/renderer/util/exportImages.test.js is re-pinned to the consent semantics with the old vulnerable pin REMOVED: the C-2 test body ('embeds an absolute POSIX path and leaves no absolute path in the output (C-2)' against '/irrelevant/base' expecting embedded=1) is deleted and replaced by a consent-semantics pin titled with 're-pinned to consent semantics (C-2)' asserting that the same absolute path against '/irrelevant/base' with no consent callback keeps its src, counts embedded=0 / skipped=1, and triggers no stat — this pin fails on pre-fix code (pre-fix embeds it) and passes post-fix. New describes inside a paired unique test block pin the gate red-first: 'not embed an out-of-scope absolute path without consent' (out-of-scope refused, src survives, skipped counted, no I/O), 'still embeds an in-scope sibling image (C-1 unchanged)' (the corner C-1 relative pin passes byte-for-byte as today), 'embeds exactly the granted subset of the consented list' (a requestScopeConsent granting one of two out-of-scope candidates embeds only the granted one — the second img keeps its src and counts skipped), consent-list integrity (the candidate list the callback receives is deduplicated by resolved path across two spellings plus a file:// form of the same file, one entry), 'grants embed through the unchanged cap and MIME gates' (a granted path at EMBED_CAP_BYTES still skips with SKIP_TOO_BIG semantics and an unknown extension still never embeds), and declined-accounting honesty (declined refs never appear in embedded; total counts them). Every existing corner keeps its assertions unchanged except the explicitly listed pin updates: corner C-2's body is re-pinned as above; the three RESOLUTION pins that observe a normalized absolute path through the embed ('strips file:/// URLs and embeds the referenced file', and the two Windows normalization tests — drive-letter and \?\ extended-prefix, corner C-3 family) keep every assertion byte-identical and change ONLY their call shape, passing a requestScopeConsent that grants the single candidate, because their absolute targets are out-of-scope against the null base by design and the pins exist to pin resolution, not consent; the generic-UNC pin, the dedup corner C-10 (its file:///docs/img/same.png spelling resolves INSIDE '/docs' and stays in-scope), the C-4 decode pin, all skip corners and the markup-integrity pin are untouched. The ipcFs/isWindows mocks are reused as-is.</Criterion>
+          <Criterion>Gate ordering CAUTION made true in code: the consent callback is awaited strictly between classification and the first out-of-scope I/O, so the dialog the user sees lists exactly the files the pass is about to read; no scope widening (workspace-resident assets are NOT in scope this change — an open workspace does not widen the embed scope), no new dependency, and exportImages.js gains no new import.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx vitest run tests/renderer/util/exportImages.test.js</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>PlantUML export consent: pure gate helpers and the pinned render-time gate in exportHtml.js, plus the shared consent-card wiring in editor.vue for both gates</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src/muya/lib/utils/exportHtml.js (the pinned single gate location — render time, not a renderer post-render strip; plantuml.js and muya/lib/index.js are NOT touched): two exported pure helpers land in a paired START_BLOCK_PLANTUML_GATE / END_BLOCK_PLANTUML_GATE block — countPlantUMLFences(markdown) scans lines tracking ``` and ~~~ fence open/close state and counts fenced blocks whose trimmed info string is exactly 'plantuml' (an unclosed fence counts from its opening; mermaid/vega-lite/flowchart/sequence tags and inline code never count), and plantUMLSourcePlaceholder(rawCode) returns exactly one &lt;pre class="ag-plantuml-export-source"&gt; element whose text content is the literal diagram source with muya's existing escapeHTML applied — containing no 'plantuml.com' substring and no img element; generate(options) reads options.plantumlRemoteConsent (absent = false = declined) onto the instance before rendering, and renderDiagram's plantuml branch calls diagram.insertImgElement(diagramContainer) only when consent was granted — on decline it sets diagramContainer.innerHTML to plantUMLSourcePlaceholder(rawCode) instead; the flowchart/sequence/vega-lite branches and everything else in the file are untouched, and the consent state lives only in the per-call options bag (never persisted, no muya instance or app-state field).</Criterion>
+          <Criterion>editor.vue wires both consent gates per export, reusing existing surfaces only (no new component file, no new dependency — components/rollbackConfirm/index.vue's pattern re-expressed through the notice.notify facade, which forwards sticky/dedupKey/actions into store/notifications NOTIFY): in BOTH the styledHtml and docx branches of handleExport, before exportStyledHTML, countPlantUMLFences(markdown from editor.value.getMarkdown()) runs — count 0 skips the dialog entirely and passes plantumlRemoteConsent: false; count &gt; 0 raises the sticky singleton card dedupKey 'export-plantuml-consent' whose message names exactly https://www.plantuml.com/plantuml as the remote destination, states that the PlantUML diagram source text leaves the machine ({address}/{count} placeholders), and carries Confirm/Cancel actions resolving a local Promise (Confirm → true, logged [export][plantuml][BLOCK_PLANTUML_EXPORT_CONSENT diagrams=N]; Cancel/dismiss → false, logged [export][plantuml][BLOCK_PLANTUML_EXPORT_DECLINED diagrams=N] — counts only, never diagram text); the decision rides exportStyledHTML({ ..., plantumlRemoteConsent }) in that branch only. The image gate wires the T-001 seam: embedLocalImages(rawHtml, documentDir, { requestScopeConsent }) where requestScopeConsent raises the sticky singleton card dedupKey 'export-embed-consent' listing the resolved out-of-scope paths ({paths} placeholder) with their count and the document directory ({dir}) — Confirm grants exactly the listed files (the list, verbatim), Cancel/dismiss grants the empty list; on decision the card entry is dismissed. The old two-arg call text await embedLocalImages(rawHtml, documentDir) no longer exists in editor.vue. pdf/print branches gain no consent logic and never invoke either gate (corner C-12 unchanged); the docx converter consumes the same post-consent HTML without its own gate (M-066 unchanged in code).</Criterion>
+          <Criterion>tests/renderer/util/export-plantuml-gate.test.js (new file, pure — no DOM, no muya mount) pins the gate helpers red-first against pre-fix code where observable: countPlantUMLFences (zero for documents without plantuml fences; exact counts for one and several ```plantuml blocks; ~~~ fences count; an unclosed trailing fence counts once; mermaid/vega-lite/flowchart/sequence fences and inline backticks never count; the fence tag is exact-case 'plantuml'), and plantUMLSourcePlaceholder (single pre.ag-plantuml-export-source element; the literal source text present after un-escaping — round-trip with escapeHTML; no 'plantuml.com' substring; no img tag; hostile markup in the source stays escaped text). Assertions are written against this pinned contract, never derived from implementation wording.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx vitest run tests/renderer/util/export-plantuml-gate.test.js</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>M-031 funnel fence at the m031 boundary: SecurityCtx parameter, check_path + regular-file + MAX_READ_BYTES fence, strict read_to_string kept, sandbox-rooted fixtures, red-first sandbox-violation pin</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The disclosed semantic choice is implemented exactly as pinned: FENCE-AT-M031 (not fs_read_inner) — justification recorded here for the bundle: riding fs_read_inner as-is would (a) route the sidecar through m047_bookmarks::ensure_access bookmark semantics this surface does not declare, (b) replace the strict UTF-8 sidecar failure (V-M-031 F7) with M-014 detect-and-decode bytes-replacement, silently changing diff baseline bytes for legacy-encoded sidecars, and (c) move the error shape off Result&lt;String, String&gt; onto IpcError, changing the renderer's existing baseline-failure catch; fencing at the m031 boundary reuses m010_security::check_path UNCHANGED and keeps read_to_string, preserving F7 byte-for-byte. m031_diff.rs gains a file-header START_MODULE_CONTRACT / START_MODULE_MAP / START_CHANGE_SUMMARY block (none exists today) stating the fenced sidecar read, the denial vocabulary and the untouched git fallback, with exactly ONE CHANGE_SUMMARY line (2026-11-21 C-EXPORT-BOUNDARIES); the #[tauri::command] becomes pub fn mt_diff_baseline(path: String, sec: State&lt;'_, SecurityCtx&gt;) -> Result&lt;String, String&gt; delegating to pub(crate) fn mt_diff_baseline_inner(path: &amp;str, sandbox: &amp;Path) — Tauri injects the State, so diffView.vue's invoke('mt_diff_baseline', { path: pathname }) is unchanged and main.rs (registration at main.rs:982, SecurityCtx already managed) is not touched; no new IPC command.</Criterion>
+          <Criterion>The fence, in order, on the '{path}.before' sidecar read only: the existing document-path existence check and the BLOCK_DIFF_BASELINE marker stay first and unchanged; when the sidecar exists — (1) m010_security::check_path(sandbox, Path::new(&amp;before_str)) reusing the funnel as-is (lexical, canonical, NUL/overlong, E6 symlink resolved-target semantics included); on SecurityError the command logs [m031][diff][BLOCK_BASELINE_FAILED reason=sandbox_violation] and returns Err whose string carries MT_FS_PATH_DENIED and the security error text — no bytes are returned and the git fallback does NOT run on a denial; (2) fs::metadata regular-file gate — a non-regular sidecar (dir, FIFO, symlink-to-dir) logs [m031][diff][BLOCK_BASELINE_FAILED reason=not_regular_file] and returns Err carrying MT_FS_NOT_REGULAR; (3) meta.len() &gt; crate::m013b::fs::MAX_READ_BYTES (the reused 10 MiB constant) logs [m031][diff][BLOCK_BASELINE_FAILED reason=oversize] and returns Err carrying MT_FS_TOO_LARGE with the byte figures; (4) std::fs::read_to_string(&amp;validated) — the strict UTF-8 read on the validated path, keeping today's Err('Failed to read .before file: …') on invalid UTF-8 (F7 preserved, no decode-and-replace); a valid in-sandbox sidecar reads exactly as before (BLOCK_DIFF_BASELINE_OK source=before bytes=… unchanged). The git-show fallback (_diff_git_baseline) and the app-store refusal branch are byte-identical to today, and the raw unfenced form std::fs::read_to_string(before_path) no longer exists in the file.</Criterion>
+          <Criterion>The in-file test module moves onto sandbox-rooted fixtures and gains the red-first fence pins: every std::env::temp_dir() usage is replaced by a TempDir sandbox root (tempfile, already a dev-dependency of the funnel suites' convention) with the document and its .before sidecar written inside it, calling mt_diff_baseline_inner directly (no Tauri State needed) — baseline_nonexistent_file_returns_err, baseline_assembles_git_show_command (#[cfg(not(feature = "app-store"))], assertion shape unchanged) and baseline_before_file_takes_priority keep their behavioral assertions on the new roots; baseline_current_repo_file is unchanged. New pins: baseline_sidecar_outside_sandbox_denied (a {path}.before symlink resolving OUTSIDE the TempDir sandbox yields Err containing MT_FS_PATH_DENIED — fails pre-fix because pre-fix returns the file's bytes — and the error is not Ok content), baseline_sidecar_symlink_inward_reads (a symlink resolving INSIDE the sandbox reads normally — deny-only-NEW-links spirit: pre-existing inward resolution is allowed), baseline_sidecar_non_regular_denied (a directory named {path}.before → Err with MT_FS_NOT_REGULAR), baseline_sidecar_over_cap_denied (a sidecar sized past the cap via file.set_len(MAX_READ_BYTES + 1) — no 10 MiB write — → Err with MT_FS_TOO_LARGE), and baseline_invalid_utf8_sidecar_still_errors (invalid UTF-8 bytes in the sidecar → Err('Failed to read .before file: …'), the honest F7 pin that fences the funnel-reuse alternative out). The renderer diff suites need no change — asserted by the diff vitest filter staying green with zero renderer edits.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m031_diff</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Export-branch wiring pins for both consent gates plus the eight consent keys in all ten locales</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/renderer/components/editor-export-images.test.js is extended (existing pins unchanged where the behavior is unchanged) inside a paired unique test block: the PlantUML gate wiring — a document whose markdown carries one ```plantuml fence makes the styledHtml handler raise notice.notify with dedupKey 'export-plantuml-consent' BEFORE exportStyledHTML, the card message names https://www.plantuml.com/plantuml and the per-diagram count, Confirm passes plantumlRemoteConsent: true into the exportStyledHTML call args and Cancel passes plantumlRemoteConsent: false, and a document without plantuml fences raises no card and passes plantumlRemoteConsent: false; the same wiring pinned for the docx branch (both branches pinned at unit level per spec AC-3); the embed gate wiring — embedMock (the '@/util/exportImages' double) is called with a third argument whose requestScopeConsent is a function, and the two-arg pin expect(embedMock).toHaveBeenCalledWith(html, '/tmp') is updated to the three-arg shape; the existing corner C-12 pins (pdf/print never invoke the pass) stay green unchanged; the C-9 untitled pin is updated only in its call-arity assertion — embedMock is now expected with (html, null, an options object carrying requestScopeConsent) — while its semantic assertions (null directory passed, export still happens) are unchanged; the consent-card raise asserts the rollbackConfirm-pattern shape (sticky true, dedupKey singleton, two actions whose handlers resolve the awaited decision).</Criterion>
+          <Criterion>Ten-locale key completeness rides this test file per the existing V-M-065 convention: a new pin reads static/locales/{de,en,es,fr,ja,ko,pt,ru,zh-CN,zh-TW}.json from disk and asserts every locale's editor.export carries all eight keys (embedConsentTitle, embedConsentMessage, embedConsentConfirm, embedConsentCancel, plantumlConsentTitle, plantumlConsentMessage, plantumlConsentConfirm, plantumlConsentCancel), with en additionally pinning the placeholder sets — embedConsentMessage contains {count}, {dir} and {paths}; plantumlConsentMessage contains {count} and {address}. The ten locale files receive exactly those eight keys inside the existing editor.export object as line surgery — no key removed, no other object touched; en is the source-of-truth copy (the dialog names the file list/destination explicitly: resolved paths, their count, the document directory, and the literal remote address), the other nine carry honest translated copy around the same placeholders; the plantumlConsentMessage copy in every locale names the {address} placeholder which the code fills with exactly https://www.plantuml.com/plantuml.</Criterion>
+          <Criterion>The privacy convention holds at the wiring level: the console markers added in T-001/T-002 log counts only (outOfScope=N, declined=K, diagrams=N) — no resolved path and no diagram text appears in any console.debug argument the wiring tests can introspect; full paths appear only in the card message the user is asked to approve.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx vitest run tests/renderer/components/editor-export-images.test.js</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Module contract and CHANGE_SUMMARY synchronization, graph M-065/M-066/M-031/M-012 deltas, verification V-M-065/V-M-031/V-M-012 deltas, and the full command matrix</Title>
+        <DependsOn>T-001, T-002, T-003, T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Every touched source file's semantic markup is synchronized with exactly one new CHANGE_SUMMARY line each and all pre-existing lines byte-identical: exportImages.js (scope classifier, two-phase consent pass, declined accounting, the two BLOCK_EMBED_SCOPE_ markers, consent never persisted), editor.vue (both consent cards with their dedupKeys, plantumlRemoteConsent option, count-only markers, declined placeholder behavior consumed via muya), exportHtml.js (the pinned render-time gate, the two pure helpers, the placeholder shape, plantuml.js and muya/lib/index.js untouched), m031_diff.rs (the new contract block's single line per T-003 — the SecurityCtx fence, the denial vocabulary, F7 preserved, git fallback untouched). No version bumps, no release actions.</Criterion>
+          <Criterion>Graph deltas: .grace/graph/features.xml gains one SummaryDelta prepended in M-065 (out-of-scope embeds require per-export consent listing the resolved files; declined refs keep their src and count skipped; C-2 corner re-pinned), one SummaryDelta prepended in M-031 (the .before sidecar read rides the M-010 fence under the command's SecurityCtx with MT_FS_PATH_DENIED/MT_FS_NOT_REGULAR/MT_FS_TOO_LARGE denials and BLOCK_BASELINE_FAILED; strict UTF-8 preserved; git fallback untouched), and the M-066 Dependencies line gains the dependency note that the docx converter consumes post-consent HTML with the PlantUML placeholder possible and no gate of its own; .grace/graph/runtime.xml gains one SummaryDelta prepended in M-012 (exportHtml.js's plantuml branch is consent-gated at render time via the opaque plantumlRemoteConsent options key; muya/lib/index.js, plantuml.js and the live preview are untouched). Each delta names C-EXPORT-BOUNDARIES; no other module's entry is edited; M-010/M-013-B entries are NOT edited (funnel reused as-is, reference-only).</Criterion>
+          <Criterion>Verification deltas: .grace/verification/features.xml V-M-065 gains a scenario naming the scope/consent unit pins, the re-pinned C-2 corner, the wiring pins and the ten-locale completeness pin, adds the Markers BLOCK_EMBED_SCOPE_CONSENT and BLOCK_EMBED_SCOPE_DECLINED beside the existing BLOCK_EMBED_IMAGES marker, and its Commands line gains tests/renderer/util/export-plantuml-gate.test.js; V-M-031 gains a scenario naming the m031_diff fence pins (outside-sandbox symlink denied with MT_FS_PATH_DENIED, non-regular and oversize denials, invalid-UTF-8 F7 pin, sandbox-rooted fixtures) and adds the Marker [m031][diff][BLOCK_BASELINE_FAILED reason=sandbox_violation]; .grace/verification/runtime.xml V-M-012 gains the export-plantuml-gate command/scenario delta (exportHtml.js was touched, so the conditional delta applies). The four XML files must parse after the edits.</Criterion>
+          <Criterion>The full matrix is green in one pass: the vitest trio (M-065 matrix with only the re-pinned C-2 delta, the wiring pins, the new gate pins), the six-file diff renderer suite (no renderer diff change), the cargo m031_diff, m013b::fs and m010_security filters (the last two prove the funnel is unmodified), and any pre-existing unrelated failure in these filters is recorded in the bundle evidence rather than silently skipped.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx vitest run tests/renderer/util/exportImages.test.js tests/renderer/components/editor-export-images.test.js tests/renderer/util/export-plantuml-gate.test.js</Command>
+          <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/components/diff-theme-sync.test.js tests/renderer/components/diffView.test.js tests/renderer/components/diff-view-snapshot.test.js tests/renderer/components/diff-opened-baseline.test.js tests/renderer/components/diff-view.test.js tests/renderer/store/diff-snapshots.test.js --maxWorkers=2</Command>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m031_diff</Command>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m013b::fs</Command>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m010_security</Command>
+          <Command budgetSeconds="30">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/features.xml'); ET.parse('.grace/graph/runtime.xml'); ET.parse('.grace/verification/features.xml'); ET.parse('.grace/verification/runtime.xml')"</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Criterion>Out-of-scope embed refusal and consent-list integrity (spec AC-1/AC-2): the exportImages pins 'not embed an out-of-scope absolute path without consent' and 'embeds exactly the granted subset of the consented list' fail on pre-fix code and pass post-fix — without consent an out-of-scope img keeps its src and counts skipped while an in-scope sibling still embeds exactly as corner C-1 pins today; a granted subset embeds exactly the listed files with a beyond-the-list out-of-scope img staying unembedded and skipped; the candidate list the consent callback receives is deduplicated by resolved path and matches the reported accounting; declining flips no in-scope behavior and the embedded/total notice reports declined references as skipped, never as embedded (wiring pins in editor-export-images.test.js).</Criterion>
+      <Criterion>PlantUML export consent per the recorded dialog decision (spec AC-3): without consent the exported styled HTML contains no plantuml.com URL — the pinned plantUMLSourcePlaceholder (one pre.ag-plantuml-export-source with the escapeHTML'd literal source) replaces the remote img in both the styledHtml and docx branches (editor wiring pins assert the declined plantumlRemoteConsent:false flow); with consent the only remote diagram reference names exactly https://www.plantuml.com/plantuml; the gate lives at exactly one pinned location (exportHtml.js render time, the plantuml branch), muya/lib/index.js and plantuml.js are untouched, and the live-preview fetch at muya/lib/parser/render/index.js:396 is provably untouched (outside ObservedWriteScope).</Criterion>
+      <Criterion>Diff read through the funnel, source-shape pin plus behavior (spec AC-4): mt_diff_baseline carries State&lt;'_, SecurityCtx&gt;, the sidecar read performs m010_security::check_path under the command's sandbox with the regular-file gate and the reused MAX_READ_BYTES cap, and no raw std::fs::read_to_string(before_path) remains in m031_diff.rs (TargetAssertions MustNotContain); baseline_sidecar_outside_sandbox_denied fails pre-fix (bytes returned) and passes post-fix with Err carrying MT_FS_PATH_DENIED and the [m031][diff][BLOCK_BASELINE_FAILED reason=sandbox_violation] log, no bytes returned — closing V-M-031 NA3/F2/E6; the renderer invocation invoke('mt_diff_baseline', { path }) is unchanged and the six-file diff suite stays green with zero renderer diff changes.</Criterion>
+      <Criterion>Existing behavior stays green with only the explicitly listed pin updates (spec AC-5): the M-065 unit matrix passes with corner C-2's body re-pinned to the consent semantics and only the three disclosed call-only resolution-pin updates (file:/// strip, drive-letter and extended-prefix normalization — assertions byte-identical, granting consent callback added to the call); the m031 suites pass with all fixtures moved inside TempDir sandbox roots; the m013b::fs and m010_security funnel suites pass unchanged, proving no funnel modification (m010_security.rs and m013b/fs.rs are reference-only and appear in no write task); pdf/print never run either gate; remote http(s)/data: image sources stay untouched; EMBED_CAP_BYTES and the MIME table are unchanged.</Criterion>
+      <Criterion>Consent semantics and privacy (spec Goals/Constraints): consent is requested per export and never persisted (no settings entry, no remembered-consent state anywhere in the diff); the embed card names the deduplicated resolved paths, their count and the document directory, the PlantUML card names https://www.plantuml.com/plantuml, the per-diagram count and the leaving diagram source text; console markers carry counts only, keeping the V-M-065 TraceAssertion (never image paths) true; no new IPC command, no new dependency, no new dialog framework or component file — the rollbackConfirm pattern rides the existing notice facade into store/notifications.</Criterion>
+      <Criterion>Governance and gates (spec AC-6): the touched module contracts/CHANGE_SUMMARY blocks state the consent gates and the funnelled sidecar read honestly with all pre-existing lines byte-identical; M-065/M-031 SummaryDeltas, the M-066 dependency note, the M-012 SummaryDelta, the V-M-065/V-M-031 scenario+marker deltas and the conditional V-M-012 delta land naming C-EXPORT-BOUNDARIES; the four graph/verification XML files parse; the five MustPassCommand filters are green (the diff suite proving the renderer diff surface unchanged, m013b::fs and m010_security proving the funnel unmodified); the red-first evidence (C-2 re-pin, out-of-scope refusal pin, plantuml gate pins, sandbox-violation fixture) is recorded against the baseline tree before the green run; grace lint runs only in the external target/final phases — this plan contains no self-referential grace-lint MustPassCommand; no version bump, no release publication.</Criterion>
+    </AcceptanceVerification>
+  </C-EXPORT-BOUNDARIES>
+</GraceChangePlan>

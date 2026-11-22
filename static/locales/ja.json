@@ -83,7 +83,15 @@
       "error": "エクスポートエラー",
       "imagesEmbeddedMessage": "{total}枚中{embedded}枚の画像を埋め込みました。サイズ超過や見つからない画像は元のリンクのままです",
       "errorExporting": "ファイルのエクスポート中にエラーが発生しました",
-      "settingsAction": "書き出し設定"
+      "settingsAction": "書き出し設定",
+      "embedConsentTitle": "ドキュメントフォルダー外の画像を埋め込みますか？",
+      "embedConsentMessage": "ドキュメントディレクトリ（{dir}）外の画像ファイル{count}件が読み込まれ、埋め込まれます: {paths}",
+      "embedConsentConfirm": "これらのファイルを埋め込む",
+      "embedConsentCancel": "スキップする",
+      "plantumlConsentTitle": "PlantUMLダイアグラムは plantuml.com で描画されます",
+      "plantumlConsentMessage": "{count}件のPlantUMLダイアグラムがレンダリングのため{address}へ送信されます — ダイアグラムのソーステキストがこのマシンから出ていきます",
+      "plantumlConsentConfirm": "plantuml.comへ送信",
+      "plantumlConsentCancel": "ソースをローカルに残す"
     },
     "resizeTable": "表のサイズ変更",
     "vega-lite-start": "vega-lite開始",
@@ -536,6 +544,7 @@
         "statusBar": "ステータスバーを表示",
         "wordWrapInToc": "アウトラインで長い見出しを折り返す",
         "titleBarStyleHelp": "カスタムはタブ付きの Mark 独自のタイトルバーを描画します。再起動が必要です。",
+        "titleBarStyleWindowsHelp": "Windows では「カスタム」だけが機能します。Mark のウィンドウはシステム枠なし（装飾なし）で出荷されるためです。",
         "hideScrollbar": "スクロールバーを非表示にする"
       },
       "text": {
@@ -1718,8 +1727,8 @@
     "search": {
       "searchInFolder": "フォルダ内を検索...",
       "noResultsFound": "結果が見つかりませんでした。",
-      "startTyping": "入力して開いているフォルダのMarkdownファイルを検索。",
-      "openFolder": "フォルダを開く",
+      "searchFailed": "Search failed. Results may be missing.",
+      "resultsPartial": "Partial results — the search stopped early.",
       "showMoreMatches": "さらに一致するものを表示",
       "noFolderOpen": "フォルダが開かれていません",
       "cancel": "キャンセル",

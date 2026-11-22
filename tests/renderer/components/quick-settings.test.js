@@ -2,7 +2,7 @@
 // VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the C-PAGE-WIDTH-TABLES panel wave (M-061) — the titlebar quick-settings shell (T-003), the Page tab arithmetic (T-004), the View tab theme mode + 17-family grid + the R-4 per-document override pin (T-005) and the Tables tab preferences (T-006): C-38 composition with the neutral palette, dark active-segment fix living in the SHARED segmented component (never forked), outside-click close vs inside-keep, per-unit presets with the 10% snap and the nearest-preset anchor, the 12-36 zoom-shared font range, the scope switch writing global vs per-document tiers, the footer naming the live global default, and the two table preference keys.
-//   SCOPE: Vue/jsdom component tests over the real components with the real en locale and the real theme factories; util/pageWidthStore is mocked at the IO boundary (load/save spies) so the persistence contract asserted here is the calls the tabs make, not the prefs transport (pinned by tests/renderer/util/page-width-store.test.js).
+//   SCOPE: Vue/jsdom component tests over the real components with the real en locale and the real theme factories; util/pageWidthStore is mocked at the IO boundary (load/save spies) so the persistence contract asserted here is the calls the tabs make, not the prefs transport (pinned by tests/renderer/util/page-width-store.test.js). C-COMPACT-WINDOWS-FIT adds the «Aa» Space/Enter activation pins.
 //   DEPENDS: Vitest, Vue Test Utils, setupTestPinia, static/locales/en.json, the quickSettings components, prefComponents/common/segmented, util/pageWidth.js constants.
 //   LINKS: .grace/changes/archive/C-PAGE-WIDTH-TABLES (plan T-003/T-004/T-005/T-006, corners C-4/C-5/C-6); components/titleBar/quickSettings/*; prefComponents/common/segmented (the dark active-segment contrast fix); util/pageWidth.js; store/preferences.js (the T-006 keys).
 //   ROLE: TEST
@@ -25,7 +25,11 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-010: the
+//   LAST_CHANGE: v1.2.0 - 2026-11-21 C-COMPACT-WINDOWS-FIT R-5: the
+//   «Aa» button activates on Space keydown with the default prevented
+//   (the recent/index.vue enter+space precedent) and the Enter path is
+//   pinned explicitly unchanged; both produce the same panel-open effect.
+//   PREV: v1.1.0 - 2026-11-02 C-PAGE-WIDTH-TABLES T-010: the
 //   quick-settings:open bus entry point — the shell opens the panel with
 //   the requested tab and ignores a repeat emit while open; this is the
 //   View › Page Width › Custom… route (view.page-width.custom).
@@ -187,6 +191,37 @@ describe('quick settings shell (T-003, corner C-4)', () => {
     await flush()
     expect(wrapper.find('.quick-settings-popover').exists()).toBe(true)
     expect(wrapper.findAll('.quick-tab')[1].classes()).toContain('quick-tab--active')
+  })
+
+  it('activates the panel on Space keydown with the default prevented', async () => {
+    // C-COMPACT-WINDOWS-FIT R-5: the recent/index.vue enter+space pair
+    // precedent — Space activates exactly like Enter and its default
+    // action (scrolling/typing) is always prevented.
+    const wrapper = await mountShell()
+    expect(wrapper.find('.quick-settings-popover').exists()).toBe(false)
+    const event = new KeyboardEvent('keydown', {
+      key: ' ', code: 'Space', cancelable: true, bubbles: true
+    })
+    wrapper.find('.quick-settings-btn').element.dispatchEvent(event)
+    await flush()
+    expect(event.defaultPrevented, 'the Space keydown default must be prevented').toBe(true)
+    // Exactly the Enter path's effect: the panel opens on the Page tab.
+    expect(wrapper.find('.quick-settings-popover').exists()).toBe(true)
+    expect(wrapper.findAll('.quick-tab')[0].classes()).toContain('quick-tab--active')
+  })
+
+  it('activates the panel on Enter keydown', async () => {
+    // The pre-existing path, pinned explicitly unchanged.
+    const wrapper = await mountShell()
+    expect(wrapper.find('.quick-settings-popover').exists()).toBe(false)
+    const event = new KeyboardEvent('keydown', {
+      key: 'Enter', code: 'Enter', cancelable: true, bubbles: true
+    })
+    wrapper.find('.quick-settings-btn').element.dispatchEvent(event)
+    await flush()
+    expect(event.defaultPrevented).toBe(true)
+    expect(wrapper.find('.quick-settings-popover').exists()).toBe(true)
+    expect(wrapper.findAll('.quick-tab')[0].classes()).toContain('quick-tab--active')
   })
 
   it('carries the data-darkmode attribute following the theme member', async () => {
