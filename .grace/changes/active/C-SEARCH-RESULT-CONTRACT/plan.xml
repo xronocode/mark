@@ -94,7 +94,7 @@
       <MustNotContain><File>src/renderer/src/commands/quickOpen.js</File><Text>searchResult.push(result)</Text></MustNotContain>
       <MustPassCommand><Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command></MustPassCommand>
       <MustPassCommand><Command budgetSeconds="900">npx --no-install vitest run tests/renderer/_shims/install-window-globals.test.js tests/renderer/components/sideBar/searchResultItem.test.js tests/renderer/components/projectSearch/index.test.js tests/renderer/commands/quickOpen.test.js tests/renderer/commands/quickOpen-deep.test.js</Command></MustPassCommand>
-      <MustPassCommand><Command budgetSeconds="600">npx --no-install playwright test --project chromium tests/e2e/project-search.spec.ts</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="600">npx --no-install playwright test --project=chromium tests/e2e/project-search.spec.ts</Command></MustPassCommand>
     </TargetAssertions>
 
     <DurableScope>
@@ -186,7 +186,7 @@
           <Criterion>The new tests/e2e/project-search.spec.ts (installTauriShim + bootEditor canon) boots the editor, opens the project-search overlay (.project-search-overlay), submits a query whose fixture envelope — delivered through __emitSearchEvent with honest bounds across two files, one multi-match line and one bounds-absent hit — renders the expected rows, and proves the Wave-3 criterion from the keyboard: Enter from the input into the results, arrows to the fixture match line, Enter — the fixture file opens (the mt_open_file double&apos;s mt::open-new-tab receipt) carrying the cursor at the fixture match position, and the bounds-absent hit shows no highlight with a defined line-start cursor. The existing e2e search-bar spec stays green and untouched.</Criterion>
         </AcceptanceCriteria>
         <Verification>
-          <Command budgetSeconds="600">npx --no-install playwright test --project chromium tests/e2e/project-search.spec.ts tests/e2e/search-bar.spec.ts</Command>
+          <Command budgetSeconds="600">npx --no-install playwright test --project=chromium tests/e2e/project-search.spec.ts tests/e2e/search-bar.spec.ts</Command>
         </Verification>
       </T-006>
       <T-007>
@@ -199,7 +199,7 @@
         <Verification>
           <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command>
           <Command budgetSeconds="900">npx --no-install vitest run tests/renderer/_shims/install-window-globals.test.js tests/renderer/components/sideBar/searchResultItem.test.js tests/renderer/components/projectSearch/index.test.js tests/renderer/commands/quickOpen.test.js tests/renderer/commands/quickOpen-deep.test.js</Command>
-          <Command budgetSeconds="600">npx --no-install playwright test --project chromium tests/e2e/project-search.spec.ts</Command>
+          <Command budgetSeconds="600">npx --no-install playwright test --project=chromium tests/e2e/project-search.spec.ts</Command>
         </Verification>
       </T-007>
     </ImplementationPlan>
@@ -207,7 +207,7 @@
     <AcceptanceVerification>
       <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command>
       <Command budgetSeconds="900">npx --no-install vitest run tests/renderer/_shims/install-window-globals.test.js tests/renderer/components/sideBar/searchResultItem.test.js tests/renderer/components/projectSearch/index.test.js tests/renderer/commands/quickOpen.test.js tests/renderer/commands/quickOpen-deep.test.js</Command>
-      <Command budgetSeconds="600">npx --no-install playwright test --project chromium tests/e2e/project-search.spec.ts</Command>
+      <Command budgetSeconds="600">npx --no-install playwright test --project=chromium tests/e2e/project-search.spec.ts</Command>
       <Environment>Baseline is the current green-search1 worktree (branch spec/search-result-contract, base bb68fd6c), executed in that worktree root with cargo and installed node_modules available; no new dependencies are acquired. Tasks run strictly sequentially T-001 through T-007, and the failing-first suites are red on the untouched baseline before their implementations land: the T-001 backend bounds tests fail before T-002, the shim-range-array-form mapping tests fail before T-003, the project-search-keyboard-chain tests fail before T-004, and quickopen-string-ids fails before T-005. Documented plan decisions: the bounds unit is UTF-16 code-unit offsets (0-based start, exclusive end) computed at the backend against the delivered snippet through one shared conversion used by both engine legs — chosen because both legs&apos; raw spans are byte offsets while the consumer reads JS substring indices, byte delivery would be a known-false span on mainstream multi-byte content, and scalar-value counts would diverge on astral characters; the multi-byte parity fixture is the delivery-baseline probe and any contradiction converts the plan to the explicitly documented ASCII-bounded honesty limitation instead of a silent false span. The mapping-test seam is the extracted pure zero-import helper module (src/renderer/src/_shims/search-event-translation.js) because the boot shim&apos;s top-level await and webview/localeLoader dependencies cannot load under jsdom; the shim's static import of that zero-dependency helper keeps the C-52 boot-order pins green, and the helper itself carries no static imports (source-scanned). Tab reachability is roving-focused rows (selected row tabindex 0, others -1) with arrows and Enter on the rows. Escape closing is panel-level so both the input and the results contexts close the overlay. Quick-open normalization stays consumer-side with no per-searchId shim state. All commands must pass with no skips, retries, budget increases or weakened assertions; SearchSessionCoordinator keeps sole terminal ownership, store/search.js, node/ripgrepSearcher.js, node/fileSearcher.js, the commandPalette, the typed ipc facade and the in-document find bar stay byte-for-byte untouched, the #289 session-trace and #303 honest-state families plus the C-52 boot-order pins and the e2e search-bar spec pass unchanged, and the e2e spec&apos;s receipt is a fixture-envelope proof through the tauri-shim doubles — native rg transport on unmatched platforms, App Store build behavior and owner acceptance stay explicitly open and are never substituted by a shim.</Environment>
     </AcceptanceVerification>
   </C-SEARCH-RESULT-CONTRACT>

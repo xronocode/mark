@@ -140,10 +140,14 @@ class QuickOpenCommand {
             // contributes its string pathname so `const item = { id:
             // pathname }` builds a string id again and executeSubcommand
             // can open the file; any other non-string shape is dropped.
-            if (typeof result === 'string') {
-              searchResult.push(result)
-            } else if (result && typeof result.filePath === 'string') {
-              searchResult.push(result.filePath)
+            const pathname =
+              typeof result === 'string'
+                ? result
+                : result && typeof result.filePath === 'string'
+                  ? result.filePath
+                  : null
+            if (pathname !== null) {
+              searchResult.push(pathname)
             }
           },
           didSearchPaths: (numPathsFound) => {

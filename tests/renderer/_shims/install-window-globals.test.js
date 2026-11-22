@@ -38,6 +38,7 @@
 //   SHIM_PATH - absolute path of _shims/install-window-globals.js.
 //   MAIN_PATH - absolute path of main.js (pins the shim-first import).
 //   TRANSLATION_HELPER_PATH - absolute path of the pure search-event translation helper.
+//   loadTranslationHelper - dynamic importer returning the helper's translateSearchEvent.
 //   readSource - utf8 source reader for the scanned files.
 //   STATIC_CLIPBOARD_IMPORT_RE - matches a STATIC import declaration of a C-52 clipboard module.
 //   DYNAMIC_CLIPBOARD_IMPORT_RE - matches the drop handler's dynamic import('…clipboardPath').
