@@ -21,6 +21,23 @@
 //   STATUS:  Phase-B5b — handlers emit to frontend via live_bridge.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-23 C-EXT-TRUST-COHERENCE T-006: the rebind dialogs state the
+//     grant truth and display the registered name — the stored grant read
+//     is hoisted before the approval decision (an unreadable grant is the
+//     distinct logged 500 BLOCK_PAIR_GRANT_UNREADABLE, pairing nothing);
+//     classify_grant_change (pure; Growth{added}/Equal/Narrow{stopped}
+//     over the stored grant vs the declared incoming set, a None stored
+//     grant classifying as growth) selects the dialog text (growth keeps
+//     the key-replacement statement and enumerates every added
+//     capability's grant phrase in all() order; equality states no grant
+//     change; narrowing names the accesses that stop being served); the
+//     unconditional "a rebind changes no grant set" rebind text is gone;
+//     pairing_display_name (pure) yields the registered manifest's name
+//     for a registered id with a distinct mismatch flag logged as
+//     BLOCK_PAIR_NAME_MISMATCH (log-only — the id anchors authorization,
+//     the name is advisory) and the reported name for an unregistered id;
+//     the capture rule (declared∩all() in all() order), the denial branch
+//     and the old-key-death proof are unchanged.
 //   - 2026-11-23 C-EXT-TRUST-COHERENCE T-003: a disable cancels the
 //     context reads it owns — the pending /ext/context entry carries its
 //     extension id (PendingContextEntry; the main.rs LiveServerState
@@ -829,7 +846,7 @@ async fn validate_bearer<R: tauri::Runtime>(
 /// content is returned or any event is emitted; /stream/* routes require
 /// StreamDocument from the same stored grant inside authenticate_stream.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum RouteCapability {
+pub(super) enum RouteCapability {
     /// stream.document — extension sends streamed documents into Mark's live view.
     StreamDocument,
     /// context.read — read the active tab's markdown/cursor/selection (/ext/context).
@@ -842,7 +859,7 @@ enum RouteCapability {
 
 #[cfg_attr(debug_assertions, allow(dead_code))] // grant_phrase is read by pairing_grant_description, which is allow(dead_code) in test builds where the dialog decision arm is compiled out
 impl RouteCapability {
-    fn name(self) -> &'static str {
+    pub(super) fn name(self) -> &'static str {
         match self {
             RouteCapability::StreamDocument => "stream.document",
             RouteCapability::ContextRead => "context.read",
@@ -983,19 +1000,108 @@ pub(super) fn pairing_grant_description(
     )
 }
 
+/// C-EXT-TRUST-COHERENCE: the rebind grant-change class, decided from the
+/// stored approved grant versus the declared incoming set (capability
+/// names). A stored grant of None — the legacy shape — classifies as
+/// growth over everything declared. Any addition is growth (the dialog
+/// asks first); no additions but stored names beyond the declared set is
+/// narrowing; otherwise equality.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) enum GrantChange {
+    /// The incoming set names capabilities the stored grant does not
+    /// cover — the added capabilities in RouteCapability::all() order.
+    Growth { added: Vec<RouteCapability> },
+    /// The declared incoming set matches the stored grant.
+    Equal,
+    /// The manifest stopped declaring capabilities the stored grant
+    /// serves — the stopped capabilities in RouteCapability::all() order.
+    Narrow { stopped: Vec<RouteCapability> },
+}
+
+/// Pure classifier for the rebind dialog decision.
+pub(super) fn classify_grant_change(stored: Option<&[String]>, declared: &[String]) -> GrantChange {
+    let stored_names: Vec<&str> = stored.unwrap_or(&[]).iter().map(String::as_str).collect();
+    let added: Vec<RouteCapability> = RouteCapability::all()
+        .into_iter()
+        .filter(|cap| declared.iter().any(|name| name == cap.name()))
+        .filter(|cap| !stored_names.contains(&cap.name()))
+        .collect();
+    if !added.is_empty() {
+        return GrantChange::Growth { added };
+    }
+    let stopped: Vec<RouteCapability> = RouteCapability::all()
+        .into_iter()
+        .filter(|cap| stored_names.contains(&cap.name()))
+        .filter(|cap| !declared.iter().any(|name| name == cap.name()))
+        .collect();
+    if stopped.is_empty() {
+        GrantChange::Equal
+    } else {
+        GrantChange::Narrow { stopped }
+    }
+}
+
 /// Pure description of what a pairing approval does to an extension that
-/// already holds a live credential, rendered for the pairing dialog. It
-/// names the extension and states the key replacement; it deliberately
-/// lists no capability grants, because a rebind changes no grant set —
-/// the same manifest stays in force.
+/// already holds a live credential, rendered for the pairing dialog.
+/// C-EXT-TRUST-COHERENCE: the text states the grant truth — growth keeps
+/// the key-replacement statement and enumerates every added capability's
+/// grant phrase; equality honestly states no grant change; narrowing
+/// names the accesses that stop being served and never claims "no grant
+/// change" (today's single unconditional "a rebind changes no grant set"
+/// text served all three while the capture overwrote the grant).
 #[cfg_attr(debug_assertions, allow(dead_code))]
-pub(super) fn pairing_rebind_description(extension_name: &str, extension_id: &str) -> String {
-    format!(
+pub(super) fn pairing_rebind_change_description(
+    extension_name: &str,
+    extension_id: &str,
+    change: &GrantChange,
+) -> String {
+    let head = format!(
         "The extension \"{extension_name}\" ({extension_id}) is already paired with Mark.\n\n\
          Approving this request replaces its live key: the previous secret stops working \
-         immediately, and only the new secret will be accepted afterwards.\n\n\
-         Allow this only if you hold the extension's current secret and intend to re-key it."
-    )
+         immediately, and only the new secret will be accepted afterwards.\n\n"
+    );
+    match change {
+        GrantChange::Growth { added } => {
+            let lines: String = added.iter()
+                .map(|cap| format!("- {}\n", cap.grant_phrase()))
+                .collect();
+            format!(
+                "{head}Its manifest now also requests access it was not granted before: \
+                 approving will additionally allow it to:\n{lines}\
+                 Allow this only if you intend to grant the new access and re-key the extension."
+            )
+        }
+        GrantChange::Equal => format!(
+            "{head}This rebind causes no grant change: the extension keeps exactly the access \
+             its pairing already approved.\n\n\
+             Allow this only if you hold the extension's current secret and intend to re-key it."
+        ),
+        GrantChange::Narrow { stopped } => {
+            let lines: String = stopped.iter()
+                .map(|cap| format!("- it will no longer be able to {}\n", cap.grant_phrase()))
+                .collect();
+            format!(
+                "{head}Its manifest no longer declares access it was granted before. \
+                 After this rebind:\n{lines}\
+                 Allow this only if you hold the extension's current secret and intend to re-key it."
+            )
+        }
+    }
+}
+
+/// C-EXT-TRUST-COHERENCE: the pairing dialogs display the registered
+/// manifest's name for a registered id; a caller-reported name that
+/// contradicts it never reaches the user and is a distinct flagged state
+/// the caller logs (log-only — the id anchors authorization and the name
+/// is advisory, so refusing would only let a lying caller disrupt a
+/// legitimate pairing). An unregistered id keeps the reported name —
+/// there is nothing to compare against.
+#[cfg_attr(debug_assertions, allow(dead_code))]
+pub(super) fn pairing_display_name(reported: &str, registered: Option<&str>) -> (String, bool) {
+    match registered {
+        Some(name) => (name.to_string(), name != reported),
+        None => (reported.to_string(), false),
+    }
 }
 
 /// POST /ext/pair — pairing initiation.
@@ -1033,12 +1139,29 @@ pub(super) async fn handle_pair<R: tauri::Runtime>(
     // both the release dialog description and the shared post-approval
     // grant capture below. An unregistered id yields an empty list, the
     // honest empty grant.
-    let declared: Vec<String> = state
+    let registered_manifest = state
         .app_handle
         .state::<super::registry::ExtRegistry>()
-        .peek_manifest(&req.extension_id)
+        .peek_manifest(&req.extension_id);
+    let declared: Vec<String> = registered_manifest
+        .as_ref()
         .map(|m| m.capabilities.iter().map(|c| c.name.clone()).collect())
         .unwrap_or_default();
+
+    // C-EXT-TRUST-COHERENCE: the dialogs display the registered
+    // manifest's name; a contradicting caller-reported name is a distinct
+    // logged state (log-only — the id anchors authorization and the name
+    // is advisory) and never reaches the user.
+    let (display_name, name_mismatch) = pairing_display_name(
+        &req.extension_name,
+        registered_manifest.as_ref().map(|m| m.name.as_str()),
+    );
+    if name_mismatch {
+        safe_eprintln!(
+            "[ExtHost][live_server][BLOCK_PAIR_NAME_MISMATCH ext_id={}]",
+            req.extension_id,
+        );
+    }
 
     // Rebind gate: an id that already holds a stored credential is paired
     // only on constant-time proof of the prior secret. The gate runs
@@ -1076,10 +1199,29 @@ pub(super) async fn handle_pair<R: tauri::Runtime>(
         );
     }
 
+    // C-EXT-TRUST-COHERENCE: the stored grant read is hoisted before the
+    // approval decision; an unreadable stored grant is a distinct logged
+    // 500 refusal that pairs nothing, raised before any dialog.
+    let stored_grant = match super::auth::get_grant(&req.extension_id) {
+        Ok(grant) => grant,
+        Err(e) => {
+            safe_eprintln!(
+                "[ExtHost][live_server][BLOCK_PAIR_GRANT_UNREADABLE ext_id={} reason={e}]",
+                req.extension_id,
+            );
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"error": "pairing grant state unavailable"})),
+            );
+        }
+    };
+    let grant_change = classify_grant_change(stored_grant.as_deref(), &declared);
+
     // Auto-approval exists ONLY inside the Rust test harness. No ordinary
     // build — debug or release — approves pairing without a user decision.
     #[cfg(test)]
     let approved = {
+        let _ = &grant_change;
         safe_eprintln!(
             "[ExtHost][live_server][BLOCK_PAIR_AUTO_APPROVE ext_id={} (test harness only)]",
             req.extension_id,
@@ -1089,9 +1231,9 @@ pub(super) async fn handle_pair<R: tauri::Runtime>(
     #[cfg(not(test))]
     let approved = {
         let description = if is_rebind {
-            pairing_rebind_description(&req.extension_name, &req.extension_id)
+            pairing_rebind_change_description(&display_name, &req.extension_id, &grant_change)
         } else {
-            pairing_grant_description(&req.extension_name, &req.extension_id, &declared)
+            pairing_grant_description(&display_name, &req.extension_id, &declared)
         };
         tokio::task::spawn_blocking(move || {
             use rfd::{MessageButtons, MessageDialog, MessageDialogResult, MessageLevel};

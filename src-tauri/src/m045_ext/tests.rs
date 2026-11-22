@@ -18,6 +18,13 @@
 // END_MODULE_MAP
 
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 C-EXT-TRUST-COHERENCE T-006: the rebind honesty family —
+//     rebind_growth_classification_enumerates_added_capabilities,
+//     rebind_equality_and_narrowing_dialogs_state_the_grant_truth and
+//     pairing_dialogs_use_the_registered_manifest_name (pure-helper pins,
+//     committed failing-first as the missing-API compile error) plus the
+//     harness-approved capture paths approved_rebind_captures_the_presented_declared_set
+//     (growth/narrowing/equality) and legacy_credential_rebind_classifies_as_growth.
 //   - 2026-11-23 C-EXT-TRUST-COHERENCE T-004: the revoke-pending family —
 //     enable_after_failed_revocation_is_locked_to_revoke_pending,
 //     revoke_pending_clears_on_successful_disable_or_rebind (both
@@ -1873,6 +1880,99 @@ async fn enabled_extension_passes_only_declared_capability_routes() {
     assert!(grantless.live_events.lock().unwrap().is_empty());
 }
 
+// C-EXT-TRUST-COHERENCE: the rebind dialogs state the grant truth — the
+// pure change classifier distinguishes growth/equality/narrowing from the
+// stored grant (a None stored grant is growth over everything declared),
+// the growth dialog keeps the key-replacement statement and enumerates
+// every added capability's grant phrase, and the dialogs display the
+// registered manifest's name with a distinct mismatch state.
+#[test]
+fn rebind_growth_classification_enumerates_added_capabilities() {
+    let growth = super::live_server::classify_grant_change(
+        Some(&["context.read".to_string()]),
+        &["text.edit".to_string(), "context.read".to_string()],
+    );
+    match &growth {
+        super::live_server::GrantChange::Growth { added } =>
+            assert_eq!(added.iter().map(|cap| cap.name()).collect::<Vec<_>>(), vec!["text.edit"]),
+        other => panic!("expected growth, got {other:?}"),
+    }
+    // Added names enumerate in RouteCapability::all() order even when the
+    // manifest declares them in reverse.
+    let growth = super::live_server::classify_grant_change(
+        Some(&[]),
+        &["text.insert".to_string(), "stream.document".to_string()],
+    );
+    match &growth {
+        super::live_server::GrantChange::Growth { added } =>
+            assert_eq!(added.iter().map(|cap| cap.name()).collect::<Vec<_>>(), vec!["stream.document", "text.insert"]),
+        other => panic!("expected growth, got {other:?}"),
+    }
+    // A None stored grant classifies as growth over everything declared.
+    let legacy = super::live_server::classify_grant_change(None, &["context.read".to_string()]);
+    assert!(matches!(legacy, super::live_server::GrantChange::Growth { .. }));
+    // The growth dialog keeps the key-replacement statement and
+    // enumerates every added capability's grant phrase.
+    let text = super::live_server::pairing_rebind_change_description("TokMo", "tokmo", &legacy);
+    assert!(text.contains("replaces its live key"), "{text}");
+    assert!(text.contains("read the current text of the active tab"), "{text}");
+    let both = super::live_server::classify_grant_change(None, &["text.edit".to_string(), "context.read".to_string()]);
+    let text = super::live_server::pairing_rebind_change_description("TokMo", "tokmo", &both);
+    let read_pos = text.find("read the current text of the active tab");
+    let edit_pos = text.find("edit the current text of the active tab");
+    assert!(read_pos.is_some() && edit_pos.is_some(), "{text}");
+    assert!(read_pos.unwrap() < edit_pos.unwrap(), "{text}");
+}
+
+#[test]
+fn rebind_equality_and_narrowing_dialogs_state_the_grant_truth() {
+    // Equality: the stored grant and the declared set name the same
+    // incoming capabilities in any order.
+    let equal = super::live_server::classify_grant_change(
+        Some(&["context.read".to_string(), "text.edit".to_string()]),
+        &["text.edit".to_string(), "context.read".to_string()],
+    );
+    assert_eq!(equal, super::live_server::GrantChange::Equal);
+    let text = super::live_server::pairing_rebind_change_description("Editor", "editor", &equal);
+    assert!(text.contains("replaces its live key"), "{text}");
+    assert!(text.to_lowercase().contains("no grant change"), "{text}");
+    assert!(!text.contains("read the current text of the active tab"), "{text}");
+    assert!(!text.contains("edit the current text of the active tab"), "{text}");
+
+    // Narrowing: text.edit stops being served and the dialog names it,
+    // never claiming "no grant change".
+    let narrow = super::live_server::classify_grant_change(
+        Some(&["context.read".to_string(), "text.edit".to_string()]),
+        &["context.read".to_string()],
+    );
+    match &narrow {
+        super::live_server::GrantChange::Narrow { stopped } =>
+            assert_eq!(stopped.iter().map(|cap| cap.name()).collect::<Vec<_>>(), vec!["text.edit"]),
+        other => panic!("expected narrowing, got {other:?}"),
+    }
+    let text = super::live_server::pairing_rebind_change_description("Editor", "editor", &narrow);
+    assert!(text.contains("edit the current text of the active tab"), "{text}");
+    assert!(!text.to_lowercase().contains("no grant change"), "{text}");
+}
+
+#[test]
+fn pairing_dialogs_use_the_registered_manifest_name() {
+    // A registered id displays the registered manifest's name; a
+    // contradicting caller-reported name is a distinct flagged state
+    // (logged, never displayed — log-only, no refusal).
+    let (display, mismatch) = super::live_server::pairing_display_name("A Lying Caller", Some("Registered Extension"));
+    assert_eq!(display, "Registered Extension");
+    assert!(mismatch);
+    let (display, mismatch) = super::live_server::pairing_display_name("Registered Extension", Some("Registered Extension"));
+    assert_eq!(display, "Registered Extension");
+    assert!(!mismatch);
+    // An unregistered id keeps the reported name — there is nothing to
+    // compare against.
+    let (display, mismatch) = super::live_server::pairing_display_name("Reported Name", None);
+    assert_eq!(display, "Reported Name");
+    assert!(!mismatch);
+}
+
 #[test]
 fn pairing_grant_description_names_only_declared_capabilities() {
     let stream_only = super::live_server::pairing_grant_description(
@@ -2339,6 +2439,79 @@ async fn stream_requires_stored_stream_document_grant() {
     }
     assert_eq!(f.live_events.lock().unwrap().len(), live_event_count);
     assert!(f.events.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn approved_rebind_captures_the_presented_declared_set() {
+    // Growth: pair (context.read), grow the manifest, rebind with the
+    // prior secret — the capture includes the added name and the prior
+    // token is fenced.
+    let f = incoming_fixture(true, "context.read");
+    super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap();
+    let fresh = fresh_pair_secret(&f).await;
+    let mut grown = test_manifest(&f.id);
+    grown.capabilities = vec![
+        Capability { name: "context.read".to_string(), version: 1 },
+        Capability { name: "text.edit".to_string(), version: 1 },
+    ];
+    f.app.state::<ExtRegistry>().register(grown, true).unwrap();
+    let response = pair_request(&f, &f.id, Some(fresh.clone())).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        super::auth::get_grant(&f.id).unwrap().as_deref(),
+        Some(["context.read".to_string(), "text.edit".to_string()].as_slice()),
+        "the presented capture includes the added name",
+    );
+    assert_eq!(context_fixture(&f, &fresh).await, StatusCode::UNAUTHORIZED, "the prior token is fenced");
+    let bytes = axum::body::to_bytes(response.into_body(), 8192).await.unwrap();
+    let paired: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    let second = paired["shared_secret"].as_str().unwrap().to_string();
+    super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap();
+    assert_eq!(context_fixture(&f, &second).await, StatusCode::OK, "the fresh token works on the grown grant");
+
+    // Narrowing: the shrunk manifest's rebind captures the shrunk subset.
+    let mut shrunk = test_manifest(&f.id);
+    shrunk.capabilities = vec![Capability { name: "context.read".to_string(), version: 1 }];
+    f.app.state::<ExtRegistry>().register(shrunk, true).unwrap();
+    let response = pair_request(&f, &f.id, Some(second)).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        super::auth::get_grant(&f.id).unwrap().as_deref(),
+        Some(["context.read".to_string()].as_slice()),
+        "the narrowing rebind captures the shrunk subset",
+    );
+    let bytes = axum::body::to_bytes(response.into_body(), 8192).await.unwrap();
+    let paired: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    let third = paired["shared_secret"].as_str().unwrap().to_string();
+
+    // Equality: the unchanged manifest's rebind captures the unchanged set.
+    let unchanged = test_manifest(&f.id);
+    let mut unchanged = unchanged;
+    unchanged.capabilities = vec![Capability { name: "context.read".to_string(), version: 1 }];
+    f.app.state::<ExtRegistry>().register(unchanged, true).unwrap();
+    let response = pair_request(&f, &f.id, Some(third)).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        super::auth::get_grant(&f.id).unwrap().as_deref(),
+        Some(["context.read".to_string()].as_slice()),
+        "the equality rebind captures the unchanged set",
+    );
+}
+
+#[tokio::test]
+async fn legacy_credential_rebind_classifies_as_growth() {
+    // A grant-less (legacy-shape) credential's rebind classifies as
+    // growth over the full declared set, and the capture stores exactly
+    // that presented set.
+    let f = incoming_fixture_grantless(true, "context.read");
+    assert_eq!(super::auth::get_grant(&f.id).unwrap(), None, "the legacy credential holds no grant");
+    let response = pair_request(&f, &f.id, Some(f.token.clone())).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        super::auth::get_grant(&f.id).unwrap().as_deref(),
+        Some(["context.read".to_string()].as_slice()),
+        "the full declared set was presented and captured",
+    );
 }
 
 #[tokio::test]
