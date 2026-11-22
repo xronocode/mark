@@ -17,6 +17,10 @@
  */
 
 // Build a fresh empty tree for each test
+// the vite-8 define config.PATH_SEPARATOR follows the build host, which on
+// the Windows CI runner is '\\' and breaks the POSIX tree pins.
+vi.mock('@/config', () => ({ PATH_SEPARATOR: '/' }))
+
 const makeTree = (pathname = '/root') => ({
   id: 'root-id',
   pathname,
@@ -43,9 +47,6 @@ describe('store/treeCtrl', () => {
     it('adds a top-level file to tree.files', async () => {
       const { addFile } = await import('@/store/treeCtrl')
 // POSIX path contract (the setup shim installs a posix window.path); under
-// the vite-8 define config.PATH_SEPARATOR follows the build host, which on
-// the Windows CI runner is '\\' and breaks the POSIX tree pins.
-vi.mock('@/config', () => ({ PATH_SEPARATOR: '/' }))
 
       const tree = makeTree('/root')
       addFile(tree, makeFile('/root/a.md'))
