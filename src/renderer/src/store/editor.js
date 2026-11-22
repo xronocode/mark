@@ -683,6 +683,14 @@ export const useEditorStore = defineStore('editor', {
     },
 
     // START_BLOCK_SESSION_RESTORE
+    // C-SESSION-DURABILITY: this block's restore hygiene — the live
+    // path reads the four-key profile as ONE batched mt_prefs_get_many
+    // request, all folder/file existence checks run as ONE concurrent
+    // stat pass BEFORE the first open, and the per-tab format lookup is
+    // an O(1) Map.get keyed by pathname (behavior-preserving by the
+    // captureSessionFormats pathname dedup). The write path (batched
+    // setMany), the bounded close and the frozen-payload restore shape
+    // are unchanged.
     // C-69: the session snapshot — tab paths in order (untitled skipped),
     // the active tab and the open project roots. Written on window close
     // and, debounced, on every change once the boot restore finished
@@ -854,6 +862,17 @@ export const useEditorStore = defineStore('editor', {
       const active = from ? (from.active || null) : (readBatch.lastSessionActive ?? null)
       const rawFormats = from ? from.formats : (readBatch.lastSessionFormats ?? null)
       const { formats, rejected } = captureSessionFormats(rawFormats, paths)
+      // C-SESSION-DURABILITY: the per-tab format lookup is a Map keyed
+      // by pathname (O(1) instead of the linear find inside the open
+      // loop). Behavior-preserving: captureSessionFormats dedups by
+      // pathname — documentFormat.js throws MT_ENC_INVALID_POLICY on a
+      // duplicate pathname within the allowed set and adds a path to the
+      // seen set only after a successful capture — so the list holds at
+      // most one record per allowed pathname, and the Map answers
+      // identically to formats.find for every input the list can contain
+      // (records for paths outside the session's path list are rejected
+      // upstream and never enter it).
+      const formatsByPath = new Map(formats.map((record) => [record.pathname, record]))
       if (rejected) this._notifyFormatError('MT_ENC_INVALID_POLICY')
       let skipped = 0
       let restoredFolders = 0
@@ -893,7 +912,7 @@ export const useEditorStore = defineStore('editor', {
       for (const p of paths) {
         if (!fileAlive.get(p)) { skipped++; continue }
         try {
-          const record = formats.find(record => record.pathname === p)
+          const record = formatsByPath.get(p)
           const options = record ? { restoredFormat: captureRestoredFormat(record) } : {}
           await window.electron.ipcRenderer.invoke('mt::open-file', p, options)
           restoredTabs++
