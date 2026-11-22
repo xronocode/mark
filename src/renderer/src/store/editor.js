@@ -869,7 +869,7 @@ export const useEditorStore = defineStore('editor', {
       // duplicate pathname within the allowed set and adds a path to the
       // seen set only after a successful capture — so the list holds at
       // most one record per allowed pathname, and the Map answers
-      // identically to formats.find for every input the list can contain
+      // identically to the previous linear lookup for every input the list can contain
       // (records for paths outside the session's path list are rejected
       // upstream and never enter it).
       const formatsByPath = new Map(formats.map((record) => [record.pathname, record]))

@@ -17,6 +17,7 @@
 //   normalizeStore - pure: any raw prefs value → a valid store (invalid shapes collapse to EMPTY_STORE).
 //   storeWithEntry - pure: set/replace/delete one file's entry with a fresh savedAt stamp.
 //   capStoreFiles - pure: keep at most max files, newest savedAt first (ties by path for determinism).
+//   statFileExists - exported tri-state verdict: window.fileUtils.stat → true/false, MT_FS_NOT_FOUND → false, anything else → cannot-tell.
 //   moveFileEntry - pure: move one file's entry from one path to another (absent source → unchanged store; destination clobbered).
 //   clampEntryToMarkdown - pure: clamp the entry's muyaIndexCursor into the given markdown's real line/ch range (a file shortened while closed must not feed muya an out-of-range position — muya's setMarkdown branch ignores addCursorToMarkdown's isValid:false). scrollTop is left as-is: the browser clamps it into the real scrollable range at restore.
 //   defaultIo - the ipcPrefs-backed IO the high-level flows use when none is injected.

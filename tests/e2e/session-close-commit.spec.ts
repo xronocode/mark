@@ -37,6 +37,14 @@
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
+// START_MODULE_MAP
+//   BOOT_URL - editor boot URL with a named tab (the session profile carries a path).
+//   SENTINEL_SETTLED - invoke-log sentinel pushed by the injected set_many handler right before it resolves.
+//   ConsoleLine - minimal console message shape collected for marker assertions.
+//   bootCloseHarness - boot the real renderer and wire the console collector plus the set_many override.
+//   invokeLog - ordered command list read from the shim's __invokeLog.
+// END_MODULE_MAP
+//
 // START_CHANGE_SUMMARY
 //   v1.0.0 - 2026-11-23 C-SESSION-DURABILITY T-006: new — three
 //   meaningful-proof pins (not red-first defect detectors): the precise
