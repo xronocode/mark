@@ -1,5 +1,5 @@
 // FILE: tests/renderer/commands/updater.test.js
-// VERSION: 2.3.0-beta
+// VERSION: 2.4.0-beta
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the user-visible Help-menu updater command and the C-66 shared signed install flow across current, available, missing-feed, and failure states.
 //   SCOPE: Renderer command orchestration with mocked Tauri APIs; network, signature cryptography, and bundle replacement are out of scope.
@@ -17,6 +17,19 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-22 v2.4.0-beta (C-UPDATER-NET-BOUNDS T-001): failing-first
+//     pins for the shared install flow — named check/download deadlines
+//     (15000 ms / 300000 ms) through the plugin's own option seams, the
+//     module-scope single-flight refusal (second overlapping call
+//     invokes nothing and surfaces the localized in-progress notice, a
+//     fresh retry works after the live attempt settles), fresh-data
+//     toasts (the progress toast names update.version from the flow's
+//     own re-check, never the queued snapshot's latestVersion), the
+//     localized failure notice (updater.failureTitle/Body, raw error
+//     console-only — supersedes the English «Update failed» catch pin
+//     without weakening its settle-and-no-relaunch assertions) and the
+//     R-7 source scan (the flow passes only timeout options, no URL
+//     material anywhere in the block).
 //   - 2026-10-28 v2.3.0-beta (C-UPDATER-ROLLBACK T-005): every install
 //     flow now consumes the fail-closed mt_rollback_prepare step first
 //     (mocks updated accordingly); new pins: prepare-before-check
@@ -276,24 +289,32 @@ describe('file.check-update — signed in-app updater', () => {
     })
   })
 
-  it('installSignedUpdate owns its «Update failed» catch (shared by both callers)', async () => {
+  it('install_failure_is_localized_and_console_only (supersedes the English «Update failed» catch pin)', async () => {
     invoke.mockResolvedValueOnce(undefined) // mt_rollback_prepare (C-UPDATER-ROLLBACK)
     checkMock.mockRejectedValueOnce(new Error('download interrupted'))
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    await installSignedUpdate({
-      currentVersion: '2.5.0',
-      available: true,
-      latestVersion: '2.6.0',
-      downloadUrl: null,
-      statusNote: null
-    })
+    try {
+      await installSignedUpdate({
+        currentVersion: '2.5.0',
+        available: true,
+        latestVersion: '2.6.0',
+        downloadUrl: null,
+        statusNote: null
+      })
+    } finally {
+      errorSpy.mockRestore()
+    }
 
     expect(relaunchMock).not.toHaveBeenCalled()
-    expect(notifyMock).toHaveBeenCalledWith({
-      title: 'Update failed',
-      message: 'Error: download interrupted',
-      type: 'warning'
-    })
+    // Exactly one localized notice; the raw error is demoted to the
+    // console marker and never reaches the notify payload.
+    expect(notifyMock).toHaveBeenCalledTimes(1)
+    const notice = notifyMock.mock.calls[0][0]
+    expect(notice.title).toBe('t:updater.failureTitle')
+    expect(typeof notice.message).toBe('string')
+    expect(notice.message.length).toBeGreaterThan(0)
+    expect(notice.message).not.toContain('download interrupted')
   })
 
   it('the manual path never consults the skip state (no skippedUpdateVersion in commands)', () => {
@@ -305,6 +326,159 @@ describe('file.check-update — signed in-app updater', () => {
     expect(commandsSource).not.toContain('skippedUpdateVersion')
   })
   // END_BLOCK_C66_SHARED_INSTALL
+
+  // START_BLOCK_NET_BOUNDS_SHARED_INSTALL
+  // C-UPDATER-NET-BOUNDS: the shared flow carries named deadlines
+  // through the plugin's own option seams, serializes installs with a
+  // module-scope single-flight guard, builds its toasts from the fresh
+  // re-check and settles failures into localized notices.
+  it('install_passes_the_check_deadline', async () => {
+    invoke.mockResolvedValueOnce(undefined) // mt_rollback_prepare
+    const downloadAndInstallMock = vi.fn().mockResolvedValue(undefined)
+    checkMock.mockResolvedValueOnce({ version: '2.7.0', downloadAndInstall: downloadAndInstallMock })
+
+    await installSignedUpdate({
+      currentVersion: '2.5.0',
+      available: true,
+      latestVersion: '2.6.0',
+      downloadUrl: null,
+      statusNote: null
+    })
+
+    expect(checkMock).toHaveBeenCalledWith({ timeout: 15000 })
+    expect(relaunchMock).toHaveBeenCalled()
+  })
+
+  it('install_passes_the_download_deadline', async () => {
+    invoke.mockResolvedValueOnce(undefined) // mt_rollback_prepare
+    const downloadAndInstallMock = vi.fn().mockResolvedValue(undefined)
+    checkMock.mockResolvedValueOnce({ version: '2.7.0', downloadAndInstall: downloadAndInstallMock })
+
+    await installSignedUpdate({
+      currentVersion: '2.5.0',
+      available: true,
+      latestVersion: '2.6.0',
+      downloadUrl: null,
+      statusNote: null
+    })
+
+    expect(downloadAndInstallMock).toHaveBeenCalledWith(undefined, { timeout: 300000 })
+  })
+
+  it('install_is_single_flight (second overlapping call refuses, invokes nothing, retry works)', async () => {
+    invoke.mockResolvedValue(undefined) // mt_rollback_prepare (every attempt)
+    const downloadAndInstallMock = vi.fn()
+    let releaseDownload
+    downloadAndInstallMock.mockReturnValue(
+      new Promise((_resolve, reject) => {
+        releaseDownload = reject
+      })
+    )
+    checkMock.mockResolvedValue({ version: '2.7.0', downloadAndInstall: downloadAndInstallMock })
+    const status = {
+      currentVersion: '2.5.0',
+      available: true,
+      latestVersion: '2.6.0',
+      downloadUrl: null,
+      statusNote: null
+    }
+
+    // First invocation is held in-flight by the pending download.
+    const first = installSignedUpdate(status)
+    await vi.waitFor(() => expect(downloadAndInstallMock).toHaveBeenCalledTimes(1))
+
+    // A second overlapping invocation settles immediately: the localized
+    // in-progress refusal, and it invoked nothing.
+    await installSignedUpdate(status)
+
+    const prepareCalls = invoke.mock.calls.filter(([cmd]) => cmd === 'mt_rollback_prepare').length
+    expect(prepareCalls, 'no second mt_rollback_prepare').toBe(1)
+    expect(checkMock, 'no second check').toHaveBeenCalledTimes(1)
+    expect(downloadAndInstallMock, 'no second download').toHaveBeenCalledTimes(1)
+    expect(relaunchMock).not.toHaveBeenCalled()
+    expect(notifyMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 't:updater.inProgressTitle',
+        message: 't:updater.inProgressBody'
+      })
+    )
+
+    // The live attempt settles into the localized failure…
+    releaseDownload(new Error('download interrupted'))
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      await first
+    } finally {
+      errorSpy.mockRestore()
+    }
+    expect(notifyMock).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 't:updater.failureTitle' })
+    )
+
+    // …and a fresh third invocation runs the normal flow (retry-after-
+    // failure preserved — the guard re-arms after the attempt settles).
+    const retryDownloadMock = vi.fn().mockResolvedValue(undefined)
+    checkMock.mockResolvedValue({ version: '2.7.0', downloadAndInstall: retryDownloadMock })
+    await installSignedUpdate(status)
+
+    const prepareCallsAfterRetry = invoke.mock.calls.filter(
+      ([cmd]) => cmd === 'mt_rollback_prepare'
+    ).length
+    expect(prepareCallsAfterRetry, 'the retry runs its own prepare').toBe(2)
+    expect(retryDownloadMock).toHaveBeenCalledTimes(1)
+    expect(relaunchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('install_toasts_come_from_the_fresh_recheck (never the queued snapshot)', async () => {
+    invoke.mockResolvedValueOnce(undefined) // mt_rollback_prepare
+    const downloadAndInstallMock = vi.fn().mockResolvedValue(undefined)
+    // The queued snapshot says 2.6.0; the flow's own fresh re-check
+    // answers 2.7.0 — the toast must name 2.7.0.
+    checkMock.mockResolvedValueOnce({ version: '2.7.0', downloadAndInstall: downloadAndInstallMock })
+
+    await installSignedUpdate({
+      currentVersion: '2.5.0',
+      available: true,
+      latestVersion: '2.6.0',
+      downloadUrl: null,
+      statusNote: null
+    })
+
+    expect(notifyMock).toHaveBeenCalledWith({
+      title: 'Updating to Mark 2.7.0…',
+      type: 'info'
+    })
+    for (const call of notifyMock.mock.calls) {
+      expect(JSON.stringify(call), 'no visible string carries the stale 2.6.0').not.toContain(
+        '2.6.0'
+      )
+    }
+    expect(relaunchMock).toHaveBeenCalled()
+  })
+
+  it('install_flow_passes_no_url_and_only_timeout_options (R-7 renderer pin)', () => {
+    const workspaceRoot = resolve(import.meta.dirname, '../../..')
+    const commandsSource = readFileSync(
+      resolve(workspaceRoot, 'src/renderer/src/commands/index.js'),
+      'utf8'
+    )
+    const start = commandsSource.indexOf('// START_BLOCK_INSTALL_SIGNED_UPDATE')
+    const end = commandsSource.indexOf('// END_BLOCK_INSTALL_SIGNED_UPDATE')
+    expect(start).toBeGreaterThan(-1)
+    expect(end).toBeGreaterThan(start)
+    const block = commandsSource.slice(start, end)
+    // The only plugin-call shapes: named deadline constants through the
+    // plugin's own timeout seams.
+    expect(block).toContain('check({ timeout: UPDATER_CHECK_TIMEOUT_MS })')
+    expect(block).toContain('downloadAndInstall(undefined, { timeout: UPDATER_DOWNLOAD_TIMEOUT_MS })')
+    // No URL material anywhere in the flow: no fetch call, no http
+    // string, no headers argument (the feed's URL is used as-is).
+    expect(block).not.toContain('fetch(')
+    expect(block).not.toContain('http://')
+    expect(block).not.toContain('https://')
+    expect(block).not.toContain('headers')
+  })
+  // END_BLOCK_NET_BOUNDS_SHARED_INSTALL
 
   // START_BLOCK_C66_ROLLBACK_PREPARE
   // C-UPDATER-ROLLBACK T-005: fail-closed prepare ordering pins.
