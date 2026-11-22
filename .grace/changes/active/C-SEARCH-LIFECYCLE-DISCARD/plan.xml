@@ -1,0 +1,222 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-SEARCH-LIFECYCLE-DISCARD>
+    <Name>Search lifecycle cancellation identity — implementation plan</Name>
+    <ChangeRef>C-SEARCH-LIFECYCLE-DISCARD</ChangeRef>
+    <Created>2026-11-23</Created>
+    <Spec>C-SEARCH-LIFECYCLE-DISCARD</Spec>
+
+    <IntentSummary>Make cancellation an identity check on every asynchronous answer of the search-and-workspace zone, with no backend edits: the project-search store claims its search generation exactly once per runSearch invocation — ahead of every early return — so clearing the keyword, losing the roots or an invalid max file size can no longer be overwritten by a prior generation's completion; the two unreachable didSearchPaths wire limits (the store's "Showing first 100 results only", quickOpen's "&gt;30 files" cancel — the wire never delivers the event) are deleted, and the store replaces the 100 promise with an honest delivered-match cap (named constant SEARCH_RESULT_CAP = 100, counted on the grouped envelopes' matches summed, the crossing envelope sliced to the exact remaining count, the walk cancelled through the existing raw-promise cancel seam, the set marked partial through the existing #303 partialResults state so the existing localized notice renders, error kept empty — a cap is not a failure); quick open's unload cancels the in-flight debounce or searcher walk through the existing _cancelFn seam while still clearing subcommands; the command palette guards updateCommands writes with a monotonic request sequence (the linkPathPicker precedent) so a superseded resolution or rejection touches nothing and the newest request solely owns the list, with searcherBusy reset on dialog close because unload now really cancels; the muya image path hints capture a sequence number around the imagePathAutoComplete await and drop stale muya-image-picker dispatches; and a folder close that races the watcher subscription cannot leak the renderer listener (per-subscription monotonic token, the late .then re-checks identity, self-disposes and stores nothing for a closed root, and the token map is cleaned on CLOSE_PROJECT). The three mock-fed pins of dead behavior are documented replacements, not silent weakenings. Shim production source, src-tauri, i18n and the dead typed facade stay read-only.</IntentSummary>
+
+    <ReferenceState>Authored 2026-11-23 as a draft against the current read-only state of the green-search2 worktree (branch spec/search-lifecycle-discard, base 689df8aa); this plan names the spec by the Spec element and pins no SpecSha256 until admission. Verified defect shapes in the current tree: src/renderer/src/store/search.js claims the generation only at the real spawn ("const generation = ++this._searchGeneration", :178) while the early returns sit above it — empty roots (:141-148), the cancel line (:149), the error/partial reset (:150-152) and the empty-keyword clear (:153-157) — so a cancelled searcher's resolve-triggered .then passes the stale guard (:220) and writes the outdated collected set over the just-cleared results (outerPromise.cancel sends mt::search-cancel and settles with resolve, src/renderer/src/node/ripgrepSearcher.js:110-113); the dead limit branch (:196-202) waits for a searchedPaths event that the wire never emits (the shim's mt::search-event translation branch handles exactly match/complete/cancelled/error, src/renderer/src/_shims/install-window-globals.js:395-427, and the string "searchedPaths" appears nowhere in the shim) and would write hardcoded English into this.error — the #303 failure voice. commands/quickOpen.js: unload (:78-80) only clears subcommands although the palette's close path calls it (handleDialogClose, components/commandPalette/index.vue:121-130), and the dead didSearchPaths branch (:139-147) carries the "&gt;30 files" promise; updateCommands (:215-249) writes availableCommands/searcherBusy/selectedCommandIndex from whichever search resolution lands last with no query identity, so a superseded traversal briefly flashes its partial list; its catch (:228-236) keeps the existing silence for message-less rejections ("The query was cancel or restarted if `message` is null.") — and the deep suite pins that silence (tests/renderer/components/commandPalette-deep.test.js :439-459, searcherBusy stays true for a current-request message-null rejection), which this plan preserves byte-for-byte. src/muya/lib/ui/imageSelector/index.js handleKeyUp (:136-175) awaits imagePathAutoComplete and dispatches muya-image-picker with no race guard, while the link flavor fixed the same defect with a sequence guard (src/muya/lib/ui/linkPathPicker/index.js :151-158, insertPath bumps _seq at :171). store/project.js: ADD_PROJECT's subscribe .then (:385-396) stores the disposer unconditionally into the module-level watchDisposers Map (:93) while CLOSE_PROJECT (:814-824) disposes only what is already stored — a close racing the subscribe leaks the renderer listener and a stale entry can overwrite a re-opened root's disposer. The delay() canceller rejects with NO argument (src/renderer/src/util/index.js :16, rejectFn()) — the factual cancel-rejection shape is the value undefined, not a message-null object. Tests: the mock-fed pins live at tests/renderer/store/search.test.ts :228-261 ("canceling on &gt;100 paths sets error message", with the outdated source-bug comment), tests/renderer/store/search-coverage.test.js :230-252 ("didSearchPaths under 100 does not set error") and tests/renderer/commands/quickOpen-deep.test.js (:215 calling options.didSearchPaths(1), :242 "didSearchPaths sets canceled flag (&lt; 30 does not cancel)", :282-296 calling options.didSearchPaths(2)), plus the file header line 13 describing the dead branch. Recorded plan choices (review minors): (a) tests pin the factual undefined cancel-rejection form of delay() — the palette silence guard "error &amp;&amp; error.message" treats undefined and the historical message-null form identically, and the existing current-request silence pin stays untouched; (b) cap granularity is EXACT truncation — the grouped envelope that crosses the cap is sliced so the displayed match count equals SEARCH_RESULT_CAP precisely (the number the overlay's summary reports); dropping whole files would undershoot the promise's number and misreport, and a zero-match entry is never emitted; (c) the subscription-identity token map is itself cleaned on CLOSE_PROJECT (entry deleted together with the disposer entry) — the leak pattern is not reproduced; identity uses ONE module-level monotonic counter (never reset per root) so a closed-and-reopened root cannot collide with a stale in-flight subscription; (d) the quickOpen-deep header line 13 is rewritten with the dead-branch description. Baseline divergence: this specification is authored against a base WITHOUT the sibling C-SEARCH-RESULT-CONTRACT (#320, approved in the green-search1 worktree); this plan executes on the current base and lands on top of #320 — before the PR the orchestrator rebases/merges onto #320's delivery state and reruns its suites (list in Environment); #320 edits quickOpen.js's didMatch consumer, the shim's honest range form and the projectSearch/searchResultItem keyboard surfaces, all disjoint from this plan's regions, and line anchors in this plan are pre-rebase references re-resolved against the delivery baseline in T-003. Approval of the spec alone does not approve this plan, execution, apply/archive or release.</ReferenceState>
+
+    <BaselineAssertions>
+      <MustExist><Value>src/renderer/src/store/search.js</Value></MustExist>
+      <MustExist><Value>src/renderer/src/commands/quickOpen.js</Value></MustExist>
+      <MustExist><Value>src/renderer/src/components/commandPalette/index.vue</Value></MustExist>
+      <MustExist><Value>src/renderer/src/store/project.js</Value></MustExist>
+      <MustExist><Value>src/muya/lib/ui/imageSelector/index.js</Value></MustExist>
+      <MustExist><Value>src/muya/lib/ui/linkPathPicker/index.js</Value></MustExist>
+      <MustExist><Value>src/renderer/src/node/ripgrepSearcher.js</Value></MustExist>
+      <MustExist><Value>src/renderer/src/_shims/install-window-globals.js</Value></MustExist>
+      <MustExist><Value>tests/renderer/store/search.test.ts</Value></MustExist>
+      <MustExist><Value>tests/renderer/store/search-coverage.test.js</Value></MustExist>
+      <MustExist><Value>tests/renderer/commands/quickOpen-deep.test.js</Value></MustExist>
+      <MustExist><Value>tests/renderer/components/commandPalette-deep.test.js</Value></MustExist>
+      <MustExist><Value>tests/renderer/store/project.test.ts</Value></MustExist>
+      <MustExist><Value>tests/renderer/_shims/install-window-globals.test.js</Value></MustExist>
+      <MustContain><File>src/renderer/src/store/search.js</File><Text>const generation = ++this._searchGeneration</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/search.js</File><Text>didSearchPaths: (n) =&gt; {</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/search.js</File><Text>Showing first 100 results only</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/search.js</File><Text>if (this.running &amp;&amp; activeCancel) activeCancel()</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/search.js</File><Text>if (!this.keyword) {</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/search.js</File><Text>didComplete</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/search.js</File><Text>partialResults</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/quickOpen.js</File><Text>didSearchPaths: (numPathsFound) =&gt; {</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/quickOpen.js</File><Text>numPathsFound &gt; 30</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/quickOpen.js</File><Text>unload = () =&gt; {</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/quickOpen.js</File><Text>this._cancelFn</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/commandPalette/index.vue</File><Text>.search(queryString)</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/commandPalette/index.vue</File><Text>searcherBusy.value = true</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/commandPalette/index.vue</File><Text>The query was cancel or restarted if</Text></MustContain>
+      <MustContain><File>src/muya/lib/ui/imageSelector/index.js</File><Text>imagePathAutoComplete(value)</Text></MustContain>
+      <MustContain><File>src/muya/lib/ui/imageSelector/index.js</File><Text>eventCenter.dispatch('muya-image-picker', { reference, list, cb })</Text></MustContain>
+      <MustNotContain><File>src/muya/lib/ui/imageSelector/index.js</File><Text>_seq</Text></MustNotContain>
+      <MustContain><File>src/muya/lib/ui/linkPathPicker/index.js</File><Text>const seq = ++this._seq</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/project.js</File><Text>watchDisposers.set(canonical, dispose)</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/project.js</File><Text>const dispose = watchDisposers.get(canonical)</Text></MustContain>
+      <MustContain><File>src/renderer/src/node/ripgrepSearcher.js</File><Text>case 'searchedPaths':</Text></MustContain>
+      <MustContain><File>src/renderer/src/_shims/install-window-globals.js</File><Text>m.kind === 'match'</Text></MustContain>
+      <MustNotContain><File>src/renderer/src/_shims/install-window-globals.js</File><Text>searchedPaths</Text></MustNotContain>
+      <MustContain><File>src/renderer/src/util/index.js</File><Text>rejectFn()</Text></MustContain>
+      <MustContain><File>tests/renderer/store/search.test.ts</File><Text>canceling on &gt;100 paths sets error message</Text></MustContain>
+      <MustContain><File>tests/renderer/store/search-coverage.test.js</File><Text>didSearchPaths under 100 does not set error</Text></MustContain>
+      <MustContain><File>tests/renderer/commands/quickOpen-deep.test.js</File><Text>didSearchPaths cancellation (numPathsFound &gt; 30)</Text></MustContain>
+      <MustContain><File>tests/renderer/commands/quickOpen-deep.test.js</File><Text>options.didSearchPaths(1)</Text></MustContain>
+      <MustContain><File>tests/renderer/commands/quickOpen-deep.test.js</File><Text>options.didSearchPaths(5)</Text></MustContain>
+      <MustContain><File>tests/renderer/commands/quickOpen-deep.test.js</File><Text>options.didSearchPaths(2)</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>"resultsPartial"</Text></MustContain>
+    </BaselineAssertions>
+
+    <TargetAssertions>
+      <MustVerify><Module>M-011</Module></MustVerify>
+      <MustVerify><Module>M-012</Module></MustVerify>
+      <MustVerify><Module>M-036</Module></MustVerify>
+      <MustVerify><Module>V-M-011</Module></MustVerify>
+      <MustVerify><Module>V-M-012</Module></MustVerify>
+      <MustVerify><Module>V-M-036</Module></MustVerify>
+      <!-- Reverses the C-SEARCH-ERROR-VISIBILITY NonGoal pin: the dead throttle string is removed together with its dead branch (spec Goals; the wire never delivered searchedPaths, so the promise was never executable). -->
+      <MustNotContain><File>src/renderer/src/store/search.js</File><Text>didSearchPaths</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/store/search.js</File><Text>Showing first 100 results only</Text></MustNotContain>
+      <MustContain><File>src/renderer/src/store/search.js</File><Text>const generation = ++this._searchGeneration</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/search.js</File><Text>SEARCH_RESULT_CAP = 100</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/search.js</File><Text>capReached</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/search.js</File><Text>this.partialResults = terminalPartial || capReached</Text></MustContain>
+      <MustNotContain><File>src/renderer/src/commands/quickOpen.js</File><Text>didSearchPaths</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/commands/quickOpen.js</File><Text>numPathsFound</Text></MustNotContain>
+      <MustContain><File>src/renderer/src/commands/quickOpen.js</File><Text>if (this._cancelFn) {</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/commandPalette/index.vue</File><Text>requestSeq</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/commandPalette/index.vue</File><Text>seq !== requestSeq</Text></MustContain>
+      <MustContain><File>src/muya/lib/ui/imageSelector/index.js</File><Text>this._seq = 0</Text></MustContain>
+      <MustContain><File>src/muya/lib/ui/imageSelector/index.js</File><Text>++this._seq</Text></MustContain>
+      <MustContain><File>src/muya/lib/ui/imageSelector/index.js</File><Text>seq !== this._seq</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/project.js</File><Text>watchSubscriptionSeq</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/project.js</File><Text>watchTokens.get(canonical) !== token</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/project.js</File><Text>watchTokens.delete(canonical)</Text></MustContain>
+      <MustContain><File>src/renderer/src/node/ripgrepSearcher.js</File><Text>case 'searchedPaths':</Text></MustContain>
+      <MustNotContain><File>src/renderer/src/_shims/install-window-globals.js</File><Text>searchedPaths</Text></MustNotContain>
+      <MustExist><Value>tests/renderer/muya/image-selector-path-hints.test.js</Value></MustExist>
+      <MustContain><File>tests/renderer/_shims/install-window-globals.test.js</File><Text>searchedPaths</Text></MustContain>
+      <MustContain><File>tests/renderer/_shims/install-window-globals.test.js</File><Text>didSearchPaths</Text></MustContain>
+      <MustNotContain><File>tests/renderer/store/search.test.ts</File><Text>canceling on &gt;100 paths sets error message</Text></MustNotContain>
+      <MustNotContain><File>tests/renderer/store/search-coverage.test.js</File><Text>didSearchPaths under 100 does not set error</Text></MustNotContain>
+      <MustNotContain><File>tests/renderer/commands/quickOpen-deep.test.js</File><Text>didSearchPaths cancellation</Text></MustNotContain>
+      <MustContain><File>tests/renderer/store/search.test.ts</File><Text>does not bring the old matches back</Text></MustContain>
+      <MustContain><File>.grace/graph/runtime.xml</File><Text>C-SEARCH-LIFECYCLE-DISCARD</Text></MustContain>
+      <MustContain><File>.grace/graph/features.xml</File><Text>C-SEARCH-LIFECYCLE-DISCARD</Text></MustContain>
+      <MustContain><File>.grace/verification/runtime.xml</File><Text>C-SEARCH-LIFECYCLE-DISCARD</Text></MustContain>
+      <MustContain><File>.grace/verification/features.xml</File><Text>C-SEARCH-LIFECYCLE-DISCARD</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>"resultsPartial"</Text></MustContain>
+      <MustPassCommand><Command budgetSeconds="900">npx --no-install vitest run tests/renderer/store/search.test.ts tests/renderer/store/search-coverage.test.js tests/renderer/commands/quickOpen.test.js tests/renderer/commands/quickOpen-deep.test.js tests/renderer/store/project.test.ts tests/renderer/components/commandPalette.test.js tests/renderer/components/commandPalette-deep.test.js</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="600">npx --no-install vitest run tests/renderer/muya/image-selector-path-hints.test.js tests/renderer/_shims/install-window-globals.test.js tests/renderer/i18n/locale-keys.test.js</Command></MustPassCommand>
+    </TargetAssertions>
+
+    <DurableScope>
+      <GraphAnchors><M-011/><M-012/><M-036/></GraphAnchors>
+      <VerificationAnchors><V-M-011/><V-M-012/><V-M-036/></VerificationAnchors>
+    </DurableScope>
+
+    <ObservedWriteScope>
+      <File>src/renderer/src/store/search.js</File>
+      <File>src/renderer/src/commands/quickOpen.js</File>
+      <File>src/renderer/src/components/commandPalette/index.vue (script only)</File>
+      <File>src/renderer/src/store/project.js</File>
+      <File>src/muya/lib/ui/imageSelector/index.js (_seq init plus handleKeyUp guard only)</File>
+      <File>tests/renderer/store/search.test.ts</File>
+      <File>tests/renderer/store/search-coverage.test.js</File>
+      <File>tests/renderer/commands/quickOpen-deep.test.js</File>
+      <File>tests/renderer/components/commandPalette-deep.test.js</File>
+      <File>tests/renderer/store/project.test.ts</File>
+      <File>tests/renderer/muya/image-selector-path-hints.test.js (new)</File>
+      <File>tests/renderer/_shims/install-window-globals.test.js</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+      <File>.grace/verification/features.xml</File>
+    </ObservedWriteScope>
+
+    <ImplementationPlan>
+      <T-001>
+        <Title>Failing-first store pins: stale-clear discard, honest delivered-match cap, documented replacement of the two mock-fed didSearchPaths pins</Title>
+        <DependsOn/>
+        <AcceptanceCriteria>
+          <Criterion>tests/renderer/store/search.test.ts gains the failing-first pin "clearing the keyword while a search is running does not bring the old matches back" on the existing harness (searchSpy behind the FakeRipgrepDirectorySearcher mock, projectStateProxy/preferencesProxy): a controlled deferred thenable (resolve under test control, cancel vi.fn()) with opts.didMatch captured; matches are delivered, the keyword is cleared while the search runs (SET_KEYWORD('')), the mock's promise then resolves — and results stay empty, running stays false, partialResults stays false, and the generation-1 cancel was invoked exactly once (by the supersede path) with no further cancel after settle; the same discard is pinned for the other early-return paths (no opened roots, invalid max file size) and for a superseding keystroke. Today the stale completion rewrites the cleared results because the generation claim sits at :178 below the early returns — the test is red before the fix; the two existing generation-guard suites stay green.</Criterion>
+          <Criterion>Failing-first delivered-match cap test replacing "canceling on &gt;100 paths sets error message" (:228-261, including its outdated source-bug comment): a searcher mock delivers more than the cap in grouped envelopes ({ filePath, matches }) — delivered asynchronously one microtask after search() returns, the real wire shape (the source's cancel seam closes over the raw promise, so synchronous delivery would hit the documented temporal dead zone the old pin's comment describes) — e.g. 40 + 40 + 40 matches; end state: the displayed set sums to exactly 100 delivered matches (the matchCount unit), the crossing envelope is sliced to the exact remaining count with no zero-match entry emitted, partialResults is true (the overlay's existing partial notice renders from it), running is false, the raw promise's cancel was invoked once, and the error state stays '' — a cap is not a failure; a subsequent keystroke clears the partial state; the cap fires on real didMatch deliveries, not on a synthetic path-count callback, and does not depend on the backend terminal's partial flag.</Criterion>
+          <Criterion>Documented replacement of the third mock-fed pin: tests/renderer/store/search-coverage.test.js "didSearchPaths under 100 does not set error" (:230-252), which captures opts.didSearchPaths from the store and calls it, is rewritten to pin the removed option alongside the others — the captured third options argument has didSearchPaths undefined, the error state stays '' and no cancel was invoked; both replaced store pins stay named in this change's record (ReferenceState and T-002/T-003).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/store/search.test.ts tests/renderer/store/search-coverage.test.js</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Store implementation: one generation claim per runSearch invocation, dead didSearchPaths removal, honest delivered-match cap through the #303 voice</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>runSearch claims the generation exactly once at invocation entry — `const generation = ++this._searchGeneration` moves above the empty-roots early return and the claim at :178 is removed — so every path (no opened roots, empty keyword, invalid max file size, dispatch) shares one claim per invocation and no completion belonging to a prior generation can write results, partialResults, running or activeCancel after any supersede; the early-return reset paths clear partialResults alongside results (the empty-roots and invalid-size paths already do; the empty-keyword path gains it so a cleared query cannot leave a stale partial notice beside an empty list); cancelRunning, #303's quiet-cancel semantics, the keystroke guard, the root-close defense-in-depth live-roots filter and the raw-promise activeCancel seam stay unchanged.</Criterion>
+          <Criterion>The didSearchPaths branch (:196-202) and the hardcoded "Showing first 100 results only" string are deleted — the store passes didMatch and didComplete only, with the option set otherwise unchanged; ripgrepSearcher's dormant 'searchedPaths' dispatch case and the dead typed facade ipc/runtime/search.ts stay read-only documented dead-parallel (no backend, wire or shim edit).</Criterion>
+          <Criterion>The honest delivered-match cap: one named documented module constant `const SEARCH_RESULT_CAP = 100` preserving the previous promise's number, counted on delivered matches — the grouped envelopes' matches summed, the same unit the overlay's resultSummary reports; a per-run capReached flag is set synchronously in the run's own didMatch path: envelopes are collected until the cap, the crossing envelope is sliced to the exact remaining count (SEARCH_RESULT_CAP total, never a zero-match entry, later envelopes dropped), and the in-flight walk is cancelled through the existing raw-promise cancel seam (the searchPromise.cancel closure — the same seam the dead branch used; no new canceller machinery, no generation bump); the run's .then writes `this.partialResults = terminalPartial || capReached` so the truncation never depends on the backend terminal and no capped set is ever presented as complete, while the error state stays empty — a cap is not a failure. File-local GRACE blocks updated: MODULE_CONTRACT SCOPE (supersede-on-every-path plus the delivered-match cap), MODULE_MAP, CHANGE_SUMMARY (LAST_CHANGE: C-SEARCH-LIFECYCLE-DISCARD), version comment bump.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/store/search.test.ts tests/renderer/store/search-coverage.test.js tests/renderer/components/projectSearch/index.test.js</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Quick open teardown identity: unload cancels through the _cancelFn seam, dead &gt;30 branch removed, deep pins and header replaced, #320 shared-file anchor re-verified</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Baseline re-verification before pinning: this plan executes on base 689df8aa which does not contain #320 (C-SEARCH-RESULT-CONTRACT); on the actual delivery baseline (post-rebase) the executor re-verifies that quickOpen.js's didMatch consumer region (envelope normalization) is #320's and disjoint from the unload and search-options regions edited here, and reruns #320's suites named in Environment before finalizing the replacements below; the line anchors here are pre-rebase references.</Criterion>
+          <Criterion>Failing-first unload-cancel pins in tests/renderer/commands/quickOpen-deep.test.js: (a) with a controlled searcher walk in flight (mockSearchFn returning a deferred thenable whose cancel is a spy), unload() invokes the searcher cancel exactly once while subcommands still clear; (b) with the debounce pending (a controllable delay double replacing the module's resolved-promise mock), unload() cancels the pending timer (the delay double's cancel invoked) and clears _cancelFn; the existing "unload clears subcommands" pins (quickOpen.test.js :117, quickOpen-deep.test.js :373) stay green. Today unload only clears the list, so both new pins are red before the fix.</Criterion>
+          <Criterion>Implementation: unload keeps its existing contract (this.subcommands = []) and adds cancellation through the existing _cancelFn seam only — `if (this._cancelFn) { this._cancelFn() }` (the pending debounce timer or the active searcher promise; the search() self-supersede path is unchanged); the dead didSearchPaths branch (:139-147, the "&gt;30 files" comment) is deleted — no didSearchPaths option is passed (the files-mode cost and cap design stays with C-QUICKOPEN-FILES-MODE); _doSearch keeps didMatch-only collection and its thenable resolve/reject shape; no debounce or searcher changes, no palette-side machinery.</Criterion>
+          <Criterion>Documented replacement of the three didSearchPaths-fed deep pins: :215 drops the options.didSearchPaths(1) call (didMatch-only); :242 "didSearchPaths sets canceled flag (&lt; 30 does not cancel)" becomes a pin that the searcher options carry no didSearchPaths — the dead wire limit is removed; :282-296 drops the options.didSearchPaths(2) call keeping the didMatch-only result assertion; the file header line 13 ("_doSearch — didSearchPaths cancellation (numPathsFound &gt; 30)") is rewritten to describe the removed option and the new unload-cancel coverage (review note (d)).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/commands/quickOpen.test.js tests/renderer/commands/quickOpen-deep.test.js</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Palette request identity (seq guard plus close-time busy hygiene) and the muya image-hint sequence guard</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Failing-first palette stale-flash pins in tests/renderer/components/commandPalette-deep.test.js on the existing shallowMount + bus.on harness: with a currentCommand whose search returns controlled deferred promises — query A issued, query B issued, A's promise resolved first: A's resolution touches nothing (availableCommands does not flash A's list, searcherBusy and selectedCommandIndex are untouched) and B's resolution solely owns the list with searcherBusy false; a superseded rejection is dropped silently in both observed shapes — the factual cancel form `undefined` (delay().cancel() rejects with no argument, util/index.js :16 — review note (a); the spec's "message-null" phrasing describes the same silence guard, `error &amp;&amp; error.message`) and a message-carrying rejection from a superseded request; the newest request's semantics are preserved unchanged, including the pinned silence for a message-less rejection of the current request (searcherBusy stays true — existing pin :439-459 stays byte-for-byte).</Criterion>
+          <Criterion>Implementation (script only): updateCommands captures a monotonic request sequence at entry — module-scope `let requestSeq`, `const seq = ++requestSeq` (the linkPathPicker seq precedent; equal consecutive queries still supersede because the sequence advances per request, not per query text) — and both the .then and .catch paths drop superseded settlements with `seq !== requestSeq` before any state write; the existing silence logic and comment for message-less rejections of the current request is preserved; handleDialogClose additionally resets searcherBusy to false with the other close resets — required because unload now actually cancels the in-flight request whose rejection lands silently and would otherwise strand the loading spinner into the next open; no template, layout, ARIA, placeholder or i18n change.</Criterion>
+          <Criterion>Failing-first muya suite tests/renderer/muya/image-selector-path-hints.test.js (new, under tests/renderer/muya/, following the existing float-suite instantiation pattern, e.g. tooltip-layout.test.js): an ImageSelector over a fake muya whose options.imagePathAutoComplete returns controlled promises and whose eventCenter.dispatch is spied — two handleKeyUp invocations with the stale resolution landing first: the stale answer dispatches nothing on muya-image-picker and only the newest dispatches, with the payload shape { reference, list, cb } and the cb wiring unchanged; suites covering the link flavor pass untouched (no dedicated linkPathPicker unit suite exists in the tree; its regression evidence stays the existing e2e link-autocomplete spec, owner-run).</Criterion>
+          <Criterion>Implementation: src/muya/lib/ui/imageSelector/index.js gains a `this._seq = 0` field initialization and handleKeyUp captures `const seq = ++this._seq` before awaiting imagePathAutoComplete, dispatching muya-image-picker only when `seq === this._seq` — a late answer to older input is dropped; the dispatch payload, the cb wiring, the link flavor (linkPathPicker — the precedent) and every other muya surface stay untouched; no muya public API change.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/components/commandPalette.test.js tests/renderer/components/commandPalette-deep.test.js tests/renderer/muya/image-selector-path-hints.test.js</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Folder-close beats subscribe: watcher subscription identity in the project store</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Failing-first race test in tests/renderer/store/project.test.ts on the existing ipcWatchSubscribeMock seam (:80-90, the C-1/C-2 pins :283-305 stay green): ADD_PROJECT('/race') with a deferred subscribe promise, CLOSE_PROJECT('/race') arriving before the subscribe resolves, then the subscribe promise resolves with a spy disposer — the late .then invokes the disposer exactly once itself, the disposer map does not gain an entry for the closed root (nothing else ever calls the spy again), and a re-opened '/race' whose fresh subscription resolves while the root is open stores its own disposer, which a later CLOSE_PROJECT invokes exactly once while the stale disposer is never invoked a second time; a subscription resolving while the root is still open stores its disposer as before. Today the late .then stores a disposer for an already-closed root that nobody will ever call — the test is red before the fix.</Criterion>
+          <Criterion>Implementation: the pinned behavioral contract (after CLOSE_PROJECT no renderer listener for the closed root stays subscribed, no late .then stores a disposer for a closed root, a stale entry never overwrites a superseding subscription's disposer) is realized as a per-subscription token from one module-level monotonic counter plus a token map — ADD_PROJECT mints `const token = ++watchSubscriptionSeq` (a single module counter, never reset per root, so a closed-and-reopened root cannot collide with a stale in-flight subscription) and records it in a `watchTokens` Map before subscribing; the subscribe .then re-checks identity before storing — `watchTokens.get(canonical) !== token` means the root was closed or superseded, so the late .then disposes immediately and stores nothing; CLOSE_PROJECT keeps its synchronous dispose of stored disposers and the backend unwatch invoke unchanged, and additionally deletes the root's token-map entry together with the disposer entry (review note (c) — the token map itself is cleaned on CLOSE_PROJECT so the leak pattern is not reproduced); the ipcWatch facade (ipc/runtime/watch.ts) and the backend unwatch stay read-only.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/store/project.test.ts</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>Wire-truth pin: no searchedPaths on the wire, no didSearchPaths option in the search surfaces</Title>
+        <DependsOn>T-005</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/renderer/_shims/install-window-globals.test.js gains a wire-truth describe block beside the untouched C-52 boot-order pins (this file is chosen over a sibling because the spec's ExpectedCommand runs exactly this file — the choice is recorded here): source-scan pins in the file's established readFileSync + regex pattern asserting (a) the shim production source contains no 'searchedPaths' handling — its mt::search-event translation branch handles exactly match/complete/cancelled/error (C-52 pins intact and green; the shim source itself is read-only in this change, #320's surface), (b) the src/renderer/src/store/search.js and src/renderer/src/commands/quickOpen.js sources pass no didSearchPaths option, and (c) the dormant dispatch case in src/renderer/src/node/ripgrepSearcher.js stays present (documented dead-parallel, read-only — pinned present, not absent). The C-52 boot-order pins stay green.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/_shims/install-window-globals.test.js</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>Graph and verification deltas plus final gates</Title>
+        <DependsOn>T-006</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>.grace/graph/runtime.xml: one SummaryDelta describing the final state is appended alongside the existing change deltas of M-011 (the store claims its generation on every runSearch path and caps delivered matches at the named SEARCH_RESULT_CAP = 100 through the #303 partial voice with the error voice freed from the dead English string; the dead didSearchPaths limits are removed from store and quickOpen; quickOpen unload cancels the in-flight walk through the _cancelFn seam; the palette guards updateCommands writes by request sequence with searcherBusy hygiene on close) and of M-012 (imageSelector handleKeyUp captures a sequence number and drops stale imagePathAutoComplete answers, mirroring the linkPathPicker precedent); the store/search.js file-local contract blocks are updated in T-002; commandPalette/index.vue and imageSelector/index.js carry no file-local MODULE_CONTRACT/MODULE_MAP blocks in this tree, so no notes are owed there; project.js's watcher-lifecycle note lives in the M-036 delta; unrelated XML content stays untouched.</Criterion>
+          <Criterion>.grace/graph/features.xml: one SummaryDelta on M-036 — the ADD_PROJECT watcher subscription re-checks identity before storing its disposer (per-subscription monotonic token from one module counter plus a token map; the late .then self-disposes and stores nothing for a closed or superseded root) and CLOSE_PROJECT disposes stored disposers and deletes the root's token entry, so a close racing the subscribe can no longer leak the renderer listener.</Criterion>
+          <Criterion>.grace/verification/runtime.xml: V-M-011 gains a Command element carrying the spec's first vitest gate and an appended scenario-search-lifecycle-discard entry (established post-LegacySource scenario position) naming the receipts — stale-clear-does-not-resurrect, delivered-match-cap-honest-partial (truncated set, partial notice state, cancel invoked, error untouched), no-searchedpaths-on-the-wire (shim kinds plus option removal), quickopen-unload-cancels and palette-stale-request-dropped (identity guard on then and catch); V-M-012 gains a Command element for the muya gate line and an appended scenario-image-keyup-seq-guard entry (stale hint list dropped, payload and cb wiring unchanged); the V-M-004 receipts stay valid untouched (no Rust changes).</Criterion>
+          <Criterion>.grace/verification/features.xml: V-M-036 gains an appended scenario-folder-close-beats-subscribe entry (late disposer self-disposes exactly once, no disposer-map entry for a closed root, no stale overwrite of a re-opened root's disposer, still-open resolution stores as before) pinned on the ipcWatchSubscribeMock seam.</Criterion>
+          <Criterion>Final assertions run on the actual baseline with the spec commands; the replaced dead-limit pins (store search.test.ts, store search-coverage.test.js and the three quickOpen-deep call sites with the file header) stay named in this change's record; existing suites keep their assertions and budgets; no apply/archive, no commit/push, no lane departure inside this plan; native-platform and owner acceptance evidence remains explicitly open and is not substituted by a shim.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">npx --no-install vitest run tests/renderer/store/search.test.ts tests/renderer/store/search-coverage.test.js tests/renderer/commands/quickOpen.test.js tests/renderer/commands/quickOpen-deep.test.js tests/renderer/store/project.test.ts tests/renderer/components/commandPalette.test.js tests/renderer/components/commandPalette-deep.test.js</Command>
+          <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/muya/image-selector-path-hints.test.js tests/renderer/_shims/install-window-globals.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+        </Verification>
+      </T-007>
+    </ImplementationPlan>
+
+    <AcceptanceVerification>
+      <Command budgetSeconds="900">npx --no-install vitest run tests/renderer/store/search.test.ts tests/renderer/store/search-coverage.test.js tests/renderer/commands/quickOpen.test.js tests/renderer/commands/quickOpen-deep.test.js tests/renderer/store/project.test.ts tests/renderer/components/commandPalette.test.js tests/renderer/components/commandPalette-deep.test.js</Command>
+      <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/muya/image-selector-path-hints.test.js tests/renderer/_shims/install-window-globals.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+      <Environment>Baseline is the green-search2 worktree (branch spec/search-lifecycle-discard, base 689df8aa) executed with installed node_modules. Baseline divergence, recorded per the spec: this base does NOT contain the sibling C-SEARCH-RESULT-CONTRACT (#320, approved, authored in green-search1) — this plan is authored and executed against the current base and lands on top of #320; before the PR the orchestrator rebases/merges onto #320's delivery state and reruns #320's suites together with this change's gates: tests/renderer/commands/quickOpen.test.js and quickOpen-deep.test.js (didMatch envelope normalization pins), tests/renderer/_shims/install-window-globals.test.js (honest range form in the mt::search-event branch), tests/renderer/components/projectSearch/index.test.js and tests/renderer/components/sideBar/searchResultItem.test.js (keyboard surfaces). The shared-file anchor commands/quickOpen.js is re-verified on the delivery baseline before the T-003 replacements are finalized — #320 edits the didMatch consumer while this change edits unload and the search-options object in disjoint regions, and both keep the grouped filePath-plus-matches envelope intact, so #320's string-id pins keep working; any line drift in the named anchors is re-resolved against the post-rebase shapes. No cargo command is required (src-tauri is read-only in this change and the V-M-004 receipts stay valid untouched); if a gate policy ever demands one Rust regression command, `cargo test --manifest-path src-tauri/Cargo.toml --bin mark search` serves as the read-only regression guard. Tests never mutate process-global PATH; all commands must pass with no skips, retries, budget increases or weakened assertions except the explicitly replaced dead-limit pins named in this record; the existing playwright search-bar spec stays owner-run regression evidence (no new e2e — the five behaviors are timing-sensitive cancellation-identity semantics pinned at unit and component seams by construction); hosted supported-host checks and owner acceptance records stay explicitly open; approval of the spec alone approves neither this plan, nor execution, apply/archive, lane departure or release.</Environment>
+    </AcceptanceVerification>
+  </C-SEARCH-LIFECYCLE-DISCARD>
+</GraceChangePlan>

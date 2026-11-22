@@ -704,6 +704,7 @@
       <LegacySource>docs/knowledge-graph.xml: M-035; docs/development-plan.xml: M-035</LegacySource>
     </M-035>
     <M-036>
+      <SummaryDelta>C-SEARCH-LIFECYCLE-DISCARD: the ADD_PROJECT watcher subscription re-checks identity before storing its disposer — a per-subscription monotonic token from one module counter (never reset per root, so a closed-and-reopened root cannot collide with a stale in-flight subscription) plus a token map; the late .then self-disposes and stores nothing for a closed or superseded root — and CLOSE_PROJECT disposes the stored disposers and deletes the root's token entry together with the disposer entry, so a close racing the subscribe can no longer leak the renderer listener and a stale entry can never overwrite a re-opened root's disposer.</SummaryDelta>
       <SummaryDelta>C-SAVE-CLOSE-DATA-SAFETY: Workspace replacement captures original document lifetimes and confirmation versions, then awaits the shared structured operation result before its owned tab/root commit. Cancel/failure leaves all original targets open; a later unrelated tab is never swept into the original target set.</SummaryDelta>
       <Name>project-sidebar</Name>
       <DisplayName>project-sidebar</DisplayName>

@@ -8,9 +8,12 @@ import RipgrepDirectorySearcher from '../node/ripgrepSearcher'
 //   PURPOSE: The project-search store — keyword/options/results state plus
 //            the honest error/partial voice for the ProjectSearch overlay.
 //   SCOPE: runSearch dispatch through the shared searcher with a
-//          generation guard, parseSearchMaxFileSize at the boundary,
-//          quiet cancel, error/partialResults states; no UI, no IPC
-//          surface of its own.
+//          generation claimed exactly once per runSearch invocation
+//          (ahead of every early return, so a late completion can never
+//          overwrite a reset), parseSearchMaxFileSize at the boundary,
+//          quiet cancel, the honest delivered-match cap
+//          (SEARCH_RESULT_CAP, marked through partialResults), and the
+//          error/partialResults states; no UI, no IPC surface of its own.
 //   DEPENDS: stores/preferences (search options), stores/project (roots),
 //          node/ripgrepSearcher (searcher + didComplete terminal).
 //   LINKS: .grace/graph/runtime.xml M-011; components/projectSearch;
@@ -23,15 +26,32 @@ import RipgrepDirectorySearcher from '../node/ripgrepSearcher'
 //                    partialResults, runSearch, cancelRunning).
 //   parseSearchMaxFileSize - documented size-string parser at the store boundary.
 // END_MODULE_MAP
+// (SEARCH_RESULT_CAP — the honest delivered-match cap — is a module-
+// scoped const rather than an export: documented in SCOPE above and at
+// its declaration below.)
 //
 
-// v1.1.0: shared search state — one store owning project-search state
-// (keyword, options, results, running/error) for the live ProjectSearch
-// overlay (components/projectSearch, mounted from pages/app.vue), so the
-// searcher instance is owned in one place.
+// v1.3.0: search lifecycle — one generation claim per runSearch
+// invocation (every early return supersedes) and an honest
+// delivered-match cap in the partial voice; the dead path-count wire
+// limits are removed (C-SEARCH-LIFECYCLE-DISCARD).
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-11-21 - C-SEARCH-ERROR-VISIBILITY T-002:
+//   LAST_CHANGE: 2026-11-23 - C-SEARCH-LIFECYCLE-DISCARD T-002:
+//     the generation is claimed exactly once at runSearch entry, ahead
+//     of every early return — clearing the keyword, losing the roots or
+//     an invalid max file size now supersedes an in-flight generation,
+//     so its late completion can never resurrect cleared results (the
+//     empty-keyword reset also clears partialResults). The unreachable
+//     path-count wire limit (the searchedPaths event never exists on
+//     the wire; the hardcoded English promise wrote the failure voice)
+//     is replaced by an honest delivered-match cap: SEARCH_RESULT_CAP = 100
+//     delivered matches, the crossing envelope sliced to the exact
+//     remaining count, the walk cancelled through the existing
+//     raw-promise seam, and the truncated set marked partial through
+//     partialResults — a cap is not a failure, the error voice stays
+//     empty.
+//   PREVIOUS: 2026-11-21 - C-SEARCH-ERROR-VISIBILITY T-002:
 //     parseSearchMaxFileSize at the store boundary (documented
 //     "1048576"/"1K"/"2M"/"3G"/empty schema; an invalid limit fails the
 //     search BEFORE any searcher call or spawn), and the rejection path
@@ -86,6 +106,18 @@ export const parseSearchMaxFileSize = (raw) => {
   return Number(digits) * multiplier
 }
 
+// C-SEARCH-LIFECYCLE-DISCARD T-002: the honest delivered-match cap,
+// preserving the number the removed dead limit promised ("first 100
+// results"). Counted on DELIVERED matches — the grouped envelopes'
+// matches summed, the same unit the overlay's resultSummary reports —
+// so the promise is executable: the crossing envelope is sliced to the
+// exact remaining count, later envelopes are dropped, the in-flight
+// walk is cancelled through the existing raw-promise seam and the
+// truncated set is marked partial through partialResults (the overlay's
+// existing localized notice). A cap is not a failure: the error voice
+// stays empty.
+const SEARCH_RESULT_CAP = 100
+
 export const useSearchStore = defineStore('search', {
   state: () => ({
     keyword: '',
@@ -138,6 +170,14 @@ export const useSearchStore = defineStore('search', {
       const rootPathnames = (projectStore.projectTrees || [])
         .map((r) => r && r.pathname)
         .filter(Boolean)
+      // C-SEARCH-LIFECYCLE-DISCARD T-002: claim this generation exactly
+      // once per runSearch invocation, ahead of EVERY early return —
+      // clearing the keyword, losing the roots or an invalid max file
+      // size now supersedes an in-flight generation, so its late
+      // completion (the searcher settles a cancel with resolve) can
+      // never write results, partialResults, running or activeCancel
+      // over the just-reset state.
+      const generation = ++this._searchGeneration
       if (rootPathnames.length === 0) {
         // eslint-disable-next-line no-console
         console.debug(`[SearchStore][runSearch][BLOCK_EMPTY_ROOTS] projectTrees.length=0`)
@@ -152,6 +192,9 @@ export const useSearchStore = defineStore('search', {
       activeCancel = null
       if (!this.keyword) {
         this.results = []
+        // A cleared query cannot leave a stale partial notice beside the
+        // empty list.
+        this.partialResults = false
         this.running = false
         return
       }
@@ -172,10 +215,14 @@ export const useSearchStore = defineStore('search', {
       // C-SEARCH-ERROR-VISIBILITY T-002: the terminal's honest partial
       // marker arrives exactly once via the searcher's didComplete.
       let terminalPartial = false
-      // Claim this generation BEFORE spawning: any completion that
-      // arrives for an older generation (already superseded by a newer
-      // keystroke) is dropped without writing state.
-      const generation = ++this._searchGeneration
+      // C-SEARCH-LIFECYCLE-DISCARD T-002: per-run delivered-match cap
+      // state. capReached is set synchronously in this run's own
+      // didMatch path — the truncation never depends on the backend
+      // terminal (a UI-cancelled search settles before the terminal can
+      // deliver a partial flag) — and the run's .then folds it into the
+      // honest partial voice.
+      let capReached = false
+      let deliveredMatches = 0
       this.running = true
       const collected = []
       // eslint-disable-next-line no-console
@@ -187,18 +234,31 @@ export const useSearchStore = defineStore('search', {
       // exposed).
       const searchPromise = getSearcher().search(rootPathnames, this.keyword, {
         didMatch: (res) => {
-          if (canceled) return
-          collected.push(res)
+          if (canceled || capReached) return
+          const matches = Array.isArray(res && res.matches) ? res.matches : []
+          // A zero-match entry is never emitted.
+          if (matches.length === 0) return
+          const remaining = SEARCH_RESULT_CAP - deliveredMatches - matches.length
+          if (remaining >= 0) {
+            collected.push(res)
+            deliveredMatches += matches.length
+            return
+          }
+          // Honest delivered-match cap: the crossing envelope is sliced
+          // to the exact remaining count (the displayed sum equals
+          // SEARCH_RESULT_CAP precisely), later envelopes are dropped,
+          // and the in-flight walk is cancelled through the existing
+          // raw-promise seam — the same seam the removed dead limit
+          // used. No generation bump: this is a same-generation honest
+          // finalization riding the current deal's .then.
+          const keep = SEARCH_RESULT_CAP - deliveredMatches
+          collected.push({ ...res, matches: matches.slice(0, keep) })
+          deliveredMatches = SEARCH_RESULT_CAP
+          capReached = true
+          if (searchPromise.cancel) searchPromise.cancel()
         },
         didComplete: ({ partial } = {}) => {
           terminalPartial = partial === true
-        },
-        didSearchPaths: (n) => {
-          if (!canceled && n > 100) {
-            canceled = true
-            if (searchPromise.cancel) searchPromise.cancel()
-            this.error = `Showing first 100 results only`
-          }
         },
         isCaseSensitive: this.isCaseSensitive,
         isWholeWord: this.isWholeWord,
@@ -232,8 +292,11 @@ export const useSearchStore = defineStore('search', {
             return path && liveRoots.some((root) => path === root || path.startsWith(root + '/'))
           })
           // A UI-cancelled search settles before the backend terminal can
-          // deliver a partial flag, so this stays false for quiet cancels.
-          this.partialResults = terminalPartial
+          // deliver a partial flag, so terminalPartial stays false for
+          // quiet cancels; a capped run is honest-partial on its own
+          // (C-SEARCH-LIFECYCLE-DISCARD T-002) — a capped set is never
+          // presented as complete.
+          this.partialResults = terminalPartial || capReached
           this.running = false
           activeCancel = null
           // eslint-disable-next-line no-console

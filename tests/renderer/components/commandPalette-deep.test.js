@@ -545,6 +545,125 @@ describe('commandPalette/index.vue — deep coverage', () => {
         expect(wrapper.vm.selectedCommandIndex).toBe(-1)
       })
     })
+
+    // C-SEARCH-LIFECYCLE-DISCARD T-004: updateCommands guards its writes
+    // with a monotonic request sequence (the linkPathPicker seq
+    // precedent) — a resolution or rejection from a superseded request
+    // touches nothing; the newest request solely owns the list.
+    describe('stale request guard (C-SEARCH-LIFECYCLE-DISCARD)', () => {
+      const settle = () => new Promise((r) => setTimeout(r, 0))
+
+      const mountWithDeferredSearch = async () => {
+        const resolvers = []
+        const searchFn = vi.fn().mockImplementation(() => {
+          return new Promise((resolve, reject) => {
+            resolvers.push({ resolve, reject })
+          })
+        })
+        const customCmd = {
+          run: vi.fn().mockResolvedValue(undefined),
+          subcommands: [],
+          subcommandSelectedIndex: -1,
+          search: searchFn
+        }
+
+        const wrapper = mountComponent()
+        const handleShow = bus.on.mock.calls.find((c) => c[0] === 'show-command-palette')[1]
+        await handleShow(customCmd)
+        await nextTick()
+        return { wrapper, resolvers }
+      }
+
+      it('a superseded resolution touches nothing and the newest request solely owns the list', async () => {
+        const { wrapper, resolvers } = await mountWithDeferredSearch()
+
+        // Query A issued, then query B — B supersedes A.
+        wrapper.vm.query = 'a'
+        wrapper.vm.updateCommands()
+        wrapper.vm.query = 'b'
+        wrapper.vm.updateCommands()
+        expect(resolvers).toHaveLength(2)
+
+        const listB = [{ id: 'b1', description: 'B result', shortcut: [] }]
+        // A settles FIRST — superseded, it must not flash its list nor
+        // release the busy flag early.
+        resolvers[0].resolve([{ id: 'a1', description: 'A result', shortcut: [] }])
+        await settle()
+        expect(wrapper.vm.availableCommands).toEqual([])
+        expect(wrapper.vm.searcherBusy).toBe(true)
+        expect(wrapper.vm.selectedCommandIndex).toBe(-1)
+
+        // B settles — solely owns the list.
+        resolvers[1].resolve(listB)
+        await settle()
+        expect(wrapper.vm.availableCommands).toEqual(listB)
+        expect(wrapper.vm.searcherBusy).toBe(false)
+        expect(wrapper.vm.selectedCommandIndex).toBe(0)
+      })
+
+      it('a superseded message-carrying rejection is dropped silently', async () => {
+        const { wrapper, resolvers } = await mountWithDeferredSearch()
+
+        wrapper.vm.query = 'a'
+        wrapper.vm.updateCommands()
+        wrapper.vm.query = 'b'
+        wrapper.vm.updateCommands()
+
+        // A rejects with a real message — superseded, so it must touch
+        // nothing (no busy release, no error log, no list wipe).
+        resolvers[0].reject(new Error('stale boom'))
+        await settle()
+        expect(wrapper.vm.searcherBusy).toBe(true)
+        expect(wrapper.vm.availableCommands).toEqual([])
+        expect(log.error).not.toHaveBeenCalled()
+
+        const listB = [{ id: 'b1', description: 'B result', shortcut: [] }]
+        resolvers[1].resolve(listB)
+        await settle()
+        expect(wrapper.vm.availableCommands).toEqual(listB)
+        expect(wrapper.vm.searcherBusy).toBe(false)
+      })
+
+      it('a superseded cancel rejection in its factual undefined form touches nothing', async () => {
+        const { wrapper, resolvers } = await mountWithDeferredSearch()
+
+        wrapper.vm.query = 'a'
+        wrapper.vm.updateCommands()
+        wrapper.vm.query = 'b'
+        wrapper.vm.updateCommands()
+
+        // delay().cancel() rejects with NO argument (util/index.js) —
+        // the factual cancel-rejection shape. A superseded rejection in
+        // this form is dropped before any state write.
+        resolvers[0].reject(undefined)
+        await settle()
+        expect(wrapper.vm.searcherBusy).toBe(true)
+        expect(wrapper.vm.availableCommands).toEqual([])
+
+        const listB = [{ id: 'b1', description: 'B result', shortcut: [] }]
+        resolvers[1].resolve(listB)
+        await settle()
+        expect(wrapper.vm.availableCommands).toEqual(listB)
+        expect(wrapper.vm.searcherBusy).toBe(false)
+      })
+
+      it('closing the dialog resets searcherBusy after unload cancelled the in-flight request', async () => {
+        const { wrapper, resolvers } = await mountWithDeferredSearch()
+
+        wrapper.vm.query = 'q'
+        wrapper.vm.updateCommands()
+        expect(wrapper.vm.searcherBusy).toBe(true)
+
+        wrapper.vm.handleDialogClose()
+        expect(wrapper.vm.searcherBusy).toBe(false)
+
+        // The cancelled request settles late (quiet undefined form) —
+        // the closed dialog keeps its reset state.
+        resolvers[0].reject(undefined)
+        await settle()
+        expect(wrapper.vm.searcherBusy).toBe(false)
+      })
+    })
   })
 
   // --- executeCommand ---

@@ -227,28 +227,28 @@ describe('store/search — coverage gaps', () => {
     expect(s.running).toBe(false)
   })
 
-  it('didSearchPaths under 100 does not set error', async () => {
+  // C-SEARCH-LIFECYCLE-DISCARD T-001: documents the replacement of the
+  // mock-fed didSearchPaths sub-limit pin — the
+  // store passes no didSearchPaths option anymore (the searchedPaths
+  // event never exists on the wire; the honest delivered-match cap is
+  // pinned in search.test.ts).
+  it('passes no didSearchPaths option to the searcher', async () => {
     projectStateProxy.projectTrees = [{ pathname: '/proj' }]
 
-    let didSearchPathsCb
     const promiseLike = Promise.resolve()
     promiseLike.cancel = vi.fn()
 
-    searchSpy.mockImplementation((_roots, _kw, opts) => {
-      didSearchPathsCb = opts.didSearchPaths
-      didSearchPathsCb(50) // under 100
-      return promiseLike
-    })
+    searchSpy.mockReturnValue(promiseLike)
 
     const { useSearchStore } = await import('@/store/search')
     const s = useSearchStore()
     s.keyword = 'small'
     s.runSearch()
 
-    await Promise.resolve()
-    await Promise.resolve()
-
+    const [, , opts] = searchSpy.mock.calls[0]
+    expect(opts.didSearchPaths).toBeUndefined()
     expect(s.error).toBe('')
+    expect(promiseLike.cancel).not.toHaveBeenCalled()
   })
 
   // ─── C-SEARCH-ERROR-VISIBILITY T-002 coverage ────────────────────────

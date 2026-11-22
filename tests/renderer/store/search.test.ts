@@ -10,7 +10,10 @@
  *     - cancelRunning() — calls activeCancel if running
  *     - runSearch() — empty-roots block, empty-keyword reset, dispatch
  *       to RipgrepDirectorySearcher.search, post-search liveRoots filter,
- *       error path, and >100-paths cancellation.
+ *       error path, stale-completion discard on every runSearch path,
+ *       and the honest delivered-match cap (C-SEARCH-LIFECYCLE-DISCARD;
+ *       the mock-fed "canceling on >100 paths" pin was replaced — the
+ *       searchedPaths event never exists on the wire).
  */
 
 import { setupTestPinia } from '../pinia'
@@ -225,23 +228,33 @@ describe('store/search', () => {
       expect(s.running).toBe(false)
     })
 
-    it('canceling on >100 paths sets error message', async () => {
+    // C-SEARCH-LIFECYCLE-DISCARD T-001: replaces the mock-fed
+    // ">100 paths" error pin — the searchedPaths
+    // event it drove never exists on the wire, so the limit is now an
+    // honest delivered-match cap: grouped envelopes counted on their
+    // matches (the matchCount unit), the crossing envelope sliced to the
+    // exact remaining count, the walk cancelled through the raw-promise
+    // seam, the set marked partial, the error voice left empty (a cap is
+    // not a failure).
+    it('caps the displayed set at 100 delivered matches and marks it partial', async () => {
       projectStateProxy.projectTrees = [{ pathname: '/proj' }]
-      // We need to defer didSearchPaths to a microtask — the source
-      // closes over `promises` (the chained .then().catch() result)
-      // which is in the temporal dead zone during the synchronous
-      // call to .search(). Real IPC is async too.
-      let didSearchPathsCb: any
+      const makeMatches = (n: number) => Array.from({ length: n }, (_, i) => ({ line: i + 1 }))
+      let didMatchCb: any
       let resolveOuter!: () => void
       const inner = new Promise<void>((r) => { resolveOuter = r })
-      ;(inner as any).cancel = vi.fn()
+      // The real raw promise's cancel settles the walk with resolve.
+      ;(inner as any).cancel = vi.fn(() => { resolveOuter() })
       searchSpy.mockImplementation((_roots, _keyword, opts) => {
-        didSearchPathsCb = opts.didSearchPaths
-        // Schedule the >100 event for next microtask
-        Promise.resolve().then(() => {
-          didSearchPathsCb(150)
-          resolveOuter()
-        })
+        didMatchCb = opts.didMatch
+        // The envelopes must arrive asynchronously — the source's cancel
+        // seam closes over the raw promise constant, so synchronous
+        // delivery would hit the documented temporal dead zone the old
+        // pin's comment described. Real IPC is async too.
+        Promise.resolve()
+          .then(() => didMatchCb({ filePath: '/proj/a.md', matches: makeMatches(40) }))
+          .then(() => didMatchCb({ filePath: '/proj/b.md', matches: makeMatches(40) }))
+          .then(() => didMatchCb({ filePath: '/proj/c.md', matches: makeMatches(40) }))
+          .then(() => didMatchCb({ filePath: '/proj/d.md', matches: makeMatches(10) }))
         return inner
       })
 
@@ -249,15 +262,37 @@ describe('store/search', () => {
       const s = useSearchStore()
       s.keyword = 'huge'
       s.runSearch()
-      // Wait microtasks: didSearchPaths fires, then resolves
-      await Promise.resolve()
-      await Promise.resolve()
-      await Promise.resolve()
-      expect(s.error).toBe('Showing first 100 results only')
-      // Note: source bug — `promises.cancel` inside didSearchPaths
-      // resolves to the chained .then().catch() promise which has no
-      // .cancel attached. So no cancel is invoked there, but the
-      // error message IS set.
+      await new Promise((r) => setTimeout(r, 0))
+      await new Promise((r) => setTimeout(r, 0))
+      // Exactly the promised 100 delivered matches — the crossing
+      // envelope (c.md) is sliced to the remaining 20, and the post-cap
+      // envelope (d.md) is dropped with no zero-match entry emitted.
+      expect(s.matchCount).toBe(100)
+      expect(s.results.map((r: any) => r.matches.length)).toEqual([40, 40, 20])
+      expect(s.results).toHaveLength(3)
+      // The walk was cancelled through the raw-promise seam, exactly once.
+      expect((inner as any).cancel).toHaveBeenCalledTimes(1)
+      // A cap is not a failure — the error voice stays empty — and the
+      // set is marked partial through the #303 state (no backend
+      // terminal involved).
+      expect(s.error).toBe('')
+      expect(s.partialResults).toBe(true)
+      expect(s.running).toBe(false)
+
+      // A subsequent keystroke clears the partial state.
+      searchSpy.mockImplementation((_roots, _keyword, opts) => {
+        Promise.resolve().then(() => {
+          opts.didMatch({ filePath: '/proj/small.md', matches: [{ line: 1 }] })
+        })
+        const settled: any = Promise.resolve()
+        settled.cancel = vi.fn()
+        return settled
+      })
+      s.SET_KEYWORD('small')
+      await new Promise((r) => setTimeout(r, 0))
+      await new Promise((r) => setTimeout(r, 0))
+      expect(s.partialResults).toBe(false)
+      expect(s.matchCount).toBe(1)
     })
 
     it('passes search options from preferences store', async () => {
@@ -434,6 +469,148 @@ describe('store/search', () => {
       resolveGen1()
       await tick()
       expect(s.results).toHaveLength(2)
+      expect(s.running).toBe(false)
+    })
+  })
+
+  // C-SEARCH-LIFECYCLE-DISCARD T-001: every runSearch path claims the
+  // generation ahead of any early return, so a completion belonging to a
+  // prior generation can never overwrite a reset — clearing the keyword,
+  // losing the roots or an invalid size limit while a search runs
+  // discards the late completion instead of letting the old matches
+  // come back.
+  describe('stale completion discard (C-SEARCH-LIFECYCLE-DISCARD)', () => {
+    const tick = async () => {
+      await new Promise((r) => setTimeout(r, 0))
+    }
+
+    it('clearing the keyword while a search is running does not bring the old matches back', async () => {
+      projectStateProxy.projectTrees = [{ pathname: '/proj' }]
+      let didMatchCb: any
+      let resolveOuter!: () => void
+      const inner = new Promise<void>((r) => { resolveOuter = r })
+      ;(inner as any).cancel = vi.fn()
+      searchSpy.mockImplementation((_roots, _keyword, opts) => {
+        didMatchCb = opts.didMatch
+        return inner
+      })
+
+      const { useSearchStore } = await import('@/store/search')
+      const s = useSearchStore()
+      s.SET_KEYWORD('stale')
+      expect(s.running).toBe(true)
+      // A match for the in-flight generation is delivered...
+      didMatchCb({ filePath: '/proj/a.md', matches: [{ line: 1 }] })
+      // ...then the user empties the input while the search still runs.
+      s.SET_KEYWORD('')
+      expect(s.results).toEqual([])
+      expect(s.running).toBe(false)
+      // The supersede path cancelled the in-flight generation exactly once.
+      expect((inner as any).cancel).toHaveBeenCalledTimes(1)
+
+      // The cancelled searcher settles with resolve (mt::search-cancel
+      // settles the raw promise) — the late completion lands on a stale
+      // generation and must be dropped.
+      resolveOuter()
+      await tick()
+      expect(s.results).toEqual([])
+      expect(s.running).toBe(false)
+      expect(s.partialResults).toBe(false)
+      // No further cancel after settle.
+      expect((inner as any).cancel).toHaveBeenCalledTimes(1)
+    })
+
+    it('losing the opened roots while a search runs discards the late completion', async () => {
+      projectStateProxy.projectTrees = [{ pathname: '/proj' }]
+      let didMatchCb: any
+      let resolveOuter!: () => void
+      const inner = new Promise<void>((r) => { resolveOuter = r })
+      ;(inner as any).cancel = vi.fn()
+      searchSpy.mockImplementation((_roots, _keyword, opts) => {
+        didMatchCb = opts.didMatch
+        return inner
+      })
+
+      const { useSearchStore } = await import('@/store/search')
+      const s = useSearchStore()
+      s.keyword = 'stale'
+      s.runSearch()
+      didMatchCb({ filePath: '/proj/a.md', matches: [{ line: 1 }] })
+      // All roots close mid-search — the refresh runSearch hits the
+      // empty-roots early return.
+      projectStateProxy.projectTrees = []
+      s.runSearch()
+      expect(s.results).toEqual([])
+      expect(s.running).toBe(false)
+
+      resolveOuter()
+      await tick()
+      expect(s.results).toEqual([])
+      expect(s.running).toBe(false)
+      expect(s.partialResults).toBe(false)
+    })
+
+    it('an invalid max file size while a search runs discards the late completion', async () => {
+      projectStateProxy.projectTrees = [{ pathname: '/proj' }]
+      let didMatchCb: any
+      let resolveOuter!: () => void
+      const inner = new Promise<void>((r) => { resolveOuter = r })
+      ;(inner as any).cancel = vi.fn()
+      searchSpy.mockImplementation((_roots, _keyword, opts) => {
+        didMatchCb = opts.didMatch
+        return inner
+      })
+
+      const { useSearchStore } = await import('@/store/search')
+      const s = useSearchStore()
+      s.keyword = 'stale'
+      s.runSearch()
+      didMatchCb({ filePath: '/proj/a.md', matches: [{ line: 1 }] })
+      // The stored preference becomes invalid mid-search — the refresh
+      // runSearch fails at the boundary.
+      preferencesProxy.searchMaxFileSize = '12X'
+      s.runSearch()
+      expect(s.error).toBe('Invalid max file size: 12X')
+      expect(s.results).toEqual([])
+      expect(s.running).toBe(false)
+
+      resolveOuter()
+      await tick()
+      expect(s.results).toEqual([])
+      expect(s.running).toBe(false)
+      expect(s.partialResults).toBe(false)
+      preferencesProxy.searchMaxFileSize = null
+    })
+
+    it('a superseding keystroke discards the earlier generation before it ever writes', async () => {
+      projectStateProxy.projectTrees = [
+        { pathname: '/roots/alpha' },
+        { pathname: '/roots/beta' }
+      ]
+      let didMatch1: any
+      let resolveGen1: () => void = () => {}
+      let resolveGen2: () => void = () => {}
+      const p1 = new Promise<void>((r) => { resolveGen1 = r })
+      const p2 = new Promise<void>((r) => { resolveGen2 = r })
+      searchSpy.mockImplementationOnce((_dirs: string[], _pat: string, opts: any) => {
+        didMatch1 = opts.didMatch
+        return p1
+      }).mockImplementationOnce(() => p2)
+
+      const { useSearchStore } = await import('@/store/search')
+      const s = useSearchStore()
+      s.SET_KEYWORD('quarterl')
+      didMatch1({ filePath: '/roots/alpha/report.md', matches: [{ lineText: 'quarterly' }] })
+      s.SET_KEYWORD('quarterly')
+      // The superseded generation settles first — its collected matches
+      // must never reach the displayed set while the newest run holds.
+      resolveGen1()
+      await tick()
+      expect(s.results).toEqual([])
+      expect(s.running).toBe(true)
+
+      resolveGen2()
+      await tick()
       expect(s.running).toBe(false)
     })
   })

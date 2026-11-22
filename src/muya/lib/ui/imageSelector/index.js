@@ -27,6 +27,10 @@ class ImageSelector extends BaseFloat {
     this.loading = false
     this.tab = 'link' // select or link
     this.isFullMode = false // is show title and alt input
+    // C-SEARCH-LIFECYCLE-DISCARD T-004: monotonic sequence for the path
+    // hint race (the linkPathPicker precedent) — a late answer to older
+    // input is dropped instead of overwriting the hint list.
+    this._seq = 0
     this.state = {
       alt: '',
       src: '',
@@ -169,7 +173,13 @@ class ImageSelector extends BaseFloat {
     if (!value) {
       list = []
     } else {
+      // C-SEARCH-LIFECYCLE-DISCARD T-004: capture the sequence BEFORE
+      // the await — a newer keystroke bumps it and the stale answer is
+      // dropped instead of overwriting the hint list.
+      const seq = ++this._seq
       list = await this.muya.options.imagePathAutoComplete(value)
+      // A newer keystroke won the race — drop the stale list.
+      if (seq !== this._seq) return
     }
     eventCenter.dispatch('muya-image-picker', { reference, list, cb })
   }

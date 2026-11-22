@@ -1,5 +1,5 @@
 // FILE: tests/renderer/_shims/install-window-globals.test.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-52 gate pin — the boot shim must never STATICALLY import
 //            the C-52 clipboard modules. The shim installs
@@ -39,15 +39,23 @@
 //   MAIN_PATH - absolute path of main.js (pins the shim-first import).
 //   TRANSLATION_HELPER_PATH - absolute path of the pure search-event translation helper.
 //   loadTranslationHelper - dynamic importer returning the helper's translateSearchEvent.
+//   SEARCH_STORE_PATH - absolute path of store/search.js (wire-truth scan).
+//   QUICK_OPEN_PATH - absolute path of commands/quickOpen.js (wire-truth scan).
+//   RIPGREP_SEARCHER_PATH - absolute path of node/ripgrepSearcher.js (wire-truth scan).
 //   readSource - utf8 source reader for the scanned files.
 //   STATIC_CLIPBOARD_IMPORT_RE - matches a STATIC import declaration of a C-52 clipboard module.
 //   DYNAMIC_CLIPBOARD_IMPORT_RE - matches the drop handler's dynamic import('…clipboardPath').
 //   STATIC_IMPORT_DECL_RE - matches any static import declaration (helper must have none).
 //   FABRICATED_END_RE - matches the removed fabricated range end in the shim source.
+//   SHIM_SEARCH_EVENT_BRANCH_RE - marks the shim's mt::search-event translation branch.
+//   SHIM_SEARCHEDPATHS_RE - matches any searchedPaths handling in the shim (must not exist).
+//   DID_SEARCH_PATHS_RE - matches a didSearchPaths option in the search surfaces (must not exist).
+//   RIPGREP_SEARCHEDPATHS_CASE_RE - matches the dormant searchedPaths dispatch case (must stay present).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 1.1.0 - C-SEARCH-RESULT-CONTRACT T-003: shim-range-array-form family — behavior-tests translateSearchEvent on a realistic mt::search-event feed (two paths, multi-match line, bounds-absent hit, terminal envelopes) proving honest array-pair ranges, the no-highlight zero pair for absent bounds, unchanged per-path grouping and searchId forwarding, the fabricated end gone from the shim source, and the helper carrying no static imports of its own.
+//   LAST_CHANGE: 1.2.0 - C-SEARCH-LIFECYCLE-DISCARD T-006: wire-truth pins — the shim's mt::search-event branch handles exactly match/complete/cancelled/error (no searchedPaths handling on the wire), the store and quickOpen pass no didSearchPaths option, and the dormant dispatch case in ripgrepSearcher.js stays present (documented dead-parallel, read-only). C-52 boot-order and C-SEARCH-RESULT-CONTRACT translation pins untouched.
+//   PREVIOUS: 1.1.0 - C-SEARCH-RESULT-CONTRACT T-003: shim-range-array-form family — behavior-tests translateSearchEvent on a realistic mt::search-event feed (two paths, multi-match line, bounds-absent hit, terminal envelopes) proving honest array-pair ranges, the no-highlight zero pair for absent bounds, unchanged per-path grouping and searchId forwarding, the fabricated end gone from the shim source, and the helper carrying no static imports of its own.
 //   PREVIOUS: 1.0.0 - 2026-10-17 C-52 gate fix: initial pin (would have failed before the fix — the shim had `import { openMarkdownFileTab } from '@/util/clipboardPath'` at module top level).
 // END_CHANGE_SUMMARY
 
@@ -62,6 +70,9 @@ const TRANSLATION_HELPER_PATH = resolve(
   __dirname,
   '../../../src/renderer/src/_shims/search-event-translation.js'
 )
+const SEARCH_STORE_PATH = resolve(__dirname, '../../../src/renderer/src/store/search.js')
+const QUICK_OPEN_PATH = resolve(__dirname, '../../../src/renderer/src/commands/quickOpen.js')
+const RIPGREP_SEARCHER_PATH = resolve(__dirname, '../../../src/renderer/src/node/ripgrepSearcher.js')
 
 const readSource = (p) => readFileSync(p, 'utf8')
 
@@ -74,6 +85,14 @@ const STATIC_CLIPBOARD_IMPORT_RE =
   /^[ \t]*import\s+(?:[^();]*?from\s+)?['"][^'"]*clipboard(Path|Open)['"]/m
 // The dynamic form the drop handler must use for dropped Markdown.
 const DYNAMIC_CLIPBOARD_IMPORT_RE = /import\(\s*['"][^'"]*clipboardPath['"]\s*\)/
+
+// Wire-truth pins (C-SEARCH-LIFECYCLE-DISCARD T-006): the searchedPaths
+// event never exists on the wire — the shim's mt::search-event
+// translation branch handles exactly match/complete/cancelled/error.
+const SHIM_SEARCH_EVENT_BRANCH_RE = /channel === 'mt::search-event'/
+const SHIM_SEARCHEDPATHS_RE = /searchedPaths/
+const DID_SEARCH_PATHS_RE = /didSearchPaths/
+const RIPGREP_SEARCHEDPATHS_CASE_RE = /case 'searchedPaths':/
 
 describe('_shims/install-window-globals boot-order pins (C-52 gate fix)', () => {
   it('never statically imports the C-52 clipboard modules (window.electron does not exist yet)', () => {
@@ -239,5 +258,33 @@ describe('shim-range-array-form (C-SEARCH-RESULT-CONTRACT mt::search-event trans
     expect(helper).not.toMatch(STATIC_IMPORT_DECL_RE)
     expect(helper).toContain('START_BLOCK_SEARCH_RANGE_TRANSLATION')
     expect(helper).toContain('END_BLOCK_SEARCH_RANGE_TRANSLATION')
+  })
+})
+
+// C-SEARCH-LIFECYCLE-DISCARD T-006: wire-truth pins. The searchedPaths
+// event never exists on the wire (the backend SearchEvent kinds are
+// exactly match/complete/cancelled/error), so the shim's
+// mt::search-event translation branch handles exactly those kinds, and
+// the search surfaces pass no didSearchPaths option. The dormant
+// dispatch case in ripgrepSearcher.js stays present as documented
+// dead-parallel (read-only, pinned present — not absent).
+describe('search wire truth (C-SEARCH-LIFECYCLE-DISCARD)', () => {
+  it('the shim mt::search-event branch handles exactly match/complete/cancelled/error — no searchedPaths handling', () => {
+    const shim = readSource(SHIM_PATH)
+    // The scanned region is really the mt::search-event translation branch.
+    expect(shim).toMatch(SHIM_SEARCH_EVENT_BRANCH_RE)
+    expect(shim).not.toMatch(SHIM_SEARCHEDPATHS_RE)
+  })
+
+  it('store/search.js passes no didSearchPaths option', () => {
+    expect(readSource(SEARCH_STORE_PATH)).not.toMatch(DID_SEARCH_PATHS_RE)
+  })
+
+  it('commands/quickOpen.js passes no didSearchPaths option', () => {
+    expect(readSource(QUICK_OPEN_PATH)).not.toMatch(DID_SEARCH_PATHS_RE)
+  })
+
+  it('the dormant searchedPaths dispatch case in ripgrepSearcher.js stays present (documented dead-parallel)', () => {
+    expect(readSource(RIPGREP_SEARCHER_PATH)).toMatch(RIPGREP_SEARCHEDPATHS_CASE_RE)
   })
 })
