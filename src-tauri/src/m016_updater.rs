@@ -1,5 +1,5 @@
 // FILE: src-tauri/src/m016_updater.rs
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: M-016 mt-updater. Wraps tauri-plugin-updater so the
 //            renderer's existing mt::updater::check IPC contract
@@ -27,6 +27,18 @@
 // END_MODULE_MAP
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-23 v1.2.0 C-UPDATER-NET-BOUNDS T-005/T-006: mt_updater_check
+//     builds through the plugin's own UpdaterBuilder::timeout seam —
+//     UPDATER_CHECK_TIMEOUT_SECS = 15 s per request over the
+//     metadata-only feed (the two-endpoint sweep worst case ≈ 30 s is
+//     tolerated by the 24 h launch check and turned into bounded
+//     feedback on the manual path; mirrors the zone's rollback connect
+//     deadline ROLLBACK_CONNECT_TIMEOUT_SECS = 10); a builder failure
+//     joins the same quiet-with-statusNote path; the Ok/Err arms and
+//     their BLOCK markers are byte-identical. The deadline changes how
+//     soon the launch path settles, not whether it is silent. The
+//     updater_backup_channel stand (T-006) pins the real plugin's
+//     failover + package delivery on a local two-endpoint fixture.
 //   - 2026-10-24 v1.1.0: point signing setup to the canonical owner-only rollout instructions.
 //   - 2026-04-29 B3-step-10: initial stub with stable shape.
 //   - 2026-08-07 v2.1.2-beta: make the signed in-app updater the only
@@ -56,13 +68,30 @@ fn no_update(current: String, note: Option<String>) -> UpdateStatus {
     }
 }
 
+// C-UPDATER-NET-BOUNDS R-1: the check deadline (the m068 constants
+// convention, cfg-gated with the desktop command). The feed response is
+// metadata-only JSON (a latest.json is well under 10 KB), so 15 s is a
+// generous per-request bound; the plugin's two-endpoint failover makes
+// the honest worst sweep ≈ 30 s, which the 24 h-throttled launch check
+// tolerates and the manual command turns into bounded feedback (the
+// Err→statusNote squash below is unchanged — a timed-out check is a
+// real rejection rendered as the existing statusNote warning, never a
+// quiet «up to date»). Mirrors the rollback connect deadline
+// (ROLLBACK_CONNECT_TIMEOUT_SECS = 10, m068_rollback.rs).
+#[cfg(not(feature = "app-store"))]
+const UPDATER_CHECK_TIMEOUT_SECS: u64 = 15;
+
 #[cfg(not(feature = "app-store"))]
 #[tauri::command]
 pub async fn mt_updater_check(app: tauri::AppHandle) -> Result<UpdateStatus, String> {
     use tauri_plugin_updater::UpdaterExt;
     let current = env!("CARGO_PKG_VERSION").to_string();
 
-    let updater = match app.updater() {
+    let updater = match app
+        .updater_builder()
+        .timeout(std::time::Duration::from_secs(UPDATER_CHECK_TIMEOUT_SECS))
+        .build()
+    {
         Ok(u) => u,
         Err(e) => {
             safe_eprintln!("[Updater][check][BLOCK_PLUGIN_UNAVAILABLE err={e}]");

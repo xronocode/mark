@@ -1,5 +1,5 @@
 // FILE: src-tauri/src/m068_rollback.rs
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: M-068 mt-rollback. One-step updater rollback (C-UPDATER-
 //            ROLLBACK): snapshot the running version before every
@@ -37,6 +37,7 @@
 //   restore_windows_flow - Desktop-only host-agnostic Windows verified-installer flow.
 //   RollbackStatus - Renderer-facing availability + versions.
 //   mt_rollback_prepare - Stage the running version before downloadAndInstall.
+//   prepare_inner_at - Root-explicit prepare core: reuse-or-recopy on an explicit data root (C-UPDATER-NET-BOUNDS; tests drive it on temp fixtures).
 //   mt_rollback_status - Report whether a valid rollback set exists.
 //   mt_rollback_restore - Re-validate and restore (menu/dialog path).
 //   mt_rollback_restore_outcome - Read-and-clear the restore-outcome marker (one-shot prefs-skip fact).
@@ -47,6 +48,28 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 v1.3.0 C-UPDATER-NET-BOUNDS T-004/T-005: prepare
+//     becomes idempotent — the root-explicit prepare_inner_at(root,
+//     bundle) seam (the load_valid_live_at convention) is the new
+//     prepare core; the reuse-first criterion (staging_reuse_criterion)
+//     checks an intact staging set of the RUNNING version (current
+//     schema, previous_version == running, platform match, recorded
+//     prefs/bundle digests re-verified) BEFORE any wipe and returns it
+//     as-is (BLOCK_ROLLBACK_PREPARE reused=true, no copy, no live-set
+//     touch); any other state (torn/missing/unparseable manifest,
+//     foreign version, platform or digest mismatch) wipes and re-copies
+//     exactly as today with the injected bundle. The criterion
+//     deliberately does NOT route through load_valid_live — validate()
+//     rejects previous_version == running for the live set (the
+//     rollback-to-self guard); this is the mirrored inverse.
+//     prepare_inner keeps its no-arg production shape and delegates;
+//     mt_rollback_prepare's spawn_blocking body and the fail-closed
+//     ordering are untouched; clear_restore_outcome stays the first
+//     step on both paths. This supersedes the C-WIN-ROLLBACK-PANIC
+//     record below: F-008's prepare_inner half ("prepare_inner
+//     untouched") is discharged here (the installSignedUpdate half was
+//     discharged in the same change's renderer task); the rollback
+//     deadlines, accounting and restore paths are unchanged.
 //   - 2026-11-21 v1.2.0 C-WIN-ROLLBACK-PANIC T-001..T-004: the menu
 //     restore core (rollback_restore_core) leaves the async command
 //     task via tauri::async_runtime::spawn_blocking under
@@ -454,16 +477,94 @@ fn now_secs() -> u64 {
         .unwrap_or(0)
 }
 
-/// Stage the running version into `staging.tmp` (atomic: the live set
-/// is never touched). Fail-closed: any error aborts the update.
+/// The reuse-first criterion (C-UPDATER-NET-BOUNDS R-5): the staged set
+/// provably belongs to the currently running version — the staging
+/// manifest parses with the current schema, previous_version equals the
+/// running version, the platform matches, and the recorded digests
+/// re-verify against the staged files (the same readback discipline as
+/// the prepare digest check). Some(manifest) = reuse; None = wipe and
+/// re-prepare. Deliberately NOT routed through load_valid_live: its
+/// validate() rejects previous_version == running for the live set (the
+/// rollback-to-self guard) precisely because a staging set of the
+/// running version is what an update attempt holds — this criterion is
+/// the mirrored inverse of that rejection.
 #[cfg(not(feature = "app-store"))]
-pub fn prepare_inner() -> Result<(), String> {
-    let root = rollback_root().ok_or_else(|| "data root unavailable".to_string())?;
+fn staging_reuse_criterion(staging: &Path) -> Option<RollbackManifest> {
+    let raw = std::fs::read_to_string(manifest_path(staging)).ok()?;
+    let m: RollbackManifest = serde_json::from_str(&raw).ok()?;
+    if m.schema != MANIFEST_SCHEMA {
+        return None;
+    }
+    if m.previous_version != current_version() {
+        return None;
+    }
+    if m.platform != platform_key() {
+        return None;
+    }
+    if m.prefs_snapshot != prefs_snapshot_name() {
+        return None;
+    }
+    // The recorded prefs digest re-verifies against the staged prefs
+    // file.
+    let prefs_sha = sha256_file(&staging.join(prefs_snapshot_name())).ok()?;
+    if m.prefs_sha256.as_deref() != Some(prefs_sha.as_str()) {
+        return None;
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let name = m.staged_bundle.clone()?;
+        // Derivation consistency: the staged bundle name must match the
+        // recorded version exactly.
+        if name != staged_bundle_name(&m.previous_version) {
+            return None;
+        }
+        // The recorded bundle digest re-verifies against the staged
+        // binary (the .app tree hash would include Info.plist churn;
+        // the binary is what boots).
+        let bin = staging.join(&name).join("Contents").join("MacOS").join("mark");
+        let bundle_sha = sha256_file(&bin).ok()?;
+        if m.bundle_sha256.as_deref() != Some(bundle_sha.as_str()) {
+            return None;
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        // Windows staging is version-only: a manifest carrying a staged
+        // bundle name is foreign here — wipe and re-prepare.
+        if m.staged_bundle.is_some() {
+            return None;
+        }
+    }
+    Some(m)
+}
+
+/// Stage the running version into `staging.tmp` under an explicit data
+/// root (C-UPDATER-NET-BOUNDS T-005, the load_valid_live_at
+/// convention): the prepare core behind the no-arg production entry, so
+/// tests drive reuse and re-copy on temp fixtures — never the
+/// developer's real data root. Idempotent against an intact staging set
+/// of the running version (see [`staging_reuse_criterion`]): reuse
+/// performs no copy and never touches the live set; any other state
+/// (missing/unparseable manifest, foreign version, platform mismatch,
+/// digest mismatch, torn staging) runs the wipe-and-copy path exactly as
+/// today, with the injected bundle on macOS. `clear_restore_outcome`
+/// stays the first step on both paths.
+#[cfg(not(feature = "app-store"))]
+pub fn prepare_inner_at(root: &Path, bundle: Option<&Path>) -> Result<(), String> {
     // An unconsumed marker is dead once a new update begins (T-001
-    // C-RENDER-REVIEW-FIXES): clear it through the root-explicit helper —
-    // no signature change, the root comes from the existing seam.
-    clear_restore_outcome(&root);
+    // C-RENDER-REVIEW-FIXES): clear it first — on both paths.
+    clear_restore_outcome(root);
     let staging = root.join(STAGING_DIR);
+
+    if let Some(reused) = staging_reuse_criterion(&staging) {
+        safe_eprintln!(
+            "[Rollback][prepare][BLOCK_ROLLBACK_PREPARE version={} platform={} reused=true]",
+            reused.previous_version,
+            reused.platform
+        );
+        return Ok(());
+    }
+
     // Clean stale temp siblings from earlier interrupted runs first.
     if staging.exists() {
         std::fs::remove_dir_all(&staging)
@@ -497,9 +598,9 @@ pub fn prepare_inner() -> Result<(), String> {
 
     #[cfg(target_os = "macos")]
     {
-        let bundle = current_app_bundle()?;
+        let bundle = bundle.ok_or_else(|| "no .app bundle to stage".to_string())?;
         let name = staged_bundle_name(&version);
-        copy_dir(&bundle, &staging.join(&name))?;
+        copy_dir(bundle, &staging.join(&name))?;
         let sha = sha256_file(&staging.join(&name).join("Contents").join("MacOS").join("mark"))?;
         manifest.staged_bundle = Some(name);
         manifest.bundle_sha256 = Some(sha);
@@ -508,6 +609,7 @@ pub fn prepare_inner() -> Result<(), String> {
     }
     #[cfg(not(target_os = "macos"))]
     {
+        let _ = bundle;
         // Windows: version-only manifest; the restore fetches the
         // previous installer on demand. No bundle copy on disk.
     }
@@ -530,10 +632,26 @@ pub fn prepare_inner() -> Result<(), String> {
     let raw = serde_json::to_vec_pretty(&manifest).map_err(|e| e.to_string())?;
     std::fs::write(manifest_path(&staging), raw).map_err(|e| format!("write manifest: {e}"))?;
     safe_eprintln!(
-        "[Rollback][prepare][BLOCK_ROLLBACK_PREPARE version={version} platform={}]",
+        "[Rollback][prepare][BLOCK_ROLLBACK_PREPARE version={version} platform={} reused=false]",
         manifest.platform
     );
     Ok(())
+}
+
+/// Stage the running version into `staging.tmp` (atomic: the live set
+/// is never touched). Fail-closed: any error aborts the update.
+/// C-UPDATER-NET-BOUNDS T-005: the no-arg production shape resolves the
+/// rollback root and (macOS) the running bundle with today's error
+/// propagation, then delegates to the root-explicit [`prepare_inner_at`]
+/// core — the F-008 idempotent-prepare discharge lives there.
+#[cfg(not(feature = "app-store"))]
+pub fn prepare_inner() -> Result<(), String> {
+    let root = rollback_root().ok_or_else(|| "data root unavailable".to_string())?;
+    #[cfg(target_os = "macos")]
+    let bundle = Some(current_app_bundle()?);
+    #[cfg(not(target_os = "macos"))]
+    let bundle: Option<PathBuf> = None;
+    prepare_inner_at(&root, bundle.as_deref())
 }
 
 /// Boot-time reconciliation entry (T-004 C-UPDATER-REVIEW-FIXES): the
