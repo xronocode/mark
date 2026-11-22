@@ -280,9 +280,14 @@ describe('store/search', () => {
       expect(s.running).toBe(false)
 
       // A subsequent keystroke clears the partial state.
-      const settled: any = Promise.resolve()
-      settled.cancel = vi.fn()
-      searchSpy.mockReturnValue(settled)
+      searchSpy.mockImplementation((_roots, _keyword, opts) => {
+        Promise.resolve().then(() => {
+          opts.didMatch({ filePath: '/proj/small.md', matches: [{ line: 1 }] })
+        })
+        const settled: any = Promise.resolve()
+        settled.cancel = vi.fn()
+        return settled
+      })
       s.SET_KEYWORD('small')
       await new Promise((r) => setTimeout(r, 0))
       await new Promise((r) => setTimeout(r, 0))
