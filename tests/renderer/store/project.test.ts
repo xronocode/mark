@@ -30,6 +30,11 @@ import { setupTestPinia } from '../pinia'
 
 // ─── Mocks (must be declared before any import of the store) ────────
 
+// POSIX path contract (the setup shim installs a posix window.path); under
+// the vite-8 define config.PATH_SEPARATOR follows the build host, which on
+// the Windows CI runner is '\\' and defeats the containment pins.
+vi.mock('@/config', () => ({ PATH_SEPARATOR: '/' }))
+
 vi.mock('@/services/notification', () => ({
   default: {
     notify: vi.fn(async (_opts: unknown) => undefined)
