@@ -21,6 +21,15 @@
 //   STATUS:  Phase-B5b — handlers emit to frontend via live_bridge.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-22 C-EXT-EDIT-PROOF T-002: the dead unbound insertion route
+//     refuses at the source — POST /ext/text-insert answers 501
+//     NOT_IMPLEMENTED (BLOCK_TEXT_INSERT_REFUSED) with the stable body
+//     {"error": "text-insert route deprecated: use POST /ext/context then
+//     POST /ext/apply"} after the unchanged authenticate_incoming gate and
+//     emits no mt::text::op; the route, its v1 {text, source} body and the
+//     401-class gate refusals stay (the old ok:true was provably false —
+//     the editor targeting gate drops every unbound event). /ext/apply
+//     under the binding gate is the one live mutation path.
 //   - 2026-11-21 C-STREAM-BUDGET T-001..T-003: per-session stream
 //     budgets on LiveSession.budget (StreamBudget, rebuilt wholesale by
 //     every (re)open incl. the ReplaceSameSession resync path, so a
@@ -1535,10 +1544,17 @@ pub(super) async fn handle_heartbeat<R: tauri::Runtime>(
     )
 }
 
-/// POST /ext/text-insert — insert text at cursor from an external app.
-/// Requires a paired, enabled extension with the text.insert capability.
-/// Emits `mt::text::op` in the same format that text_ops.rs uses so the
-/// frontend textOps.js listener handles it identically.
+/// POST /ext/text-insert — permanent truthful refusal.
+/// C-EXT-EDIT-PROOF: this route is deprecated and refuses at the source.
+/// The unbound `mt::text::op` it used to emit could never reach a document
+/// — since C-SEC-EDIT-TARGETING the editor targeting gate drops every
+/// unbound event — so the honest answer for an authorized caller is 501
+/// Not Implemented with a stable machine reason naming the live
+/// alternative: the POST /ext/context read followed by the document-bound
+/// POST /ext/apply. The authentication/capability gate still runs first
+/// (the 401-class refusals are unchanged), the v1 {"text", "source"}
+/// request body still deserializes (request shapes stay frozen per the
+/// C-SEC-AUDIT-FIXES disposition), and the refusal emits nothing.
 pub(super) async fn handle_text_insert<R: tauri::Runtime>(
     State(state): State<Arc<LiveServerState<R>>>,
     headers: HeaderMap,
@@ -1549,40 +1565,15 @@ pub(super) async fn handle_text_insert<R: tauri::Runtime>(
         Err((status, message)) => return (status, Json(serde_json::json!({"error": message}))),
     };
     safe_eprintln!(
-        "[ExtHost][live_server][BLOCK_TEXT_INSERT len={} source={:?}]",
+        "[ExtHost][live_server][BLOCK_TEXT_INSERT_REFUSED ext_id={} len={} source={:?}]",
+        extension_id,
         req.text.len(),
         req.source,
     );
 
-    let payload = serde_json::json!({
-        "text": req.text,
-        "position": null,
-    });
-
-    let event = super::text_ops::TextOpEvent {
-        op_type: "insert".to_string(),
-        payload,
-        extension_id,
-    };
-
-    if let Err(e) = state.app_handle.emit("mt::text::op", &event) {
-        safe_eprintln!(
-            "[ExtHost][live_server][BLOCK_TEXT_INSERT_EMIT_FAILED reason={e}]"
-        );
-        return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": format!("emit failed: {e}")})),
-        );
-    }
-
-    safe_eprintln!(
-        "[ExtHost][live_server][BLOCK_TEXT_INSERT_OK len={}]",
-        req.text.len(),
-    );
-
     (
-        StatusCode::OK,
-        Json(serde_json::json!({"ok": true})),
+        StatusCode::NOT_IMPLEMENTED,
+        Json(serde_json::json!({"error": "text-insert route deprecated: use POST /ext/context then POST /ext/apply"})),
     )
 }
 

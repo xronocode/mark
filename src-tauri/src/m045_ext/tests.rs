@@ -1456,8 +1456,11 @@ async fn enabled_extension_passes_only_declared_capability_routes() {
     let f = incoming_fixture(true, "text.insert");
     assert_eq!(context_fixture(&f, &f.token).await, StatusCode::UNAUTHORIZED);
     assert_eq!(apply_fixture(&f, &f.token).await, StatusCode::UNAUTHORIZED);
-    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::OK);
-    assert_eq!(f.events.lock().unwrap().len(), 1);
+    // C-EXT-EDIT-PROOF: the declared route still admits the caller past the
+    // gate — where the deprecated insert route answers the honest 501 with
+    // zero events instead of the removed ok:true emission.
+    assert_eq!(insert_fixture(&f, Some(&f.token)).await, StatusCode::NOT_IMPLEMENTED);
+    assert!(f.events.lock().unwrap().is_empty());
     let other = incoming_fixture(true, "stream.document");
     assert_eq!(context_fixture(&other, &other.token).await, StatusCode::UNAUTHORIZED);
     assert_eq!(apply_fixture(&other, &other.token).await, StatusCode::UNAUTHORIZED);
@@ -1562,14 +1565,16 @@ async fn fresh_pairing_restores_access() {
     assert_eq!(apply_fixture(&reader, &fresh_read).await, StatusCode::UNAUTHORIZED);
     assert_eq!(insert_fixture(&reader, Some(&fresh_read)).await, StatusCode::UNAUTHORIZED);
 
-    // A text.insert pairing restores exactly the insert route.
+    // A text.insert pairing restores exactly the insert route: the fresh
+    // token is admitted past the gate, where C-EXT-EDIT-PROOF answers the
+    // honest 501 route refusal with zero events; the old token stays fenced.
     let inserter = incoming_fixture(true, "text.insert");
     super::mt_ext_disable(inserter.id.clone(), inserter.app.state(), inserter.app.handle().clone()).await.unwrap();
     assert_old_token_fenced(&inserter).await;
     let fresh_insert = fresh_pair_secret(&inserter).await;
     super::mt_ext_enable(inserter.id.clone(), inserter.app.state()).await.unwrap();
-    assert_eq!(insert_fixture(&inserter, Some(&fresh_insert)).await, StatusCode::OK);
-    assert_eq!(inserter.events.lock().unwrap().len(), 1);
+    assert_eq!(insert_fixture(&inserter, Some(&fresh_insert)).await, StatusCode::NOT_IMPLEMENTED);
+    assert!(inserter.events.lock().unwrap().is_empty());
     assert_eq!(context_fixture(&inserter, &fresh_insert).await, StatusCode::UNAUTHORIZED);
     assert_eq!(apply_fixture(&inserter, &fresh_insert).await, StatusCode::UNAUTHORIZED);
     assert_eq!(insert_fixture(&inserter, Some(&inserter.token)).await, StatusCode::UNAUTHORIZED);
