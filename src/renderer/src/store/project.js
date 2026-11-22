@@ -92,6 +92,17 @@ import { ipcWatch, ipcFs, ipcPrefs } from '../ipc/runtime'
 // Keyed by canonical root pathname.
 const watchDisposers = new Map()
 
+// C-SEARCH-LIFECYCLE-DISCARD T-005: per-subscription identity tokens.
+// ONE module-level monotonic counter (never reset per root, so a
+// closed-and-reopened root cannot collide with a stale in-flight
+// subscription) plus a token map keyed by canonical root pathname: a
+// subscription whose root was closed or superseded while it was in
+// flight re-checks identity on resolution, disposes itself and stores
+// nothing — a close racing the subscribe can no longer leak the
+// renderer listener.
+let watchSubscriptionSeq = 0
+const watchTokens = new Map()
+
 const MAX_RECENT_FOLDERS = 5
 const RECENT_FOLDERS_KEY = 'recentFolders'
 
@@ -382,11 +393,28 @@ export const useProjectStore = defineStore('project', {
       // notifications. Dispose on CLOSE_PROJECT.
       // C-2: manual listener — this is a store-scope subscription (no
       // component to unmount); disposal is owned by CLOSE_PROJECT.
+      // C-SEARCH-LIFECYCLE-DISCARD T-005: mint the per-subscription
+      // token BEFORE subscribing so the late .then can prove identity.
+      const token = ++watchSubscriptionSeq
+      watchTokens.set(canonical, token)
       ipcWatch
         .subscribe(canonical, (event) => this._handleWatchEvent(canonical, event), {
           listener: { manual: true }
         })
         .then((dispose) => {
+          // C-SEARCH-LIFECYCLE-DISCARD T-005: identity re-check before
+          // storing — a mismatch means the root was closed or
+          // superseded while this subscription was in flight; the late
+          // .then disposes immediately and stores nothing.
+          if (watchTokens.get(canonical) !== token) {
+            try {
+              dispose()
+            } catch (e) {
+              console.debug(`[ProjectStore][Watcher][LATE_DISPOSE_FAILED] root=${canonical}`, e)
+            }
+            return
+          }
+          watchTokens.delete(canonical)
           watchDisposers.set(canonical, dispose)
           // eslint-disable-next-line no-console
           console.debug(`[ProjectStore][Watcher][SUBSCRIBED] root=${canonical}`)
@@ -822,6 +850,10 @@ export const useProjectStore = defineStore('project', {
         }
         watchDisposers.delete(canonical)
       }
+      // C-SEARCH-LIFECYCLE-DISCARD T-005: clean the token-map entry
+      // together with the disposer — a subscription still in flight
+      // re-checks identity on resolution and self-disposes.
+      watchTokens.delete(canonical)
       try {
         const { invoke } = await import('@tauri-apps/api/core')
         await invoke('mt_close_project_root', { pathname: canonical })

@@ -304,6 +304,43 @@ describe('store/project', () => {
       expect(dispose).toHaveBeenCalledTimes(1)
     })
 
+    it('C-SEARCH-LIFECYCLE-DISCARD: a close racing the subscribe disposes the late resolution and stores nothing', async () => {
+      // ADD_PROJECT('/race') with a DEFERRED subscribe promise; the
+      // close lands before the subscription resolves.
+      let resolveSubscribe!: (dispose: () => void) => void
+      ipcWatchSubscribeMock.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveSubscribe = resolve
+          })
+      )
+
+      const store = await loadStore()
+      store.ADD_PROJECT('/race')
+      await store.CLOSE_PROJECT('/race')
+
+      // The stale subscription resolves now — its late .then must
+      // dispose the disposer ITSELF, exactly once, and store nothing.
+      const staleDispose = vi.fn()
+      resolveSubscribe(staleDispose)
+      await new Promise((r) => setTimeout(r, 0))
+      expect(staleDispose).toHaveBeenCalledTimes(1)
+
+      // A re-opened root whose fresh subscription resolves while the
+      // root is open stores its own disposer as before.
+      const freshDispose = vi.fn()
+      ipcWatchSubscribeMock.mockResolvedValueOnce(freshDispose)
+      store.ADD_PROJECT('/race')
+      await new Promise((r) => setTimeout(r, 0))
+      expect(freshDispose).not.toHaveBeenCalled()
+
+      // A later close disposes exactly the fresh disposer; the stale
+      // one is never invoked a second time (no entry was stored for it).
+      await store.CLOSE_PROJECT('/race')
+      expect(freshDispose).toHaveBeenCalledTimes(1)
+      expect(staleDispose).toHaveBeenCalledTimes(1)
+    })
+
     it('C-1: subscribe failure is caught and logged; ADD_PROJECT still completes', async () => {
       const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
       ipcWatchSubscribeMock.mockRejectedValueOnce(new Error('subscribe boom'))
