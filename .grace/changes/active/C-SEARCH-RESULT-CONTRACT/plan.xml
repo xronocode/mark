@@ -1,0 +1,214 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-SEARCH-RESULT-CONTRACT>
+    <Name>Honest search-result contract end to end — implementation plan</Name>
+    <ChangeRef>C-SEARCH-RESULT-CONTRACT</ChangeRef>
+    <Created>2026-11-22</Created>
+    <Spec>C-SEARCH-RESULT-CONTRACT</Spec>
+
+    <IntentSummary>Make the v1 search-result contract real on the whole path with additive-only producer changes and no consumer migration: src-tauri/src/m013b/search.rs SearchHit grows two additive optional match-bound fields (first-submatch start and end within the delivered snippet, serialized absent when unavailable) filled by both engines under one documented unit convention — UTF-16 code-unit offsets computed at the backend against the delivered snippet text, chosen because both engines' raw spans are byte offsets (regex crate Match spans, rg --json submatch start/end) and the consumer reads JS substring indices, so byte delivery would ship a known-false span on every multi-byte line; the window shim's mt::search-event translation (extracted into a pure zero-import helper module so jsdom can behavior-test it without importing the top-level-await boot shim) maps present bounds into the single array-pair range form [[row, col], [row, col]] the component already reads and deletes the fabricated "column + snippet.length" end, mapping bounds-absent hits to the no-highlight, line-start-cursor zero pair; the ProjectSearch overlay becomes keyboard-operable following the commandPalette zone canon (real focusResults entry, selected-index roving with active class and scrollIntoView, Tab-reachable rows, Escape closing from both contexts, Enter opening the file at the honest match through the same code path as click); quick open normalizes the shim's grouped "filePath" plus "matches" envelope back to string pathnames where didMatch consumes it; one new e2e spec through the tauri-shim fixture proves the Wave-3 criterion — the right file opens at the right match from the keyboard. SearchSessionCoordinator ownership, the SearchEvent envelope, store/search.js, node/ripgrepSearcher.js, node/fileSearcher.js, the typed ipc facade and commandPalette stay untouched.</IntentSummary>
+
+    <ReferenceState>Authored 2026-11-22 as a draft against the current read-only state of the green-search1 worktree (branch spec/search-result-contract, base bb68fd6c); this plan names the spec by the Spec element and pins no SpecSha256 until admission. Verified defect shapes in the current tree: src-tauri/src/m013b/search.rs SearchHit (:101-108) carries only path, line, column, snippet, truncated — both engines drop the match end. The rg leg parses just the first submatch start under the comment "// First submatch's start column for the column field. Renderer" / "shim re-derives a range from snippet for highlighting." (:884-885) storing the raw 0-based byte offset (:886-892) and leaves "let _ = pattern_len; // reserved for future range-end calc" (:948) as a TODO; the embedded walker iterates "for m in matcher.find_iter(&amp;line) {" (:546) and discards m.end(), pushing the divergent start convention "column: (m.start() + 1) as u32" (:551) — 1-based byte offset against the rg leg's raw 0-based byte offset, so the same match renders one character late on the walker leg; both raw spans are BYTE offsets (regex crate Match spans and rg --json submatch offsets), while the consumer substring reads UTF-16 code units, and the app ships ru/ja/ko/zh-CN/zh-TW locales, so multi-byte lines are mainstream, not an edge. The walker's snippet truncation is a byte slice with an ellipsis marker (:540-545); the file's established absent-field serde style is "#[serde(default, skip_serializing_if = \"Option::is_none\")]" (SearchEvent error/partial :125-128). src/renderer/src/_shims/install-window-globals.js translates mt::search-event in the listener branch (:395-428): hits are regrouped per path (:401-417) into object range rows "range: [{ row, column }, { row, column }]" (:407-410) with the fabricated end "(h.column || 0) + (h.snippet ? h.snippet.length : 0)" (:409) — a highlight running to the end of the line. src/renderer/src/components/sideBar/searchResultItem.vue reads ARRAY PAIRS: the three spans call "searchMatch.lineText.substring(0, searchMatch.range[0][1])" / "searchMatch.lineText.substring(searchMatch.range[0][1], searchMatch.range[1][1])" / "searchMatch.lineText.substring(searchMatch.range[1][1])" (:35-41) and the cursor builds "anchor: { line: range[0][0], ch: range[0][1] }" / "focus: { line: range[1][0], ch: range[1][1] }" (:150-160) inside handleSearchResultClick (:143), reached only through "@click=\"handleSearchResultClick(searchMatch)\"" (:32) — the match-line li has no tabindex and no keydown, so with object rows every index is undefined, all three spans show the full line, and mt::open-file receives "line: undefined, ch: undefined". src/renderer/src/components/projectSearch/index.vue binds "@keydown.enter=\"focusResults\"" (:13) while focusResults is the documented placeholder "// Enter in input — no-op for now, results are below" (:172-174); Escape closes only from the input (:12) and the result rows are unreachable by keyboard. src/renderer/src/commands/quickOpen.js receives the shim's grouped envelope raw in didMatch ("didMatch: (result) =&gt; {" :135, "searchResult.push(result)" :137), later builds "const item = { id: pathname }" (:156) and "_getPath(pathname)" (:157) and sends "window.electron.ipcRenderer.send('mt::open-file-by-window-id', windowId, id)" (:75), so id becomes an object, window.fileUtils.isChildOfDirectory returns false for non-strings (its string guard :274-275) and no disk result can be opened. The zone canon for roving selection is src/renderer/src/components/commandPalette/index.vue: a selected index (selectedCommandIndex) plus wrap-around ArrowUp/ArrowDown handlers plus items[i].scrollIntoView({ block: 'end' }) (:99-104, :135-163) with no ARIA roles. Read-only anchors verified in the current tree: store/search.js consumes the grouped envelope in its own didMatch (:189-192) and is untouched; node/ripgrepSearcher.js invokes 'mt::search-spawn' (:107), sends 'mt::search-cancel' (:111) and listens on 'mt::search-event' (:86); node/fileSearcher.js backs quickOpen. Test reality: tests/renderer/components/sideBar/searchResultItem.test.js pins the array form on its own fixture ("range: [[1, 6], [1, 11]]" :35 and :107); tests/renderer/_shims/install-window-globals.test.js holds only the C-52 boot-order source-scan pins (static-clipboard-import ban, dynamic drop-handler import, shim-first import of main.js) — the producer/consumer mismatch is invisible to every existing test, and the shim module itself hosts top-level await plus webview/localeLoader dependencies jsdom cannot provide, so a behavior mapping test must exercise an extracted pure seam rather than import the shim; tests/renderer/components/projectSearch/index.test.js mounts the overlay with the searcher mocked per-test (searchSpy over @/node/ripgrepSearcher); tests/renderer/commands/quickOpen.test.js and quickOpen-deep.test.js mock @/node/fileSearcher and pin the tabs-only and no-root suites. tests/e2e/fixtures/tauri-shim.ts installs __TAURI_INTERNALS__ before the renderer boots, carries a default handler table with quiet doubles and exposes __emitFakeEvent (:244-255) — it has no mt_search_spawn/mt_search_cancel doubles today, so a spawn reaches the unknown-command warn path; tests/e2e/search-bar.spec.ts is the e2e canon (installTauriShim + bootEditor + bus emit via window.__bus). Graph and verification state: .grace/graph/runtime.xml M-004 outputs still read "Vec&lt;SearchHit { path, line, col, snippet }&gt;" (:1095-1100, already stale against the shipped truncated field), M-004 carries the C-SEARCH-SESSION-COMPLETION and C-SEARCH-ERROR-VISIBILITY SummaryDelta entries (:1268-1269), M-011 carries the C-SEARCH-ERROR-VISIBILITY SummaryDelta (:2637), M-013 (:4950) is the read-only IPC-bridge adjacency whose stub records name the facade and commands; .grace/verification/runtime.xml V-M-004 (:1117-1545) and V-M-011 (:3343-5990) carry the predecessor scenario entries (:1543-1544, :5989) this plan appends beside, never relabels. Delivery is sequential through the repository technical-debt lane; lane departure into main and train accounting remain separate owner-controlled steps. Approval of the spec alone does not approve this plan, execution, apply/archive or release.</ReferenceState>
+
+    <BaselineAssertions>
+      <MustExist><Value>src-tauri/src/m013b/search.rs</Value></MustExist>
+      <MustExist><Value>src/renderer/src/_shims/install-window-globals.js</Value></MustExist>
+      <MustExist><Value>src/renderer/src/components/sideBar/searchResultItem.vue</Value></MustExist>
+      <MustExist><Value>src/renderer/src/components/projectSearch/index.vue</Value></MustExist>
+      <MustExist><Value>src/renderer/src/commands/quickOpen.js</Value></MustExist>
+      <MustExist><Value>src/renderer/src/components/commandPalette/index.vue</Value></MustExist>
+      <MustExist><Value>src/renderer/src/store/search.js</Value></MustExist>
+      <MustExist><Value>tests/renderer/components/sideBar/searchResultItem.test.js</Value></MustExist>
+      <MustExist><Value>tests/renderer/_shims/install-window-globals.test.js</Value></MustExist>
+      <MustExist><Value>tests/renderer/components/projectSearch/index.test.js</Value></MustExist>
+      <MustExist><Value>tests/renderer/commands/quickOpen.test.js</Value></MustExist>
+      <MustExist><Value>tests/renderer/commands/quickOpen-deep.test.js</Value></MustExist>
+      <MustExist><Value>tests/e2e/fixtures/tauri-shim.ts</Value></MustExist>
+      <MustExist><Value>tests/e2e/search-bar.spec.ts</Value></MustExist>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>pub struct SearchHit {</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>// First submatch&apos;s start column for the column field. Renderer</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>let _ = pattern_len; // reserved for future range-end calc</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>for m in matcher.find_iter(&amp;line) {</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>column: (m.start() + 1) as u32,</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>skip_serializing_if = "Option::is_none"</Text></MustContain>
+      <MustContain><File>src/renderer/src/_shims/install-window-globals.js</File><Text>column: (h.column || 0) + (h.snippet ? h.snippet.length : 0)</Text></MustContain>
+      <MustContain><File>src/renderer/src/_shims/install-window-globals.js</File><Text>{ row: Math.max(0, (h.line || 1) - 1), column: h.column || 0 }</Text></MustContain>
+      <MustContain><File>src/renderer/src/_shims/install-window-globals.js</File><Text>if (typeof parent !== 'string' || typeof child !== 'string') return false</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/sideBar/searchResultItem.vue</File><Text>searchMatch.lineText.substring(searchMatch.range[0][1], searchMatch.range[1][1])</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/sideBar/searchResultItem.vue</File><Text>@click="handleSearchResultClick(searchMatch)"</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/sideBar/searchResultItem.vue</File><Text>ch: range[0][1]</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/projectSearch/index.vue</File><Text>@keydown.enter="focusResults"</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/projectSearch/index.vue</File><Text>// Enter in input — no-op for now, results are below</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/quickOpen.js</File><Text>didMatch: (result) =&gt; {</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/quickOpen.js</File><Text>searchResult.push(result)</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/quickOpen.js</File><Text>const item = { id: pathname }</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/quickOpen.js</File><Text>window.electron.ipcRenderer.send('mt::open-file-by-window-id', windowId, id)</Text></MustContain>
+      <MustContain><File>tests/renderer/components/sideBar/searchResultItem.test.js</File><Text>range: [[1, 6], [1, 11]]</Text></MustContain>
+      <MustContain><File>tests/e2e/fixtures/tauri-shim.ts</File><Text>__emitFakeEvent</Text></MustContain>
+    </BaselineAssertions>
+
+    <TargetAssertions>
+      <MustVerify><Module>M-004</Module></MustVerify>
+      <MustVerify><Module>M-011</Module></MustVerify>
+      <MustVerify><Module>V-M-004</Module></MustVerify>
+      <MustVerify><Module>V-M-011</Module></MustVerify>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>pub match_start: Option&lt;u32&gt;,</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>pub match_end: Option&lt;u32&gt;,</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>rename = "matchStart"</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>rename = "matchEnd"</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>encode_utf16</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>search_hit_bounds_wire_form</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>bounds_parity_across_engines</Text></MustContain>
+      <MustContain><File>src/renderer/src/_shims/search-event-translation.js</File><Text>// START_BLOCK_SEARCH_RANGE_TRANSLATION</Text></MustContain>
+      <MustContain><File>src/renderer/src/_shims/search-event-translation.js</File><Text>// END_BLOCK_SEARCH_RANGE_TRANSLATION</Text></MustContain>
+      <MustContain><File>src/renderer/src/_shims/search-event-translation.js</File><Text>range: [[row, start], [row, end]]</Text></MustContain>
+      <MustContain><File>src/renderer/src/_shims/search-event-translation.js</File><Text>matchStart</Text></MustContain>
+      <MustContain><File>src/renderer/src/_shims/search-event-translation.js</File><Text>matchEnd</Text></MustContain>
+      <MustContain><File>src/renderer/src/_shims/install-window-globals.js</File><Text>translateSearchEvent(m)</Text></MustContain>
+      <MustContain><File>tests/renderer/_shims/install-window-globals.test.js</File><Text>shim-range-array-form</Text></MustContain>
+      <MustContain><File>tests/renderer/_shims/install-window-globals.test.js</File><Text>search-event-translation</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/sideBar/searchResultItem.vue</File><Text>tabindex</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/sideBar/searchResultItem.vue</File><Text>@keydown.enter</Text></MustContain>
+      <MustContain><File>tests/renderer/components/sideBar/searchResultItem.test.js</File><Text>range: [[1, 6], [1, 11]]</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/projectSearch/index.vue</File><Text>// START_BLOCK_KEYBOARD_NAVIGATION</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/projectSearch/index.vue</File><Text>// END_BLOCK_KEYBOARD_NAVIGATION</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/projectSearch/index.vue</File><Text>selectedResultIndex</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/projectSearch/index.vue</File><Text>scrollIntoView</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/projectSearch/index.vue</File><Text>ArrowDown</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/projectSearch/index.vue</File><Text>ArrowUp</Text></MustContain>
+      <MustContain><File>tests/renderer/components/projectSearch/index.test.js</File><Text>project-search-keyboard-chain</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/quickOpen.js</File><Text>typeof result === 'string'</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/quickOpen.js</File><Text>result.filePath</Text></MustContain>
+      <MustContain><File>tests/renderer/commands/quickOpen.test.js</File><Text>quickopen-string-ids</Text></MustContain>
+      <MustContain><File>tests/renderer/commands/quickOpen-deep.test.js</File><Text>shim-shaped</Text></MustContain>
+      <MustContain><File>tests/e2e/fixtures/tauri-shim.ts</File><Text>mt_search_spawn</Text></MustContain>
+      <MustContain><File>tests/e2e/fixtures/tauri-shim.ts</File><Text>mt_search_cancel</Text></MustContain>
+      <MustContain><File>tests/e2e/fixtures/tauri-shim.ts</File><Text>__emitSearchEvent</Text></MustContain>
+      <MustContain><File>tests/e2e/project-search.spec.ts</File><Text>installTauriShim</Text></MustContain>
+      <MustContain><File>tests/e2e/project-search.spec.ts</File><Text>__emitSearchEvent</Text></MustContain>
+      <MustContain><File>tests/e2e/project-search.spec.ts</File><Text>project-search-overlay</Text></MustContain>
+      <MustContain><File>.grace/graph/runtime.xml</File><Text>C-SEARCH-RESULT-CONTRACT</Text></MustContain>
+      <MustContain><File>.grace/graph/runtime.xml</File><Text>matchStart</Text></MustContain>
+      <MustContain><File>.grace/verification/runtime.xml</File><Text>scenario-search-result-contract</Text></MustContain>
+      <MustNotContain><File>src/renderer/src/_shims/install-window-globals.js</File><Text>column: (h.column || 0) + (h.snippet ? h.snippet.length : 0)</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/components/projectSearch/index.vue</File><Text>// Enter in input — no-op for now, results are below</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/commands/quickOpen.js</File><Text>searchResult.push(result)</Text></MustNotContain>
+      <MustPassCommand><Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="900">npx --no-install vitest run tests/renderer/_shims/install-window-globals.test.js tests/renderer/components/sideBar/searchResultItem.test.js tests/renderer/components/projectSearch/index.test.js tests/renderer/commands/quickOpen.test.js tests/renderer/commands/quickOpen-deep.test.js</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="600">npx --no-install playwright test --project chromium tests/e2e/project-search.spec.ts</Command></MustPassCommand>
+    </TargetAssertions>
+
+    <DurableScope>
+      <GraphAnchors><M-004/><M-011/><M-013/></GraphAnchors>
+      <VerificationAnchors><V-M-004/><V-M-011/></VerificationAnchors>
+    </DurableScope>
+
+    <ObservedWriteScope>
+      <File>src-tauri/src/m013b/search.rs</File>
+      <File>src/renderer/src/_shims/install-window-globals.js</File>
+      <File>src/renderer/src/_shims/search-event-translation.js (new — the plan&apos;s documented mapping-test seam choice per the spec&apos;s ObservedWriteScope)</File>
+      <File>src/renderer/src/components/projectSearch/index.vue</File>
+      <File>src/renderer/src/components/sideBar/searchResultItem.vue</File>
+      <File>src/renderer/src/commands/quickOpen.js</File>
+      <File>tests/renderer/_shims/install-window-globals.test.js</File>
+      <File>tests/renderer/components/sideBar/searchResultItem.test.js</File>
+      <File>tests/renderer/components/projectSearch/index.test.js</File>
+      <File>tests/renderer/commands/quickOpen.test.js</File>
+      <File>tests/renderer/commands/quickOpen-deep.test.js</File>
+      <File>tests/e2e/fixtures/tauri-shim.ts</File>
+      <File>tests/e2e/project-search.spec.ts (new)</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+    </ObservedWriteScope>
+
+    <ImplementationPlan>
+      <T-001>
+        <Title>Backend bounds contract: failing-first serialization, parity and truncation tests plus the units-convention probe</Title>
+        <DependsOn/>
+        <AcceptanceCriteria>
+          <Criterion>Add failing-first inline #[cfg(test)] tests in src-tauri/src/m013b/search.rs that fail against the current tree: (a) search_hit_bounds_wire_form — a SearchHit with known bounds serializes both "matchStart" and "matchEnd" (camelCase wire names via explicit serde rename), while a SearchHit without bounds keeps the struct&apos;s established absent-field wire form (no matchStart/matchEnd keys) exactly like SearchEvent&apos;s optional error/partial; (b) bounds_parity_across_engines — one fixture searched by both engines (the embedded walker in-process, the rg leg under its existing availability guard) yields identical bounds semantics for the same match: same 0-based start, same exclusive end, same unit, both against the delivered snippet text; (c) the fixture set includes one ASCII line and one multi-byte line (Cyrillic or CJK content) — this is the delivery-baseline probe the spec&apos;s units decision rides on: raw engine spans are byte offsets, and the test asserts the delivered bounds point into the delivered snippet so that a JS substring(start, end) of the snippet equals the matched text; (d) truncated-beyond-bounds absence — a match that is not fully inside the delivered (byte-truncated) snippet yields a hit with both bound fields absent, and the batch still delivers the hit itself. Record the failing receipts before implementing.</Criterion>
+          <Criterion>Record the units-convention decision this plan commits to, and verify it on the delivery baseline inside the parity test: the convention is UTF-16 code-unit offsets (0-based start, exclusive end) computed at the backend against the delivered snippet string — the exact index space of the renderer&apos;s substring, exact for BMP and astral content alike — reached from both engines&apos; raw byte spans through one shared conversion (a byte-offset-to-UTF-16-unit helper over the delivered snippet, so both legs stay identical by construction). Unicode scalar-value counts are rejected because they diverge from JS substring indices on astral-plane characters (emoji). If the multi-byte probe on the delivery baseline exposes a contradiction (a platform quirk where the conversion cannot satisfy substring equality), the fallback is the documented ASCII-bounded honesty limitation recorded in this change&apos;s file-local CHANGE_SUMMARY and in the graph delta — never a silently shipped known-false span; the walker byte-slice truncation panic itself stays owned by C-SEARCH-ENGINE-PARITY and is not touched here.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>SearchHit honest bounds: additive optional fields filled by both engine legs under one documented unit convention</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Extend SearchHit with exactly two additive optional fields under the struct&apos;s established serde style: "pub match_start: Option&lt;u32&gt;," and "pub match_end: Option&lt;u32&gt;," each carrying "#[serde(default, skip_serializing_if = \"Option::is_none\", rename = \"matchStart\")]" / "rename = \"matchEnd\"" so unavailability stays an absent wire field and the wire names match the renderer&apos;s camelCase convention. No other SearchHit or SearchEvent field changes; no new event kind, channel or envelope field; the partial-flag semantics delivered by #303 are untouched.</Criterion>
+          <Criterion>Fill the fields in both legs from their exact spans through the shared T-001 conversion against the delivered snippet text: the rg leg takes the first submatch&apos;s start and end from the --json submatches array (replacing the "let _ = pattern_len; // reserved for future range-end calc" placeholder and updating the "// First submatch&apos;s start column for the column field. Renderer" comment to describe the new contract), and the embedded walker takes each match&apos;s own span from matcher.find_iter so every walker hit carries the span of the match it represents. When a match is not fully inside the delivered snippet (walker byte-truncation with the ellipsis marker; defensively for the rg leg too) both fields stay absent — honest-or-absent, never a partial span. The legacy "column" field keeps its current per-leg values untouched (additive-only constraint; its walker/rg one-character start divergence is superseded for rendering by the bounds through the shim and stays recorded here as known debt). Update the file-local MODULE_CONTRACT, MODULE_MAP (SearchHit entry), START_BLOCK_/END_BLOCK_ pairs (unique, matched) and CHANGE_SUMMARY and bump the module version; the T-001 tests turn green with no weakened assertions and all pre-existing search suites stay green.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Shim range translation: pure helper extraction, failing-first mapping tests, honest array-pair ranges, fabricated end removed</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Record the mapping-test seam choice (the spec leaves extraction-versus-mocked-globals to this plan): the shim module hosts top-level await plus webview/localeLoader dependencies jsdom cannot provide (the C-52 test contract records this), so a real behavior test cannot import install-window-globals.js. Extract the mt::search-event payload translation into a new pure sibling module src/renderer/src/_shims/search-event-translation.js exporting translateSearchEvent(m) — zero imports, no window readers, no side effects — wrapped in a paired // START_BLOCK_SEARCH_RANGE_TRANSLATION / // END_BLOCK_SEARCH_RANGE_TRANSLATION marker; install-window-globals.js keeps its boot shape by statically importing only this zero-dependency helper (safe against the C-52 chunk-pull failure mode, which the static-import ban pins to clipboard modules with import-time window.electron readers) and dispatching "for (const d of translateSearchEvent(m)) handler(event, d)" in the listener branch; the C-52 boot-order pins stay green byte-for-byte.</Criterion>
+          <Criterion>translateSearchEvent preserves today's funnel shape exactly except for the range form: match envelopes regroup hits per path into { searchId, type: &apos;match&apos;, payload: { filePath, matches } } dispatches (per-path grouping and searchId forwarding unchanged), complete/cancelled/error map to the same type/partial dispatches as today. Each match row&apos;s range becomes the single array-pair form from the honest bounds: with present bounds "range: [[row, start], [row, end]]" where row stays "Math.max(0, (h.line || 1) - 1)" and start/end read h.matchStart / h.matchEnd; when both bounds are absent the row maps to the no-highlight, defined-cursor zero pair "range: [[row, 0], [row, 0]]" — the component then renders the full line unhighlighted (empty prefix and highlight spans, full suffix) and opens the cursor at line start; a half-present bounds shape is treated as absent. The fabricated end "(h.column || 0) + (h.snippet ? h.snippet.length : 0)" and the object-form range rows are removed — after this change no producer emits object range rows and the highlighted substring of lineText equals the matched text on every present-bounds hit.</Criterion>
+          <Criterion>tests/renderer/_shims/install-window-globals.test.js gains the failing-first shim-range-array-form describe (red against today&apos;s shim before the helper lands): a realistic mt::search-event feed — two paths, a multi-match line, a bounds-absent hit, a terminal envelope — proves every delivered match carries range as array pairs with honest bounds (highlight substring of lineText equals the matched text), the bounds-absent hit maps to the zero pair, per-path grouping and searchId forwarding are unchanged, and the fabricated end no longer exists in the shim source; it also dynamically imports the helper (no new static imports in the test seam) and adds a source-scan pin that search-event-translation.js contains no static imports of its own. The shim-range-array-form tests must fail before T-003&apos;s implementation and pass after; the C-52 pins pass unchanged throughout.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/_shims/install-window-globals.test.js tests/renderer/components/sideBar/searchResultItem.test.js</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Keyboard-operable overlay: failing-first keydown-chain tests, real focusResults, commandPalette-canon roving, Tab-reachable rows, cursor pins</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/renderer/components/projectSearch/index.test.js gains the failing-first project-search-keyboard-chain describe driving a mounted overlay with result rows in the store (every step red before the fix, since Enter is a no-op and the rows are unreachable): Enter in the query input moves focus into the results; ArrowDown/ArrowUp move a visible selection across match lines with wrap-around and the active class (the commandPalette canon — selected index plus active class plus scrollIntoView, no new ARIA roles); Enter on a selected match line opens that file at that match; Escape closes the overlay from both the input and the results (the existing Escape-on-input close preserved, extended to the results context); Tab can reach the result rows.</Criterion>
+          <Criterion>Implement in src/renderer/src/components/projectSearch/index.vue inside a paired // START_BLOCK_KEYBOARD_NAVIGATION / // END_BLOCK_KEYBOARD_NAVIGATION marker: focusResults becomes the real entry (moves focus into the results region and initializes selectedResultIndex), a roving selection state named selectedResultIndex drives the visible selection across the flattened match lines of all rendered file results with scrollIntoView following the commandPalette zone pattern (:135-163) and wrap-around arrow handling; a panel-level Escape handler closes the overlay from both contexts without weakening the existing input binding. Document the Tab choice the spec leaves open: rows are roving-focused (the selected match line carries tabindex 0, all others -1, and Enter/arrow keys live on the rows) — Tab steps into the selected row, arrows keep moving the selection; no commandPalette file is touched.</Criterion>
+          <Criterion>src/renderer/src/components/sideBar/searchResultItem.vue makes the match line keyboard-activatable: the match-line li gains a tabindex binding and "@keydown.enter" routing into the existing handleSearchResultClick — click and keyboard share one open-at-match code path (mt::open-file with the cursor object built from range); no redesign of the spans, the array-form reads (:35-41) and the cursor build (:150-160) stay byte-for-byte. tests/renderer/components/sideBar/searchResultItem.test.js adds cursor pins without touching the array-form fixtures ("range: [[1, 6], [1, 11]]" pins stay green unchanged): activating the fixture row (click and keyboard) invokes mt::open-file with cursor anchor "ch: range[0][1]" and focus "ch: range[1][1]" — never undefined — and the zero-pair fixture opens at line start with no highlight.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/components/sideBar/searchResultItem.test.js tests/renderer/components/projectSearch/index.test.js</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>QuickOpen string pathnames: failing-first string-id pins on the shim-shaped feed and the consumer-side envelope normalization</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/renderer/commands/quickOpen.test.js gains the failing-first quickopen-string-ids case (red today because id becomes an object): with the searcher mocked to deliver the shim-shaped grouped envelope — { filePath: string, matches: [...] } rows through didMatch, plus a plain-string delivery for the tabs path — _doSearch resolves a list whose every id is a pathname string, _getPath receives strings (isChildOfDirectory and window.path.relative keep their string contracts), and executeSubcommand sends mt::open-file-by-window-id with the string pathname. quickOpen-deep.test.js gains the shim-shaped-feed pin for the open invocation path; the existing tabs-only and no-root suites stay green with unchanged assertions.</Criterion>
+          <Criterion>Implement the normalization consumer-side in src/renderer/src/commands/quickOpen.js where didMatch receives the envelope — "typeof result === 'string'" keeps plain strings, otherwise the grouped envelope&apos;s "result.filePath" string pathname is taken and non-string shapes are dropped — so "const item = { id: pathname }" builds a string id and executeSubcommand opens the file again. The raw "searchResult.push(result)" line is gone; the shim gains no per-searchId mode state and the backend files-mode semantics stay untouched (verified against today&apos;s content-spawn envelope so the pins rerun unchanged when C-QUICKOPEN-FILES-MODE lands).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/commands/quickOpen.test.js tests/renderer/commands/quickOpen-deep.test.js</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>e2e Wave-3 receipt: tauri-shim search doubles plus the keyboard-open project-search spec</Title>
+        <DependsOn>T-005</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/e2e/fixtures/tauri-shim.ts gains additive quiet-by-default doubles so every other spec keeps seeing quiet success: mt_search_spawn resolves a fixture search id without side effects and mt_search_cancel resolves null, both overridable per spec via the existing __mockInvoke map, plus an emit helper "__emitSearchEvent(searchId, payload)" wrapping __emitFakeEvent(&apos;mt::search-event&apos;, ...) so specs feed realistic envelopes; the existing defaults, boot pins and helper behavior are otherwise untouched.</Criterion>
+          <Criterion>The new tests/e2e/project-search.spec.ts (installTauriShim + bootEditor canon) boots the editor, opens the project-search overlay (.project-search-overlay), submits a query whose fixture envelope — delivered through __emitSearchEvent with honest bounds across two files, one multi-match line and one bounds-absent hit — renders the expected rows, and proves the Wave-3 criterion from the keyboard: Enter from the input into the results, arrows to the fixture match line, Enter — the fixture file opens (the mt_open_file double&apos;s mt::open-new-tab receipt) carrying the cursor at the fixture match position, and the bounds-absent hit shows no highlight with a defined line-start cursor. The existing e2e search-bar spec stays green and untouched.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">npx --no-install playwright test --project chromium tests/e2e/project-search.spec.ts tests/e2e/search-bar.spec.ts</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>Graph and verification deltas: M-004/M-011 contracts, V-M-004/V-M-011 scenarios, final-assertion gate</Title>
+        <DependsOn>T-006</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Update .grace/graph/runtime.xml: M-004&apos;s outputs contract names the final SearchHit shape (path, line, column, snippet, truncated plus the optional matchStart/matchEnd bounds) via a C-SEARCH-RESULT-CONTRACT SummaryDelta beside the predecessor entries, and M-011&apos;s SummaryDelta records the keyboard-operable overlay, the honest array-pair range boundary and the quick-open string-id contract; M-013 stays a read-only adjacency (its stub records name the facade and commands; no M-013 file is edited); unrelated XML content untouched. Update .grace/verification/runtime.xml: V-M-004 gains a scenario-search-result-contract entry (bounds wire form, cross-engine parity on the ASCII and multi-byte fixtures, truncated-beyond-bounds absence, honest units convention) and V-M-011 gains the renderer-side entry (shim-range-array-form mapping, project-search-keyboard-chain, quickopen-string-ids, the e2e keyboard-open receipt) — appended beside the predecessor scenario entries, never relabeled.</Criterion>
+          <Criterion>Update the edited files&apos; local semantic markup (MODULE_CONTRACT, MODULE_MAP, paired START_BLOCK_/END_BLOCK_ markers, CHANGE_SUMMARY, version bumps) so the records describe the final contract. Run the target and final assertions on the actual lane baseline with the spec commands; keep the baseline defect receipts recorded in the spec as problem proof rather than relabeled post-fix evidence; record native rg transport on unmatched platforms and owner acceptance as explicitly open unless separately obtained; no apply/archive, commit/push or lane departure inside this plan.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command>
+          <Command budgetSeconds="900">npx --no-install vitest run tests/renderer/_shims/install-window-globals.test.js tests/renderer/components/sideBar/searchResultItem.test.js tests/renderer/components/projectSearch/index.test.js tests/renderer/commands/quickOpen.test.js tests/renderer/commands/quickOpen-deep.test.js</Command>
+          <Command budgetSeconds="600">npx --no-install playwright test --project chromium tests/e2e/project-search.spec.ts</Command>
+        </Verification>
+      </T-007>
+    </ImplementationPlan>
+
+    <AcceptanceVerification>
+      <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command>
+      <Command budgetSeconds="900">npx --no-install vitest run tests/renderer/_shims/install-window-globals.test.js tests/renderer/components/sideBar/searchResultItem.test.js tests/renderer/components/projectSearch/index.test.js tests/renderer/commands/quickOpen.test.js tests/renderer/commands/quickOpen-deep.test.js</Command>
+      <Command budgetSeconds="600">npx --no-install playwright test --project chromium tests/e2e/project-search.spec.ts</Command>
+      <Environment>Baseline is the current green-search1 worktree (branch spec/search-result-contract, base bb68fd6c), executed in that worktree root with cargo and installed node_modules available; no new dependencies are acquired. Tasks run strictly sequentially T-001 through T-007, and the failing-first suites are red on the untouched baseline before their implementations land: the T-001 backend bounds tests fail before T-002, the shim-range-array-form mapping tests fail before T-003, the project-search-keyboard-chain tests fail before T-004, and quickopen-string-ids fails before T-005. Documented plan decisions: the bounds unit is UTF-16 code-unit offsets (0-based start, exclusive end) computed at the backend against the delivered snippet through one shared conversion used by both engine legs — chosen because both legs&apos; raw spans are byte offsets while the consumer reads JS substring indices, byte delivery would be a known-false span on mainstream multi-byte content, and scalar-value counts would diverge on astral characters; the multi-byte parity fixture is the delivery-baseline probe and any contradiction converts the plan to the explicitly documented ASCII-bounded honesty limitation instead of a silent false span. The mapping-test seam is the extracted pure zero-import helper module (src/renderer/src/_shims/search-event-translation.js) because the boot shim&apos;s top-level await and webview/localeLoader dependencies cannot load under jsdom; the shim's static import of that zero-dependency helper keeps the C-52 boot-order pins green, and the helper itself carries no static imports (source-scanned). Tab reachability is roving-focused rows (selected row tabindex 0, others -1) with arrows and Enter on the rows. Escape closing is panel-level so both the input and the results contexts close the overlay. Quick-open normalization stays consumer-side with no per-searchId shim state. All commands must pass with no skips, retries, budget increases or weakened assertions; SearchSessionCoordinator keeps sole terminal ownership, store/search.js, node/ripgrepSearcher.js, node/fileSearcher.js, the commandPalette, the typed ipc facade and the in-document find bar stay byte-for-byte untouched, the #289 session-trace and #303 honest-state families plus the C-52 boot-order pins and the e2e search-bar spec pass unchanged, and the e2e spec&apos;s receipt is a fixture-envelope proof through the tauri-shim doubles — native rg transport on unmatched platforms, App Store build behavior and owner acceptance stay explicitly open and are never substituted by a shim.</Environment>
+    </AcceptanceVerification>
+  </C-SEARCH-RESULT-CONTRACT>
+</GraceChangePlan>
