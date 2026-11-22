@@ -96,7 +96,12 @@ test('source and adjacent text double-clicks select normally, while a failed tar
   const before=await state(page);await wordDouble(page,page.locator('#ag-editor-id span.ag-paragraph',{hasText:'Ordinary tail words.'}))
   await expect.poll(()=>page.evaluate(()=>window.getSelection()?.toString().trim())).not.toBe('');expect((await state(page)).requests).toEqual([])
   await page.evaluate(()=>{(window as any).__emitFakeEvent('mt::menu-invoked','view.source-code-mode')})
-  const line=page.locator('.CodeMirror-line',{hasText:'Ordinary tail words.'});await wordDouble(page,line);await expect.poll(()=>page.evaluate(()=>window.getSelection()?.toString().trim())).not.toBe('');expect((await state(page)).requests).toEqual([])
+  const line=page.locator('.CodeMirror-line',{hasText:'Ordinary tail words.'});
+  // Readiness: the source pane mounts asynchronously after the menu event;
+  // the line can be attached before CodeMirror lays it out (vite-8 chunk
+  // timing on slow CI runners), and wordDouble needs a non-empty text rect.
+  await expect(line).toBeVisible();
+  await wordDouble(page,line);await expect.poll(()=>page.evaluate(()=>window.getSelection()?.toString().trim())).not.toBe('');expect((await state(page)).requests).toEqual([])
   await page.evaluate(()=>{(window as any).__emitFakeEvent('mt::menu-invoked','view.source-code-mode')})
   // Move the caret away through ordinary input, then start a fresh link gesture.
   await page.locator('#ag-editor-id h1').click()
