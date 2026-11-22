@@ -1506,21 +1506,25 @@ describe('release governance', () => {
     expect(buildJob).not.toContain('echo "$HASH" > "$EXE_DST.sha256"')
     expect(releaseWorkflow).toMatch(
       crlfLiteral(
-        `          path: |
-            \${{ runner.temp }}\\release\\Mark_*_x64-setup.exe
-            \${{ runner.temp }}\\release\\Mark_*_x64-setup.exe.sha256
-            \${{ runner.temp }}\\release\\latest-platform.json
-            \${{ runner.temp }}\\release\\latest-platform.json.sha256`
+        [
+          '          path: |',
+          '            ${{ runner.temp }}\\release\\Mark_*_x64-setup.exe',
+          '            ${{ runner.temp }}\\release\\Mark_*_x64-setup.exe.sha256',
+          '            ${{ runner.temp }}\\release\\latest-platform.json',
+          '            ${{ runner.temp }}\\release\\latest-platform.json.sha256'
+        ].join('\n')
       )
     )
     expect(releaseWorkflow).toMatch(
       crlfLiteral(
-        `          path: |
-            \${{ runner.temp }}\\release\\Mark_*_x64-setup.exe
-            \${{ runner.temp }}\\release\\Mark_*_x64-setup.exe.sha256
-            \${{ runner.temp }}\\release\\Mark_*_x64-setup.exe.bundle
-            \${{ runner.temp }}\\release\\latest-platform.json
-            \${{ runner.temp }}\\release\\latest-platform.json.sha256`
+        [
+          '          path: |',
+          '            ${{ runner.temp }}\\release\\Mark_*_x64-setup.exe',
+          '            ${{ runner.temp }}\\release\\Mark_*_x64-setup.exe.sha256',
+          '            ${{ runner.temp }}\\release\\Mark_*_x64-setup.exe.bundle',
+          '            ${{ runner.temp }}\\release\\latest-platform.json',
+          '            ${{ runner.temp }}\\release\\latest-platform.json.sha256'
+        ].join('\n')
       )
     )
     expect(releaseWorkflow).not.toContain('path: ${{ runner.temp }}\\release\\*')
@@ -1566,7 +1570,7 @@ describe('release governance', () => {
     // (d) restoring the wildcard upload in place of the named staged list
     const wildcardRestore = releaseWorkflow.replace(
       /          path: \|\r?\n            \$\{\{ runner\.temp \}\}\\release\\Mark_\*_x64-setup\.exe\r?\n            \$\{\{ runner\.temp \}\}\\release\\Mark_\*_x64-setup\.exe\.sha256\r?\n            \$\{\{ runner\.temp \}\}\\release\\latest-platform\.json\r?\n            \$\{\{ runner\.temp \}\}\\release\\latest-platform\.json\.sha256/,
-      `          path: \${{ runner.temp }}\\release\\*`
+      '          path: ${{ runner.temp }}\\release\\*'
     )
     expect(wildcardRestore).not.toBe(releaseWorkflow)
     expect(() => assertSignStagedHandoff(wildcardRestore)).toThrow(

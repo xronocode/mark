@@ -13,8 +13,11 @@
 //   releaseWorkflow - checked-in release.yml read as text and parsed with the yaml package.
 //   findStepRun - extracts a step's run: shell text from jobs.build / jobs.sign by exact step name.
 //   substituteReleaseRoot - the ONE declared substitution: the literal /tmp/release becomes the per-test release root, failing loudly when a step expected to carry it does not (and when one unexpectedly does).
-//   runScript - spawns bash -c over the extracted script text with the workflow's env mapping and an optional PATH shim dir.
-//   prepareShims - node-based shasum where the host lacks it; for the repackage case only, xcrun/codesign/spctl stubs that log argv and exit zero (nothing real is signed, notarized or assessed; hdiutil is never shimmed).
+//   runScript - spawns bash -c over the extracted script text with the workflow's env mapping and an optional PATH shim dir; on hosts without shasum it runs SHASUM_FUNCTION_WRAPPER instead, with the unchanged step text in GATE_SCRIPT.
+//   SHASUM_FUNCTION_WRAPPER - the bash -c prelude for hosts without shasum: defines a shell function named shasum over the node stand-in, then evals the unchanged step text.
+//   prepareShims - for the repackage case only, writes xcrun/codesign/spctl PATH stubs that log argv and exit zero (nothing real is signed, notarized or assessed; hdiutil is never shimmed).
+//   shasumShimJs - path of the node shasum stand-in, written once per process only where the host lacks shasum (null elsewhere).
+//   shasumShimDir - the stand-in's private temp directory, removed in afterAll.
 //   repoRoot - repository root resolved from this file's location, so the workflow is read independently of the working directory.
 //   RELEASE_ROOT_LITERAL - the one fixed path the executed workflow steps hardcode (/tmp/release); the only text the substitution may replace.
 //   macVerifyScript - extracted run: shell of the macOS digest-verify step of the sign job.
@@ -29,8 +32,10 @@
 //   hdiutilSkipReason - explicit reason reported when the disk-image case is skipped because hdiutil is absent.
 //   describeOutput - exit status plus stdout and stderr of a spawned step, for assertion messages.
 //   sha256Hex - hex SHA-256 of a byte buffer (fixtures and shim source).
-//   shasumShimSource - source of the node-based shasum PATH shim used where the host lacks shasum.
+//   shasumShimSource - source of the node shasum stand-in, run through the shell function on hosts that lack shasum.
 //   signingShimSource - source of the xcrun/codesign/spctl PATH stubs that only log their argv and exit zero.
+//   toForwardSlashes - compares paths in one shape: backslashes become forward slashes on both sides of a match.
+//   uploadPathMatches - decides whether one file path is carried by one with.path entry (wildcard, or an exact/glob list entry).
 //   stagedFilesForUpload - which files the Windows upload step would carry: every file for a wildcard, only the named files for a list.
 //   mirrorUpload - copies exactly the files stagedFilesForUpload selects into the per-test staged dir, modelling the artifact handoff.
 //   makeTempRoot - creates the per-test temp tree under the OS temp dir; the only directory any test writes to or removes.
@@ -39,6 +44,7 @@
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
 //   - 2026-11-22 C-RELEASE-SIGN-STAGED-SET: execution gate lands FIRST and red by design — on the pre-fix workflow text the stage-then-verify case exits nonzero because latest-platform.json is staged without a receipt, and the repackage case exits nonzero because hdiutil convert refuses the destination the verify step's copy already occupies; the workflow fix flips both green while the pass, missing-receipt and tamper controls stay pinned on both platforms.
+//   - 2026-11-22 C-RELEASE-SIGN-STAGED-SET (CI round 1, Windows runner): the shasum stand-in became a shell function (a file shim without an exec bit is reported as command not found by Git Bash) and upload matching compares both paths in one shape; a sixth test pins the matcher for both path styles.
 // END_CHANGE_SUMMARY
 
 import { spawnSync } from 'node:child_process'
@@ -58,7 +64,7 @@ import {
 import { tmpdir } from 'node:os'
 import { delimiter, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
@@ -112,12 +118,27 @@ const substituteReleaseRoot = (script, releaseRoot, { expectsLiteral }) => {
 // Execution: bash -c over the (substituted) script text verbatim, under an
 // env providing what the workflow provides (RUNNER_TEMP/STAGE/RELEASE_DIR/
 // TAG plus the APPLE_* names the repackage step references under set -u).
+// On a host without shasum the extracted text is still executed verbatim —
+// through eval of the unchanged string — after a shell FUNCTION named
+// shasum is defined in front of it: a function needs no exec bit, unlike a
+// file shim, which Git Bash on the Windows runner refuses to run.
+const SHASUM_FUNCTION_WRAPPER =
+  'shasum() { node "$GATE_SHASUM_JS" "$@"; }\neval "$GATE_SCRIPT"'
 const runScript = ({ script, releaseRoot = null, expectsLiteral = false, env = {}, shimDir = null, cwd = null }) => {
   const text =
     releaseRoot === null ? script : substituteReleaseRoot(script, releaseRoot, { expectsLiteral })
   const childEnv = { ...process.env }
   if (shimDir) childEnv.PATH = `${shimDir}${delimiter}${childEnv.PATH ?? ''}`
   Object.assign(childEnv, env)
+  if (shasumShimJs) {
+    childEnv.GATE_SHASUM_JS = shasumShimJs
+    childEnv.GATE_SCRIPT = text
+    return spawnSync('bash', ['-c', SHASUM_FUNCTION_WRAPPER], {
+      env: childEnv,
+      cwd: cwd ?? undefined,
+      encoding: 'utf8'
+    })
+  }
   return spawnSync('bash', ['-c', text], { env: childEnv, cwd: cwd ?? undefined, encoding: 'utf8' })
 }
 
@@ -151,8 +172,10 @@ const hdiutilSkipReason =
   'skipped: this host has no real hdiutil — the repackage case runs only where hdiutil can create, attach and convert a real disk image (bash must be present too)'
 
 const shasumShimSource = `#!/usr/bin/env node
-// PATH shim for hosts without shasum: the -a 256 FILE form the receipt loops
-// use, printing "<hex>  <file>" like shasum so awk '{print $1}' reads the hex.
+// shasum stand-in for hosts without it (the macOS verify loop calls
+// 'shasum -a 256 FILE'): a node script invoked through the bash function
+// SHASUM_FUNCTION_WRAPPER defines. It prints "<hex>  <file>" like shasum so
+// awk '{print $1}' reads the hex.
 const args = process.argv.slice(2)
 const algoIndex = args.indexOf('-a')
 const algo = algoIndex === -1 ? 'sha1' : args[algoIndex + 1]
@@ -171,14 +194,24 @@ printf '%s\\n' "${tool} $*" >> "${logFile}"
 exit 0
 `
 
+// Written once per test process, only where the host lacks shasum; removed
+// in afterAll. Nothing else lives in this directory.
+const shasumShimJs = hostHasShasum
+  ? null
+  : (() => {
+      const dir = mkdtempSync(join(tmpdir(), 'sign-staged-shasum-'))
+      const file = join(dir, 'shasum-shim.cjs')
+      writeFileSync(file, shasumShimSource)
+      return file
+    })()
+const shasumShimDir = shasumShimJs === null ? null : dirname(shasumShimJs)
+afterAll(() => {
+  if (shasumShimDir !== null) rmSync(shasumShimDir, { recursive: true, force: true })
+})
+
 const prepareShims = (tempRoot, { signingTools = false, logFile = null } = {}) => {
   const shimDir = join(tempRoot, 'shims')
   mkdirSync(shimDir, { recursive: true })
-  if (!hostHasShasum) {
-    const shim = join(shimDir, 'shasum')
-    writeFileSync(shim, shasumShimSource)
-    chmodSync(shim, 0o755)
-  }
   if (signingTools) {
     for (const tool of ['xcrun', 'codesign', 'spctl']) {
       const shim = join(shimDir, tool)
@@ -200,20 +233,30 @@ const writeWithReceipt = (dir, name, bytes) => {
 // wildcard carries every file in the staged dir, a list carries only the
 // named files. Which files travel is never hardcoded here; that is exactly
 // what makes the stage-then-verify case red before the fix and green after.
+// Both sides are compared with forward slashes: the workflow writes
+// `${{ runner.temp }}\release\…` while the host's own paths carry the
+// platform separator, and a mismatch on one side silently carries nothing.
+const toForwardSlashes = (value) => value.split('\\').join('/')
+const uploadPathMatches = (subject, pattern, runnerTemp) => {
+  const normalized = toForwardSlashes(pattern.split('${{ runner.temp }}').join(runnerTemp))
+  const candidate = toForwardSlashes(subject)
+  if (normalized === '*' || normalized.endsWith('/*')) return true
+  const regex = new RegExp(
+    `^${normalized.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')}$`
+  )
+  return regex.test(candidate)
+}
 const stagedFilesForUpload = (runnerTemp, releaseDir, uploadPathRaw) => {
   const patterns = (Array.isArray(uploadPathRaw) ? uploadPathRaw : String(uploadPathRaw).split(/\r?\n/))
     .map((line) => line.trim())
     .filter(Boolean)
   const carried = []
   for (const file of readdirSync(releaseDir).sort()) {
-    const travels = patterns.some((pattern) => {
-      const normalized = pattern.split('${{ runner.temp }}').join(runnerTemp).replace(/\\/g, '/')
-      if (normalized === '*' || normalized.endsWith('/*')) return true
-      const regex = new RegExp(
-        `^${normalized.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')}$`
-      )
-      return regex.test(`${releaseDir}/${file}`) || regex.test(file)
-    })
+    const travels = patterns.some(
+      (pattern) =>
+        uploadPathMatches(`${releaseDir}/${file}`, pattern, runnerTemp) ||
+        uploadPathMatches(file, pattern, runnerTemp)
+    )
     if (travels) carried.push(file)
   }
   return carried
@@ -247,6 +290,25 @@ describe('sign staged handoff execution gate (C-RELEASE-SIGN-STAGED-SET)', () =>
     // on markup drift instead of masking it during execution.
     expect(macVerifyScript()).toContain(RELEASE_ROOT_LITERAL)
     expect(repackageScript()).toContain(RELEASE_ROOT_LITERAL)
+  })
+
+  it('matches the workflow upload list for both path styles', () => {
+    // Regression for the Windows runner, where the first CI round of this
+    // gate carried nothing: the workflow writes backslash paths while the
+    // host joins its own with the platform separator.
+    const runnerTemp = 'C:\\Users\\runneradmin\\AppData\\Local\\Temp\\handoff'
+    const exe = '${{ runner.temp }}\\release\\Mark_*_x64-setup.exe'
+    const receipt = '${{ runner.temp }}\\release\\Mark_*_x64-setup.exe.sha256'
+    const fragment = '${{ runner.temp }}\\release\\latest-platform.json'
+    expect(uploadPathMatches(`${runnerTemp}\\release\\Mark_1.2.3_x64-setup.exe`, exe, runnerTemp)).toBe(true)
+    expect(uploadPathMatches(`${runnerTemp}\\release\\Mark_1.2.3_x64-setup.exe.sha256`, receipt, runnerTemp)).toBe(true)
+    expect(uploadPathMatches(`${runnerTemp}\\release\\latest-platform.json`, fragment, runnerTemp)).toBe(true)
+    expect(uploadPathMatches(`${runnerTemp}\\release\\app-screenshot.png`, exe, runnerTemp)).toBe(false)
+    expect(uploadPathMatches(`${runnerTemp}\\release\\Mark_1.2.3_x64-setup.exe.sig`, exe, runnerTemp)).toBe(false)
+    expect(
+      uploadPathMatches(`${runnerTemp}\\release\\anything.txt`, '${{ runner.temp }}\\release\\*', runnerTemp)
+    ).toBe(true)
+    expect(uploadPathMatches('/tmp/handoff/release/Mark_1.2.3_x64-setup.exe', exe, '/tmp/handoff')).toBe(true)
   })
 
   it.skipIf(!hostHasBash)(
