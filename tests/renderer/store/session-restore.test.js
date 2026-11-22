@@ -35,7 +35,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setupTestPinia } from '../pinia'
-import { ipcPrefs } from '@/ipc/runtime'
+import { ipcPrefs, ipcFs } from '@/ipc/runtime'
 
 const PREFS = new Map()
 const FILES = new Set()
@@ -57,7 +57,10 @@ vi.mock('@/ipc/runtime', () => ({
     get: vi.fn(async (k) => (PREFS.has(k) ? PREFS.get(k) : null)),
     set: vi.fn(async (k, v) => { PREFS.set(k, v) }),
     getAll: vi.fn(async () => ({})),
-    setMany: vi.fn(async (entries) => { for (const e of entries) PREFS.set(e.key, e.value) })
+    setMany: vi.fn(async (entries) => { for (const e of entries) PREFS.set(e.key, e.value) }),
+    // C-SESSION-DURABILITY: the read batch — the same PREFS map with the
+    // same absent-to-null semantics as the single-key get above.
+    getMany: vi.fn(async (keys) => Object.fromEntries(keys.map((k) => [k, PREFS.has(k) ? PREFS.get(k) : null])))
   }
 }))
 vi.mock('@/services/notification', () => ({ default: { notify: vi.fn(async () => undefined) } }))
@@ -178,6 +181,75 @@ describe('batched session write (C-SESSION-WRITE-ATOMICITY)', () => {
     await expect(editorStore._saveSessionState()).rejects.toThrow('MT_PREFS_SET_MANY_FAILED')
     expect(flushSpy).toHaveBeenCalledTimes(1)
     expect(flushSpy).toHaveBeenCalledWith(editorStore.tabs[0])
+  })
+})
+
+// ── C-SESSION-DURABILITY: one batched read + one stat pass ─────────
+
+describe('session restore reads (C-SESSION-DURABILITY)', () => {
+  it('restore_reads_the_session_profile_in_one_batched_get_many', async () => {
+    DIRS.add('/proj')
+    FILES.add('/proj/a.md')
+    PREFS.set('lastSessionFolders', ['/proj'])
+    PREFS.set('lastSessionTabs', ['/proj/a.md'])
+    PREFS.set('lastSessionActive', '/proj/a.md')
+    PREFS.set('lastSessionFormats', [])
+    vi.spyOn(console, 'debug').mockImplementation(() => {})
+
+    await editorStore.RESTORE_SESSION()
+
+    expect(ipcPrefs.getMany.mock.calls.length, `expected ONE batched read, got getMany calls=${ipcPrefs.getMany.mock.calls.length} and per-key gets=${JSON.stringify(ipcPrefs.get.mock.calls)}`).toBe(1)
+    const keys = ipcPrefs.getMany.mock.calls[0][0]
+    expect([...keys].sort()).toEqual([
+      'lastSessionActive', 'lastSessionFolders', 'lastSessionFormats', 'lastSessionTabs'
+    ])
+    // The read mirror of the batched-write pin: NO per-key ipcPrefs.get
+    // for any of the four lastSession* keys.
+    for (const key of ['lastSessionTabs', 'lastSessionActive', 'lastSessionFolders', 'lastSessionFormats']) {
+      expect(ipcPrefs.get).not.toHaveBeenCalledWith(key)
+    }
+  })
+
+  it('restore_checks_all_saved_paths_in_one_stat_pass_before_the_first_open', async () => {
+    DIRS.add('/proj'); DIRS.add('/gone-dir')
+    FILES.add('/proj/a.md'); FILES.add('/proj/b.md')
+    PREFS.set('lastSessionFolders', ['/proj', '/gone-dir'])
+    PREFS.set('lastSessionTabs', ['/proj/a.md', '/proj/gone.md', '/proj/b.md'])
+    PREFS.set('lastSessionActive', '/proj/a.md')
+    PREFS.set('lastSessionFormats', [])
+    vi.spyOn(console, 'debug').mockImplementation(() => {})
+
+    await editorStore.RESTORE_SESSION()
+
+    // Every folder and file stat is issued BEFORE the first
+    // mt::open-file invoke (per-call invocationCallOrder), and the stat
+    // count equals the checked folder candidates (2) plus the checked
+    // file paths (3).
+    const statOrders = ipcFs.stat.mock.invocationCallOrder
+    const openOrders = openFileInvoke.mock.invocationCallOrder
+    expect(statOrders.length, `stat count ${statOrders.length} != folders(2)+files(3)`).toBe(5)
+    expect(openOrders.length, 'the open loop ran the two existing tabs').toBe(2)
+    expect(Math.max(...statOrders), `stats interleaved with opens (stat orders ${JSON.stringify(statOrders)} vs open orders ${JSON.stringify(openOrders)})`).toBeLessThan(Math.min(...openOrders))
+  })
+
+  it('a_frozen_payload_restore_reads_no_preferences', async () => {
+    // C-FIX-009 preservation pin: the frozen-payload path reads NO
+    // preferences at all — recorded honestly as a preservation pin of
+    // the frozen path (green-by-design), not a red-first detector.
+    FILES.add('/proj/frozen.md')
+    ipcPrefs.getMany.mockClear()
+    ipcPrefs.get.mockClear()
+    vi.spyOn(console, 'debug').mockImplementation(() => {})
+
+    await editorStore.RESTORE_SESSION({
+      from: { tabs: ['/proj/frozen.md'], folders: [], active: null, formats: [] }
+    })
+
+    expect(ipcPrefs.getMany).not.toHaveBeenCalled()
+    for (const call of ipcPrefs.get.mock.calls) {
+      expect(call[0], 'the frozen path must not reread any lastSession* preference').not.toMatch(/^lastSession/)
+    }
+    expect(editorStore.tabs.map((t) => t.pathname)).toEqual(['/proj/frozen.md'])
   })
 })
 

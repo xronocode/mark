@@ -1,0 +1,516 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-SESSION-DURABILITY>
+    <IntentSummary>Prove the shipped session durability contract and close its four unproven or stale corners without touching any predecessor decision. (1) Close-after-write becomes proven coverage: a named unit pin proves the per-tab reading-position flushes that ride the batched session write complete before the close command is invoked (flush-inclusive confirmation scope), and a new e2e spec injects a slow, a never-settling and a rejecting mt_prefs_set_many through the existing tauri-shim seams to prove mt_close_window fires only after a settling write, that the two-second bound fires with BLOCK_SESSION_COMMIT_TIMEOUT while the close still completes, and that a rejected write completes the close with BLOCK_SESSION_WRITE_FAILED — the bound's value and the timeout-still-closes trade stay the predecessor C-SESSION-WRITE-ATOMICITY's owner-confirmed decisions, unchanged. (2) recentlyClosed stops deleting on any stat failure: the filePositionStore tri-state stat verdict (true / false = confirmed not-a-file including MT_FS_NOT_FOUND / undefined = cannot tell) is ported through the shared exported helper, so REOPEN_ONE and REOPEN_ALL drop an entry only on a confirmed false; cannot-tell entries keep the entry behind their own localized notice (new recent.recentlyClosed.* keys in all ten locales), the confirmed-missing behavior is byte-identical to today, and the stale vitest pins that reward generic-rejection drops are unfolded onto coded NOT_FOUND rejections. (3) The live session restore reads the four-key profile as ONE request through the new read-batch mirror of the write batch — PrefsState::get_many / mt_prefs_get_many (one mutex acquisition, absent keys as null, read-only: no save, no generation change, no broadcast) registered next to mt_prefs_set_many, the ipcPrefs.getMany facade wrapper (raw invoke, the setMany precedent) — and checks all saved folder and file paths in ONE concurrent stat pass before the first open; the BOOT_SESSION cold-start capture shares the same one-request read; no backend stat-batch command. (4) The per-tab format lookup stops being O(N²): the formats list is indexed into a Map by pathname once (behavior-preserving by the captureSessionFormats pathname dedup) and the MAX_POSITION_FILES cap (200) is enforced on the write path too via the existing capStoreFiles, so the on-disk position store can never silently exceed the bound between reads. (5) The stale cold-start nets are re-aimed at the shipped C-FIX-009 contract: the affordance-audit test.fixme becomes a real passing test on the contract-shape harness (restoreSessionOnLaunch=false, frozen boot offer, frozen-payload restore, no row when the snapshot is empty) and the regression-tests wel-002 entry stops being a stale pending orphan. Profile content schema, the m001 close state machine, the close-prompt dialog, the 400 ms autosave debounce and the restoreSessionOnLaunch behavior are unchanged.</IntentSummary>
+    <Spec>C-SESSION-DURABILITY</Spec>
+    <ReferenceState>Authored 2026-11-23 against the read-only green-sess1 worktree (branch spec/session-durability, base fc0d1fb4, carrying the merged C-UPDATER-NET-BOUNDS). src/renderer/src/store/editor.js: SESSION_COMMIT_TIMEOUT_MS = 2000 (:76), the prepareCommit quit/window-close arm routing to _boundedSessionCommit (:504-505), _boundedSessionCommit racing the write against the bound with BLOCK_SESSION_COMMIT_TIMEOUT/BLOCK_SESSION_WRITE_FAILED markers (:628-649), _saveSessionState writing the four lastSession* keys as ONE ipcPrefs.setMany batch (:713-718) followed by the Promise.allSettled per-tab _flushFilePositionForTab flushes (:725-728) and the batch-error rethrow (:729), the debounced autosave with its BLOCK_SESSION_WRITE_FAILED catch (:732-750), BOOT_SESSION's cold-start capture reading the four keys in one parallel Promise.all when restore is off (:779-784), RESTORE_SESSION's frozen-payload readList (:811-819) and exists helper (:820-827), the four sequential live reads (:828-831: readList('lastSessionFolders'), readList('lastSessionTabs'), ipcPrefs.get('lastSessionActive'), ipcPrefs.get('lastSessionFormats')), folder stats one-by-one interleaved with opens (:842-851), file stats plus mt::open-file opens (:852-869), the linear formats.find per tab (:855), the frozen-offer consume (:891), LISTEN_FOR_CLOSE (:931-935), and GET_SESSION_PATHS keeping its single-key ipcPrefs.get('lastSessionTabs') (:921-929 — out of scope, stays). src/renderer/src/store/recentlyClosed.js: REOPEN_ONE's stat catch-all mapping any rejection to exists=false → CONSUME + missingNotice + BLOCK_REOPEN_MISSING basename marker (:112-146, consume at :122), REOPEN_ALL's single concurrent stat pass with .catch(() =&gt; false) dropping every false up front and the { reopened, missing, active } return (:163-216) with the EMPTY-list early return { reopened: 0, missing: 0 } carrying NO active key (:164 — the asymmetry this plan preserves). src/renderer/src/util/filePositionStore.js: MAX_POSITION_FILES = 200 (:55), capStoreFiles newest-by-savedAt with deterministic path tiebreak (:107-120), the serialized mutation queue (:198-206), the internal tri-state statFileExists reading window.fileUtils.stat with the MT_FS_NOT_FOUND code mapping and the undefined cannot-tell fallback (:216-237, NOT exported today), pruneMissingFiles (:239-256), the read path applying prune + cap (:262-284), and saveFilePosition writing without any cap (:289-306). The tri-state pin precedent: tests/renderer/util/file-position-store.test.js :119 (cap), :144 (prune+write-back), :178 (serialization), :206 (only confirmed false prunes), :229 (coded rejections), :255-285 (the default checker's MT_FS_NOT_FOUND mapping pinned through a stubbed window.fileUtils.stat with err.code — THE injection pattern this plan reuses for the coded-rejection pins). src-tauri/src/m005_prefs.rs: PrefsEntry (:86), save_with_rename (:182), PrefsState::set_many — one mutex acquisition, one save (:319-325), the #[cfg(test)] set_many_with_rename seam (:330-341), mt_prefs_get (:398-401), mt_prefs_set (:411-433), mt_prefs_set_many (:441-460), mt_prefs_get_all with its BLOCK_INVOKED marker (:463-468), and the pins set_many_writes_session_profile_in_one_transaction (:632) / set_many_failure_keeps_previous_generation_and_never_promotes_tmp (:717). src-tauri/src/main.rs registers the prefs commands at :916-919 (mt_prefs_get, mt_prefs_set, mt_prefs_set_many, mt_prefs_get_all). src/renderer/src/ipc/runtime/prefs.ts: get/set/setMany/getAll with setMany on the raw invoke (:21-47) — no read batch. window.fileUtils.stat routes to ipc.fs.stat (install-window-globals.js:303), and the vitest setup reinstalls window.fileUtils with a default is_file:true stat in beforeEach (tests/renderer/setup.ts:198, :289-291), so a window.fileUtils.stat-based verdict keeps every live-path unit outcome while giving suites a clean per-test stub seam. The tauri shim records every command into __invokeLog (:209) and resolves __mockInvoke overrides before defaults (:210, :223), with the mt_prefs_set_many per-key fanout precedent (:216-222); the e2e welcome harness pattern lives in welcome.spec.ts (mt_prefs_get serving restoreSessionOnLaunch=false :72-79, the pinia-state off-pin before bootstrap :100-103); affordance-audit.spec.ts carries the stale welcome beforeEach stub serving lastSessionTabs from the live preference (:340-361) and the test.fixme asserting the pre-FIX-009 reachability (:407-416); regression-tests.json wel-002 sits at status "pending" with the «FIX-009 open (2026-10-20)» note (:29); the existing recent.recentlyClosed locale block carries missingNotice «{name} is no longer available» (static/locales/en.json:1627) — the copy the new transient keys must NOT borrow; the locale gate pattern is the per-change describe over the ten LOCALES (tests/renderer/i18n/locale-keys.test.js:56, the C-UPDATER-NET-BOUNDS T-003 describe :171-189); document-operations.test.js (the exact file name — the spec Problem's «documentOperations.test.js» spelling is corrected here per review) holds the three real-store-wiring close pins (:261, :282, :300) with the bootCloseStore harness (:251-255); session-restore.test.js holds the batched-write mirror pin (:142-170), the PREFS-backed ipcPrefs mock with setMany (:56-61) and the FILES/DIRS ipcFs.stat seam (:48-52) that keeps driving RESTORE_SESSION's exists checks; documentFormat.js dedups session format records by pathname — a duplicate pathname throws MT_ENC_INVALID_POLICY (:92) and seen.add lands only after a successful capture (:95) — which is what makes a Map index behavior-preserving. Review-minor resolutions recorded: (1) the close-pin file is tests/renderer/util/document-operations.test.js everywhere in this plan; (2) the spec's «e2e has zero close/session-write coverage» is read precisely as «there is no close↔session-write ORDERING evidence at e2e» — the close-adjacent tests/e2e/perf/characterization-save-close.spec.ts exists but is renderer-only characterization proving no ordering; (3) the REOPEN_ALL empty-list early return keeps its exact { reopened, missing: 0 } shape without an active key; (4) verdict-helper transport decision: the tri-state helper is EXPORTED from filePositionStore.js (statFileExists, body untouched) and consumed by recentlyClosed.js, so the recently-closed verdict transport is window.fileUtils.stat and the coded-rejection pins inject by stubbing window.fileUtils.stat (the file-position-store.test.js:255-285 precedent), not via ipcFs.stat; pageWidthStore.js keeps its own duplicate helper (out of scope) — recorded as residue; (5) the Map-index behavior-preservation justification is the documentFormat.js:92/:95 pathname dedup. Deviation notes: (a) Rust failing-first is red-by-absence — the get_many pin does not compile until PrefsState::get_many exists, and the compile failure is the recorded failing-first evidence; (b) the get_many no-persist proof is byte-identity of the raw store file before/after plus the absence of a .tmp sibling — the injected-rename seam does not apply to a read-only command with no save to inject, while the temp-dir/raw-bytes discipline of pins :632/:717 is reused; (c) the worktree commit hash is not recorded here (no shell access from the drafting session); every file, line and byte-level anchor above was verified directly against this tree; (d) this plan carries no self-referential grace-lint commands and no SpecSha256 field — the orchestrator runs the current/target/final lint gates itself and stamps the spec hash. Writing this draft approves neither implementation, apply/archive, commit/push, lane departure, release, signing, tag nor publication.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-005</Value>
+        <Value>M-011</Value>
+        <Value>src-tauri/src/m005_prefs.rs</Value>
+        <Value>src-tauri/src/main.rs</Value>
+        <Value>src/renderer/src/store/editor.js</Value>
+        <Value>src/renderer/src/store/recentlyClosed.js</Value>
+        <Value>src/renderer/src/util/filePositionStore.js</Value>
+        <Value>src/renderer/src/ipc/runtime/prefs.ts</Value>
+        <Value>src/renderer/src/util/documentFormat.js</Value>
+        <Value>tests/renderer/store/session-restore.test.js</Value>
+        <Value>tests/renderer/store/recently-closed.test.js</Value>
+        <Value>tests/renderer/store/editor-session-coldstart.test.js</Value>
+        <Value>tests/renderer/util/file-position-store.test.js</Value>
+        <Value>tests/renderer/util/document-operations.test.js</Value>
+        <Value>tests/renderer/ipc/runtime-prefs.test.ts</Value>
+        <Value>tests/renderer/i18n/locale-keys.test.js</Value>
+        <Value>tests/e2e/affordance-audit.spec.ts</Value>
+        <Value>tests/e2e/welcome.spec.ts</Value>
+        <Value>tests/e2e/fixtures/tauri-shim.ts</Value>
+        <Value>tests/regression-tests.json</Value>
+        <Value>static/locales/en.json</Value>
+        <Value>.grace/graph/runtime.xml</Value>
+        <Value>.grace/verification/runtime.xml</Value>
+      </MustExist>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>SESSION_COMMIT_TIMEOUT_MS = 2000</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>BLOCK_SESSION_COMMIT_TIMEOUT</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>BLOCK_SESSION_WRITE_FAILED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>ipcPrefs.setMany(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>const record = formats.find(record =&gt; record.pathname === p)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>const active = from ? (from.active || null) : await ipcPrefs.get('lastSessionActive').catch(() =&gt; null)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/recentlyClosed.js</File>
+        <Text>const stat = await ipcFs.stat(entry.pathname)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/recentlyClosed.js</File>
+        <Text>.catch(() =&gt; false))</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/filePositionStore.js</File>
+        <Text>export const MAX_POSITION_FILES = 200</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/filePositionStore.js</File>
+        <Text>const statFileExists = async (pathname) =&gt; {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/filePositionStore.js</File>
+        <Text>const nextStore = storeWithEntry(rawStore, pathname, entry)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/documentFormat.js</File>
+        <Text>seen.has(record.pathname)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>pub async fn mt_prefs_set_many(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>pub fn set_many(&amp;self, entries: Vec&lt;PrefsEntry&gt;) -&gt; Result&lt;(), std::io::Error&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn set_many_writes_session_profile_in_one_transaction(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn set_many_failure_keeps_previous_generation_and_never_promotes_tmp(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/main.rs</File>
+        <Text>m005_prefs::mt_prefs_set_many,</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/ipc/runtime/prefs.ts</File>
+        <Text>async setMany(entries</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/recently-closed.test.js</File>
+        <Text>REOPEN_ONE drops a missing file with a visible notice (never a silent no-op)</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/recently-closed.test.js</File>
+        <Text>REOPEN_ALL drops missing files with one combined notice and continues</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/util/file-position-store.test.js</File>
+        <Text>the default stat checker maps MT_FS_NOT_FOUND rejections to confirmed-missing</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/util/document-operations.test.js</File>
+        <Text>close_waits_for_session_write_confirmation_before_destroy</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/util/document-operations.test.js</File>
+        <Text>bounded_timeout_still_closes_honestly</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/util/document-operations.test.js</File>
+        <Text>rejected_session_write_still_closes</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/affordance-audit.spec.ts</File>
+        <Text>test.fixme('Last session row restores the closed session (FIX-009)'</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/welcome.spec.ts</File>
+        <Text>if (args?.key === 'restoreSessionOnLaunch') return false</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/regression-tests.json</File>
+        <Text>FIX-009 open (2026-10-20) — reported broken; verify after its repair</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/en.json</File>
+        <Text>"missingNotice": "{name} is no longer available"</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/setup.ts</File>
+        <Text>stat: vi.fn(async (_p: string) =&gt; ({ is_file: true</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-005</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-011</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>pub async fn mt_prefs_get_many(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>pub fn get_many(&amp;self, keys: Vec&lt;String&gt;)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn get_many_returns_requested_keys_without_persisting(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>[Prefs][get_many][BLOCK_INVOKED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn set_many_writes_session_profile_in_one_transaction(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/main.rs</File>
+        <Text>m005_prefs::mt_prefs_get_many,</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/ipc/runtime/prefs.ts</File>
+        <Text>mt_prefs_get_many</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>ipcPrefs.getMany(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>C-SESSION-DURABILITY</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/recentlyClosed.js</File>
+        <Text>statFileExists</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/recentlyClosed.js</File>
+        <Text>C-SESSION-DURABILITY</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/filePositionStore.js</File>
+        <Text>export const statFileExists</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/filePositionStore.js</File>
+        <Text>capStoreFiles(nextStore)</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/session-restore.test.js</File>
+        <Text>restore_reads_the_session_profile_in_one_batched_get_many</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/session-restore.test.js</File>
+        <Text>restore_checks_all_saved_paths_in_one_stat_pass_before_the_first_open</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/session-restore.test.js</File>
+        <Text>a_frozen_payload_restore_reads_no_preferences</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/session-restore.test.js</File>
+        <Text>_saveSessionState issues exactly one setMany</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/recently-closed.test.js</File>
+        <Text>reopen_one_keeps_the_entry_when_the_stat_verdict_is_cannot_tell</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/recently-closed.test.js</File>
+        <Text>reopen_all_keeps_transient_entries_and_counts_only_confirmed_missing</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/recently-closed.test.js</File>
+        <Text>reopen_one_still_drops_on_confirmed_not_found</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/recently-closed.test.js</File>
+        <Text>reopen_all_still_drops_on_confirmed_not_found</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/recently-closed.test.js</File>
+        <Text>MT_FS_NOT_FOUND</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/editor-session-coldstart.test.js</File>
+        <Text>getMany</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/util/file-position-store.test.js</File>
+        <Text>saveFilePosition_caps_the_store_to_MAX_POSITION_FILES</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/util/document-operations.test.js</File>
+        <Text>close_commit_confirms_per_tab_position_flushes_before_destroy</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/ipc/runtime-prefs.test.ts</File>
+        <Text>mt_prefs_get_many</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/i18n/locale-keys.test.js</File>
+        <Text>recent.recentlyClosed.unverifiedNotice</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/i18n/locale-keys.test.js</File>
+        <Text>recent.recentlyClosed.someUnverifiedNotice</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/en.json</File>
+        <Text>"unverifiedNotice"</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/en.json</File>
+        <Text>"someUnverifiedNotice"</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/session-close-commit.spec.ts</File>
+        <Text>close_waits_for_a_slow_session_write_under_the_bound</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/session-close-commit.spec.ts</File>
+        <Text>bounded_timeout_still_closes_with_the_write_in_flight</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/session-close-commit.spec.ts</File>
+        <Text>rejected_session_write_still_closes_e2e</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/session-close-commit.spec.ts</File>
+        <Text>BLOCK_SESSION_COMMIT_TIMEOUT</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/session-close-commit.spec.ts</File>
+        <Text>BLOCK_SESSION_WRITE_FAILED</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/fixtures/tauri-shim.ts</File>
+        <Text>mt_prefs_get_many</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/affordance-audit.spec.ts</File>
+        <Text>row-session</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/regression-tests.json</File>
+        <Text>affordance-audit.spec.ts</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/runtime.xml</File>
+        <Text>C-SESSION-DURABILITY</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/runtime.xml</File>
+        <Text>C-SESSION-DURABILITY</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>formats.find</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>ipcPrefs.get('lastSessionActive'</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>ipcPrefs.get('lastSessionFormats'</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/renderer/src/store/recentlyClosed.js</File>
+        <Text>catch(() =&gt; false)</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/renderer/src/ipc/contract/types.ts</File>
+        <Text>mt_prefs_get_many</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>tests/e2e/affordance-audit.spec.ts</File>
+        <Text>test.fixme('Last session row restores the closed session (FIX-009)'</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>tests/regression-tests.json</File>
+        <Text>FIX-009 open (2026-10-20)</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command budgetSeconds="600">cargo test --manifest-path src-tauri/Cargo.toml --bin mark prefs</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/store/session-restore.test.js tests/renderer/store/recently-closed.test.js tests/renderer/store/editor-session-coldstart.test.js tests/renderer/util/file-position-store.test.js tests/renderer/util/document-operations.test.js tests/renderer/ipc/runtime-prefs.test.ts tests/renderer/i18n/locale-keys.test.js</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="900">npx --no-install playwright test --project=chromium tests/e2e/session-close-commit.spec.ts tests/e2e/affordance-audit.spec.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-005 />
+        <M-011 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-005 />
+        <V-M-011 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src-tauri/src/m005_prefs.rs</File>
+      <File>src-tauri/src/main.rs</File>
+      <File>src/renderer/src/ipc/runtime/prefs.ts</File>
+      <File>src/renderer/src/store/editor.js</File>
+      <File>src/renderer/src/store/recentlyClosed.js</File>
+      <File>src/renderer/src/util/filePositionStore.js</File>
+      <File>static/locales/en.json</File>
+      <File>static/locales/de.json</File>
+      <File>static/locales/es.json</File>
+      <File>static/locales/fr.json</File>
+      <File>static/locales/ja.json</File>
+      <File>static/locales/ko.json</File>
+      <File>static/locales/pt.json</File>
+      <File>static/locales/ru.json</File>
+      <File>static/locales/zh-CN.json</File>
+      <File>static/locales/zh-TW.json</File>
+      <File>tests/renderer/store/recently-closed.test.js</File>
+      <File>tests/renderer/store/session-restore.test.js</File>
+      <File>tests/renderer/store/editor-session-coldstart.test.js</File>
+      <File>tests/renderer/util/file-position-store.test.js</File>
+      <File>tests/renderer/util/document-operations.test.js</File>
+      <File>tests/renderer/ipc/runtime-prefs.test.ts</File>
+      <File>tests/renderer/i18n/locale-keys.test.js</File>
+      <File>tests/e2e/session-close-commit.spec.ts</File>
+      <File>tests/e2e/affordance-audit.spec.ts</File>
+      <File>tests/e2e/fixtures/tauri-shim.ts</File>
+      <File>tests/regression-tests.json</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Failing-first read-batch pins: the get_many backend pin (red by absence) and the session-restore one-request / one-stat-pass pins (red against the four-sequential-reads, stats-interleaved tree)</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Failing-first proof precedes implementation, with the red states recorded per the Rust and renderer conventions: (a) the m005_prefs.rs pin get_many_returns_requested_keys_without_persisting is authored first against the planned PrefsState::get_many surface — on the delivery baseline the cargo test binary fails to COMPILE because neither PrefsState::get_many nor mt_prefs_get_many exists, and that compile failure is the recorded red-by-absence evidence (the read batch does not exist); (b) the session-restore pins below are shown red on the baseline: restore_reads_the_session_profile_in_one_batched_get_many fails because the live RESTORE_SESSION issues FOUR sequential per-key reads (readList('lastSessionFolders'), readList('lastSessionTabs'), ipcPrefs.get('lastSessionActive'), ipcPrefs.get('lastSessionFormats') — editor.js:828-831) and no getMany exists on the transport; restore_checks_all_saved_paths_in_one_stat_pass_before_the_first_open fails because folder stats (:842-851) and file stats (:852-853) fire one-by-one interleaved with the opens. The failing-first runs must demonstrate both the unbatched read sequence and the interleaved stats, not merely an assertion-name mismatch.</Criterion>
+          <Criterion>m005_prefs.rs gains the #[cfg(test)] pin get_many_returns_requested_keys_without_persisting (in the existing prefs test module, beside the :632/:717 set_many pins): it seeds a previous generation through PrefsState::set (a non-session key such as theme plus one distinct lastSessionTabs value), snapshots the raw store-file bytes, calls the planned get_many with a key list mixing present keys (lastSessionTabs, theme), an absent-but-session key (lastSessionActive) and a never-used key, and asserts the returned map carries EXACTLY the requested keys, every absent key mapped to Value::Null (the facade's null-for-absent semantics, the mt_prefs_get :398-401 precedent), and after the call the raw bytes are byte-identical with no preferences.json.tmp sibling present — no store-file write and no generation change. The byte-identity discipline mirrors the raw-bytes style of the set_many pins; the injected-rename seam does NOT apply here because a read-only command has no save to inject (recorded in ReferenceState deviation b).</Criterion>
+          <Criterion>tests/renderer/store/session-restore.test.js gains the three pins in the restore sections, with the mock scaffolding only: the in-memory ipcPrefs mock gains getMany reading the SAME PREFS map with the same absent-to-null semantics — getMany: vi.fn(async (keys) =&gt; Object.fromEntries(keys.map((k) =&gt; [k, PREFS.has(k) ? PREFS.get(k) : null]))) — and no production file is touched in this task (m005_prefs.rs production code, prefs.ts, editor.js, recentlyClosed.js, filePositionStore.js stay untouched; only pins and mock members land). restore_reads_the_session_profile_in_one_batched_get_many: seeds the four lastSession* keys, runs the live RESTORE_SESSION(), and asserts exactly ONE ipcPrefs.getMany call whose keys array carries the four lastSession* keys and NO ipcPrefs.get call for any of the four (the read mirror of the batched-write pin at :142-170); restore_checks_all_saved_paths_in_one_stat_pass_before_the_first_open: with FILES/DIRS seeded and the existing counting ipcFs.stat vi.fn, asserts every folder and file stat is issued BEFORE the first mt::open-file invoke (mock.invocationCallOrder) and the stat count equals the checked folder candidates plus the checked file paths (red on the pre-change tree where stats interleave with opens); a_frozen_payload_restore_reads_no_preferences: RESTORE_SESSION({ from }) with a complete frozen payload issues NO ipcPrefs.getMany and NO ipcPrefs.get for any lastSession* key — recorded honestly as a preservation pin of the C-FIX-009 frozen path (green-by-design on the baseline), not a red-first defect detector.</Criterion>
+          <Criterion>The red pins keep their exact names through the rest of the change (the TargetAssertions pin them), and the failing-first evidence (the compile failure for (a), the two red vitest runs for (b)) is captured before T-002 lands any implementation.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/store/session-restore.test.js</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>M-005/M-011 read batch: mt_prefs_get_many (one lock, absent to null, read-only), main.rs registration, ipcPrefs.getMany, the RESTORE_SESSION one-request read, the shared BOOT_SESSION read, and the ONE concurrent stat pass before the first open</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>T-001's pins have been demonstrated failing-first on the baseline before any implementation of this task lands.</Criterion>
+          <Criterion>src-tauri/src/m005_prefs.rs gains PrefsState::get_many(&amp;self, keys: Vec&lt;String&gt;) -&gt; Map&lt;String, Value&gt; — ONE mutex acquisition, strictly read-only: no insert, no save, no generation change, no broadcast (the deliberate mirror of set_many :319-325, with the read/write asymmetry documented in the doc comment: a read never fans out); every absent key maps to Value::Null, preserving the facade's null-for-absent semantics. The #[tauri::command] pub async fn mt_prefs_get_many(keys: Vec&lt;String&gt;, prefs: State&lt;'_, PrefsState&gt;) -&gt; Result&lt;Value, String&gt; wraps it and logs [Prefs][get_many][BLOCK_INVOKED keys=N] per the mt_prefs_get_all precedent (:466). mt_prefs_get, mt_prefs_set, mt_prefs_set_many and mt_prefs_get_all keep their exact bodies; no backend stat-batch command is built (NonGoal).</Criterion>
+          <Criterion>src-tauri/src/main.rs registers the new command as m005_prefs::mt_prefs_get_many in the :916-919 invoke_handler block, immediately after m005_prefs::mt_prefs_set_many — registration only, no other main.rs change.</Criterion>
+          <Criterion>src/renderer/src/ipc/runtime/prefs.ts gains async getMany(keys: string[]): Promise&lt;Record&lt;string, unknown&gt;&gt; dispatching the raw invoke('mt_prefs_get_many', { keys }) — the setMany raw-invoke precedent (:39-41), outside the typed M-013-A contract (types.ts must NOT gain the channel; guarded by the TargetAssertion MustNotContain); get/set/setMany/getAll keep their exact bodies; the file markup gains a dated 2026-11-23 C-SESSION-DURABILITY CHANGE_SUMMARY entry. tests/renderer/ipc/runtime-prefs.test.ts gains the matching pins in the setMany pin style: getMany invokes the raw transport with 'mt_prefs_get_many' and the { keys } argument shape and propagates transport errors.</Criterion>
+          <Criterion>src/renderer/src/store/editor.js RESTORE_SESSION's live path replaces the four sequential reads (:828-831) with ONE awaited ipcPrefs.getMany(['lastSessionFolders', 'lastSessionTabs', 'lastSessionActive', 'lastSessionFormats']); a getMany rejection degrades to the all-absent shape (tabs/folders empty lists, active/formats null) — identical to today's total-transport-failure behavior — while the per-key post-processing (readList's string filtering, the active string check, captureSessionFormats with its rejected-policy notice) is unchanged. The BOOT_SESSION cold-start capture (:779-784) shares the same one-request read (plan decision: organic — the capture reads the same four keys, and one request at boot makes the read batch uniformly exercised); the frozen-payload RESTORE_SESSION({ from }) path keeps reading NO preferences. GET_SESSION_PATHS (:921-929) keeps its single-key ipcPrefs.get('lastSessionTabs') — out of scope.</Criterion>
+          <Criterion>ONE concurrent stat pass: all folder existence checks (today per-folder inside the loop, :842-851) and all file existence checks (:852-853) are hoisted into ONE Promise.all issued BEFORE the first OPEN_RECENT_FOLDER / mt::open-file — the folder candidates exclude already-open roots exactly as today, the per-path verdict semantics (isDirectory for folders, isFile for files, any rejection to false) are unchanged, and the downstream loop consumes the precomputed verdicts with the identical skip counting, skippedFolders visible-degradation notice, open order and active-tab handling. The ipcFs.stat transport of the exists helper (:820-827) stays.</Criterion>
+          <Criterion>tests/e2e/fixtures/tauri-shim.ts gains the default mt_prefs_get_many fanout handler adjacent to the mt_prefs_set_many fanout (:216-222 precedent): a get_many without its own override fans each requested key through the resolved mt_prefs_get handler (override or default), so every e2e spec seeding the lastSession* keys via mt_prefs_get (welcome.spec.ts, affordance-audit, session-restore) keeps working unchanged; nothing else in the shim changes.</Criterion>
+          <Criterion>T-001's three renderer pins turn green; the boot-gate, degradation, batched-write, format and cold-start pins keep passing unweakened — editor-session-coldstart.test.js gains ONLY a getMany member on its ipcPrefs mock that delegates per key to the same stubbing its get mock uses (:135-228 pattern), so every existing assertion stays byte-identical (the spec's «mock gains getMany; assertions unchanged»); session-restore.test.js's restore pins keep driving stats through the unchanged ipcFs.stat seam.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">cargo test --manifest-path src-tauri/Cargo.toml --bin mark prefs</Command>
+          <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/store/session-restore.test.js tests/renderer/store/editor-session-coldstart.test.js tests/renderer/ipc/runtime-prefs.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>M-011 format Map index: the per-tab format lookup becomes an O(1) Map.get, behavior-preserving by the captureSessionFormats pathname dedup</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>RESTORE_SESSION indexes the formats list ONCE into a Map keyed by pathname before the open loop, and the per-tab lookup (editor.js:855, formats.find(record =&gt; record.pathname === p)) becomes an O(1) Map.get. Behavior-preservation justification (recorded in the code comment and here): captureSessionFormats dedups by pathname — documentFormat.js:92 throws MT_ENC_INVALID_POLICY on a duplicate pathname within the allowed set and :95 adds to the seen set only after a successful capture — so the list holds at most one record per allowed pathname, and a Map built from it answers identically to formats.find for every input the list can contain; records for paths outside the session's path list are rejected upstream and never enter the list.</Criterion>
+          <Criterion>No behavioral red-first is claimed for R-4 — recorded honestly per the spec: the change is structural (O(N²) → O(N)), and the proof is retention — every existing format-restore pin keeps passing byte-identically: the named-pending-formats write pin (:317-331), the restore-onto-disk-checkpoint pin (:332-345), the dirty-obligation pin (:346-349), the malformed/foreign-record rejection pin (:350-357) and the frozen-offer formats pin (:358-367); the structural change is recorded in the editor.js markup and the V-M-011 scenario (T-008).</Criterion>
+          <Criterion>Markup: the START_BLOCK_SESSION_RESTORE block comments name C-SESSION-DURABILITY with the one-request read, the one stat pass and the Map index; no unrelated editor.js edits (GET_SESSION_PATHS, _sessionSnapshot, the write path and the bounded-commit shape stay as T-002 left them).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/store/session-restore.test.js tests/renderer/store/editor-session-coldstart.test.js</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>M-011 write-path size cap: saveFilePosition caps the store with the existing capStoreFiles before writing, pinned failing-first</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Failing-first proof precedes implementation: tests/renderer/util/file-position-store.test.js gains saveFilePosition_caps_the_store_to_MAX_POSITION_FILES and it is shown red on the baseline — a saveFilePosition into a store seeded beyond 200 entries persists MORE than MAX_POSITION_FILES entries (the cap is read-path-only today, filePositionStore.js:271-283 vs the uncapped save :289-306).</Criterion>
+          <Criterion>saveFilePosition caps before writing with the EXISTING capStoreFiles (:107-120) reused verbatim — no new cap logic: after storeWithEntry(rawStore, pathname, entry) the flow computes the capped store as capStoreFiles(nextStore) (newest-by-savedAt kept, ties broken deterministically by path — the read path's exact discipline) and writeStore persists the capped store. The serialized mutation queue (:198-206), the failed-read abort (a failed read still aborts with no write, return false) and the true/false return contracts are unchanged; loadFilePosition, pruneMissingFiles and every other export keep their exact bodies.</Criterion>
+          <Criterion>The pin asserts: the persisted store holds at most MAX_POSITION_FILES entries, the just-saved entry survives (its fresh savedAt makes it newest), the eviction keeps the newest-by-savedAt set with deterministic tie behavior, and an at-cap save is a no-cap no-op (capped: false path untouched). The existing read-path cap/prune/queue pins (:119, :144, :178) and the tri-state pins (:206, :229, :255) stay green with UNCHANGED bodies.</Criterion>
+          <Criterion>Markup: the filePositionStore.js SCOPE/MODULE_MAP lines record the write-path cap; VERSION 1.1.0 → 1.2.0; a dated 2026-11-23 C-SESSION-DURABILITY CHANGE_SUMMARY entry naming the save-path cap and the exported verdict helper (T-005 lands the export itself).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/util/file-position-store.test.js</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>M-011 stat tri-state in recentlyClosed: shared exported verdict helper, coded-NOT_FOUND-only drops, cannot-tell keeps the entry behind its own localized notice, stale pins unfolded, ten-locale keys</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Failing-first proof precedes implementation: the new recently-closed pins below are added and shown red on the baseline — today a generic stat rejection (Error('not found'), no NOT_FOUND code) DROPS the entry (recentlyClosed.js:114-120 catch-all, :122 CONSUME; :168-176 .catch(() =&gt; false)), so the cannot-tell pins fail and the coded-drop pins fail only because the coded mapping does not exist yet in this module.</Criterion>
+          <Criterion>src/renderer/src/util/filePositionStore.js EXPORTS the verdict helper — statFileExists (:218-237) gains export, its body otherwise untouched (same tri-state: true = isFile answer; false = isFile:false or a rejection whose code/id/message carries MT_FS_NOT_FOUND; undefined = no stat capability, any other rejection, flagless answer; window.fileUtils.stat transport with the undefined fallback). Transport decision recorded (review minor 4): recentlyClosed consumes the shared helper, so the recently-closed verdict transport is window.fileUtils.stat, and the coded-rejection pins inject by stubbing window.fileUtils.stat (the file-position-store.test.js:255-285 precedent) — NOT via ipcFs.stat. pageWidthStore.js keeps its own duplicate helper — out of scope, recorded as residue. The tri-state discipline stays single-owned.</Criterion>
+          <Criterion>src/renderer/src/store/recentlyClosed.js REOPEN_ONE (:112-146): the stat try/catch becomes one awaited statFileExists verdict. false = CONFIRMED missing keeps today's exact behavior: drop (CONSUME), the existing missingNotice, the BLOCK_REOPEN_MISSING basename-only marker, resolve false. undefined = CANNOT TELL keeps the entry, invokes NO mt::open-file, resolves false, surfaces its own localized notice with the NEW key recent.recentlyClosed.unverifiedNotice ({name} = filename || pathname — the same name convention as missingNotice, no additional path exposure) and logs [RecentlyClosed][REOPEN_ONE][BLOCK_REOPEN_UNVERIFIED] file=&lt;basename&gt; (the basename-only marker convention). true proceeds exactly as today (open, consume on success, BLOCK_REOPEN_FAILED warn on failure). RECORD_CLOSE, CONSUME and CLEAR are untouched.</Criterion>
+          <Criterion>REOPEN_ALL (:163-216) keeps its single concurrent stat pass but classifies with the same verdict: true opens; false = confirmed-missing is dropped up front, counted in missing, and reported by the existing someMissingNotice (unchanged copy); undefined = cannot-tell entries are NEITHER opened NOR consumed, stay in the list for the next attempt, and are reported by the NEW localized notice with key recent.recentlyClosed.someUnverifiedNotice ({count} = the cannot-tell count); the BLOCK_REOPEN_ALL console marker gains an unverified=N field (a count only — the basename/no-paths convention intact). The return shape keys stay EXACTLY { reopened, missing, active } with missing counting confirmed-missing only, and the empty-list early return stays byte-identical { reopened: 0, missing: 0 } WITHOUT an active key (review minor 3 — the asymmetry is preserved and pinned by the existing/updated early-return expectations).</Criterion>
+          <Criterion>Locale keys recent.recentlyClosed.unverifiedNotice and recent.recentlyClosed.someUnverifiedNotice land in ALL TEN locale files (en, de, es, fr, ja, ko, pt, ru, zh-CN, zh-TW). English copy fixed at plan time: unverifiedNotice = «{name} could not be checked — it stays in the list», someUnverifiedNotice = «{count} closed files could not be checked — they stay in the list»; the transient state must NOT borrow the confirmed-missing copy «{name} is no longer available», all translations are native and non-empty, and the {name}/{count} interpolation shapes match the existing notices.</Criterion>
+          <Criterion>Pins in tests/renderer/store/recently-closed.test.js: reopen_one_keeps_the_entry_when_the_stat_verdict_is_cannot_tell (an EACCES-class rejection carrying no NOT_FOUND code keeps the entry, invokes no mt::open-file, resolves false, and shows the NEW transient notice — asserted NOT to be the confirmed-missing copy); reopen_all_keeps_transient_entries_and_counts_only_confirmed_missing (transient entries retained and excluded from missing with the new notice; confirmed-missing entries still dropped and counted in missing); reopen_one_still_drops_on_confirmed_not_found and its reopen_all_still_drops_on_confirmed_not_found twin (NOT_FOUND-coded rejections keep today's exact drop behavior and notices); and the default-checker code-mapping pin reopen_one_default_checker_maps_coded_not_found_to_confirmed_missing mirroring file-position-store.test.js:229/:255 (err.code MT_FS_NOT_FOUND → drop; MT_FS_PERM_DENIED → keep) — via a stubbed window.fileUtils.stat. The stale pins :135-142 and :173-191 are UNFOLDED onto the coded-rejection drop path without losing their drop coverage (their generic Error('not found') rejections become coded rejections; their remaining assertions — no invoke, notice count, missing counts, store drains — carry over). The suite's stat seam re-aims from the ipcFs.stat mock to window.fileUtils.stat: the setup.ts beforeEach default (is_file: true) keeps every live-path pin's outcome, per-test overrides stub window.fileUtils.stat directly, and the directory-isFile-false pin (:219-231) and the failed-open pins (:233-258) keep their outcomes with their mocks moved to the new seam.</Criterion>
+          <Criterion>tests/renderer/i18n/locale-keys.test.js gains the C-SESSION-DURABILITY describe pinning the two recent.recentlyClosed.* keys over all ten LOCALES in the C-UPDATER-NET-BOUNDS T-003 describe pattern (:171-189 — presence and non-empty native copy). Markup: recentlyClosed.js SCOPE records the tri-state verdicts and the new notice keys; VERSION 1.0.0 → 1.1.0; a dated 2026-11-23 C-SESSION-DURABILITY CHANGE_SUMMARY entry.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/store/recently-closed.test.js tests/renderer/util/file-position-store.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>Close-after-write proof: the flush-inclusive unit confirmation pin and the first e2e close↔session-write ordering evidence (slow / never-settling / rejecting set_many through the shim)</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Unit pin in tests/renderer/util/document-operations.test.js (the exact file name — the spec Problem's «documentOperations.test.js» spelling is corrected per review) in the C-SESSION-WRITE-ATOMICITY real-store-wiring describe (:237-313): close_commit_confirms_per_tab_position_flushes_before_destroy — boot the real store (the :251-255 bootCloseStore pattern), stub ipcPrefs.setMany to resolve immediately while a spied _flushFilePositionForTab returns a controlled deferred, drive REQUEST_DOCUMENT_OPERATION({ kind: 'window-close', commit }) and prove the close command is NOT invoked while the position flush is pending and is invoked EXACTLY ONCE after the flush resolves — the per-tab reading-position flushes (editor.js:725-728) are pinned INSIDE the awaited confirmation scope, so a reorder that orphans them behind the destroy can no longer pass. Recorded honestly: NEW COVERAGE and a reorder GUARD — the current code already awaits the flushes inside _saveSessionState, so the pin is expected green on the baseline shape, not a red-first defect detector; the three predecessor close pins (:261, :282, :300) stay green with unchanged bodies.</Criterion>
+          <Criterion>NEW tests/e2e/session-close-commit.spec.ts on the existing tauri-shim harness (installTauriShim; __mockInvoke override + __invokeLog; the update-notice.spec.ts injection pattern) — the first e2e close↔session-write ordering evidence in the tree. The window-close path is driven through the real renderer close channel (the shim's fake-event emission of mt::ask-for-close — the channel LISTEN_FOR_CLOSE consumes, editor.js:931-935 — or the equivalent real store entry point; the executor fixes one and documents the choice in the spec header). Three tests: close_waits_for_a_slow_session_write_under_the_bound — a __mockInvoke.mt_prefs_set_many handler delayed UNDER the two-second bound pushes a settlement sentinel into __invokeLog before resolving, and the test asserts mt_close_window appears in __invokeLog strictly AFTER the sentinel (close happens after the write settled, under the bound); bounded_timeout_still_closes_with_the_write_in_flight — a never-settling handler: the bound fires, BLOCK_SESSION_COMMIT_TIMEOUT is captured on the console (page.on('console')), and the close still completes (mt_close_window in __invokeLog); rejected_session_write_still_closes_e2e — a rejecting handler: BLOCK_SESSION_WRITE_FAILED on the console and the close completes.</Criterion>
+          <Criterion>The spec touches no production code, installs no new harness capability, does no real window destroy automation and no network — hosted/native evidence of a real destroy during an injected slow write remains a manual/open item per the predecessor's precedent (not substituted by a shim claim). Recorded honestly: the three e2e pins are meaningful-proof pins rather than red-first defect detectors — the precise gap they close is the absent close↔write ORDERING evidence at e2e (review minor 2's reading of the spec's «zero e2e» phrase; the characterization spec is renderer-only and proves no ordering). File header markup documents the harness, the sentinel mechanism and the manual/open item.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/util/document-operations.test.js</Command>
+          <Command budgetSeconds="900">npx --no-install playwright test --project=chromium tests/e2e/session-close-commit.spec.ts</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>LAST-SESSION-TRUTH: the affordance-audit fixme becomes a real contract pin on the C-FIX-009 harness shape and wel-002 stops being a stale pending orphan</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/e2e/affordance-audit.spec.ts: the test.fixme «Last session row restores the closed session (FIX-009)» (:407-416) is REWRITTEN as a real, passing test and the welcome describe harness (:340-361) is re-aimed at the shipped C-FIX-009 contract shape — mt_prefs_get serves restoreSessionOnLaunch=false plus the seeded lastSessionTabs (the welcome.spec.ts:72-79 stub pattern, replacing the live-preference stub), and the boot pins the store value off before emitting mt::bootstrap-editor (the welcome.spec.ts:100-103 pattern) so the launch skips auto-restore and freezes the non-empty boot offer. Selectors unchanged: .welcome-screen .row-session with .row-name containing «Last session» (toContainText — the row carries the frozen count suffix, welcome.spec.ts:151). The sibling affordance test (New / Open File / Open Folder buttons, :384-405) keeps passing under the re-aimed harness with its assertions unweakened.</Criterion>
+          <Criterion>The rewritten test pins the contract: the row renders only when auto-restore was skipped AND the frozen boot offer is non-empty; clicking the row restores the FROZEN offer (RESTORE_SESSION({ from }) — no preference reread) and .editor-with-tabs becomes visible; a boot with an EMPTY snapshot (mt_prefs_get returning null for lastSessionTabs) renders NO .row-session. The nothing-restored click notice (recent/index.vue:555-571 — read-only anchor, already implements the contract) stays covered by the existing editor-session-coldstart unit pins, which keep passing unchanged.</Criterion>
+          <Criterion>tests/regression-tests.json wel-002 (:29, that entry ONLY): the «FIX-009 open (2026-10-20)» note is removed (guarded by the TargetAssertion MustNotContain); the notes name the rewritten affordance-audit e2e test as the automating cover; the status fields are stamped from the implementation bundle's verification evidence — status "pass" with lastRun set to the e2e verification date — instead of the permanent-pending state; no other entry in the file changes.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">npx --no-install playwright test --project=chromium tests/e2e/affordance-audit.spec.ts tests/e2e/welcome.spec.ts</Command>
+        </Verification>
+      </T-007>
+      <T-008>
+        <Title>Governance: graph and verification deltas on M-005/M-011 and V-M-005/V-M-011, file-local markup, and the combined-diff audit against the ObservedWriteScope</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>.grace/graph/runtime.xml: one dated C-SESSION-DURABILITY SummaryDelta appended adjacent to the trailing SummaryDelta inside M-005 (the mt_prefs_get_many read batch — one mutex acquisition, absent keys as null, strictly read-only with no save, no generation change and no broadcast, the [Prefs][get_many][BLOCK_INVOKED] marker, and the invoke_handler registration of m005_prefs::mt_prefs_get_many only; the existing single-key and get_all surface and the write batch unchanged) and inside M-011 (one-request restore reads via ipcPrefs.getMany, the ONE concurrent stat pass before the first open, the Map format index with the documentFormat.js:92/:95 dedup justification, the write-path MAX_POSITION_FILES cap, the tri-state recently-closed verdicts with the preserved early-return asymmetry and the ten-locale transient notices, the flush-inclusive close-commit unit pin and the first e2e close↔write ordering evidence) — strictly on the M-005/M-011 entries, no other graph content changes, no new module nodes.</Criterion>
+          <Criterion>.grace/verification/runtime.xml: one dated C-SESSION-DURABILITY scenario entry appended inside V-M-005 (at the :1592 scenario anchor's neighborhood) naming the new Rust pin get_many_returns_requested_keys_without_persisting with its byte-identity no-persist proof and the cargo prefs command; one dated scenario entry appended inside V-M-011 (at the :5988 scenario anchor's neighborhood) naming the renderer and e2e pins — restore_reads_the_session_profile_in_one_batched_get_many, restore_checks_all_saved_paths_in_one_stat_pass_before_the_first_open, a_frozen_payload_restore_reads_no_preferences, saveFilePosition_caps_the_store_to_MAX_POSITION_FILES, the four tri-state/coded-drop recently-closed pins with the unfolded :135-142/:173-191 coverage, close_commit_confirms_per_tab_position_flushes_before_destroy, the three session-close-commit e2e tests with the console markers and the __invokeLog sentinel ordering, and the rewritten affordance-audit last-session test — with the vitest and the focused playwright commands. No other verification content changes.</Criterion>
+          <Criterion>File-local markup per the modification checklist: VERSION bumps and dated 2026-11-23 C-SESSION-DURABILITY CHANGE_SUMMARY entries on the touched governed files — editor.js (module contract/summary at :2600-:2622), recentlyClosed.js (T-005), filePositionStore.js (T-004/T-005), prefs.ts (T-002), m005_prefs.rs (SCOPE sentence for the read batch plus the CHANGE_SUMMARY), the touched test files (session-restore, recently-closed, editor-session-coldstart, file-position-store, document-operations, runtime-prefs, locale-keys), the new session-close-commit.spec.ts header, affordance-audit.spec.ts and tauri-shim.ts; the ten static/locales/*.json files gain ONLY the two keys each (data tables — no VERSION lines exist there).</Criterion>
+          <Criterion>Combined-diff audit: the whole change touches exactly the ObservedWriteScope files; the read-only anchors carry ZERO diffs — documentOperations.js (the close barrier), m001_save_close.rs and the m001 close state machine, recent/index.vue, the m013b ipcFs stat contract (ipc/runtime/fs.ts), the m017 recent backend, m016/m068, tauri.conf.json and src/renderer/src/ipc/contract/types.ts.</Criterion>
+          <Criterion>Final assertions, all green with no skips or budget increases: the three TargetAssertions commands (cargo prefs, the seven-file vitest set, the chromium playwright set) plus the XML parse check below; grace lint stays the orchestrator's gate (no self-referential lint command in this plan).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/store/session-restore.test.js tests/renderer/store/recently-closed.test.js tests/renderer/store/editor-session-coldstart.test.js tests/renderer/util/file-position-store.test.js tests/renderer/util/document-operations.test.js tests/renderer/ipc/runtime-prefs.test.ts tests/renderer/i18n/locale-keys.test.js</Command>
+          <Command budgetSeconds="900">npx --no-install playwright test --project=chromium tests/e2e/session-close-commit.spec.ts tests/e2e/affordance-audit.spec.ts</Command>
+          <Command budgetSeconds="60">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/runtime.xml'); ET.parse('.grace/verification/runtime.xml'); ET.parse('.grace/changes/active/C-SESSION-DURABILITY/plan.xml')"</Command>
+        </Verification>
+      </T-008>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Environment>Baseline discipline: this plan was drafted against the read-only green-sess1 worktree (branch spec/session-durability, base fc0d1fb4); at implementation start the executor revalidates every BaselineAssertions anchor on the actual delivery baseline (the four sequential live reads and the formats.find in editor.js, the recentlyClosed catch-all drop and the .catch(() =&gt; false) pass, the uncapped saveFilePosition and the unexported statFileExists in filePositionStore.js, the :916-919 registration block, the :135-142/:173-191 stale pins, the :407-416 fixme and the wel-002 pending note) and reruns the affected suites before landing anything. Tasks run strictly sequentially T-001 → T-002 → T-003 → T-004 → T-005 → T-006 → T-007 → T-008 (T-003/T-004/T-005/T-006/T-007 depend only on their named predecessors and do not conflict, but land in this order). Every new pin is demonstrated failing-first per its task before its implementation lands, with the recorded red-state conventions: Rust red-by-absence (the get_many pin's compile failure), renderer reds for the batched-read and stat-pass pins and the cannot-tell/coded-drop pins and the save-cap pin; the preservation/guard pins (a_frozen_payload_restore_reads_no_preferences, close_commit_confirms_per_tab_position_flushes_before_destroy, the format-retention pins) are honestly recorded as green-by-design new coverage, not defect detectors, exactly as the spec's VerificationIntent requires. CAUTION ledger: (1) the five review minors are resolved as recorded in ReferenceState — the document-operations.test.js file name, the ordering-evidence reading of «zero e2e», the preserved early-return asymmetry ({ reopened: 0, missing: 0 } without active), the window.fileUtils.stat transport for the shared verdict helper with coded-rejection pins injecting through window.fileUtils.stat stubs, and the documentFormat.js:92/:95 dedup justification for the Map index; (2) the predecessor C-SESSION-WRITE-ATOMICITY contracts stay green and unweakened — the 2000 ms bound, the timeout-still-closes trade, the batched write, the quarantine pins, the three close pins at :261/:282/:300; (3) the recently-closed suite's stat seam move (ipcFs.stat mock → window.fileUtils.stat) must keep the review-wave pins' outcomes (:219-231 directory, :233-258 failed opens) — their mocks move with the seam; (4) GET_SESSION_PATHS (editor.js:921-929) keeps its single-key read — the MustNotContain targets were chosen so it is untouched; (5) editor-session-coldstart's mock gains getMany by delegating to its existing per-key stubbing — assertions unchanged; (6) the ten locale files carry only the two new keys each, with the transient copy distinct from the confirmed-missing copy; (7) hosted close evidence stays manual/open. Final gates are the orchestrator's: grace lint --path . --assertions current before editing, --change C-SESSION-DURABILITY --assertions target during implementation, --assertions final --run-commands before handoff, and current after archiving; the drafting lint requirement on this plan is that it introduces ZERO new lint errors beyond the five known pre-existing C-UPDATER-NET-BOUNDS errors of the transient post-merge state. No apply/archive, commit/push, lane departure, release, signing, version, tag or publication is authorized by this plan; no SpecSha256 field is carried (the orchestrator stamps it).</Environment>
+    </AcceptanceVerification>
+    <ExecutionMode>sequential</ExecutionMode>
+    <Lifecycle>Drafted 2026-11-23 from the approved spec C-SESSION-DURABILITY for orchestrator admission; the orchestrator owns status transitions and the durable/final/archive/publication boundaries. Writing this draft approves neither implementation nor apply/archive, commit/push, lane admission, release, signing, tag or publication.</Lifecycle>
+  </C-SESSION-DURABILITY>
+</GraceChangePlan>

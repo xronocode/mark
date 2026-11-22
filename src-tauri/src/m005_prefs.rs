@@ -763,6 +763,73 @@ mod tests {
     }
 
     #[test]
+    fn get_many_returns_requested_keys_without_persisting() {
+        // C-SESSION-DURABILITY T-001: the read batch returns EXACTLY the
+        // requested keys — every absent key mapped to Value::Null (the
+        // mt_prefs_get null-for-absent semantics) — and is strictly
+        // read-only: no store-file write, no .tmp sibling, no generation
+        // change. The injected-rename seam does not apply here (a
+        // read-only command has no save to inject); the byte-identity of
+        // the raw store file before/after is the no-persist proof (the
+        // raw-bytes discipline of the set_many pins above).
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("preferences.json");
+        let state = PrefsState::from_path(path.clone());
+        // Previous generation: a non-session key plus a distinct
+        // lastSessionTabs value.
+        state
+            .set("theme".to_string(), Value::String("dark".to_string()))
+            .unwrap();
+        state
+            .set("lastSessionTabs".to_string(), json!(["/old/a.md"]))
+            .unwrap();
+        let previous_bytes = std::fs::read(&path).unwrap();
+        let tmp = dir.path().join("preferences.json.tmp");
+
+        let keys = vec![
+            "lastSessionTabs".to_string(),
+            "theme".to_string(),
+            "lastSessionActive".to_string(),
+            "neverUsedKey".to_string(),
+        ];
+        let result = state.get_many(keys);
+
+        assert_eq!(result.len(), 4, "exactly the requested keys, no more");
+        assert_eq!(
+            result.get("lastSessionTabs"),
+            Some(&json!(["/old/a.md"])),
+            "a present key answers its stored value"
+        );
+        assert_eq!(
+            result.get("theme"),
+            Some(&Value::String("dark".to_string())),
+            "a present non-session key answers its stored value"
+        );
+        assert_eq!(
+            result.get("lastSessionActive"),
+            Some(&Value::Null),
+            "an absent-but-session key maps to null"
+        );
+        assert_eq!(
+            result.get("neverUsedKey"),
+            Some(&Value::Null),
+            "a never-used key maps to null"
+        );
+
+        // Strictly read-only: the raw bytes are byte-identical and no
+        // .tmp sibling exists — no store-file write happened at all.
+        let bytes = std::fs::read(&path).unwrap();
+        assert_eq!(
+            bytes, previous_bytes,
+            "a read never writes the store file"
+        );
+        assert!(
+            !tmp.exists(),
+            "a read leaves no .tmp sibling behind"
+        );
+    }
+
+    #[test]
     fn corrupt_store_file_is_quarantined_aside_not_overwritten() {
         // C-SESSION-WRITE-ATOMICITY T-002: the corrupt store's bytes move
         // to the stable preferences.json.corrupt sibling and survive a
