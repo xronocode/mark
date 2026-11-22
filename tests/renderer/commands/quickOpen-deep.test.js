@@ -10,7 +10,12 @@
  *   - _doSearch — special chars in query
  *   - _doSearch — cancel via _cancelFn during search
  *   - _doSearch — search promises catch path
- *   - _doSearch — didSearchPaths cancellation (numPathsFound > 30)
+ *   - _doSearch — passes no didSearchPaths option (C-SEARCH-LIFECYCLE-
+ *     DISCARD: the ">30 files" wire limit was removed — the searchedPaths
+ *     event never exists on the wire)
+ *   - unload() — still clears subcommands, and now cancels the in-flight
+ *     debounce or searcher walk through the _cancelFn seam
+ *     (C-SEARCH-LIFECYCLE-DISCARD)
  *   - run() — works with only editor tabs (no projectTree)
  */
 
@@ -22,13 +27,22 @@ vi.mock('@/bus', () => ({
   default: { emit: vi.fn(), on: vi.fn(), off: vi.fn() }
 }))
 
-vi.mock('@/util', () => {
-  return {
-    delay: (ms) => {
+// Controllable delay double (C-SEARCH-LIFECYCLE-DISCARD T-003): tests
+// swap `delayState.impl` to hold the debounce phase open — by default it
+// resolves immediately, matching the previous resolved-promise mock.
+const { delayState } = vi.hoisted(() => ({
+  delayState: {
+    impl: () => {
       const p = Promise.resolve()
       p.cancel = vi.fn()
       return p
-    },
+    }
+  }
+}))
+
+vi.mock('@/util', () => {
+  return {
+    delay: (ms) => delayState.impl(ms),
     isOsx: false,
     isWindows: false,
     isLinux: true
@@ -56,6 +70,11 @@ describe('QuickOpenCommand — deep coverage', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    delayState.impl = () => {
+      const p = Promise.resolve()
+      p.cancel = vi.fn()
+      return p
+    }
     rootState = {
       editor: {
         tabs: [
@@ -214,9 +233,9 @@ describe('QuickOpenCommand — deep coverage', () => {
 
     it('with root dir: returns promise that resolves with search results', async () => {
       mockSearchFn.mockImplementation((_paths, _query, options) => {
-        // Simulate finding results
+        // Simulate finding results (didMatch only — the didSearchPaths
+        // option is gone with the dead wire limit).
         options.didMatch('/docs/found.md')
-        options.didSearchPaths(1)
         const p = Promise.resolve()
         p.cancel = vi.fn()
         return p
@@ -239,10 +258,12 @@ describe('QuickOpenCommand — deep coverage', () => {
       expect(Array.isArray(result)).toBe(true)
     })
 
-    it('with root dir: didSearchPaths sets canceled flag (< 30 does not cancel)', async () => {
+    it('with root dir: passes no didSearchPaths option (the dead wire limit is removed)', async () => {
+      // C-SEARCH-LIFECYCLE-DISCARD T-003: replaces "didSearchPaths sets
+      // canceled flag (< 30 does not cancel)" — the ">30 files" limit
+      // waited for a searchedPaths event the wire never delivers, so the
+      // option is no longer passed at all.
       mockSearchFn.mockImplementation((_paths, _query, options) => {
-        // Under 30 → no cancellation
-        options.didSearchPaths(5)
         options.didMatch('/docs/found.md')
         const p = Promise.resolve()
         p.cancel = vi.fn()
@@ -250,6 +271,8 @@ describe('QuickOpenCommand — deep coverage', () => {
       })
 
       const result = await cmd._doSearch('test')
+      const [, , options] = mockSearchFn.mock.calls[0]
+      expect(options.didSearchPaths).toBeUndefined()
       // Search completes normally
       expect(result.length).toBeGreaterThanOrEqual(1)
     })
@@ -283,14 +306,13 @@ describe('QuickOpenCommand — deep coverage', () => {
       mockSearchFn.mockImplementation((_paths, _query, options) => {
         options.didMatch('/docs/a.md')
         options.didMatch('/docs/b.md')
-        options.didSearchPaths(2)
         const p = Promise.resolve()
         p.cancel = vi.fn()
         return p
       })
 
       const result = await cmd._doSearch('test')
-      // Both matches should be in results (under 30 threshold)
+      // Both matches should be in results (didMatch-only collection)
       expect(Array.isArray(result)).toBe(true)
       expect(result.length).toBeGreaterThanOrEqual(2)
     })
@@ -400,6 +422,51 @@ describe('QuickOpenCommand — deep coverage', () => {
     it('clears subcommands array', () => {
       cmd.subcommands = [{ id: 'a' }, { id: 'b' }]
       cmd.unload()
+      expect(cmd.subcommands).toEqual([])
+    })
+
+    // C-SEARCH-LIFECYCLE-DISCARD T-003: closing the palette must cancel
+    // the in-flight work through the existing _cancelFn seam — the
+    // active searcher walk or the pending debounce timer — while the
+    // list still clears.
+    it('cancels the in-flight searcher walk exactly once and clears subcommands', async () => {
+      let resolveWalk
+      const walkCancel = vi.fn(() => { resolveWalk() })
+      mockSearchFn.mockImplementation(() => {
+        const p = new Promise((resolve) => { resolveWalk = resolve })
+        p.cancel = walkCancel
+        return p
+      })
+
+      const searchPromise = cmd.search('slow')
+      // Let the (default) debounce resolve so _doSearch spawned the walk.
+      await new Promise((r) => setTimeout(r, 0))
+      expect(typeof cmd._cancelFn).toBe('function')
+
+      cmd.subcommands = [{ id: 'stale' }]
+      cmd.unload()
+      expect(walkCancel).toHaveBeenCalledTimes(1)
+      expect(cmd.subcommands).toEqual([])
+      expect(cmd._cancelFn).toBeNull()
+      await searchPromise.catch(() => {})
+    })
+
+    it('cancels the pending debounce timer and clears _cancelFn', async () => {
+      let cancelDebounce
+      delayState.impl = () => {
+        const p = new Promise((resolve) => { setTimeout(resolve, 100) })
+        p.cancel = vi.fn()
+        cancelDebounce = p.cancel
+        return p
+      }
+
+      cmd.search('typing')
+      // The search is parked inside the debounce.
+      expect(typeof cmd._cancelFn).toBe('function')
+
+      cmd.unload()
+      expect(cancelDebounce).toHaveBeenCalledTimes(1)
+      expect(cmd._cancelFn).toBeNull()
       expect(cmd.subcommands).toEqual([])
     })
   })

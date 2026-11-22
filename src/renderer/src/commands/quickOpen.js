@@ -77,6 +77,13 @@ class QuickOpenCommand {
 
   unload = () => {
     this.subcommands = []
+    // C-SEARCH-LIFECYCLE-DISCARD T-003: closing the palette cancels the
+    // in-flight work through the existing _cancelFn seam — the pending
+    // debounce timer or the active searcher walk — so a closed dialog
+    // leaves no running traversal behind.
+    if (this._cancelFn) {
+      this._cancelFn()
+    }
   }
 
   // --- private ------------------------------------------
@@ -130,7 +137,12 @@ class QuickOpenCommand {
     // Search root directory on disk.
     return new Promise((resolve, reject) => {
       let canceled = false
-      const promises = this._directorySearcher
+      // C-SEARCH-LIFECYCLE-DISCARD T-003: close over the RAW searcher
+      // promise — the chained .then()/.catch() result is a plain
+      // Promise whose .cancel is undefined (the same latent chained-
+      // promise cancel drop C-SEARCH-ERROR-VISIBILITY fixed in the
+      // store), which left the _cancelFn seam unable to stop the walk.
+      const searchPromise = this._directorySearcher
         .search([rootPath], '', {
           didMatch: (result) => {
             if (canceled) return
@@ -150,19 +162,15 @@ class QuickOpenCommand {
               searchResult.push(pathname)
             }
           },
-          didSearchPaths: (numPathsFound) => {
-            // Cancel when more than 30 files were found. User should specify the search query.
-            if (!canceled && numPathsFound > 30) {
-              canceled = true
-              if (promises.cancel) {
-                promises.cancel()
-              }
-            }
-          },
+          // C-SEARCH-LIFECYCLE-DISCARD T-003: the didSearchPaths option
+          // is gone — its ">30 files" limit waited for a searchedPaths
+          // event the wire never delivers (dead code). The files-mode
+          // cost and limit design stays with C-QUICKOPEN-FILES-MODE.
 
           // Only search markdown files that contain the query string.
           inclusions: this._getInclusions(query)
         })
+      searchPromise
         .then(() => {
           this._cancelFn = null
           resolve(
@@ -181,8 +189,8 @@ class QuickOpenCommand {
       this._cancelFn = () => {
         this._cancelFn = null
         canceled = true
-        if (promises.cancel) {
-          promises.cancel()
+        if (searchPromise.cancel) {
+          searchPromise.cancel()
         }
       }
     })
