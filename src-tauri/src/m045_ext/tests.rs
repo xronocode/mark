@@ -18,6 +18,21 @@
 // END_MODULE_MAP
 
 // START_CHANGE_SUMMARY
+//   - 2026-11-22 C-EXT-EDIT-PROOF T-003: failing-first /ext/apply verdict
+//     and idempotency family — ext_apply_unknown_op_refused_with_zero_events
+//     (400, zero events, no applied:true), the ack verdict legs
+//     ext_apply_acks_applied_batch_200 / ext_apply_gate_cut_nack_answers_
+//     409_with_failed_index / ext_apply_ack_timeout_answers_504 driven by
+//     the new install_ack_responder fixture helper (watches the batch's
+//     mt::text::op events and answers mt::ext::text_op_ack per a script,
+//     silent on a missing entry) and the idempotency family
+//     ext_apply_same_key_replay_returns_recorded_verdict (including a
+//     refusal replay and the dedup-before-fence order proof),
+//     ext_apply_same_key_in_flight_coalesces,
+//     ext_apply_different_keys_apply_independently and
+//     ext_apply_keyless_applies_once — all driven through the wire-faithful
+//     apply_raw JSON path so the optional request_id field rides the same
+//     deserialization a real client uses.
 //   - 2026-11-22 C-EXT-EDIT-PROOF T-001: failing-first dead-route refusal
 //     pins — text_insert_authorized_emits_with_requester_identity moves to
 //     text_insert_authorized_request_refused_not_implemented (an authorized
@@ -939,7 +954,7 @@ fn extension_dirs_include_config() {
 // START_BLOCK_INCOMING_DATA_TESTS
 use axum::{extract::State, http::{HeaderMap, StatusCode}, response::IntoResponse, Json};
 use std::sync::{Arc, Mutex};
-use tauri::{Listener, Manager};
+use tauri::{Emitter, Listener, Manager};
 
 struct IncomingFixture {
     app: tauri::App<tauri::test::MockRuntime>,
@@ -1321,6 +1336,296 @@ impl Drop for IncomingFixture {
         super::auth::clear_test_grant(&self.id);
     }
 }
+
+// START_BLOCK_EXT_APPLY_VERDICT_TESTS
+// C-EXT-EDIT-PROOF: /ext/apply answers by fact — the op set is validated
+// before any emission, every emitted payload carries the server-issued
+// batch request id and its op index, and the handler answers by the
+// renderer's ack verdicts (200 applied / 409 failed index with the applied
+// prefix / 504 bounded ack timeout). Apply batches are idempotent by the
+// optional client request id: a replay answers the recorded first verdict
+// with an additive duplicate marker and re-emits nothing, a same-key
+// in-flight retry coalesces onto the pending verdict, and a keyless batch
+// applies with no dedup promise. The binding fence stays ahead of every
+// event; the dedup short-circuit sits after authentication and before the
+// fence.
+
+/// The per-op ack script: op_index -> Some((applied, reason)); a missing
+/// index or a None entry stays silent, modeling a swallowed verdict or a
+/// torn-down renderer listener.
+type AckScript = Arc<Mutex<std::collections::HashMap<u64, Option<(bool, String)>>>>;
+
+/// C-EXT-EDIT-PROOF: the renderer-side ack responder beside the
+/// mt::ext::context_request responder. It watches the batch's mt::text::op
+/// events and, per the script, answers mt::ext::text_op_ack
+/// {request_id, op_index, applied, reason}; silence is the default, so all
+/// verdict legs (200/409/504) are drivable headlessly.
+fn install_ack_responder(f: &IncomingFixture, script: AckScript) {
+    let handle = f.app.handle().clone();
+    f.app.listen("mt::text::op", move |event| {
+        let payload: serde_json::Value = serde_json::from_str(event.payload()).unwrap();
+        let request_id = payload["payload"]["request_id"].as_str().map(str::to_string);
+        let op_index = payload["payload"]["op_index"].as_u64();
+        let (Some(request_id), Some(op_index)) = (request_id, op_index) else { return };
+        let answer = script.lock().unwrap().get(&op_index).cloned().flatten();
+        if let Some((applied, reason)) = answer {
+            handle.emit("mt::ext::text_op_ack", serde_json::json!({
+                "request_id": request_id,
+                "op_index": op_index,
+                "applied": applied,
+                "reason": reason,
+            })).unwrap();
+        }
+    });
+}
+
+fn ack_script(entries: &[(u64, bool, &str)]) -> AckScript {
+    Arc::new(Mutex::new(entries.iter()
+        .map(|(index, applied, reason)| (*index, Some((*applied, (*reason).to_string()))))
+        .collect::<std::collections::HashMap<_, _>>()))
+}
+
+/// Drive /ext/apply with a raw JSON request body — wire-faithful: the
+/// optional request id rides the same deserialization a real client uses
+/// (a field this build does not know is ignored by serde), and the handler
+/// runs concurrently so the fixture ack responder owns the verdict channel
+/// while the batch is pending.
+async fn apply_raw(f: &IncomingFixture, token: &str, request: serde_json::Value) -> (StatusCode, serde_json::Value) {
+    let state = f.state.clone();
+    let headers = bearer_headers(Some(token));
+    let req: super::live_server::ExtApplyRequest = serde_json::from_value(request).unwrap();
+    let pending = tokio::spawn(async move {
+        super::live_server::handle_ext_apply(State(state), headers, Json(req)).await.into_response()
+    });
+    let response = tokio::time::timeout(std::time::Duration::from_secs(60), pending)
+        .await
+        .expect("apply round trip must finish well within the fixture budget")
+        .unwrap();
+    let status = response.status();
+    let bytes = axum::body::to_bytes(response.into_body(), 65536).await.unwrap();
+    let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap_or(serde_json::Value::Null);
+    (status, body)
+}
+
+async fn bound_apply_request(f: &IncomingFixture, operations: serde_json::Value) -> serde_json::Value {
+    let (document_id, document_generation) = handed_binding(f);
+    serde_json::json!({
+        "extension_id": f.id.clone(),
+        "document_id": document_id,
+        "document_generation": document_generation,
+        "operations": operations,
+    })
+}
+
+#[tokio::test]
+async fn ext_apply_unknown_op_refused_with_zero_events() {
+    let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    let request = bound_apply_request(&f, serde_json::json!([
+        {"op_type": "insert_at_cursor", "content": "valid op"},
+        {"op_type": "op_type_the_wire_never_defined", "content": "??"}
+    ])).await;
+    let (status, body) = apply_raw(&f, &f.token, request).await;
+    // The unknown op refuses the whole batch before any emission — never
+    // the skipped-and-counted 200 the predecessor answered.
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert!(body.get("applied").is_none(), "a refused batch never answers applied: {body}");
+    assert!(f.events.lock().unwrap().is_empty(), "zero events: an unvalidated op never emits");
+}
+
+#[tokio::test]
+async fn ext_apply_acks_applied_batch_200() {
+    let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    install_ack_responder(&f, ack_script(&[(0, true, ""), (1, true, "")]));
+    let request = bound_apply_request(&f, serde_json::json!([
+        {"op_type": "insert_at_cursor", "content": "first"},
+        {"op_type": "replace_selection", "content": "second"}
+    ])).await;
+    let (status, body) = apply_raw(&f, &f.token, request).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["applied"], true);
+    assert_eq!(body["operations_count"], 2);
+    let events = f.events.lock().unwrap();
+    assert_eq!(events.len(), 2);
+    // Every emitted payload names the server-issued batch request id and
+    // the op index; both ops of one batch share the request id and the
+    // binding still rides the payload.
+    let request_id = events[0]["payload"]["request_id"].as_str().unwrap().to_string();
+    assert!(!request_id.is_empty(), "the batch request id is server-issued and non-empty");
+    assert_eq!(events[0]["payload"]["op_index"], 0);
+    assert_eq!(events[1]["payload"]["op_index"], 1);
+    assert_eq!(events[1]["payload"]["request_id"], request_id.as_str());
+    assert_eq!(events[0]["payload"]["document_generation"], handed_binding(&f).1);
+}
+
+#[tokio::test]
+async fn ext_apply_gate_cut_nack_answers_409_with_failed_index() {
+    let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    // Op 0 applies, op 1 is cut by the targeting gate class.
+    install_ack_responder(&f, ack_script(&[(0, true, ""), (1, false, "targeting_gate_refused")]));
+    let request = bound_apply_request(&f, serde_json::json!([
+        {"op_type": "insert_at_cursor", "content": "applies"},
+        {"op_type": "replace_selection", "content": "cut"}
+    ])).await;
+    let (status, body) = apply_raw(&f, &f.token, request).await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    let error = body["error"].as_str().unwrap().to_string();
+    assert!(error.contains("1"), "the error names the failed op index: {error}");
+    assert!(error.contains("1 of 1 earlier operations applied"), "the error names the applied prefix: {error}");
+    assert!(body.get("applied").is_none(), "a refused batch never answers applied: {body}");
+    // Zero further events: emission stops at the nacked op.
+    assert_eq!(f.events.lock().unwrap().len(), 2, "op 0 emitted, the nacked op emitted, nothing further");
+}
+
+#[tokio::test]
+async fn ext_apply_ack_timeout_answers_504() {
+    let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    // A silent renderer: the ack script holds no entry.
+    install_ack_responder(&f, ack_script(&[]));
+    let request = bound_apply_request(&f, serde_json::json!([
+        {"op_type": "insert_at_cursor", "content": "never acknowledged"}
+    ])).await;
+    let (status, body) = apply_raw(&f, &f.token, request).await;
+    assert_eq!(status, StatusCode::GATEWAY_TIMEOUT);
+    let error = body["error"].as_str().unwrap().to_string();
+    assert!(error.contains("ack timeout"), "the timeout reason is stable: {error}");
+    assert!(body.get("applied").is_none(), "a timed-out batch never answers applied: {body}");
+}
+
+#[tokio::test]
+async fn ext_apply_same_key_replay_returns_recorded_verdict() {
+    // Applied leg: two posts with the same request id emit exactly once and
+    // the second response equals the recorded first verdict with an
+    // additive duplicate marker.
+    let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    install_ack_responder(&f, ack_script(&[(0, true, "")]));
+    let request = bound_apply_request(&f, serde_json::json!([
+        {"op_type": "insert_at_cursor", "content": "idempotent"}
+    ])).await;
+    let mut keyed = request.clone();
+    keyed["request_id"] = serde_json::json!("key-replay-applied");
+    let (status_1, body_1) = apply_raw(&f, &f.token, keyed.clone()).await;
+    assert_eq!(status_1, StatusCode::OK);
+    assert_eq!(body_1["applied"], true);
+    let (status_2, body_2) = apply_raw(&f, &f.token, keyed).await;
+    assert_eq!(status_2, status_1);
+    assert_eq!(body_2["applied"], body_1["applied"]);
+    assert_eq!(body_2["operations_count"], body_1["operations_count"]);
+    assert_eq!(body_2["duplicate"], true, "the replay carries the additive duplicate marker");
+    assert_eq!(f.events.lock().unwrap().len(), 1, "the replay re-emits nothing");
+
+    // Refusal leg: a recorded refusal verdict replays the same way.
+    let refused = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    assert_eq!(context_fixture(&refused, &refused.token).await, StatusCode::OK);
+    install_ack_responder(&refused, ack_script(&[(0, false, "targeting_gate_refused")]));
+    let request = bound_apply_request(&refused, serde_json::json!([
+        {"op_type": "replace_selection", "content": "refused"}
+    ])).await;
+    let mut keyed_refusal = request.clone();
+    keyed_refusal["request_id"] = serde_json::json!("key-replay-refused");
+    let (refused_status_1, refused_body_1) = apply_raw(&refused, &refused.token, keyed_refusal.clone()).await;
+    assert_eq!(refused_status_1, StatusCode::CONFLICT);
+    let (refused_status_2, refused_body_2) = apply_raw(&refused, &refused.token, keyed_refusal).await;
+    assert_eq!(refused_status_2, refused_status_1);
+    assert_eq!(refused_body_2["error"], refused_body_1["error"]);
+    assert_eq!(refused_body_2["duplicate"], true);
+    assert_eq!(refused.events.lock().unwrap().len(), 1);
+
+    // Fence-order proof: a context re-read replaces the remembered
+    // generation, so the replay echoes a binding the fence would now
+    // refuse — yet the dedup short-circuit (which sits after
+    // authentication and before the fence) answers the recorded verdict.
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    let (stale_status, stale_body) = apply_raw(&f, &f.token, keyed_clone_of(&f, "key-replay-applied")).await;
+    assert_eq!(stale_status, status_1, "the dedup hit precedes the binding fence");
+    assert_eq!(stale_body["duplicate"], true);
+    assert_eq!(f.events.lock().unwrap().len(), 1, "the replay through the stale binding re-emits nothing");
+}
+
+/// Rebuild the bound apply request with the stale first-read generation and
+/// the named request key — the replay the dedup must answer ahead of the
+/// fence.
+fn keyed_clone_of(f: &IncomingFixture, key: &str) -> serde_json::Value {
+    let (document_id, _) = handed_binding(f);
+    let first_generation = "document-gen-1".to_string();
+    serde_json::json!({
+        "extension_id": f.id.clone(),
+        "request_id": key,
+        "document_id": document_id,
+        "document_generation": first_generation,
+        "operations": [{"op_type": "insert_at_cursor", "content": "idempotent"}],
+    })
+}
+
+#[tokio::test]
+async fn ext_apply_same_key_in_flight_coalesces() {
+    let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    install_ack_responder(&f, ack_script(&[(0, true, "")]));
+    let mut request = bound_apply_request(&f, serde_json::json!([
+        {"op_type": "insert_at_cursor", "content": "coalesced"}
+    ])).await;
+    request["request_id"] = serde_json::json!("key-in-flight");
+    let (status_a, body_a) = apply_raw(&f, &f.token, request.clone()).await;
+    let (status_b, body_b) = apply_raw(&f, &f.token, request).await;
+    // Both callers share the pending verdict; the coalesced attempt answers
+    // the verdict with the duplicate marker instead of emitting again.
+    assert_eq!(status_a, StatusCode::OK);
+    assert_eq!(status_b, status_a);
+    assert_eq!(body_b["applied"], body_a["applied"]);
+    assert_eq!(body_a["applied"], true);
+    assert_eq!(body_b["duplicate"], true, "the in-flight coalesce carries the duplicate marker");
+    assert_eq!(f.events.lock().unwrap().len(), 1, "one emit for the same-key pair");
+}
+
+#[tokio::test]
+async fn ext_apply_different_keys_apply_independently() {
+    let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    install_ack_responder(&f, ack_script(&[(0, true, "")]));
+    let request = bound_apply_request(&f, serde_json::json!([
+        {"op_type": "insert_at_cursor", "content": "independent"}
+    ])).await;
+    let mut first = request.clone();
+    first["request_id"] = serde_json::json!("key-independent-a");
+    let mut second = request;
+    second["request_id"] = serde_json::json!("key-independent-b");
+    let (status_a, body_a) = apply_raw(&f, &f.token, first).await;
+    let (status_b, body_b) = apply_raw(&f, &f.token, second).await;
+    assert_eq!(status_a, StatusCode::OK);
+    assert_eq!(status_b, StatusCode::OK);
+    assert_eq!(body_a["applied"], true);
+    assert_eq!(body_b["applied"], true);
+    assert!(body_a.get("duplicate").is_none(), "a distinct-key apply is not a duplicate: {body_a}");
+    assert!(body_b.get("duplicate").is_none(), "a distinct-key apply is not a duplicate: {body_b}");
+    assert_eq!(f.events.lock().unwrap().len(), 2, "distinct keys emit independently");
+}
+
+#[tokio::test]
+async fn ext_apply_keyless_applies_once() {
+    let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    install_ack_responder(&f, ack_script(&[(0, true, "")]));
+    // An absent key applies once per post — the server mints its ack
+    // correlation id and makes no dedup promise, so no legacy caller is
+    // refused and no duplicate marker appears.
+    let request = bound_apply_request(&f, serde_json::json!([
+        {"op_type": "insert_at_cursor", "content": "keyless"}
+    ])).await;
+    let (status_a, body_a) = apply_raw(&f, &f.token, request.clone()).await;
+    let (status_b, body_b) = apply_raw(&f, &f.token, request).await;
+    assert_eq!(status_a, StatusCode::OK);
+    assert_eq!(status_b, StatusCode::OK);
+    assert_eq!(body_a["applied"], true);
+    assert_eq!(body_b["applied"], true);
+    assert!(body_a.get("duplicate").is_none(), "a keyless post holds no dedup promise: {body_a}");
+    assert_eq!(f.events.lock().unwrap().len(), 2, "each keyless post emits its batch exactly once");
+}
+// END_BLOCK_EXT_APPLY_VERDICT_TESTS
 
 // START_BLOCK_DISABLE_AUTH_TESTS
 #[derive(Default)]
