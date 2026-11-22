@@ -10066,6 +10066,18 @@
           cd src-tauri &amp;&amp; cargo check -q --no-default-features
           --features app-store
         </Command>
+        <Command>
+          npx vitest run tests/renderer/i18n/locale-keys.test.js
+          tests/renderer/commands/updater.test.js
+        </Command>
+        <Command>
+          cargo test --manifest-path src-tauri/Cargo.toml --locked --offline
+          --bin mark m016_updater::
+        </Command>
+        <Command>
+          cargo test --manifest-path src-tauri/Cargo.toml --locked --offline
+          --bin mark m068_rollback::rollback_core
+        </Command>
       </Commands>
       <Scenarios>
         <Scenario>scenario-1: Feed fetch: mock GitHub Releases response → emits Available(v).</Scenario>
@@ -10113,6 +10125,59 @@
           What's New deferral to the next launch, the App Store gate
           (mt_build_mode updater:false) and the switch off; Ink-theme
           visibility pins the shared CSS variables.
+        </Scenario>
+        <Scenario>
+          scenario-10 (C-UPDATER-NET-BOUNDS): the bounded, serialized forward
+          path. m016_updater.rs pins updater_check_deadline_lives_in_the_builder
+          (source scan over the mt_updater_check body region: updater_builder()
+          and .timeout(std::time::Duration::from_secs(UPDATER_CHECK_TIMEOUT_SECS))
+          present between the fn signature and the app-store stub section — the
+          rollback_fetch_deadline_lives_in_the_client_builder precedent) and
+          updater_check_deadline_constant_is_pinned (assert_eq!(
+          UPDATER_CHECK_TIMEOUT_SECS, 15)); both red on the pre-change tree
+          (E0425 receipts: the constant and the seam did not exist). The
+          mandatory backup-channel stand
+          updater_backup_channel::backup_feed_channel_delivers_the_package_via_the_feed_carried_url_under_the_deadline
+          drives the REAL registered tauri-plugin-updater on a tauri::test mock
+          app (the plugin's setup consumes a plugins.updater config section
+          injected through Context::config_mut and manages the UpdaterState
+          updater_builder() reads; no seam gap recorded — no downgrade was
+          needed) over a local two-endpoint fixture bound to 127.0.0.1:0 (a
+          hung primary, a mirror latest.json carrying the package URL exactly
+          as a real feed does, a gateway-imitating /pkg route serving
+          minisign-verified fixture bytes; throwaway signer-CLI keypair
+          constants, the plugin's own offline_tests precedent) through
+          UpdaterBuilder's endpoints/target/pubkey/timeout seams: the mirror
+          answers with elapsed ≥ the 15 s builder timeout on the primary, the
+          Update resource downloads and verifies the payload via the
+          feed-carried URL, and the recorded request log shows exactly the
+          loopback fixture routes (zero external network). Renderer pins in
+          tests/renderer/commands/updater.test.js: install_passes_the_check_deadline
+          and install_passes_the_download_deadline (argument assertions on
+          checkMock/downloadAndInstallMock), install_is_single_flight (the
+          second overlapping invocation settles into the localized
+          updater.inProgressTitle/Body refusal having invoked nothing, and a
+          fresh invocation runs normally after the live attempt settles),
+          install_toasts_come_from_the_fresh_recheck (the queued snapshot says
+          2.6.0, the flow's re-check answers 2.7.0, the toast names 2.7.0 and
+          no visible string carries 2.6.0), install_failure_is_localized_and_console_only
+          (exactly one updater.failureTitle/Body notice, the raw error
+          console-only — superseding the English «Update failed» catch pin in
+          the same suite without weakening its settle-and-no-relaunch
+          assertions), and install_flow_passes_no_url_and_only_timeout_options
+          (the R-7 source scan: only the timeout options in the
+          START_BLOCK_INSTALL_SIGNED_UPDATE block, no fetch call, no http
+          string, no headers argument). tests/renderer/i18n/locale-keys.test.js
+          pins updater.failureTitle/Body and updater.inProgressTitle/Body
+          present and non-empty in all ten locales. tests/e2e/update-notice.spec.ts
+          feed_move_between_notice_and_click_toasts_the_fresh_version pins the
+          queued-notice-then-feed-moved scenario end to end over the shim's
+          plugin:updater|check re-reading 'mark-e2e-feed' per call (the toast
+          names 2.7.0, no visible 2.6.0, exactly one
+          plugin:updater|download_and_install invoke, mt_rollback_prepare
+          strictly before the plugin check, the shim's relaunch inert), with
+          the C-66 matrix green unweakened; the idempotent-prepare Rust matrix
+          is recorded on V-M-068.
         </Scenario>
       </Scenarios>
       <Markers>
