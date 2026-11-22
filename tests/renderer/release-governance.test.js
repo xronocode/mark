@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-governance.test.js
-// VERSION: 2.4.0
+// VERSION: 2.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the ordinary release/governance check, Conventional SemVer admission, the payload-open merge window, immutable action references, and staged control configuration.
 //   SCOPE: Pure negative fixtures plus checked-in repository integration; no GitHub API or setting mutation.
@@ -40,9 +40,14 @@
 //   assertReleaseSigningSplit - comment-blind red-control validator for the signing boundary.
 //   assertPublicationNeedsChain - red-control validator for the publication needs chain.
 //   assertSplitPrereleaseEquivalence - red-control validator for prerelease-lane equivalence.
+//   assertCaskSignedDigest - comment-blind red-control validator for the publish-cask signed-digest contract.
+//   assertSignStagedHandoff - comment-blind red-control validator for the staged-handoff collision and receipt contract.
+//   crlfLiteral - turns a literal workflow fragment into a CRLF-tolerant regex (escaped, with \\r?\\n for its line breaks) for comment-blind pins and red controls.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-22 v2.6.0 C-RELEASE-SIGN-STAGED-SET: pin the staged handoff — the macOS repackage converts into the sign work dir and replaces the occupied destination atomically, the Windows screenshot lives outside the staged dir, the Windows stage receipts every staged file, both Windows uploads name their files, and the digest guard now covers the macOS and Windows verify steps symmetrically — with red controls restoring the direct convert, the in-staged-dir screenshot, the exe-only receipt and a wildcard upload, and Windows-verify mutations rejected by the symmetric guard.
+//   - 2026-11-22 v2.5.0 C-RELEASE-CASK-SIGNED-DIGEST: pin the publish-cask signed-digest contract — the download step names exactly mark-macos-arm64-release with its own path, the sidecar and signed DMG are addressed by explicit artifact paths with no unconstrained find/head selection, the coherence check fails closed on BLOCK_RELEASE_CASK_DIGEST_MISMATCH before any cask mutation, and the B2CR-3 sidecar-sourcing policy stays — with red controls rejecting the broad unnamed download, a removed coherence check or marker, a reintroduced unconstrained find, and a swallowed comparison.
 //   - 2026-11-22 v2.4.0 C-RELEASE-SIGNING-SPLIT: boundary-guard freeze of the pre-split signing boundary named by release-build-scripts-share-signing-job (environment/id-token/attestations and the APPLE_*/TAURI_* secrets confined to the build job's two tauri-action steps, manual-build and docs-security secret-free and environment-free, plain npm ci in build), then the consciously widened post-split pins landed with each workflow edit — sign job sole holder of the release-signing environment, id-token/attestations and the signing secrets with the verify-staged-artifact-digests step failing on BLOCK_SIGN_DIGEST_MISMATCH before any signing, build stripped of all signing material with the ignore-scripts install, the single esbuild allowlist entry and per-artifact SHA-256 receipts, prepare-publication needs-chained on sign, and prerelease-lane equivalence — with red controls rejecting secrets or id-token outside the holder, a plain npm ci or a second allowlist entry, sign-before-verify or a swallowed mismatch exit, a needs list without sign, and prerelease-condition divergence.
 //   - 2026-11-21 v2.3.0 C-RELEASE-BETA-CHECKS-GATE: pin the prerelease checks boundary — seal-keyed collection reusing the stable jq shape, the pinned main required-checks list with its derivation comment, prerelease-only step conditions, no payload reference and no new job, plus the fail-closed fixture matrix (failure, cancelled, missing, stale SHA, ambiguous, green-at-seal, superseded rerun) and in-memory red controls rejecting a missing pinned list, a missing gate and a non-prerelease-only gate.
 //   - 2026-11-21 C-SEC-GITLEAKS-CHECKSUM: pin the docs-security Gitleaks install as download, strict sha256 digest verification, then extraction, with red controls rejecting a missing digest constant, a non-strict check and extraction before verification.
@@ -282,27 +287,49 @@ function assertReleaseSigningSplit(source, opts = {}) {
       )
   }
 
-  // Verify-then-sign: the digest verification step exists, fails closed with
-  // the marker and a nonzero exit, cannot swallow the comparison, and runs
-  // before the first signing material reference in the sign job.
+  // Verify-then-sign: BOTH digest verification steps (macOS and "(windows)")
+  // are located, sliced and held to the same demands — C-RELEASE-SIGN-STAGED-SET
+  // made the guard symmetric so a mutation applied to either platform's step
+  // is rejected. Each step fails closed with the marker and a nonzero exit,
+  // cannot swallow the comparison, and runs before the first signing material
+  // reference in the sign job.
   if (requireVerifyThenSign) {
     const sign = findJob('sign')
     if (!sign) throw new Error('sign job is missing from release.yml')
-    const verifyIndex = sign.body.indexOf('- name: verify staged artifact digests')
-    if (verifyIndex === -1)
+    const verifyMatches = [
+      ...sign.body.matchAll(/^      - name: verify staged artifact digests.*$/gm)
+    ]
+    if (verifyMatches.length === 0)
       throw new Error('sign: the "verify staged artifact digests" step is missing')
-    const verifyStep = sign.body.slice(verifyIndex).split(/\n      - name:/)[0]
-    if (!verifyStep.includes('BLOCK_SIGN_DIGEST_MISMATCH'))
-      throw new Error('sign: the digest comparison does not fail with BLOCK_SIGN_DIGEST_MISMATCH')
-    if (!/^ *exit 1$/m.test(verifyStep))
-      throw new Error('sign: the digest comparison does not exit nonzero')
-    if (/\|\| true|\|\| echo|set \+e/.test(verifyStep))
-      throw new Error('sign: the digest comparison exit can be swallowed')
-    const firstSecret = sign.body.indexOf('secrets.')
-    if (firstSecret !== -1 && firstSecret < verifyIndex)
+    const macosMatches = verifyMatches.filter((match) => !/\(windows\)/.test(match[0]))
+    const windowsMatches = verifyMatches.filter((match) => /\(windows\)/.test(match[0]))
+    if (macosMatches.length !== 1)
       throw new Error(
-        'sign: signing material is referenced before the staged digests are verified'
+        'sign: the macOS "verify staged artifact digests" step is missing or duplicated'
       )
+    if (windowsMatches.length !== 1)
+      throw new Error(
+        'sign: the "verify staged artifact digests (windows)" step is missing or duplicated'
+      )
+    const firstSecret = sign.body.indexOf('secrets.')
+    for (const [platform, match] of [
+      ['macos', macosMatches[0]],
+      ['windows', windowsMatches[0]]
+    ]) {
+      const verifyStep = sign.body.slice(match.index).split(/\r?\n      - name:/)[0]
+      if (!verifyStep.includes('BLOCK_SIGN_DIGEST_MISMATCH'))
+        throw new Error(
+          `sign (${platform}): the digest comparison does not fail with BLOCK_SIGN_DIGEST_MISMATCH`
+        )
+      if (!/^ *exit 1$/m.test(verifyStep))
+        throw new Error(`sign (${platform}): the digest comparison does not exit nonzero`)
+      if (/\|\| true|\|\| echo|set \+e/.test(verifyStep))
+        throw new Error(`sign (${platform}): the digest comparison exit can be swallowed`)
+      if (firstSecret !== -1 && firstSecret < match.index)
+        throw new Error(
+          `sign (${platform}): signing material is referenced before the staged digests are verified`
+        )
+    }
   }
 }
 
@@ -416,6 +443,216 @@ function assertPrereleaseGateWiring(source) {
     throw new Error('prerelease checks gate: pinned required-checks list missing')
   if (!gateStep.includes("if: steps.identity.outputs.prerelease == 'true'"))
     throw new Error('prerelease checks gate is not gated to prereleases only')
+}
+
+// C-RELEASE-CASK-SIGNED-DIGEST comment-blind red-control validator for the
+// publish-cask signed-digest contract, mirroring the
+// assertGitleaksChecksumContract / assertPublicationNeedsChain precedent:
+// it reads only the in-memory source string (no network, no tracked-file
+// edits) and every multi-line regex is CRLF-tolerant (\r?\n) because Windows
+// checkouts carry \r\n. The publish-cask slice must download exactly the
+// signed macOS release artifact by name into its own path, address the
+// sidecar and the signed DMG beside it by their explicit artifact paths with
+// a fail-closed existence check, carry no unconstrained find/head selection
+// over the staged tree, fail closed on BLOCK_RELEASE_CASK_DIGEST_MISMATCH
+// before gh auth setup-git and any cask mutation, and keep the B2CR-3
+// policy (the cask carries the sidecar value, never a recomputed digest).
+function assertCaskSignedDigest(source) {
+  const slice = source.split(/^  publish-cask:/m)[1]
+  if (!slice) throw new Error('publish-cask job is missing from release.yml')
+
+  // The download step names exactly the signed artifact into its own path;
+  // a with: block whose declared keys lack name: is the broad all-artifact
+  // download and is rejected.
+  const downloadSplit = slice.split(/- name: download signed macOS release artifacts/)
+  if (downloadSplit.length < 2)
+    throw new Error('publish-cask: the "download signed macOS release artifacts" step is missing')
+  const downloadStep = downloadSplit[1].split(/\r?\n      - name:/)[0]
+  const withBlock = downloadStep.split(/\r?\n\s+with:/)[1] || ''
+  const withKeys = [...withBlock.matchAll(/^ +([a-z-]+):/gm)].map((match) => match[1])
+  if (!withKeys.includes('name'))
+    throw new Error(
+      'publish-cask: the download with: block lacks name: (the broad all-artifact download)'
+    )
+  if (!/^ +name: mark-macos-arm64-release\r?$/m.test(downloadStep))
+    throw new Error('publish-cask: the download step does not name mark-macos-arm64-release')
+  if (!/^ +path: \/tmp\/release-stage\/mark-macos-arm64-release\r?$/m.test(downloadStep))
+    throw new Error('publish-cask: the download step does not declare its own artifact path')
+
+  // The sidecar and the signed DMG are addressed by their explicit artifact
+  // paths with a fail-closed existence check.
+  if (
+    !slice.includes(
+      'CASK_SIDECAR="/tmp/release-stage/mark-macos-arm64-release/Mark_${VER}_aarch64.dmg.sha256"'
+    )
+  )
+    throw new Error('publish-cask: the sidecar is not addressed by its explicit artifact path')
+  if (!slice.includes('SIGNED_DMG="/tmp/release-stage/mark-macos-arm64-release/Mark_${VER}_aarch64.dmg"'))
+    throw new Error('publish-cask: the signed DMG is not addressed beside the sidecar')
+  if (!slice.includes('if [ ! -f "$CASK_SIDECAR" ] || [ ! -f "$SIGNED_DMG" ]; then'))
+    throw new Error('publish-cask: the fail-closed sidecar/DMG existence check is missing')
+
+  // No unconstrained selection of a sha256 sidecar over the staged tree.
+  if (/find \/tmp\/release-stage[^\r\n]*Mark_\$\{VER\}_aarch64\.dmg\.sha256/.test(slice))
+    throw new Error('publish-cask: an unconstrained find over the staged tree selects the sidecar again')
+  if (
+    /(Mark_\$\{VER\}_aarch64\.dmg\.sha256[^\r\n]*\|\s*head -1)|(\|\s*head -1[^\r\n]*Mark_\$\{VER\}_aarch64\.dmg\.sha256)/.test(
+      slice
+    )
+  )
+    throw new Error('publish-cask: head -1 selection of a sha256 sidecar reappeared')
+
+  // Coherence: the signed DMG is re-hashed with sha256sum and compared
+  // fail-closed against the sidecar value, with the marker-bearing refusal
+  // BEFORE gh auth setup-git and any cask mutation (check-then-mutate
+  // ordering, mirroring the requireVerifyThenSign index precedent).
+  const coherenceStart = slice.indexOf('COMPUTED=$(sha256sum "$SIGNED_DMG"')
+  if (coherenceStart === -1)
+    throw new Error('publish-cask: the coherence hash of the signed DMG is missing')
+  const coherenceStep = slice.slice(coherenceStart).split(/\r?\n          fi/)[0]
+  if (!slice.includes('BLOCK_RELEASE_CASK_DIGEST_MISMATCH'))
+    throw new Error('publish-cask: the BLOCK_RELEASE_CASK_DIGEST_MISMATCH marker is missing')
+  if (!/^ *exit 1$/m.test(coherenceStep))
+    throw new Error('publish-cask: the digest comparison does not exit nonzero')
+  if (/\|\| true|\|\| echo|set \+e/.test(coherenceStep))
+    throw new Error('publish-cask: the digest comparison exit can be swallowed')
+  const refusalIndex = slice.indexOf('[ReleaseCask][publish-cask][BLOCK_RELEASE_CASK_DIGEST_MISMATCH]')
+  const setupGitIndex = slice.indexOf('gh auth setup-git')
+  if (setupGitIndex === -1 || refusalIndex > setupGitIndex)
+    throw new Error('publish-cask: the mismatch refusal must precede gh auth setup-git')
+
+  // B2CR-3: the cask carries the sidecar value read from CASK_SIDECAR; the
+  // recomputed hash exists only for the comparison and is never substituted
+  // into a cask write.
+  if (!slice.includes('# Pull the .sha256 sidecar value (NOT recompute) per B2CR-3.'))
+    throw new Error('publish-cask: the B2CR-3 sidecar-sourcing comment is missing')
+  if (!slice.includes("SHA256=$(awk '{print $1}' < \"$CASK_SIDECAR\")"))
+    throw new Error('publish-cask: the sidecar value is not read into SHA256 from CASK_SIDECAR')
+  if (!slice.includes('sha256 \\"$SHA256\\"'))
+    throw new Error('publish-cask: the cask write no longer uses the sidecar value $SHA256')
+  if (/sha256 \\?"\$COMPUTED\\?"/.test(slice))
+    throw new Error('publish-cask: the recomputed value leaked into the cask write')
+}
+
+// CRLF-tolerant literal matcher for pinned multi-line workflow text: escapes
+// every regex metacharacter and joins lines with \r?\n because Windows
+// checkouts carry \r\n.
+const crlfLiteral = (text) =>
+  new RegExp(
+    text
+      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      .split('\n')
+      .join('\\r?\\n'),
+    'm'
+  )
+
+// C-RELEASE-SIGN-STAGED-SET comment-blind red-control validator for the
+// staged-handoff collision and receipt contract, mirroring the
+// assertCaskSignedDigest / assertGitleaksChecksumContract precedent: it
+// reads only the in-memory source string (no network, no tracked-file
+// edits) and every multi-line regex is CRLF-tolerant (\r?\n) because Windows
+// checkouts carry \r\n. The macOS repackage step must convert into the sign
+// work dir and replace the occupied destination atomically (never the direct
+// convert onto "$DMG_DST"), the Windows smoke screenshot must live outside
+// the staged dir, the Windows stage step must receipt every staged file (the
+// exe-only write must be gone), and both Windows uploads must name their
+// files instead of a release\* wildcard, with the unchanged artifact names.
+function assertSignStagedHandoff(source) {
+  const sign = source.split(/^  prepare-publication:/m)[0].split(/^  sign:/m)[1]
+  if (!sign) throw new Error('sign job is missing from release.yml')
+  const build = source.split(/^  sign:/m)[0].split(/^  build:/m)[1]
+  if (!build) throw new Error('build job is missing from release.yml')
+  const stepSlice = (job, name) => {
+    const split = job.split(`- name: ${name}`)
+    if (split.length < 2) throw new Error(`the "${name}" step is missing from release.yml`)
+    return split[1].split(/\r?\n      - name:/)[0]
+  }
+  const repackage = stepSlice(sign, 'repackage and notarize the staged DMG')
+  const smoke = stepSlice(build, 'windows smoke (silent install + launch)')
+  const stageWin = stepSlice(build, 'stage release artifacts (windows)')
+  const stagedUpload = stepSlice(build, 'upload staged unsigned artifacts (windows)')
+  const signedUpload = stepSlice(sign, 'upload signed release artifacts (windows)')
+
+  // The direct conversion onto the occupied destination must be gone.
+  if (repackage.includes('hdiutil convert "$RW_DMG" -format UDZO -o "$DMG_DST"'))
+    throw new Error('repackage: the conversion targets the occupied destination directly again')
+
+  // Collision-free conversion: convert into the sign work dir, replace the
+  // destination atomically, carry the reason comment, then notarize and
+  // staple the replaced path in order.
+  if (!repackage.includes('SIGNED_OUT="$APP_WORK/Mark_${VER}_aarch64.dmg"'))
+    throw new Error('repackage: the conversion no longer lands in the sign work dir (SIGNED_OUT)')
+  if (!repackage.includes('hdiutil convert "$RW_DMG" -format UDZO -o "$SIGNED_OUT"'))
+    throw new Error('repackage: hdiutil convert no longer writes "$SIGNED_OUT"')
+  if (!repackage.includes('mv -f "$SIGNED_OUT" "$DMG_DST"'))
+    throw new Error('repackage: the atomic replace of the staged copy is missing')
+  if (!repackage.includes('hdiutil convert refuses an existing output'))
+    throw new Error('repackage: the conversion reason comment is missing')
+  const mvIndex = repackage.indexOf('mv -f "$SIGNED_OUT" "$DMG_DST"')
+  const notaryIndex = repackage.indexOf('xcrun notarytool submit "$DMG_DST"')
+  const stapleIndex = repackage.indexOf('xcrun stapler staple "$DMG_DST"')
+  if (
+    mvIndex === -1 ||
+    notaryIndex === -1 ||
+    stapleIndex === -1 ||
+    mvIndex > notaryIndex ||
+    notaryIndex > stapleIndex
+  )
+    throw new Error(
+      'repackage: notarization and stapling must consume the replaced "$DMG_DST" after the mv'
+    )
+  if (/\|\| true|\|\| echo|set \+e/.test(repackage))
+    throw new Error('repackage: the conversion or replace line can be swallowed')
+
+  // The Windows smoke screenshot lives outside the staged dir.
+  if (smoke.includes('release\\app-screenshot.png'))
+    throw new Error('smoke: the screenshot was written back into the staged dir')
+  if (!smoke.includes('New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP\\smoke"'))
+    throw new Error('smoke: the RUNNER_TEMP\\smoke directory is not created')
+  if (!smoke.includes('$bmp.Save("$env:RUNNER_TEMP\\smoke\\app-screenshot.png")'))
+    throw new Error('smoke: the screenshot is not saved under RUNNER_TEMP\\smoke')
+
+  // Every Windows staged file carries a receipt; the exe-only write is gone.
+  if (stageWin.includes('echo "$HASH" > "$EXE_DST.sha256"'))
+    throw new Error('stage: the exe-only receipt write reappeared')
+  if (!stageWin.includes('for STAGED in "$STAGE_DIR"/*; do'))
+    throw new Error('stage: the per-file staged receipt loop is missing')
+  if (!stageWin.includes('echo "$HASH" > "$STAGED.sha256"'))
+    throw new Error('stage: receipts are not written per staged file ("$STAGED.sha256")')
+
+  // Both Windows uploads name their files; no release\* wildcard remains.
+  for (const [label, slice] of [
+    ['staged', stagedUpload],
+    ['signed', signedUpload]
+  ]) {
+    if (slice.includes('path: ${{ runner.temp }}\\release\\*'))
+      throw new Error(`upload (${label}): the release\\* wildcard upload reappeared`)
+  }
+  const stagedList = [
+    '          path: |',
+    '            ${{ runner.temp }}\\release\\Mark_*_x64-setup.exe',
+    '            ${{ runner.temp }}\\release\\Mark_*_x64-setup.exe.sha256',
+    '            ${{ runner.temp }}\\release\\latest-platform.json',
+    '            ${{ runner.temp }}\\release\\latest-platform.json.sha256'
+  ].join('\n')
+  const signedList = [
+    '          path: |',
+    '            ${{ runner.temp }}\\release\\Mark_*_x64-setup.exe',
+    '            ${{ runner.temp }}\\release\\Mark_*_x64-setup.exe.sha256',
+    '            ${{ runner.temp }}\\release\\Mark_*_x64-setup.exe.bundle',
+    '            ${{ runner.temp }}\\release\\latest-platform.json',
+    '            ${{ runner.temp }}\\release\\latest-platform.json.sha256'
+  ].join('\n')
+  if (!crlfLiteral(stagedList).test(stagedUpload))
+    throw new Error('upload (staged): the Windows staged upload does not name its files')
+  if (!crlfLiteral(signedList).test(signedUpload))
+    throw new Error('upload (signed): the Windows signed upload does not name its files')
+
+  // The unchanged artifact names stay.
+  if (!/^ +name: mark-\$\{\{ matrix\.platform\.name \}\}-release-staged\r?$/m.test(stagedUpload))
+    throw new Error('upload (staged): the -release-staged artifact name changed')
+  if (!/^ +name: mark-\$\{\{ matrix\.platform\.name \}\}-release\r?$/m.test(signedUpload))
+    throw new Error('upload (signed): the -release artifact name changed')
 }
 
 // Deterministic check-run fixtures for the fail-closed matrix: raw API
@@ -1028,6 +1265,34 @@ describe('release governance', () => {
         postSplit
       )
     ).toThrow(/exit can be swallowed/)
+    // C-RELEASE-SIGN-STAGED-SET: the symmetric guard rejects mutations of the
+    // Windows verify step too — stripping its BLOCK_SIGN_DIGEST_MISMATCH
+    // marker is rejected with the platform-specific message.
+    const windowsVerifyStart = releaseWorkflow.indexOf(
+      '- name: verify staged artifact digests (windows)'
+    )
+    expect(windowsVerifyStart).toBeGreaterThan(-1)
+    const windowsVerifyScope = releaseWorkflow.slice(windowsVerifyStart).split(/\r?\n      - name:/)[0]
+    const strippedWindowsMarker =
+      releaseWorkflow.slice(0, windowsVerifyStart) +
+      windowsVerifyScope.replaceAll('BLOCK_SIGN_DIGEST_MISMATCH', 'BLOCK_SIGN_DIGEST_OK') +
+      releaseWorkflow.slice(windowsVerifyStart + windowsVerifyScope.length)
+    expect(strippedWindowsMarker).not.toBe(releaseWorkflow)
+    expect(() =>
+      assertReleaseSigningSplit(strippedWindowsMarker, postSplit)
+    ).toThrow(
+      /sign \(windows\): the digest comparison does not fail with BLOCK_SIGN_DIGEST_MISMATCH/
+    )
+    // and appending a swallow inside the Windows verify cp line is rejected
+    // by the symmetric guard as well.
+    const swallowedWindowsCp = releaseWorkflow.replace(
+      'cp "$STAGE"/* "$RELEASE_DIR"/',
+      'cp "$STAGE"/* "$RELEASE_DIR"/ || true'
+    )
+    expect(swallowedWindowsCp).not.toBe(releaseWorkflow)
+    expect(() =>
+      assertReleaseSigningSplit(swallowedWindowsCp, postSplit)
+    ).toThrow(/sign \(windows\): the digest comparison exit can be swallowed/)
     // frozen pre-split red controls on the synthetic fixture
     expect(() =>
       assertReleaseSigningSplit(
@@ -1137,6 +1402,180 @@ describe('release governance', () => {
     expect(preparePublicationJob).not.toMatch(/^\s*environment:/m)
     expect(manualBuildJob).not.toMatch(/^\s*environment:/m)
     expect(manualBuildJob).not.toContain('secrets.')
+  })
+
+  it('sources the Homebrew cask digest only from the signed macOS release artifact and coherence-checks it', () => {
+    // C-RELEASE-CASK-SIGNED-DIGEST positive pins: the download step names
+    // exactly the signed artifact into its own path, the sidecar and the
+    // signed DMG beside it are addressed by their explicit artifact paths
+    // with a fail-closed existence check, no unconstrained find/head
+    // selection over the staged tree remains, the coherence check fails
+    // closed on the marker before gh auth setup-git and any cask mutation,
+    // and the B2CR-3 sidecar-sourcing policy (cask carries "$SHA256" from
+    // the sidecar, never a recomputed digest) stays.
+    expect(() => assertCaskSignedDigest(releaseWorkflow)).not.toThrow()
+    expect(publishCaskJob).toContain('- name: download signed macOS release artifacts')
+    expect(publishCaskJob).toContain('name: mark-macos-arm64-release')
+    expect(publishCaskJob).toContain('path: /tmp/release-stage/mark-macos-arm64-release')
+    expect(publishCaskJob).not.toMatch(/^ +path: \/tmp\/release-stage\r?$/m)
+    expect(publishCaskJob).toContain(
+      'CASK_SIDECAR="/tmp/release-stage/mark-macos-arm64-release/Mark_${VER}_aarch64.dmg.sha256"'
+    )
+    expect(publishCaskJob).toContain(
+      'SIGNED_DMG="/tmp/release-stage/mark-macos-arm64-release/Mark_${VER}_aarch64.dmg"'
+    )
+    expect(publishCaskJob).toContain('if [ ! -f "$CASK_SIDECAR" ] || [ ! -f "$SIGNED_DMG" ]; then')
+    expect(publishCaskJob).not.toMatch(/find \/tmp\/release-stage/)
+    expect(publishCaskJob).toContain("COMPUTED=$(sha256sum \"$SIGNED_DMG\" | awk '{print $1}')")
+    expect(publishCaskJob).toContain('[ReleaseCask][publish-cask][BLOCK_RELEASE_CASK_DIGEST_MISMATCH]')
+    expect(publishCaskJob).toContain('# Pull the .sha256 sidecar value (NOT recompute) per B2CR-3.')
+    expect(publishCaskJob).toContain('sha256 \\"$SHA256\\"')
+    // Check-then-mutate ordering: the marker-bearing refusal precedes
+    // gh auth setup-git, the tap clone and every cask mutation.
+    expect(publishCaskJob.indexOf('[ReleaseCask][publish-cask][BLOCK_RELEASE_CASK_DIGEST_MISMATCH]')).toBeLessThan(
+      publishCaskJob.indexOf('gh auth setup-git')
+    )
+  })
+
+  it('fails closed on in-memory mutations of the cask digest selection', () => {
+    // Red controls mutate only the checked-in workflow source string in
+    // memory: no tracked-file edits, no network. Each mutation is guarded
+    // by a not.toBe assertion so a non-matching splice can never pass
+    // trivially against the pristine workflow.
+    expect(() => assertCaskSignedDigest(releaseWorkflow)).not.toThrow()
+
+    // (a) restoring the broad unnamed all-artifact download
+    const broadDownload = releaseWorkflow.replace(
+      /- name: download signed macOS release artifacts\r?\n(?:.|\r|\n)*?(?=- name: gate on App secrets)/,
+      '- name: download release artifacts\n        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4\n        with:\n          path: /tmp/release-stage\n\n      '
+    )
+    expect(broadDownload).not.toBe(releaseWorkflow)
+    expect(() => assertCaskSignedDigest(broadDownload)).toThrow(
+      /"download signed macOS release artifacts" step is missing/
+    )
+
+    // (b) removing the coherence check (the COMPUTED assignment through its
+    // closing fi, which also removes the marker-bearing refusal)
+    const withoutCoherence = releaseWorkflow.replace(
+      /^          COMPUTED=\$\(sha256sum "\$SIGNED_DMG"(?:.|\r|\n)*?\r?\n          fi\r?\n/m,
+      ''
+    )
+    expect(withoutCoherence).not.toBe(releaseWorkflow)
+    expect(() => assertCaskSignedDigest(withoutCoherence)).toThrow(
+      /coherence hash of the signed DMG is missing/
+    )
+
+    // (c) reintroducing the unconstrained find | head -1 selection in place
+    // of the explicit sidecar/DMG addresses
+    const findSelection = releaseWorkflow.replace(
+      /          CASK_SIDECAR="\/tmp\/release-stage\/mark-macos-arm64-release\/Mark_\$\{VER\}_aarch64\.dmg\.sha256"\r?\n          SIGNED_DMG="\/tmp\/release-stage\/mark-macos-arm64-release\/Mark_\$\{VER\}_aarch64\.dmg"\r?\n/,
+      '          SHA256_FILE=$(find /tmp/release-stage -name "Mark_${VER}_aarch64.dmg.sha256" | head -1)\n'
+    )
+    expect(findSelection).not.toBe(releaseWorkflow)
+    expect(() => assertCaskSignedDigest(findSelection)).toThrow(
+      /not addressed by its explicit artifact path/
+    )
+
+    // (d) swallowing the digest comparison exit
+    const swallowedComparison = releaseWorkflow.replace(
+      '[ "$SHA256" != "$COMPUTED" ]; then',
+      '[ "$SHA256" != "$COMPUTED" ] || true; then'
+    )
+    expect(swallowedComparison).not.toBe(releaseWorkflow)
+    expect(() => assertCaskSignedDigest(swallowedComparison)).toThrow(
+      /exit can be swallowed/
+    )
+  })
+
+  it('keeps the staged handoff collision-free and fully receipted', () => {
+    // C-RELEASE-SIGN-STAGED-SET positive pins: the validator accepts the
+    // checked-in workflow, the repackage converts into the sign work dir and
+    // replaces the occupied destination atomically, the screenshot lives
+    // outside the staged dir, the Windows stage receipts every staged file,
+    // and both Windows uploads name their files.
+    expect(() => assertSignStagedHandoff(releaseWorkflow)).not.toThrow()
+    expect(signJob).toContain('SIGNED_OUT="$APP_WORK/Mark_${VER}_aarch64.dmg"')
+    expect(signJob).toContain('hdiutil convert "$RW_DMG" -format UDZO -o "$SIGNED_OUT"')
+    expect(signJob).toContain('mv -f "$SIGNED_OUT" "$DMG_DST"')
+    expect(signJob).toContain('hdiutil convert refuses an existing output')
+    expect(signJob).not.toContain('hdiutil convert "$RW_DMG" -format UDZO -o "$DMG_DST"')
+    expect(buildJob).toContain('New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP\\smoke"')
+    expect(buildJob).toContain('$bmp.Save("$env:RUNNER_TEMP\\smoke\\app-screenshot.png")')
+    expect(buildJob).toContain('for STAGED in "$STAGE_DIR"/*; do')
+    expect(buildJob).toContain('echo "$HASH" > "$STAGED.sha256"')
+    expect(buildJob).not.toContain('echo "$HASH" > "$EXE_DST.sha256"')
+    expect(releaseWorkflow).toMatch(
+      crlfLiteral(
+        [
+          '          path: |',
+          '            ${{ runner.temp }}\\release\\Mark_*_x64-setup.exe',
+          '            ${{ runner.temp }}\\release\\Mark_*_x64-setup.exe.sha256',
+          '            ${{ runner.temp }}\\release\\latest-platform.json',
+          '            ${{ runner.temp }}\\release\\latest-platform.json.sha256'
+        ].join('\n')
+      )
+    )
+    expect(releaseWorkflow).toMatch(
+      crlfLiteral(
+        [
+          '          path: |',
+          '            ${{ runner.temp }}\\release\\Mark_*_x64-setup.exe',
+          '            ${{ runner.temp }}\\release\\Mark_*_x64-setup.exe.sha256',
+          '            ${{ runner.temp }}\\release\\Mark_*_x64-setup.exe.bundle',
+          '            ${{ runner.temp }}\\release\\latest-platform.json',
+          '            ${{ runner.temp }}\\release\\latest-platform.json.sha256'
+        ].join('\n')
+      )
+    )
+    expect(releaseWorkflow).not.toContain('path: ${{ runner.temp }}\\release\\*')
+  })
+
+  it('fails closed on in-memory mutations of the sign staged handoff', () => {
+    // Red controls mutate only the checked-in workflow source string in
+    // memory: no tracked-file edits, no network. Each mutation is guarded by
+    // a not.toBe assertion so a non-matching splice can never pass trivially
+    // against the pristine workflow.
+    expect(() => assertSignStagedHandoff(releaseWorkflow)).not.toThrow()
+
+    // (a) restoring the direct conversion onto the occupied destination
+    const directConvert = releaseWorkflow.replace(
+      'hdiutil convert "$RW_DMG" -format UDZO -o "$SIGNED_OUT"',
+      'hdiutil convert "$RW_DMG" -format UDZO -o "$DMG_DST"'
+    )
+    expect(directConvert).not.toBe(releaseWorkflow)
+    expect(() => assertSignStagedHandoff(directConvert)).toThrow(
+      /targets the occupied destination directly/
+    )
+
+    // (b) moving the screenshot back into the staged dir
+    const screenshotBack = releaseWorkflow.replace(
+      '$bmp.Save("$env:RUNNER_TEMP\\smoke\\app-screenshot.png")',
+      '$bmp.Save("$env:RUNNER_TEMP\\release\\app-screenshot.png")'
+    )
+    expect(screenshotBack).not.toBe(releaseWorkflow)
+    expect(() => assertSignStagedHandoff(screenshotBack)).toThrow(
+      /written back into the staged dir/
+    )
+
+    // (c) restoring the exe-only receipt write in place of the per-file loop
+    const exeOnlyReceipt = releaseWorkflow.replace(
+      /          for STAGED in "\$STAGE_DIR"\/\*; do(?:.|\r|\n)*?\r?\n          done\r?/,
+      `          HASH=$(node -e "const c=require('crypto'),f=require('fs');process.stdout.write(c.createHash('sha256').update(f.readFileSync(process.argv[1])).digest('hex'))" "$EXE_DST")\n          echo "$HASH" > "$EXE_DST.sha256"\n`
+    )
+    expect(exeOnlyReceipt).not.toBe(releaseWorkflow)
+    expect(() => assertSignStagedHandoff(exeOnlyReceipt)).toThrow(
+      /exe-only receipt write reappeared/
+    )
+
+    // (d) restoring the wildcard upload in place of the named staged list
+    const wildcardRestore = releaseWorkflow.replace(
+      /          path: \|\r?\n            \$\{\{ runner\.temp \}\}\\release\\Mark_\*_x64-setup\.exe\r?\n            \$\{\{ runner\.temp \}\}\\release\\Mark_\*_x64-setup\.exe\.sha256\r?\n            \$\{\{ runner\.temp \}\}\\release\\latest-platform\.json\r?\n            \$\{\{ runner\.temp \}\}\\release\\latest-platform\.json\.sha256/,
+      '          path: ${{ runner.temp }}\\release\\*'
+    )
+    expect(wildcardRestore).not.toBe(releaseWorkflow)
+    expect(() => assertSignStagedHandoff(wildcardRestore)).toThrow(
+      /wildcard upload reappeared/
+    )
   })
 })
 // END_BLOCK_RELEASE_GOVERNANCE_TESTS

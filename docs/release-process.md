@@ -125,6 +125,17 @@ issues the SLSA provenance and the keyless cosign signatures over the signed
 set. Publication is needs-chained on signing, so no downstream stage can
 bypass it, and the prerelease lane rides the same split chain.
 
+The Homebrew cask handoff resolves its sha256 only from the signed macOS release artifact — never from
+the unsigned staged copy — and coherence-checks the sidecar against a fresh hash of the signed DMG
+beside it, failing the run closed on BLOCK_RELEASE_CASK_DIGEST_MISMATCH before the pull request opens.
+The cask value itself stays the sidecar value, not a recomputed digest.
+
+The staged directory holds exactly the release files, each with its SHA-256 receipt: the Windows smoke
+screenshot is written outside it, and both Windows uploads name their files rather than using a wildcard,
+so an unexpected or unreceipted file cannot reach the sign job. On macOS the sign job converts the
+re-packaged DMG into its work directory and replaces the staged copy — hdiutil convert refuses an
+existing output, and the staged unsigned DMG already occupies that path.
+
 ## 5. Release notes
 
 The workflow publishes only the automated verification block. Once the release
