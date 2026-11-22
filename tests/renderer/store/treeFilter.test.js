@@ -27,6 +27,11 @@
 // END_CHANGE_SUMMARY
 
 import { beforeEach } from 'vitest'
+// POSIX path contract (the setup shim installs a posix window.path); under
+// the vite-8 define config.PATH_SEPARATOR follows the build host, which on
+// the Windows CI runner is '\\' and breaks the POSIX path pins (treeCtrl
+// splits on the separator).
+vi.mock('@/config', () => ({ PATH_SEPARATOR: '/' }))
 
 // treeCtrl pulls util/index.js, which reads window.electron at import time;
 // tests/renderer/setup.ts installs it in a global beforeEach — so import the

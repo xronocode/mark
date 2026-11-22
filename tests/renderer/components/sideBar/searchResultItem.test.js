@@ -2,6 +2,10 @@ import { shallowMount } from '@vue/test-utils'
 import { setupTestPinia } from '../../pinia'
 import { createI18n } from 'vue-i18n'
 
+// POSIX path contract (the setup shim installs a posix window.path); under
+// the vite-8 define config.PATH_SEPARATOR follows the build host, which on
+// the Windows CI runner is '\\' and breaks the POSIX path pins.
+vi.mock('@/config', () => ({ PATH_SEPARATOR: '/' }))
 vi.mock('@/bus', () => ({
   default: { on: vi.fn(), off: vi.fn(), emit: vi.fn() }
 }))
