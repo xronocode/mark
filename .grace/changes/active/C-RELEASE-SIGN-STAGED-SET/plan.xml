@@ -1,0 +1,398 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-RELEASE-SIGN-STAGED-SET>
+    <IntentSummary>Repair the two execution defects that make the C-RELEASE-SIGNING-SPLIT staged handoff fail the release lane on every run, and close the test gap that let them through. D1 (macOS): the sign job's verify step copies the staged set into /tmp/release (:984-985), so the UNSIGNED staged DMG already occupies /tmp/release/Mark_${VER}_aarch64.dmg when "repackage and notarize the staged DMG" (:1113-1132) runs hdiutil convert "$RW_DMG" -format UDZO -o "$DMG_DST" (:1130) onto that exact path — hdiutil convert refuses an existing output (exit 1, reproduced on a real Mac) and the step runs under set -euo pipefail, so macOS signing dies every run. Fix: convert into the sign work dir (SIGNED_OUT="$APP_WORK/Mark_${VER}_aarch64.dmg"), then replace the destination atomically (mv -f "$SIGNED_OUT" "$DMG_DST"), with a one-line comment naming the reason; notarize and staple keep consuming "$DMG_DST"; the fresh-receipt re-emit loop stays. D2 (Windows): the smoke screenshot is saved inside the staged dir ($env:RUNNER_TEMP\release\app-screenshot.png :797 — STAGE_DIR="$RUNNER_TEMP/release" :837/:867), the stage step receipts only the exe (echo "$HASH" > "$EXE_DST.sha256" :881) so latest-platform.json (:846) is always staged without a receipt, and the wildcard uploads (${{ runner.temp }}\release\* :909, :1281) carry the unreceipted files to the sign job, whose Windows verifier (:1013-1047) refuses every run with [ReleaseSign][sign][BLOCK_SIGN_DIGEST_MISMATCH]. Fix: the screenshot moves to $env:RUNNER_TEMP\smoke (directory created first; nothing else reads it from the old path — the only other app-screenshot.png matches in the tree are frozen historical release-asset names in docs/release-notes/github-releases-archive.json and untracked local review artifacts); the Windows stage step gains a receipt loop over the staged dir (for STAGED in "$STAGE_DIR"/*; do with the existing node sha256 one-liner, skipping *.sha256), mirroring the macOS loop (:736-741); both Windows uploads name their files as path: lists (the macOS lanes' existing style) — staged: the exe, its .sha256, latest-platform.json and its .sha256; signed: those plus the .exe.bundle; the .sig drops from the signed set exactly as the macOS list already drops it (no downstream consumer reads it — prepare-publication's Windows copy_one list :1365 names exe/.sha256/.bundle and the feed merge :1328 reads latest-platform.json only); artifact names unchanged. D3: tests/renderer/release-governance.test.js pins the digest guard only on the macOS step (sign.body.indexOf('- name: verify staged artifact digests') :291 matches the macOS step first) and nothing executes the workflow's shell — extend the requireVerifyThenSign block (:288-306) so BOTH verify steps are located, sliced and held to the same demands (a mutation of EITHER step is rejected, red controls added to the existing in-memory mutation test), and add the comment-blind CRLF-tolerant validator assertSignStagedHandoff with a positive pin test (keeps the staged handoff collision-free and fully receipted) and a red-control test (fails closed on in-memory mutations of the sign staged handoff). Execution gate (decision 4): tests/tools/sign-staged-handoff.test.mjs — vitest, Node-only (first-line @vitest-environment node pragma, the tests/tools precedent for subprocess-driving suites under the lane's globally configured jsdom), no new dependencies, no network — parses release.yml with the lockfile yaml package and EXECUTES the extracted run: shells with bash against synthetic staged directories: both verify loops on every OS (pass: file+receipt exits zero; missing receipt exits nonzero with BLOCK_SIGN_DIGEST_MISMATCH; tampered bytes exit nonzero); a stage-then-verify case running the extracted Windows stage script over a staged dir holding the exe and latest-platform.json and demanding the verifier pass — red on the current text, green after the fix; the repackage case only where hdiutil exists (explicit skip reason elsewhere) against a tiny real hdiutil-created disk image with xcrun/codesign/spctl PATH shims — red on the current text (occupied destination), green after the fix. The extracted workflow text is the only place /tmp/release exists: the gate applies exactly ONE declared substitution — the literal /tmp/release becomes a per-test temporary directory under the OS temp root, failing loudly when a step expected to contain it does not — so the collision semantics are exercised without ever touching a fixed shared path; cleanup happens only inside the per-test temp directory in a finally block, including detaching any mounted image. The gate lands FIRST, deliberately red, and the workflow fix flips it green. Bookkeeping: release.yml VERSION 3.11.0 (the sibling C-RELEASE-CASK-SIGNED-DIGEST's 3.10.0 lands underneath) with the dated CHANGE_SUMMARY line and build/sign MODULE_MAP appends; the governance test file to 2.6.0; a MODULE_CONTRACT header on the new file; docs 4b staged-set sentences; M-046 SummaryDelta plus the M-046 Tests list line for the new file; V-M-046 scenario-41 (after the sibling's scenario-40) plus the Command entry.</IntentSummary>
+    <Spec>C-RELEASE-SIGN-STAGED-SET</Spec>
+    <ReferenceState>Authored 2026-11-22 against the read-only repository worktree at HEAD 97fec630 ("docs: pin the contributor Node.js minimum to 22.22.2..."); git diff 97fec630 bb68fd6c -- .github/workflows/release.yml is empty, so every release.yml anchor below reads the same on remote main bb68fd6c. BASELINE = remote main PLUS the sibling C-RELEASE-CASK-SIGNED-DIGEST, whose approved plan edits the publish-cask job (:1598-1638), bumps release.yml to VERSION 3.10.0, adds a topmost CHANGE_SUMMARY line, bumps tests/renderer/release-governance.test.js to 2.5.0 and appends V-M-046 scenario-40 — after the sibling lands, lines at and below :23 (CHANGE_SUMMARY insertion) shift by one and lines below :1598 shift by a few; every criterion here anchors on stable TEXT, line numbers are reading aids only. .github/workflows/release.yml VERSION 3.9.0 (line 2): MODULE_MAP :12-20 (build entry :15, sign entry :16), CHANGE_SUMMARY :22-69 (topmost v3.9.0 line :23). Defect D1: sign job :913 (needs block :921-923, environment :925, matrix :931-941); staged download name+path :966-970; "verify staged artifact digests" :978-1011 (mkdir :984, cp :985, marker lines :991/:998/:1004/:1009, exit 1 :1010); "verify staged artifact digests (windows)" :1013-1047 (cp :1021, node digest :1032); re-sign step :1074-1094 (APP_WORK :1080, staged-rw.dmg convert :1089); "repackage and notarize the staged DMG" :1113-1132 (VER :1122, APP_WORK/RW_DMG/MOUNT :1123-1125, attach/copy/detach :1126-1128, DMG_DST="/tmp/release/Mark_${VER}_aarch64.dmg" :1129, hdiutil convert "$RW_DMG" -format UDZO -o "$DMG_DST" :1130, notarytool submit "$DMG_DST" :1131, stapler staple "$DMG_DST" :1132); macOS receipt re-emit loop :1162-1166 (for SIGNED in "/tmp/release/Mark_${VER}_aarch64.dmg" "$TGZ" /tmp/release/latest-platform.json :1164); Windows fresh receipts :1194-1197; signed upload macOS named list :1260-1274; signed upload Windows wildcard :1276-1283 (path: ${{ runner.temp }}\release\* :1281). Defect D2: Windows smoke step :750-803 (screenshot dir create New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP\release" :790, $bmp.Save("$env:RUNNER_TEMP\release\app-screenshot.png") :797); feed fragment (windows) :827-857 (STAGE_DIR :837, latest-platform.json write :846); stage release artifacts (windows) :859-882 (STAGE_DIR :867, node one-liner :880, echo "$HASH" > "$EXE_DST.sha256" :881); macOS staged upload named list :889-900; Windows staged upload wildcard :904-911 (path: ${{ runner.temp }}\release\* :909). Downstream consumers (unchanged): prepare-publication pattern download :1300-1307, feed merge :1321-1336 (find latest-platform.json :1328), copy_one exactly-one guard :1347-1352, Windows copy list :1365 (exe, exe.sha256, exe.bundle), publication seal/upload :1434-1448; publish :1450-1573; publish-cask :1575. tests/renderer/release-governance.test.js VERSION 2.4.0 (line 2; 2.5.0 after the sibling): MODULE_MAP :12-43, CHANGE_SUMMARY :45-57, workflow sources :71-79, job slices :103-112, assertReleaseSigningSplit :177-307 with the requireVerifyThenSign block :288-306 (verifyIndex indexOf :291, verifyStep slice :294, marker :295-296, exit 1 :297-298, swallow :299-300, before-secret :301-305), assertPublicationNeedsChain :313-325, assertSplitPrereleaseEquivalence :330-340, assertGitleaksChecksumContract :347-359; tests "pins the split signing boundary structurally" :862 and "fails closed on in-memory mutations of the split boundary" :919 (the macOS cp mutation :1027 proves the swallow control bites only the macOS step today); the sibling adds assertCaskSignedDigest plus its two tests on top. Test lane for the execution gate: vitest.config.ts declares the test block with environment: 'jsdom' (:70), setupFiles ['./tests/renderer/setup.ts'] (:72) and EXPLICIT include globs only (:73-77) — src/renderer/**/*.{test,spec}.{js,ts}, tests/renderer/**/*.{test,spec}.{js,ts}, tests/tools/**/*.{test,spec}.{js,ts,mjs} (:76) — so a file under tests/release/ would never run and tests/tools is the lane directory; the subprocess-driving tests/tools suites override the global jsdom with a first-line // @vitest-environment node pragma (tests/tools/dev-smoke.test.mjs :1, tests/tools/ci-rust-receipt-retention.test.mjs :1) and carry MODULE_CONTRACT headers in the tests/tools form (tests/tools/build-notices-node.test.mjs :1-21: FILE, VERSION, PURPOSE/SCOPE/DEPENDS/LINKS/ROLE: TEST/MAP_MODE: LOCALS, MODULE_MAP, CHANGE_SUMMARY; some tests/tools files carry // VERSION, dev-smoke does not — the new file follows build-notices-node with VERSION: 1.0.0). The CI lane running the new file already exists — .github/workflows/test.yml renderer-unit job (:99) runs npm run test:coverage (:137) on ubuntu/macos/windows; package.json npm test is plain vitest run (:17). vitest is 5.1.0 with skipIf used in existing tests (tests/tools/dev-smoke.test.mjs). The YAML parser: yaml 2.9.1 is a direct devDependency (package.json :105, package-lock.json node_modules/yaml :12978, installed at node_modules/yaml) with the import { parse } from 'yaml' precedent in tests/tools and tests/renderer files; js-yaml 4.3.2 is present only transitively. docs/release-process.md: section 4b "### 4b. Signing boundary (C-RELEASE-SIGNING-SPLIT)" :109-126, section 5 :128. .grace/graph/features.xml: M-046 opens :2377, its dated SummaryDelta chain ends with C-RELEASE-SIGNING-SPLIT (2026-11-22) :2397 (the sibling's delta lands next; this change's delta goes immediately after the sibling's), the M-046 Tests list :2684, M-046 closes :2849. .grace/verification/features.xml: V-M-046 opens :2426, Commands :2428-2453, Scenarios :2454-2562 with scenario-39 :2561 (the sibling appends scenario-40; this change appends scenario-41 after it), Markers :2563 — the convention names markers inside scenario text without new Marker elements. Exactly two release\* wildcards exist in release.yml (:909, :1281). No test or tool reads app-screenshot.png from the runner path; no test enumerates the tests/ tree, so a new tests/tools file breaks no registry. Fixed absolute paths in the executed steps (substitution audit): the macOS verify step hardcodes /tmp/release (mkdir/cp/cd/find, :984-988) — the ONE declared substitution; the Windows verify step resolves everything through STAGE/RELEASE_DIR env; the Windows stage step resolves through STAGE_DIR and its relative find target fallback never executes because the fixture pre-places the destination exe; the repackage step hardcodes /tmp/release only in DMG_DST (:1129) — covered by the same substitution — with APP_WORK/RW_DMG/MOUNT under RUNNER_TEMP (env-mapped). Deviation notes: the execution gate lands as T-001 deliberately red on the pre-fix text and T-002 flips it green — the target grace-lint assertions describe the post-T-002 state, and the orchestrator sequences the tasks without an intermediate commit gate; the gate substitutes the literal /tmp/release with a per-test temp directory instead of ever creating or removing that fixed path (the collision semantics are preserved because the verify cp and the repackage DMG_DST share the substituted root exactly as they share /tmp/release in the workflow); the Windows signed-set list drops .sig by the macOS-list precedent recorded in the spec's Goals. Writing this draft approves neither implementation, apply/archive, commit/push, lane admission, release, signing, tag, cask PR, merge nor publication.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-046</Value>
+        <Value>.github/workflows/release.yml</Value>
+        <Value>.github/workflows/test.yml</Value>
+        <Value>vitest.config.ts</Value>
+        <Value>tests/renderer/release-governance.test.js</Value>
+        <Value>docs/release-process.md</Value>
+        <Value>package-lock.json</Value>
+        <Value>.grace/graph/features.xml</Value>
+        <Value>.grace/verification/features.xml</Value>
+      </MustExist>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text># VERSION: 3.10.0</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>C-RELEASE-CASK-SIGNED-DIGEST</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>      - name: download signed macOS release artifacts</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          name: mark-macos-arm64-release
+          path: /tmp/release-stage/mark-macos-arm64-release</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          DMG_DST="/tmp/release/Mark_${VER}_aarch64.dmg"
+          hdiutil convert "$RW_DMG" -format UDZO -o "$DMG_DST"</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          cp "$STAGE"/* /tmp/release/</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          cp "$STAGE"/* "$RELEASE_DIR"/</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>            New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP\release" | Out-Null</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>            $bmp.Save("$env:RUNNER_TEMP\release\app-screenshot.png")</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          echo "$HASH" > "$EXE_DST.sha256"</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          path: ${{ runner.temp }}\release\*</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          for SIGNED in "/tmp/release/Mark_${VER}_aarch64.dmg" "$TGZ" /tmp/release/latest-platform.json; do</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>            /tmp/release/*.dmg</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>BLOCK_SIGN_DIGEST_MISMATCH</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>BLOCK_RELEASE_CASK_DIGEST_MISMATCH</Text>
+      </MustContain>
+      <MustContain>
+        <File>vitest.config.ts</File>
+        <Text>    'tests/tools/**/*.{test,spec}.{js,ts,mjs}'</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>// VERSION: 2.5.0</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>    const verifyIndex = sign.body.indexOf('- name: verify staged artifact digests')</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>assertCaskSignedDigest</Text>
+      </MustContain>
+      <MustContain>
+        <File>package-lock.json</File>
+        <Text>"node_modules/yaml"</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/test.yml</File>
+        <Text>        run: npm run test:coverage</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/release-process.md</File>
+        <Text>### 4b. Signing boundary (C-RELEASE-SIGNING-SPLIT)</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/features.xml</File>
+        <Text>C-RELEASE-CASK-SIGNED-DIGEST</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/features.xml</File>
+        <Text>scenario-40</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-046</Module>
+      </MustVerify>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text># VERSION: 3.11.0</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>C-RELEASE-SIGN-STAGED-SET</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          SIGNED_OUT="$APP_WORK/Mark_${VER}_aarch64.dmg"
+          hdiutil convert "$RW_DMG" -format UDZO -o "$SIGNED_OUT"
+          mv -f "$SIGNED_OUT" "$DMG_DST"</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>hdiutil convert refuses an existing output</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          xcrun notarytool submit "$DMG_DST" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+          xcrun stapler staple "$DMG_DST"</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>            New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP\smoke" | Out-Null</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>            $bmp.Save("$env:RUNNER_TEMP\smoke\app-screenshot.png")</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          for STAGED in "$STAGE_DIR"/*; do</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>            echo "$HASH" > "$STAGED.sha256"</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          path: |
+            ${{ runner.temp }}\release\Mark_*_x64-setup.exe
+            ${{ runner.temp }}\release\Mark_*_x64-setup.exe.sha256
+            ${{ runner.temp }}\release\latest-platform.json
+            ${{ runner.temp }}\release\latest-platform.json.sha256</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          path: |
+            ${{ runner.temp }}\release\Mark_*_x64-setup.exe
+            ${{ runner.temp }}\release\Mark_*_x64-setup.exe.sha256
+            ${{ runner.temp }}\release\Mark_*_x64-setup.exe.bundle
+            ${{ runner.temp }}\release\latest-platform.json
+            ${{ runner.temp }}\release\latest-platform.json.sha256</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          name: mark-${{ matrix.platform.name }}-release-staged</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          name: mark-${{ matrix.platform.name }}-release</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          cp "$STAGE"/* /tmp/release/</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          cp "$STAGE"/* "$RELEASE_DIR"/</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          for SIGNED in "/tmp/release/Mark_${VER}_aarch64.dmg" "$TGZ" /tmp/release/latest-platform.json; do</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>BLOCK_SIGN_DIGEST_MISMATCH</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>BLOCK_RELEASE_CASK_DIGEST_MISMATCH</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>          name: mark-macos-arm64-release
+          path: /tmp/release-stage/mark-macos-arm64-release</Text>
+      </MustContain>
+      <MustContain>
+        <File>vitest.config.ts</File>
+        <Text>    'tests/tools/**/*.{test,spec}.{js,ts,mjs}'</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>// VERSION: 2.6.0</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>C-RELEASE-SIGN-STAGED-SET</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>assertSignStagedHandoff</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>keeps the staged handoff collision-free and fully receipted</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/release-governance.test.js</File>
+        <Text>fails closed on in-memory mutations of the sign staged handoff</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/tools/sign-staged-handoff.test.mjs</File>
+        <Text>// @vitest-environment node</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/tools/sign-staged-handoff.test.mjs</File>
+        <Text>// VERSION: 1.0.0</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/tools/sign-staged-handoff.test.mjs</File>
+        <Text>import { parse } from 'yaml'</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/tools/sign-staged-handoff.test.mjs</File>
+        <Text>verify staged artifact digests (windows)</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/tools/sign-staged-handoff.test.mjs</File>
+        <Text>repackage and notarize the staged DMG</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/tools/sign-staged-handoff.test.mjs</File>
+        <Text>stages a receipt for every Windows staged file and passes the digest verification</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/tools/sign-staged-handoff.test.mjs</File>
+        <Text>refuses a staged file without a receipt on both platforms</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/tools/sign-staged-handoff.test.mjs</File>
+        <Text>refuses tampered staged bytes on both platforms</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/tools/sign-staged-handoff.test.mjs</File>
+        <Text>replaces the staged DMG instead of converting onto the occupied destination</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/release-process.md</File>
+        <Text>The staged directory holds exactly the release files, each with its SHA-256 receipt</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/features.xml</File>
+        <Text>C-RELEASE-SIGN-STAGED-SET</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/features.xml</File>
+        <Text>tests/tools/sign-staged-handoff.test.mjs</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/features.xml</File>
+        <Text>C-RELEASE-SIGN-STAGED-SET</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/features.xml</File>
+        <Text>scenario-41</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>hdiutil convert "$RW_DMG" -format UDZO -o "$DMG_DST"</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>$env:RUNNER_TEMP\release\app-screenshot.png</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP\release"</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>echo "$HASH" > "$EXE_DST.sha256"</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>.github/workflows/release.yml</File>
+        <Text>path: ${{ runner.temp }}\release\*</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/tools/sign-staged-handoff.test.mjs tests/renderer/release-governance.test.js --maxWorkers=2</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="60">actionlint .github/workflows/release.yml</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="60">npm run release:governance</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-046 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-046 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>.github/workflows/release.yml</File>
+      <File>tests/renderer/release-governance.test.js</File>
+      <File>tests/tools/sign-staged-handoff.test.mjs</File>
+      <File>docs/release-process.md</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/features.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Execution gate FIRST, red by design: tests/tools/sign-staged-handoff.test.mjs extracts and executes the handoff shells, reproducing D1 and D2 executably on the pre-fix text</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Create tests/tools/sign-staged-handoff.test.mjs with the tests/tools header form exactly as tests/tools/build-notices-node.test.mjs: first line // @vitest-environment node (the lane's vitest.config.ts sets environment jsdom globally at :70; the subprocess-driving tests/tools suites override it with this pragma, e.g. dev-smoke.test.mjs :1), then // FILE: tests/tools/sign-staged-handoff.test.mjs, // VERSION: 1.0.0, START_MODULE_CONTRACT (PURPOSE/SCOPE/DEPENDS/LINKS naming .grace/verification/features.xml V-M-046 and C-RELEASE-SIGN-STAGED-SET, ROLE: TEST, MAP_MODE: LOCALS), START_MODULE_MAP with one-line entries, START_CHANGE_SUMMARY with the dated 2026-11-22 C-RELEASE-SIGN-STAGED-SET entry. Imports: describe/expect/it from vitest, parse from 'yaml', Node built-ins only (node:fs, node:os, node:path, node:crypto, node:child_process) — no new dependency, no network, no vitest-config change (tests/tools is an explicit include glob at vitest.config.ts :76, so the file runs in the existing renderer-unit lane). The file reads .github/workflows/release.yml as text, parses it with parse() and locates jobs.sign.steps (and the Windows build-job steps) by EXACT step name: "verify staged artifact digests", "verify staged artifact digests (windows)", "stage release artifacts (windows)", "repackage and notarize the staged DMG", extracting each step's run: string. SUBSTITUTION RULE (pinned): exactly ONE declared substitution is applied to extracted script text — the literal /tmp/release is replaced by a per-test temporary directory created under the OS temp root — and a step that is expected to contain that literal (the macOS verify step and the repackage step) fails loudly if the substitution finds nothing, so the substitution can never silently mask a workflow change; the extracted text is never modified in any other way. RUNNER_TEMP/STAGE/RELEASE_DIR/TAG are environment mappings into the per-test temp tree, not substitutions. Execution is via spawned bash (bash -c with the substituted script text verbatim); a trailing PATH shim dir provides a node-based shasum where the host lacks it and, for the repackage case only, xcrun/codesign/spctl stubs that log their argv and exit zero — nothing real is ever signed or notarized, and hdiutil is never shimmed. Cleanup happens ONLY inside the per-test temp directory, in a finally block, including hdiutil detach of any mounted image before removal; no fixed path is ever created, written or removed.</Criterion>
+          <Criterion>Pin exactly these tests. (1) it('extracts the sign-handoff steps from the checked-in release workflow') — all four run: strings are non-empty and the two macOS-lane steps contain the substituted literal (fail-fast on markup drift). (2) it('stages a receipt for every Windows staged file and passes the digest verification') — the D2 gate: a temp runner tree holds release/Mark_1.2.3_x64-setup.exe and release/latest-platform.json (synthetic bytes; the pre-placed exe means the stage step's relative find target fallback never executes); the extracted Windows stage script runs (RUNNER_TEMP at the temp root), the resulting staged set is mirrored into staged/ exactly as the artifact upload carries it, and the extracted Windows verify script (STAGE=staged/, RELEASE_DIR=release/) must exit zero — on the current text this FAILS because latest-platform.json carries no receipt (the recorded D2 demonstration); after T-002 the same flow passes. (3) it('refuses a staged file without a receipt on both platforms') — a staged set with one unreceipted file drives BOTH verify scripts (the macOS one via its STAGE env with the substituted root) and each must exit nonzero with BLOCK_SIGN_DIGEST_MISMATCH in the combined output; a hand-receipted control set exits zero on both. (4) it('refuses tampered staged bytes on both platforms') — flip one byte after receipting; both verify scripts exit nonzero with the marker. (5) it('replaces the staged DMG instead of converting onto the occupied destination') — gated by vitest skipIf on real hdiutil availability with an explicit skip reason naming hdiutil (runs on the macos-15 lane; skipped on ubuntu/windows): a tiny real read/write image is created with hdiutil create as the pre-existing staged-rw.dmg inside the temp APP_WORK, a minimal Mark.app sits in the work dir, the macOS verify script runs first — under the SAME per-test substituted root — so Mark_${VER}_aarch64.dmg is occupied there exactly as the real job occupies /tmp/release, then the extracted and substituted repackage script runs with TAG=v1.2.3 — on the current text it exits nonzero at the conversion (the recorded D1 demonstration); after T-002 it exits zero, the DMG at the substituted destination is the freshly converted image, and the shim log shows notarytool submit and stapler staple invoked on that replaced path; the finally block detaches any mounted image before removing the temp tree.</Criterion>
+          <Criterion>This task is RED BY DESIGN on the pre-fix tree: tests (2) and (5) fail against the current workflow text and their failure output is the defect evidence recorded for the bundle; tests (1), (3) and (4) pass already (the verifier itself works). No other file changes in this task; the focused vitest run of the whole repo is expected red until T-002 lands, and no grace-lint target assertion is violated by T-001 alone because the target state is asserted from T-002 onward.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/tools/sign-staged-handoff.test.mjs --maxWorkers=2</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Workflow fixes: macOS convert-and-replace, Windows screenshot outside the staged dir, per-file Windows receipts, named Windows uploads, release.yml markup</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>D1 fix in "repackage and notarize the staged DMG" (:1113-1132): keep DMG_DST="/tmp/release/Mark_${VER}_aarch64.dmg" and everything after it, and replace the single conversion line (:1130) with, in this order: a one-line comment starting "C-RELEASE-SIGN-STAGED-SET:" that names the reason and contains the fragment "hdiutil convert refuses an existing output" (the staged unsigned DMG occupies the destination because the verify step copied the staged set into /tmp/release); SIGNED_OUT="$APP_WORK/Mark_${VER}_aarch64.dmg"; hdiutil convert "$RW_DMG" -format UDZO -o "$SIGNED_OUT"; mv -f "$SIGNED_OUT" "$DMG_DST". The notarytool submit and stapler staple lines (:1131-1132) keep consuming "$DMG_DST" byte-identically; no || true or other swallowing construct is introduced; the direct form hdiutil convert "$RW_DMG" -format UDZO -o "$DMG_DST" is gone from the workflow. Every other macOS sign step (verify, import, re-sign, notarize-app, updater signing with its receipt re-emit loop :1162-1166, SLSA, cosign, signed upload) stays byte-identical.</Criterion>
+          <Criterion>D2a fix in the Windows smoke step (:750-803): the screenshot block creates $env:RUNNER_TEMP\smoke (New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP\smoke" | Out-Null) and saves $bmp.Save("$env:RUNNER_TEMP\smoke\app-screenshot.png"); the old release-path strings ($env:RUNNER_TEMP\release\app-screenshot.png and the smoke step's New-Item of $env:RUNNER_TEMP\release) are gone; nothing else in the workflow, tests or tools reads the screenshot (verified in the ReferenceState). D2b fix in "stage release artifacts (windows)" (:859-882): replace the exe-only receipt write (:880-881) with a loop over the staged dir — for STAGED in "$STAGE_DIR"/*; do / case "$STAGED" in *.sha256) continue ;; esac / HASH=$(node -e "..." "$STAGED") reusing the existing node sha256 one-liner verbatim / echo "$HASH" > "$STAGED.sha256" / done — mirroring the macOS staged loop (:736-741); the exe copy logic (:869-877) and ls stay. D2c fix in the two Windows uploads: "upload staged unsigned artifacts (windows)" (:904-911) replaces path: ${{ runner.temp }}\release\* with a path: | list naming exactly ${{ runner.temp }}\release\Mark_*_x64-setup.exe, Mark_*_x64-setup.exe.sha256, latest-platform.json and latest-platform.json.sha256; "upload signed release artifacts (windows)" (:1276-1283) names exactly those four plus Mark_*_x64-setup.exe.bundle; artifact names, if-no-files-found: error and retention-days stay unchanged; the wildcard path: ${{ runner.temp }}\release\* appears nowhere in the workflow. The verify steps on both platforms, the feed fragment step, the SLSA/cosign steps and every other job stay byte-identical.</Criterion>
+          <Criterion>Synchronize release.yml's own markup only: VERSION 3.10.0 to 3.11.0 (line 2); the MODULE_MAP build entry (:15) gains the one-line append "C-RELEASE-SIGN-STAGED-SET: the Windows staged dir holds exactly the release files — the smoke screenshot lives outside it under RUNNER_TEMP\smoke, every staged file carries a SHA-256 receipt, and the Windows uploads name their files instead of release\* wildcards." and the MODULE_MAP sign entry (:16) gains "C-RELEASE-SIGN-STAGED-SET: the repackage step converts the signed DMG into the sign work dir and replaces the staged copy atomically — hdiutil convert refuses an existing output and the staged unsigned DMG already occupies the destination."; and a dated 2026-11-22 CHANGE_SUMMARY line "  - 2026-11-22 v3.11.0 C-RELEASE-SIGN-STAGED-SET: fix two execution defects in the staged handoff — the macOS sign job converts the re-packaged DMG into its work dir and replaces the staged copy (hdiutil convert refuses an existing output and the verify step's copy had already occupied the destination), the Windows smoke screenshot moves outside the staged dir (RUNNER_TEMP\smoke), the Windows stage step receipts every staged file, and both Windows uploads name their files so an unreceipted or unexpected file can neither reach the sign job nor ride the signed set; tests/tools/sign-staged-handoff.test.mjs executes the extracted handoff shells against synthetic staged sets and was red on the pre-fix text." inserted as the new topmost entry (:23 style). No MODULE_CONTRACT line other than the version changes; the sibling's publish-cask bytes stay untouched.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="60">actionlint .github/workflows/release.yml</Command>
+          <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/tools/sign-staged-handoff.test.mjs --maxWorkers=2</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Governance pins: symmetric digest guard over both verify steps, assertSignStagedHandoff validator, positive and red-control tests, test markup</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Extend the existing requireVerifyThenSign block of assertReleaseSigningSplit (:288-306) in place — no duplicate validator: replace the single indexOf(:291)/slice(:294) with a matchAll over /^      - name: verify staged artifact digests.*$/gm on the sign slice, require exactly two steps (macOS and "(windows)", each with a distinct error naming which is missing), slice each to the next same-indent "- name:" boundary, and apply the existing four demands to EACH slice (BLOCK_SIGN_DIGEST_MISMATCH present, /^ *exit 1$/m present, no /\|\| true|\|\| echo|set \+e/, and no secrets. reference before that step's index) with error messages identifying the platform step. Keep CRLF tolerance consistent with the file's red-control style.</Criterion>
+          <Criterion>Add the comment-blind red-control validator function assertSignStagedHandoff(source) inside START_BLOCK_RELEASE_GOVERNANCE_TESTS, mirroring the assertCaskSignedDigest precedent (in-memory source only, no network, no tracked-file edits, CRLF-tolerant regexes, distinct Error messages): the sign slice's repackage step contains SIGNED_OUT="$APP_WORK/Mark_${VER}_aarch64.dmg", the convert onto "$SIGNED_OUT" and mv -f "$SIGNED_OUT" "$DMG_DST", contains "hdiutil convert refuses an existing output", and does NOT contain the direct -o "$DMG_DST" conversion, with the notarytool/staple-of-"$DMG_DST" lines ordered after the mv; the Windows smoke slice contains the smoke New-Item and $bmp.Save("$env:RUNNER_TEMP\smoke\app-screenshot.png") and no release\app-screenshot.png; the Windows stage slice contains for STAGED in "$STAGE_DIR"/*; do and echo "$HASH" > "$STAGED.sha256" and not the exe-only echo "$HASH" > "$EXE_DST.sha256"; neither Windows upload slice contains path: ${{ runner.temp }}\release\* and the build and sign slices contain the two exact named path lists pinned in the TargetAssertions; artifact name lines mark-${{ matrix.platform.name }}-release-staged and mark-${{ matrix.platform.name }}-release are still present; no swallowing construct surrounds the mv/convert lines.</Criterion>
+          <Criterion>Add exactly two tests, leaving every existing test unweakened (including the sibling's cask pins and the split-boundary pins): first, it('keeps the staged handoff collision-free and fully receipted') asserting expect(() => assertSignStagedHandoff(releaseWorkflow)).not.toThrow() plus the positive toContain pins (SIGNED_OUT convert/mv trio, smoke path, staged receipt loop, both named upload lists); second, it('fails closed on in-memory mutations of the sign staged handoff') performing the red controls on in-memory copies of releaseWorkflow only — (a) restoring the direct conversion by replacing the SIGNED_OUT convert+mv pair with hdiutil convert "$RW_DMG" -format UDZO -o "$DMG_DST", (b) moving the screenshot back by rewriting the smoke save line to the release path, (c) restoring the exe-only receipt by replacing the loop block with the old single-hash write, (d) restoring a wildcard by rewriting one named list back to path: ${{ runner.temp }}\release\* — each expect(() => assertSignStagedHandoff(mutated)).toThrow(/distinct-message/). Additionally extend the existing test it('fails closed on in-memory mutations of the split boundary') (:919) with two Windows-verify mutations proving the symmetric guard: stripping BLOCK_SIGN_DIGEST_MISMATCH from the "(windows)" verify step and appending " || true" inside the Windows verify cp line (cp "$STAGE"/* "$RELEASE_DIR"/), each asserted to throw with the symmetric guard's platform-specific message.</Criterion>
+          <Criterion>Synchronize the test file's local markup only: VERSION 2.5.0 to 2.6.0 (line 2); a MODULE_MAP entry "//   assertSignStagedHandoff - comment-blind red-control validator for the staged-handoff collision and receipt contract."; and a dated 2026-11-22 CHANGE_SUMMARY entry "  - 2026-11-22 v2.6.0 C-RELEASE-SIGN-STAGED-SET: pin the staged handoff — the macOS repackage converts into the sign work dir and replaces the occupied destination atomically, the Windows screenshot lives outside the staged dir, the Windows stage receipts every staged file, both Windows uploads name their files, and the digest guard now covers the macOS and Windows verify steps symmetrically — with red controls restoring the direct convert, the in-staged-dir screenshot, the exe-only receipt and a wildcard upload, and Windows-verify mutations rejected by the symmetric guard." No edit to .github/workflows/release.yml or any other file in this task.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/tools/sign-staged-handoff.test.mjs tests/renderer/release-governance.test.js --maxWorkers=2</Command>
+          <Command budgetSeconds="60">actionlint .github/workflows/release.yml</Command>
+          <Command budgetSeconds="60">npm run release:governance</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Docs staged-set sentences, M-046 SummaryDelta and Tests list line, verification scenario-41 and Command entry</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>docs/release-process.md: append to section 4b "### 4b. Signing boundary (C-RELEASE-SIGNING-SPLIT)" (:109-126), after its final sentence (:126) and before "## 5. Release notes" (:128), exactly this two-sentence passage: "The staged directory holds exactly the release files, each with its SHA-256 receipt: the Windows smoke screenshot is written outside it, and both Windows uploads name their files rather than using a wildcard, so an unexpected or unreceipted file cannot reach the sign job. On macOS the sign job converts the re-packaged DMG into its work directory and replaces the staged copy — hdiutil convert refuses an existing output, and the staged unsigned DMG already occupies that path." No other section, heading or wording changes.</Criterion>
+          <Criterion>.grace/graph/features.xml: append one dated SummaryDelta inside M-046 immediately after the C-RELEASE-CASK-SIGNED-DIGEST delta (the sibling's, at the old :2397 position) — "C-RELEASE-SIGN-STAGED-SET (2026-11-22): two execution defects in the C-RELEASE-SIGNING-SPLIT staged handoff are fixed — the macOS sign job converts the re-packaged DMG into its work dir and replaces the staged copy atomically (hdiutil convert refuses an existing output and the verify step&apos;s copy had already occupied /tmp/release/&lt;DMG&gt;), the Windows smoke screenshot moves outside the staged dir under RUNNER_TEMP\smoke, the Windows stage step records a SHA-256 receipt for every staged file, and both Windows uploads name their files instead of release\* wildcards so an unreceipted or unexpected file can neither reach the sign job nor ride the signed set; the digest guard in tests/renderer/release-governance.test.js covers the macOS and Windows verify steps symmetrically, and the new execution gate tests/tools/sign-staged-handoff.test.mjs runs the extracted verify, stage and repackage shells against synthetic staged sets, recorded red on the pre-fix text." — and add tests/tools/sign-staged-handoff.test.mjs to the M-046 Tests list (:2684), without touching any other graph content.</Criterion>
+          <Criterion>.grace/verification/features.xml: inside V-M-046 append the next sequential Scenario entry (scenario-41, dated 2026-11-22) after the sibling's scenario-40 — "scenario-41 (C-RELEASE-SIGN-STAGED-SET, 2026-11-22): the staged handoff&apos;s execution behavior is pinned by a gate that runs the workflow&apos;s own shells — tests/tools/sign-staged-handoff.test.mjs extracts the macOS and Windows verify loops, the Windows stage step and the macOS repackage step from release.yml with the lockfile yaml parser and executes them with bash against synthetic staged directories, substituting exactly the one declared literal /tmp/release with a per-test temp directory so no fixed shared path is ever touched: fully receipted sets verify on both platforms, a missing receipt and tampered bytes each exit nonzero with [ReleaseSign][sign][BLOCK_SIGN_DIGEST_MISMATCH], the stage-then-verify flow over an exe-plus-latest-platform.json staged dir passes (red on the pre-fix text, where latest-platform.json carried no receipt), and the repackage case — run only where hdiutil exists, with xcrun/codesign/spctl as PATH shims and a real hdiutil-created disk image — replaces the staged DMG instead of converting onto the occupied destination (red on the pre-fix text, where hdiutil convert refused the existing output). The structural side pins the collision-free conversion (SIGNED_OUT convert plus atomic mv), the screenshot outside the staged dir, the per-file Windows receipts, the named Windows uploads and the now-symmetric digest guard over both verify steps, with in-memory red controls. Focused commands: node node_modules/vitest/vitest.mjs run tests/tools/sign-staged-handoff.test.mjs tests/renderer/release-governance.test.js --maxWorkers=2, actionlint on release.yml, and npm run release:governance. Live evidence stays external: the first real tag run through the repaired handoff (macOS sign green through repackage/notarize, Windows sign green through the digest gate) is recorded in the change bundle after merge; the pre-fix red executions of the gate are the recorded defect evidence." — and add the Command entry node node_modules/vitest/vitest.mjs run tests/tools/sign-staged-handoff.test.mjs tests/renderer/release-governance.test.js --maxWorkers=2 to the V-M-046 Commands list, mirroring the marker-naming convention (no new Markers element) and without touching any other verification content.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="60">npm run release:governance</Command>
+          <Command budgetSeconds="300">node node_modules/vitest/vitest.mjs run tests/tools/sign-staged-handoff.test.mjs tests/renderer/release-governance.test.js --maxWorkers=2</Command>
+          <Command budgetSeconds="30">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/features.xml'); ET.parse('.grace/verification/features.xml')"</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Environment>Baseline is the current worktree at HEAD 97fec630 PLUS the committed sibling C-RELEASE-CASK-SIGNED-DIGEST (release.yml VERSION 3.10.0, the narrowed publish-cask download, BLOCK_RELEASE_CASK_DIGEST_MISMATCH, the governance test at 2.5.0 with assertCaskSignedDigest, verification scenario-40), with node_modules installed (node_modules/yaml and node_modules/vitest/vitest.mjs exist). Tasks run strictly sequentially T-001 through T-004; T-001 lands deliberately red (its stage-then-verify and repackage cases fail on the pre-fix workflow text and that failure output is the recorded D1/D2 demonstration) and T-002 flips the gate green — the target grace-lint assertions describe the post-T-002 state and the orchestrator sequences the tasks without an intermediate commit gate. The combined diff must be limited to .github/workflows/release.yml (the repackage conversion destination, the Windows smoke screenshot lines, the Windows stage receipt loop, the two Windows upload path lists, VERSION 3.11.0, the two MODULE_MAP appends and the CHANGE_SUMMARY line), tests/renderer/release-governance.test.js (the symmetric verify guard inside the existing validator, assertSignStagedHandoff, the two new tests, the two Windows-verify mutations in the existing mutation test, markup 2.6.0), the new tests/tools/sign-staged-handoff.test.mjs, docs/release-process.md (the two sentences in 4b), .grace/graph/features.xml (one dated M-046 SummaryDelta plus the Tests list line) and .grace/verification/features.xml (scenario-41 plus one Command entry). Behavior claims: the macOS sign job completes repackage/notarize/staple over the digest-verified staged bytes with the DMG receipt re-emitted fresh as today; the Windows staged set contains exactly the exe, its receipt, latest-platform.json and its receipt; a missing receipt, an unexpected file outside the named lists, and tampered bytes each fail closed with BLOCK_SIGN_DIGEST_MISMATCH; artifact names and every other job, step, permission, condition and pinned action digest stay byte-identical; the sibling's publish-cask bytes are untouched; the verify steps' loop logic and markers are unchanged; nothing in the gate signs or notarizes for real, no new dependency, secret, workflow file or vitest-config change appears, and the gate never creates, writes or removes any fixed path — the single declared /tmp/release substitution lands in a per-test temp directory cleaned in a finally block (mounted images detached first). The execution gate runs in the existing renderer-unit lane (npm run test:coverage in .github/workflows/test.yml) because tests/tools is an explicit include glob in the checked-in vitest.config.ts (:76), with no CI edit and no config edit; the file overrides the lane's global jsdom environment with a first-line @vitest-environment node pragma exactly as the existing subprocess-driving tests/tools suites do; its macOS-only case skips with an explicit hdiutil reason off macOS. The focused runs must pass with no skips beyond that declared hdiutil skip, no retries and no budget increases. The orchestrator runs the current/target/final grace-lint lifecycle gates itself (current before editing, target during implementation, final --run-commands before archive, current after); no command in this plan is self-referential to those gates. No apply/archive, commit/push, release, signing, version, tag, cask PR, merge or publication is authorized by this plan.</Environment>
+    </AcceptanceVerification>
+    <ExecutionMode>sequential</ExecutionMode>
+    <Lifecycle>Drafted 2026-11-22 from the approved spec for orchestrator admission; the orchestrator owns status transitions and the durable/final/archive/publication boundaries. Writing this draft approves neither implementation nor apply/archive, commit/push, lane admission, release, signing, tag, cask PR, merge or publication.</Lifecycle>
+  </C-RELEASE-SIGN-STAGED-SET>
+</GraceChangePlan>
