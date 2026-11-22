@@ -1763,6 +1763,12 @@
     "prefsSkippedTitle": "Reversão concluída",
     "prefsSkippedBody": "A versão anterior foi restaurada, mas não foi possível recuperar as configurações salvas — algumas configurações podem ter voltado aos valores padrão."
   },
+  "updater": {
+    "failureTitle": "Falha na atualização",
+    "failureBody": "Não foi possível concluir a atualização — o Mark permanece inalterado e nenhuma instalação parcial foi deixada. Os detalhes estão no registro.",
+    "inProgressTitle": "Já há uma atualização em andamento",
+    "inProgressBody": "Uma atualização já está em andamento — aguarde a conclusão antes de iniciar outra."
+  },
   "quickSettings": {
     "title": "Ajustes rápidos",
     "openSettings": "Abrir ajustes…",

@@ -1759,6 +1759,12 @@
     "prefsSkippedTitle": "Rollback abgeschlossen",
     "prefsSkippedBody": "Die vorherige Version wurde wiederhergestellt, aber die gespeicherten Einstellungen konnten nicht übernommen werden — einige Einstellungen wurden möglicherweise auf die Standardwerte zurückgesetzt."
   },
+  "updater": {
+    "failureTitle": "Update fehlgeschlagen",
+    "failureBody": "Das Update konnte nicht abgeschlossen werden — Mark bleibt unverändert und keine unvollständige Installation bleibt zurück. Details stehen im Protokoll.",
+    "inProgressTitle": "Ein Update läuft bereits",
+    "inProgressBody": "Ein Update wird bereits ausgeführt — warte, bis es abgeschlossen ist, bevor du ein weiteres startest."
+  },
   "quickSettings": {
     "title": "Schnelleinstellungen",
     "openSettings": "Einstellungen öffnen…",
