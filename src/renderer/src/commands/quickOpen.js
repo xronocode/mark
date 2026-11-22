@@ -162,10 +162,10 @@ class QuickOpenCommand {
               searchResult.push(pathname)
             }
           },
-          // C-SEARCH-LIFECYCLE-DISCARD T-003: the didSearchPaths option
-          // is gone — its ">30 files" limit waited for a searchedPaths
-          // event the wire never delivers (dead code). The files-mode
-          // cost and limit design stays with C-QUICKOPEN-FILES-MODE.
+          // C-SEARCH-LIFECYCLE-DISCARD T-003: the ">30 files" path-count
+          // option is gone — it waited for a searchedPaths event the
+          // wire never delivers (dead code). The files-mode cost and
+          // limit design stays with C-QUICKOPEN-FILES-MODE.
 
           // Only search markdown files that contain the query string.
           inclusions: this._getInclusions(query)
