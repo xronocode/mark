@@ -18,6 +18,20 @@
 // END_MODULE_MAP
 
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 C-EXT-TRUST-COHERENCE T-001: failing-first fence pins —
+//     apply_fences_disable_crossing_paused_authentication and
+//     text_insert_fences_disable_crossing_paused_authentication (the
+//     DummyCredential read_pause disable-crossing legs on /ext/apply and
+//     /ext/text-insert, response bodies read through the budget_body reader)
+//     are committed red and ported onto the C-EXT-EDIT-PROOF base: the
+//     apply leg rides the ack-backed wire path keyless (request_id None,
+//     so the dedup store never admits it and the baseline red is the 504
+//     ack timeout with the batch already emitted), and the text-insert leg
+//     collapses into refusal-ordering — the deprecated route already
+//     answers the honest 501 for any authorized caller, so the pin holds
+//     that a resumed disable-crossing request is refused (never served)
+//     with zero mt::text::op events; both go green with T-002's
+//     IncomingIdentity fence.
 //   - 2026-11-22 C-EXT-EDIT-PROOF T-006: honest retries — the loopback
 //     scripted-response fixture serve_scripted drives the new invoke pins
 //     invoke_carries_stable_idempotency_key_across_retries (a 503 then a
@@ -1919,6 +1933,73 @@ async fn fresh_pairing_restores_access() {
     assert_eq!(insert_fixture(&inserter, Some(&inserter.token)).await, StatusCode::UNAUTHORIZED);
 }
 // END_BLOCK_DISABLE_AUTH_TESTS
+
+// START_BLOCK_INCOMING_FENCE_PINS
+// C-EXT-TRUST-COHERENCE: a disable that completes while an incoming data
+// request is paused inside its credential read must fence the resumed
+// request — 401 with the stream fence's plain "extension is not enabled"
+// voice and zero mt::text::op events — instead of emitting through it.
+// The legs reuse the stream_security read_pause disable-crossing pattern
+// (fail_delete arms a disable whose registry flip lands during the pause)
+// and read refusal bodies through the budget_body reader.
+#[tokio::test]
+async fn apply_fences_disable_crossing_paused_authentication() {
+    // Dual capability: the context read hands the binding the apply echoes,
+    // so the baseline run reaches the emit leg past the binding fence.
+    let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    let (document_id, document_generation) = handed_binding(&f);
+    let (entered_tx, entered_rx) = std::sync::mpsc::channel();
+    let release = Arc::new((Mutex::new(false), std::sync::Condvar::new()));
+    *f.credential.read_pause.lock().unwrap() = Some((entered_tx, release.clone()));
+    let state = f.state.clone();
+    let id = f.id.clone();
+    let token = f.token.clone();
+    let pending = tokio::spawn(async move {
+        super::live_server::handle_ext_apply(State(state), bearer_headers(Some(&token)),
+            Json(super::live_server::ExtApplyRequest {
+                extension_id: id, undo_label: None, request_id: None,
+                document_id: Some(document_id), document_generation: Some(document_generation),
+                operations: vec![super::live_server::EditOperation { op_type: "insert_at_cursor".to_string(), content: Some("fixture edit".to_string()) }],
+            })).await.into_response()
+    });
+    tokio::task::spawn_blocking(move || entered_rx.recv_timeout(std::time::Duration::from_secs(5)).unwrap()).await.unwrap();
+    // The disable's registry flip completes during the paused authentication;
+    // its revocation fails, so the credential the resumed auth reads survives.
+    f.credential.fail_delete.store(true, std::sync::atomic::Ordering::Relaxed);
+    assert_eq!(super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap_err(), "ext_disable_revoke_failed");
+    *release.0.lock().unwrap() = true; release.1.notify_all();
+    let response = pending.await.unwrap();
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED, "the resumed apply must be fenced, not served");
+    let body = budget_body(response).await;
+    assert_eq!(body["error"], "extension is not enabled");
+    assert!(f.events.lock().unwrap().is_empty(), "a fenced apply emits zero mt::text::op events");
+}
+
+#[tokio::test]
+async fn text_insert_fences_disable_crossing_paused_authentication() {
+    let f = incoming_fixture(true, "text.insert");
+    let (entered_tx, entered_rx) = std::sync::mpsc::channel();
+    let release = Arc::new((Mutex::new(false), std::sync::Condvar::new()));
+    *f.credential.read_pause.lock().unwrap() = Some((entered_tx, release.clone()));
+    let state = f.state.clone();
+    let token = f.token.clone();
+    let pending = tokio::spawn(async move {
+        let req = serde_json::from_value(serde_json::json!({"text": "fixture text", "source": "fixture"})).unwrap();
+        super::live_server::handle_text_insert(State(state), bearer_headers(Some(&token)), Json(req))
+            .await.into_response()
+    });
+    tokio::task::spawn_blocking(move || entered_rx.recv_timeout(std::time::Duration::from_secs(5)).unwrap()).await.unwrap();
+    f.credential.fail_delete.store(true, std::sync::atomic::Ordering::Relaxed);
+    assert!(super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.is_err());
+    *release.0.lock().unwrap() = true; release.1.notify_all();
+    let response = pending.await.unwrap();
+    assert!(!response.status().is_success(), "the resumed insert must be refused, not served");
+    let body = budget_body(response).await;
+    assert_eq!(body["error"], "extension is not enabled");
+    assert!(f.events.lock().unwrap().is_empty(), "a fenced insert emits zero mt::text::op events");
+}
+// END_BLOCK_INCOMING_FENCE_PINS
 
 // START_BLOCK_GRANT_BOUND_SECURITY_TESTS
 // C-SEC-EXT-GRANT-BOUND: the approved incoming set is captured at pairing
