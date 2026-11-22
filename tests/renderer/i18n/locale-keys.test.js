@@ -72,7 +72,8 @@ const FEEDBACK_KEYS = [
   'rollback.prefsSkippedTitle', 'rollback.prefsSkippedBody',
   'notifications.actionFailedTitle', 'notifications.actionFailedBody',
   'notifications.source.rollback',
-  'extensions.disableFailed'
+  'extensions.disableFailed',
+  'extensions.revokePending'
 ]
 const UPDATER_KEYS = [
   'updater.failureTitle', 'updater.failureBody',

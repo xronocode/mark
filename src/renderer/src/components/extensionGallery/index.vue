@@ -114,7 +114,12 @@
 //   toggleExtension - Apply an enable/disable action and refresh visible state.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-11-21 - Map the ext_enable_reapproval_required enable refusal to a re-approval instruction on the existing gallery-error surface (C-SEC-EXT-GRANT-BOUND).
+//   LAST_CHANGE: 2026-11-23 - Keep the disable retry honest: a per-id
+//   revoke-pending set forces the toggle to keep sending Disable after
+//   ext_disable_revoke_failed (cleared on a successful disable or an
+//   enabled listing), and the ext_enable_revoke_pending refusal maps to
+//   the ten-locale extensions.revokePending instruction (C-EXT-TRUST-COHERENCE).
+//   2026-11-21 - Map the ext_enable_reapproval_required enable refusal to a re-approval instruction on the existing gallery-error surface (C-SEC-EXT-GRANT-BOUND).
 // END_CHANGE_SUMMARY
 import { ref, onMounted } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
@@ -128,6 +133,11 @@ const extensions = ref([])
 const loading = ref(false)
 const error = ref('')
 const toggling = ref({})
+// C-EXT-TRUST-COHERENCE: extension ids whose last disable could not
+// verify its revocation (ext_disable_revoke_failed). Their toggle keeps
+// sending Disable until the revocation is proven by a successful
+// disable or an enabled listing. Not rendered — plain logic state.
+const revokePendingIds = new Set()
 
 // END_BLOCK_STATE
 
@@ -141,6 +151,11 @@ const fetchExtensions = async () => {
   try {
     const list = await invoke('mt_ext_list')
     extensions.value = list
+    // C-EXT-TRUST-COHERENCE: an enabled listing proves the extension is
+    // not revoke-pending anymore.
+    for (const ext of list) {
+      if (ext.enabled) revokePendingIds.delete(ext.id)
+    }
     error.value = ''
     // eslint-disable-next-line no-console
     console.log(`[ExtGallery][BLOCK_LIST_OK count=${list.length}]`)
@@ -173,13 +188,18 @@ const refresh = async () => {
 
 /**
  * Toggle an extension between enabled and disabled.
+ * C-EXT-TRUST-COHERENCE: the toggle action follows the operation
+ * outcome, not only the refetched flag — an id in revokePendingIds keeps
+ * sending Disable until the revocation is proven (a successful disable)
+ * or the refetched list shows the extension enabled again.
  */
 const toggleExtension = async (ext) => {
-  const action = ext.enabled ? 'mt_ext_disable' : 'mt_ext_enable'
+  const action = revokePendingIds.has(ext.id) || ext.enabled ? 'mt_ext_disable' : 'mt_ext_enable'
   let toggleFailure = ''
   toggling.value[ext.id] = true
   try {
     await invoke(action, { id: ext.id })
+    if (action === 'mt_ext_disable') revokePendingIds.delete(ext.id)
     // eslint-disable-next-line no-console
     console.log(`[ExtGallery][BLOCK_TOGGLE_OK id=${ext.id} action=${action}]`)
   } catch (err) {
@@ -191,7 +211,15 @@ const toggleExtension = async (ext) => {
       // no native dialog lives here.
       toggleFailure = t('extensions.reapprovalRequired', 'This extension now requests more access than its pairing approved. Disable it, then pair again to approve the new access.')
     } else if (action === 'mt_ext_disable' && message === 'ext_disable_revoke_failed') {
+      // C-EXT-TRUST-COHERENCE: the revocation could not be verified —
+      // the retry stays Disable until proof.
+      revokePendingIds.add(ext.id)
       toggleFailure = t('extensions.disableFailed', 'The extension is disabled, but access revocation could not be verified. Try again.')
+    } else if (action === 'mt_ext_enable' && message === 'ext_enable_revoke_pending') {
+      // C-EXT-TRUST-COHERENCE: enabling is locked while a revoke-pending
+      // marker stands — the retry-disable is the revocation retry, and a
+      // fresh pairing follows once it succeeds.
+      toggleFailure = t('extensions.revokePending', 'Disable the extension again to retry revoking its access; pair it afresh once the revocation succeeds.')
     } else {
       toggleFailure = message
     }

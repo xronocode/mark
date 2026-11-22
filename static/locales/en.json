@@ -1846,7 +1846,8 @@
     }
   },
   "extensions": {
-    "disableFailed": "The extension is disabled, but access revocation could not be verified. Try again."
+    "disableFailed": "The extension is disabled, but access revocation could not be verified. Try again.",
+    "revokePending": "Disable the extension again to retry revoking its access; pair it afresh once the revocation succeeds."
   },
   "documentOperations": {
     "title": "Unsaved changes",
