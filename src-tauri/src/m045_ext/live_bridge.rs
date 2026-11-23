@@ -17,12 +17,19 @@
 //
 // CHANGE_SUMMARY:
 //   - 2026-11-23 C-EXT-DELIVERY-HONESTY T-001: cfg(test)-only emit-failure
-//     injection seam for doc_open — the DOC_OPEN_EMIT_INJECTION atomic flag
-//     plus the arm_doc_open_emit_injection helper; when armed, emit_doc_open
-//     returns Err before any app.emit call. Consulted by emit_doc_open only:
+//     injection seam for doc_open — the DOC_OPEN_EMIT_INJECTION flag plus
+//     the arm_doc_open_emit_injection helper; when armed, emit_doc_open
+//     returns Err before any app.emit call. The flag is managed as state on
+//     the arming fixture's OWN app handle (a process never manages it in
+//     production and a concurrent fixture never sees it), so only the
+//     arming test's emissions fail. Consulted by emit_doc_open only:
 //     emit_live_update, emit_doc_patch, emit_doc_close and
-//     emit_context_request stay byte-identical, and the seam compiles out of
-//     release builds (the main.rs LiveServerState literal is untouched).
+//     emit_context_request stay byte-identical, and the seam compiles out
+//     of release builds (the main.rs LiveServerState literal is untouched).
+//     Deviation from the plan's helper sketch: the helper takes the app
+//     handle beside `armed` so the injection stays scoped to one fixture
+//     under parallel test execution (a process-global flag made a
+//     concurrent predecessor doc_open pin observe the injected failure).
 //   - 2026-11-11 C-SEC-STREAM-AUTH: include session identity and incarnation on every document event.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES T-003: share event emission across production and mock runtimes.
 //   - 2026-06-09 E1a: add emit_context_request helper for /ext/context.
@@ -58,20 +65,30 @@ pub struct LiveUpdate {
 
 // START_BLOCK_EMIT
 
-/// C-EXT-DELIVERY-HONESTY: test-only emit-failure injection seam. Armed by
-/// the delivery-honesty refusal pins so emit_doc_open fails deterministically
-/// without a real webview. cfg(test): compiled out of release builds, and the
-/// shared state (the main.rs LiveServerState literal) is untouched. Only
-/// emit_doc_open consults this flag — the other emit helpers keep the single
-/// emit point through emit_live_update byte-identical.
+/// C-EXT-DELIVERY-HONESTY: test-only emit-failure injection flag. Managed
+/// as state on the arming fixture's OWN app handle, so only that fixture's
+/// doc_open emissions fail — a production app never manages this state and
+/// a concurrently running test fixture never sees it. cfg(test): compiled
+/// out of release builds, and the shared state (the main.rs
+/// LiveServerState literal) is untouched. Only emit_doc_open consults this
+/// flag — the other emit helpers keep the single emit point through
+/// emit_live_update byte-identical.
 #[cfg(test)]
-static DOC_OPEN_EMIT_INJECTION: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+#[derive(Default)]
+pub struct DOC_OPEN_EMIT_INJECTION(pub std::sync::atomic::AtomicBool);
 
 /// C-EXT-DELIVERY-HONESTY: arm or disarm the test-only doc_open emit-failure
-/// injection. cfg(test) helper — invisible in release builds.
+/// injection on the given app handle. cfg(test) helper — invisible in
+/// release builds.
 #[cfg(test)]
-pub fn arm_doc_open_emit_injection(armed: bool) {
-    DOC_OPEN_EMIT_INJECTION.store(armed, std::sync::atomic::Ordering::Relaxed);
+pub fn arm_doc_open_emit_injection<R: tauri::Runtime>(app: &AppHandle<R>, armed: bool) {
+    use tauri::Manager;
+    if app.try_state::<DOC_OPEN_EMIT_INJECTION>().is_none() {
+        app.manage(DOC_OPEN_EMIT_INJECTION::default());
+    }
+    if let Some(flag) = app.try_state::<DOC_OPEN_EMIT_INJECTION>() {
+        flag.0.store(armed, std::sync::atomic::Ordering::Relaxed);
+    }
 }
 
 /// Emit a live-update event to the frontend.
@@ -108,10 +125,16 @@ pub fn emit_doc_open<R: tauri::Runtime>(
     content: &str,
 ) -> Result<(), String> {
     // C-EXT-DELIVERY-HONESTY: test-only injection — fail BEFORE any
-    // app.emit call when the seam is armed (release builds never see it).
+    // app.emit call when the seam is armed on THIS app handle (release
+    // builds never see the check at all).
     #[cfg(test)]
-    if DOC_OPEN_EMIT_INJECTION.load(std::sync::atomic::Ordering::Relaxed) {
-        return Err("injected doc_open emit failure (test)".to_string());
+    {
+        use tauri::Manager;
+        if let Some(flag) = app.try_state::<DOC_OPEN_EMIT_INJECTION>() {
+            if flag.0.load(std::sync::atomic::Ordering::Relaxed) {
+                return Err("injected doc_open emit failure (test)".to_string());
+            }
+        }
     }
     emit_live_update(app, LiveUpdate {
         update_type: "doc_open".to_string(),

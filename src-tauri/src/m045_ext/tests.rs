@@ -55,8 +55,9 @@
 //     doc_open_emit_failure_after_close_restores_the_closed_session_exactly,
 //     doc_open_emit_failure_on_resync_restores_the_replaced_session and
 //     doc_open_refusal_never_reuses_the_consumed_epoch (driven by the
-//     cfg(test) arm_doc_open_emit_injection seam with a RAII disarm guard
-//     and a shared serialization mutex over the global seam flag) plus the
+//     cfg(test) arm_doc_open_emit_injection seam managed as state on each
+//     fixture's own app handle, so no cross-test serialization is needed)
+//     plus the
 //     success-path control doc_open_success_keeps_the_200_contract; green
 //     at T-002 with the live_server refusal branch, predecessor suites
 //     untouched.
@@ -3847,21 +3848,10 @@ async fn stream_budget_under_budget_traffic_unchanged() {
 // refusal pin below fails against that baseline and goes green with the
 // T-002 refusal branch (non-2xx plain {"error": ...} answer, the exact
 // pre-open guard value restored, the consumed epoch never reused). The
-// seam flag is process-global, so the family serializes on a shared
-// mutex and every test disarms it through a RAII guard even on panic.
+// injection flag is managed as state on each fixture's OWN app handle, so
+// the family needs no cross-test serialization and concurrently running
+// predecessor pins are immune.
 use super::live_bridge::arm_doc_open_emit_injection;
-
-/// Serializes the family over the process-global DOC_OPEN_EMIT_INJECTION
-/// flag (poison-tolerant: a panicking test cannot wedge the rest).
-static DOC_OPEN_EMIT_INJECTION_SERIAL: Mutex<()> = Mutex::new(());
-
-/// RAII disarm: the seam never stays armed past a test body, panic included.
-struct DisarmDocOpenEmitInjection;
-impl Drop for DisarmDocOpenEmitInjection {
-    fn drop(&mut self) {
-        arm_doc_open_emit_injection(false);
-    }
-}
 
 async fn delivery_open(f: &IncomingFixture, sid: &str, initial_md: &str) -> axum::response::Response {
     let request = serde_json::from_value(serde_json::json!({
@@ -3895,10 +3885,8 @@ async fn delivery_body(response: axum::response::Response) -> serde_json::Value 
 
 #[tokio::test]
 async fn doc_open_emit_failure_refuses_fresh_open() {
-    let _serial = DOC_OPEN_EMIT_INJECTION_SERIAL.lock().unwrap_or_else(|e| e.into_inner());
-    let _disarm = DisarmDocOpenEmitInjection;
     let f = incoming_fixture(true, "stream.document");
-    arm_doc_open_emit_injection(true);
+    arm_doc_open_emit_injection(f.app.handle(), true);
     let response = delivery_open(&f, "session-a", "original").await;
     // A non-2xx 500-class refusal with the plain {"error": ...} body —
     // never the 200 accepted:true over an undelivered stream.
@@ -3915,23 +3903,21 @@ async fn doc_open_emit_failure_refuses_fresh_open() {
     assert_eq!(delivery_patch(&f, "session-a", 1, 1, "stale").await, StatusCode::CONFLICT);
     assert!(f.live_events.lock().unwrap().is_empty());
     // Disarming restores normal behavior on the same fixture.
-    arm_doc_open_emit_injection(false);
+    arm_doc_open_emit_injection(f.app.handle(), false);
     assert_eq!(delivery_open(&f, "session-b", "original").await.status(), StatusCode::OK);
 }
 
 #[tokio::test]
 async fn doc_open_emit_failure_after_close_restores_the_closed_session_exactly() {
-    let _serial = DOC_OPEN_EMIT_INJECTION_SERIAL.lock().unwrap_or_else(|e| e.into_inner());
-    let _disarm = DisarmDocOpenEmitInjection;
     let f = incoming_fixture(true, "stream.document");
     assert_eq!(delivery_open(&f, "session-a", "original").await.status(), StatusCode::OK);
     let first_epoch = f.state.session.lock().await.as_ref().unwrap().session_epoch;
     assert_eq!(delivery_close(&f, "session-a").await, StatusCode::OK);
     let events_before = f.live_events.lock().unwrap().len();
-    arm_doc_open_emit_injection(true);
+    arm_doc_open_emit_injection(f.app.handle(), true);
     let response = delivery_open(&f, "session-a", "replacement").await;
     assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    arm_doc_open_emit_injection(false);
+    arm_doc_open_emit_injection(f.app.handle(), false);
     // The pre-open guard value here is Some(inactive): the surviving
     // session equals the closed session EXACTLY — same id, same epoch as
     // the first open, still inactive — never an unconditional None.
@@ -3948,15 +3934,13 @@ async fn doc_open_emit_failure_after_close_restores_the_closed_session_exactly()
 
 #[tokio::test]
 async fn doc_open_emit_failure_on_resync_restores_the_replaced_session() {
-    let _serial = DOC_OPEN_EMIT_INJECTION_SERIAL.lock().unwrap_or_else(|e| e.into_inner());
-    let _disarm = DisarmDocOpenEmitInjection;
     let f = incoming_fixture(true, "stream.document");
     assert_eq!(delivery_open(&f, "session-a", "original").await.status(), StatusCode::OK);
     let original_epoch = f.state.session.lock().await.as_ref().unwrap().session_epoch;
-    arm_doc_open_emit_injection(true);
+    arm_doc_open_emit_injection(f.app.handle(), true);
     let response = delivery_open(&f, "session-a", "replacement").await;
     assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    arm_doc_open_emit_injection(false);
+    arm_doc_open_emit_injection(f.app.handle(), false);
     // The resync refusal restores the replaced session whole: original
     // epoch, original document_md, revision 1, still active.
     let guard = f.state.session.lock().await;
@@ -3973,17 +3957,15 @@ async fn doc_open_emit_failure_on_resync_restores_the_replaced_session() {
 
 #[tokio::test]
 async fn doc_open_refusal_never_reuses_the_consumed_epoch() {
-    let _serial = DOC_OPEN_EMIT_INJECTION_SERIAL.lock().unwrap_or_else(|e| e.into_inner());
-    let _disarm = DisarmDocOpenEmitInjection;
     // The None pre-open shape: the refused open consumed exactly one
     // epoch (the counter stays monotonic — never decremented or reset)
     // and a later successful open carries a strictly higher epoch than
     // the refused one.
     let f = incoming_fixture(true, "stream.document");
     let counter_before = f.state.next_epoch.load(std::sync::atomic::Ordering::Relaxed);
-    arm_doc_open_emit_injection(true);
+    arm_doc_open_emit_injection(f.app.handle(), true);
     assert_eq!(delivery_open(&f, "session-a", "original").await.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    arm_doc_open_emit_injection(false);
+    arm_doc_open_emit_injection(f.app.handle(), false);
     let counter_after_refusal = f.state.next_epoch.load(std::sync::atomic::Ordering::Relaxed);
     assert_eq!(counter_after_refusal, counter_before + 1, "the consumed epoch stays consumed");
     assert_eq!(delivery_open(&f, "session-a", "original").await.status(), StatusCode::OK);
@@ -3995,9 +3977,9 @@ async fn doc_open_refusal_never_reuses_the_consumed_epoch() {
     let first_epoch = f2.state.session.lock().await.as_ref().unwrap().session_epoch;
     assert_eq!(delivery_close(&f2, "session-a").await, StatusCode::OK);
     let counter_before2 = f2.state.next_epoch.load(std::sync::atomic::Ordering::Relaxed);
-    arm_doc_open_emit_injection(true);
+    arm_doc_open_emit_injection(f2.app.handle(), true);
     assert_eq!(delivery_open(&f2, "session-a", "replacement").await.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    arm_doc_open_emit_injection(false);
+    arm_doc_open_emit_injection(f2.app.handle(), false);
     assert_eq!(f2.state.next_epoch.load(std::sync::atomic::Ordering::Relaxed), counter_before2 + 1);
     assert_eq!(delivery_open(&f2, "session-a", "replacement").await.status(), StatusCode::OK);
     let next_epoch = f2.state.session.lock().await.as_ref().unwrap().session_epoch;
@@ -4006,8 +3988,6 @@ async fn doc_open_refusal_never_reuses_the_consumed_epoch() {
 
 #[tokio::test]
 async fn doc_open_success_keeps_the_200_contract() {
-    let _serial = DOC_OPEN_EMIT_INJECTION_SERIAL.lock().unwrap_or_else(|e| e.into_inner());
-    let _disarm = DisarmDocOpenEmitInjection;
     let f = incoming_fixture(true, "stream.document");
     // Seam disarmed: the success path is byte-identical to today.
     let response = delivery_open(&f, "session-a", "original").await;
