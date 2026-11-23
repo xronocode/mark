@@ -91,7 +91,11 @@
       "plantumlConsentTitle": "PlantUML-Diagramme werden von plantuml.com gerendert",
       "plantumlConsentMessage": "{count} PlantUML-Diagramm(e) würden zum Rendern an {address} gesendet — der Diagramm-Quelltext verlässt diese Maschine",
       "plantumlConsentConfirm": "Zu plantuml.com senden",
-      "plantumlConsentCancel": "Quelle lokal behalten"
+      "plantumlConsentCancel": "Quelle lokal behalten",
+      "pinMismatchTitle": "Export gestoppt — das Dokument hat sich geändert",
+      "pinMismatchMessage": "Das zu exportierende Dokument wurde während des Wartens geändert (Tab-Wechsel oder Bearbeitung) — es wurde nichts exportiert. Starten Sie den Export erneut.",
+      "pinDiskChangedTitle": "Export gestoppt — die Datei wurde auf dem Datenträger geändert",
+      "pinDiskChangedMessage": "Die Datei {name} wurde nach Ihrer Freigabe des Exports auf dem Datenträger geändert — es wurde nichts exportiert."
     },
     "resizeTable": "Tabellengröße ändern",
     "vega-lite-start": "Vega-Lite Start",

@@ -93,6 +93,46 @@ const externalReload = createExternalReloadController({
   t: (key, params) => i18n.global.t(key, params)
 })
 
+// ──────────────────────────────────────────────────────────────────────
+// START_BLOCK_EXPORT_DOCUMENT_PIN
+// C-EXPORT-DOCUMENT-PIN: store-side pre-write verification for a pinned
+// export run. assertExportPinCurrent re-proves the pinned identity
+// before any dialog opens and again after the save dialog resolves and
+// before any write or print invocation: the pinned owner must still own
+// the active surface (documentOwner token match plus currentFile.id
+// equality), the pinned contentRevision must be current, and the pinned
+// pathname must equal the active pathname (closing the rename window —
+// RENAME keeps id/token/revision but moves the path). Disk predicate
+// (HASH-OVER-BYTES decision, review minor 1): a stat signature divergence
+// may refuse early, but an unchanged stat NEVER waives the digest compare
+// — SHA-256 over the on-disk bytes read through the binary bridge
+// (ipc.fs.read_binary) via crypto.subtle.digest('SHA-256') — so a
+// same-size same-mtime rewrite cannot pass. Refusals raise exactly one
+// localized notice under the
+// editor.export namespace plus the count-only BLOCK_EXPORT_PIN_MISMATCH
+// marker; cancel in the save dialog returns before verification and
+// stays silent (corner-2).
+// ──────────────────────────────────────────────────────────────────────
+const exportPinStatSignature = (stat) => `${stat?.size ?? ''}:${stat?.mtimeMs ?? stat?.mtime_ms ?? ''}`
+
+const exportPinDigestHex = async (bytes) => {
+  const digest = await crypto.subtle.digest('SHA-256', bytes)
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+const notifyExportPinDiskChanged = (exportPin) => {
+  notice.notify({
+    title: i18n.global.t('editor.export.pinDiskChangedTitle'),
+    message: i18n.global.t('editor.export.pinDiskChangedMessage', {
+      name: window.path.basename(exportPin.pathname || '')
+    }),
+    type: 'error'
+  })
+  // Count-only marker — never document or path text (console-privacy).
+  // eslint-disable-next-line no-console
+  console.debug('[export][pin][BLOCK_EXPORT_PIN_MISMATCH class=disk]')
+}
+
 // START_BLOCK_LAST_PRINT_OPTIONS
 // C-EXPORT-SETTINGS-SECTION: appearance keeps the existing C-61 schema.
 // Read persisted choices at each operation so a separate Settings window's
@@ -2099,14 +2139,20 @@ export const useEditorStore = defineStore('editor', {
       )
     },
 
-    async EXPORT({ type, content, pageOptions }) {
+    async EXPORT({ type, content, pageOptions, exportPin }) {
       if (!hasKeys(this.currentFile)) return
+
+      // C-EXPORT-DOCUMENT-PIN: a pinned run refuses before any UI when the
+      // pinned document no longer owns the active surface; the same
+      // verification re-runs after the save dialog resolves and before any
+      // write (post-dialog guard below / in the legs).
+      if (exportPin && !(await this.assertExportPinCurrent(exportPin))) return
 
       if (type === 'pdf') {
         // C-61 R-2: the print container rendered by handleExport stays in
         // the DOM while the save dialog is up; the caller clears it when
         // this resolves (saved, cancelled, or notified failure).
-        await this._EXPORT_PDF(pageOptions)
+        await this._EXPORT_PDF(pageOptions, exportPin)
         return
       }
 
@@ -2114,26 +2160,32 @@ export const useEditorStore = defineStore('editor', {
       // dialog is the first and only UI; geometry comes from the
       // captured options supplied by the renderer pipeline.
       if (type === 'docx') {
-        await this._EXPORT_DOCX(content, pageOptions)
+        await this._EXPORT_DOCX(content, pageOptions, exportPin)
         return
       }
 
       let title = ''
-      const { listToc } = this
-      if (listToc && listToc.length > 0) {
-        let headerRef = listToc[0]
-        const len = Math.min(listToc.length, 6)
-        for (let i = 1; i < len; ++i) {
-          if (headerRef.lvl === 1) break
-          const header = listToc[i]
-          if (headerRef.lvl > header.lvl) {
-            headerRef = header
+      if (exportPin) {
+        // C-EXPORT-DOCUMENT-PIN: the pinned first-heading fallback; no live
+        // currentFile re-read in a pinned run.
+        title = exportPin.firstHeading || ''
+      } else {
+        const { listToc } = this
+        if (listToc && listToc.length > 0) {
+          let headerRef = listToc[0]
+          const len = Math.min(listToc.length, 6)
+          for (let i = 1; i < len; ++i) {
+            if (headerRef.lvl === 1) break
+            const header = listToc[i]
+            if (headerRef.lvl > header.lvl) {
+              headerRef = header
+            }
           }
+          title = headerRef.content
         }
-        title = headerRef.content
       }
 
-      const { filename } = this.currentFile
+      const filename = exportPin ? exportPin.filename : this.currentFile.filename
       const defaultName = filename
         ? filename.replace(/\.md$/i, '.html')
         : (title || 'export') + '.html'
@@ -2145,6 +2197,9 @@ export const useEditorStore = defineStore('editor', {
         filters: [{ name: 'HTML', extensions: ['html', 'htm'] }]
       })
       if (!filePath) return
+
+      // C-EXPORT-DOCUMENT-PIN: post-dialog guard — verify before any write.
+      if (exportPin && !(await this.assertExportPinCurrent(exportPin))) return
 
       try {
         await ipcFs.write(filePath, content)
@@ -2158,6 +2213,62 @@ export const useEditorStore = defineStore('editor', {
       }
     },
 
+    // C-EXPORT-DOCUMENT-PIN: true when the pinned document still owns the
+    // active surface and the pinned on-disk bytes are unchanged; refuses
+    // with exactly one localized notice otherwise (see the block comment).
+    async assertExportPinCurrent(exportPin) {
+      if (!exportPin) return true
+      const currentTab = this.tabs.find((tab) => tab.id === exportPin.owner?.id) || null
+      const currentOwner = currentTab ? documentOwner(currentTab) : null
+      const surfaceMatch =
+        this.currentFile?.id === exportPin.owner?.id &&
+        !!currentOwner &&
+        currentOwner.documentToken === exportPin.owner.documentToken
+      const revisionMatch =
+        !!currentTab && (currentTab.contentRevision || 0) === exportPin.contentRevision
+      const pathnameMatch = (this.currentFile?.pathname || null) === exportPin.pathname
+      if (!(surfaceMatch && revisionMatch && pathnameMatch)) {
+        notice.notify({
+          title: i18n.global.t('editor.export.pinMismatchTitle'),
+          message: i18n.global.t('editor.export.pinMismatchMessage'),
+          type: 'error'
+        })
+        // Count-only marker — never document or path text (console-privacy).
+        // eslint-disable-next-line no-console
+        console.debug('[export][pin][BLOCK_EXPORT_PIN_MISMATCH class=identity]')
+        return false
+      }
+      if (exportPin.pathname && exportPin.baselineDigest) {
+        // Cheap stat short-circuit: divergence may refuse early. An
+        // unchanged stat never waives the digest compare below.
+        if (exportPin.baselineStat) {
+          try {
+            const stat = await window.fileUtils.stat(exportPin.pathname)
+            if (exportPinStatSignature(stat) !== exportPin.baselineStat) {
+              notifyExportPinDiskChanged(exportPin)
+              return false
+            }
+          } catch {
+            // stat unavailable — the digest compare decides.
+          }
+        }
+        try {
+          const raw = await ipcFs.readBinary(exportPin.pathname)
+          const digest = await exportPinDigestHex(raw instanceof Uint8Array ? raw : new Uint8Array(raw))
+          if (digest !== exportPin.baselineDigest) {
+            notifyExportPinDiskChanged(exportPin)
+            return false
+          }
+        } catch {
+          // The pinned file became unreadable between consent and write —
+          // the honest disk-change refusal.
+          notifyExportPinDiskChanged(exportPin)
+          return false
+        }
+      }
+      return true
+    },
+
     // C-NATIVE-DOCX-RTF-EXPORT R-1/R-3: Export to Word = native save dialog
     // → lazy renderer-side conversion (M-066 exportDocx) → binary write
     // through the same facade the C-56 picture export uses. No settings
@@ -2165,15 +2276,20 @@ export const useEditorStore = defineStore('editor', {
     // and appearance use the operation captured before Save, and the
     // success card carries a quiet "Export settings" action beside the
     // reveal shortcut (C-NOTIFICATION-SYSTEM actions API).
-    async _EXPORT_DOCX(content, pageOptions) {
+    async _EXPORT_DOCX(content, pageOptions, exportPin) {
       // Capture before the first await, including compatibility callers that
       // enter EXPORT directly rather than through the bus dispatcher.
       const printOptions = pageOptions
         ? captureExportOptions(pageOptions)
         : getExportOperationOptions('docx')
-      const { filename } = this.currentFile
-      const firstHeading = (this.listToc || []).find((h) => h && h.content)
-      const fallbackName = String(firstHeading ? firstHeading.content : 'export')
+      // C-EXPORT-DOCUMENT-PIN: the pinned name pieces in a pinned run; the
+      // pin-absent path keeps today's live reads.
+      const filename = exportPin ? exportPin.filename : this.currentFile.filename
+      const firstHeading = exportPin
+        ? exportPin.firstHeading
+        : (this.listToc || []).find((h) => h && h.content)
+      const headingText = typeof firstHeading === 'string' ? firstHeading : firstHeading?.content
+      const fallbackName = String(headingText || 'export')
         .replace(/[\\/:*?"<>|#]+/g, '')
         .trim()
       const defaultName = filename
@@ -2187,6 +2303,9 @@ export const useEditorStore = defineStore('editor', {
         filters: [{ name: 'Word', extensions: ['docx'] }]
       })
       if (!filePath) return
+
+      // C-EXPORT-DOCUMENT-PIN: post-dialog guard — verify before the write.
+      if (exportPin && !(await this.assertExportPinCurrent(exportPin))) return
 
       try {
         const { exportToDocx } = await import('../util/exportDocx')
@@ -2209,15 +2328,19 @@ export const useEditorStore = defineStore('editor', {
     // and shows no notice (corner-2); the caller clears the print
     // container when this resolves. The styled print container is already
     // in the DOM (handleExport).
-    async _EXPORT_PDF(pageOptions) {
+    async _EXPORT_PDF(pageOptions, exportPin) {
       const { invoke } = await import('@tauri-apps/api/core')
       const { save } = await import('@tauri-apps/plugin-dialog')
       const filePath = await save({
         title: i18n.global.t('exportSettings.pdfTitle'),
-        defaultPath: this._pdfDefaultName(),
+        defaultPath: this._pdfDefaultName(exportPin),
         filters: [{ name: 'PDF', extensions: ['pdf'] }]
       })
       if (!filePath) return
+
+      // C-EXPORT-DOCUMENT-PIN: post-dialog guard — verify before the print
+      // invocation.
+      if (exportPin && !(await this.assertExportPinCurrent(exportPin))) return
 
       try {
         await invoke('mt_export_pdf', { path: filePath, pageOptions })
@@ -2233,7 +2356,19 @@ export const useEditorStore = defineStore('editor', {
 
     // C-61 corner-4: default save name = the document's own name; an
     // untitled tab falls back to its first heading, else "Untitled".
-    _pdfDefaultName() {
+    // C-EXPORT-DOCUMENT-PIN: with a pin the name comes from the pinned
+    // pieces only, never from live currentFile/listToc reads.
+    _pdfDefaultName(exportPin) {
+      if (exportPin) {
+        if (exportPin.pathname && exportPin.filename) {
+          return exportPin.filename.replace(/\.md$/i, '.pdf')
+        }
+        const pinnedSafe = String(exportPin.firstHeading || '')
+          .replace(/[\\/:*?"<>|#]+/g, '')
+          .replace(/\s+/g, ' ')
+          .trim()
+        return `${pinnedSafe || 'Untitled'}.pdf`
+      }
       const { filename, pathname } = this.currentFile
       if (pathname && filename) return filename.replace(/\.md$/i, '.pdf')
       const firstHeading = (this.listToc || []).find((h) => h && h.content)

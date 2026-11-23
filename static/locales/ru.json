@@ -93,7 +93,11 @@
       "plantumlConsentTitle": "Диаграммы PlantUML рендерит plantuml.com",
       "plantumlConsentMessage": "{count} диаграмм(ы) PlantUML будут отправлены на {address} для рендеринга — исходный текст диаграмм покидает этот компьютер",
       "plantumlConsentConfirm": "Отправить на plantuml.com",
-      "plantumlConsentCancel": "Оставить исходник локально"
+      "plantumlConsentCancel": "Оставить исходник локально",
+      "pinMismatchTitle": "Экспорт остановлен — документ изменился",
+      "pinMismatchMessage": "Экспортируемый документ изменился (переключение вкладки или правка), пока экспорт ждал — ничего не экспортировано. Запустите экспорт заново.",
+      "pinDiskChangedTitle": "Экспорт остановлен — файл изменился на диске",
+      "pinDiskChangedMessage": "Файл {name} изменился на диске после вашего подтверждения экспорта — ничего не экспортировано."
     },
     "resizeTable": "Изменить размер таблицы",
     "vega-lite-start": "начало vega-lite",

@@ -25,8 +25,9 @@ import { setupTestPinia } from '../pinia'
 const busEmitMock = vi.fn()
 vi.mock('@/bus', () => ({ default: { emit: busEmitMock, on: vi.fn(), off: vi.fn() } }))
 const ipcFsWriteMock = vi.fn()
+const readBinaryMock = vi.fn()
 vi.mock('@/ipc/runtime', () => ({
-  ipcFs: { read: vi.fn(), write: ipcFsWriteMock, stat: vi.fn(), readdir: vi.fn(), unlink: vi.fn() },
+  ipcFs: { read: vi.fn(), write: ipcFsWriteMock, stat: vi.fn(), readdir: vi.fn(), unlink: vi.fn(), readBinary: readBinaryMock },
   ipcWatch: {}, ipcSearch: {},
   ipcPrefs: { get: vi.fn(async () => null), set: vi.fn(), getAll: vi.fn(async () => ({})) },
   ipcWorkspace: {}, ipcFonts: {},
@@ -54,7 +55,6 @@ const exportToDocxMock = vi.fn()
 vi.mock('@/util/exportDocx', () => ({ exportToDocx: (...args) => exportToDocxMock(...args) }))
 
 const writeMock = vi.fn()
-const readFileMock = vi.fn()
 const statMock = vi.fn()
 
 const digestHex = async (text) => {
@@ -88,11 +88,11 @@ describe('editor store export document pin (C-EXPORT-DOCUMENT-PIN)', () => {
     exportToDocxMock.mockReset()
     writeMock.mockReset()
     ipcFsWriteMock.mockReset()
-    readFileMock.mockReset()
+    readBinaryMock.mockReset()
     statMock.mockReset()
-    readFileMock.mockResolvedValue('original bytes')
+    readBinaryMock.mockResolvedValue(new TextEncoder().encode('original bytes'))
     statMock.mockResolvedValue({ size: 0, mtimeMs: 0, isFile: true, isDirectory: false })
-    window.fileUtils = { writeFile: writeMock, readFile: readFileMock, stat: statMock }
+    window.fileUtils = { writeFile: writeMock, stat: statMock }
     window.path = {
       basename: (p) => String(p).split('/').pop(),
       dirname: (p) => String(p).split('/').slice(0, -1).join('/')
@@ -163,8 +163,8 @@ describe('editor store export document pin (C-EXPORT-DOCUMENT-PIN)', () => {
     // Entry verification sees the original bytes; the file changes while the
     // save dialog is up — the matching stat signature must NOT waive the
     // digest compare (HASH-OVER-BYTES decision, review minor 1).
-    readFileMock.mockResolvedValueOnce('original bytes')
-    readFileMock.mockResolvedValueOnce('tampered bytes')
+    readBinaryMock.mockResolvedValueOnce(new TextEncoder().encode('original bytes'))
+    readBinaryMock.mockResolvedValueOnce(new TextEncoder().encode('tampered bytes'))
 
     await store.EXPORT({ type: 'styledHtml', content: '<p>html</p>', exportPin: pin })
 

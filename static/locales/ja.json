@@ -91,7 +91,11 @@
       "plantumlConsentTitle": "PlantUMLダイアグラムは plantuml.com で描画されます",
       "plantumlConsentMessage": "{count}件のPlantUMLダイアグラムがレンダリングのため{address}へ送信されます — ダイアグラムのソーステキストがこのマシンから出ていきます",
       "plantumlConsentConfirm": "plantuml.comへ送信",
-      "plantumlConsentCancel": "ソースをローカルに残す"
+      "plantumlConsentCancel": "ソースをローカルに残す",
+      "pinMismatchTitle": "エクスポートを停止しました — ドキュメントが変更されました",
+      "pinMismatchMessage": "エクスポートの待機中に、エクスポート対象のドキュメントが変更されました（タブの切り替えまたは編集）— 何もエクスポートされていません。エクスポートをやり直してください。",
+      "pinDiskChangedTitle": "エクスポートを停止しました — ディスク上のファイルが変更されました",
+      "pinDiskChangedMessage": "エクスポートを承認した後、ファイル {name} がディスク上で変更されました — 何もエクスポートされていません。"
     },
     "resizeTable": "表のサイズ変更",
     "vega-lite-start": "vega-lite開始",
