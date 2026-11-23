@@ -21,6 +21,12 @@
  * NOTE: This is renderer-only. No real Tauri IPC, no cross-window flow.
  * Multi-window features (theme broadcast to settings window etc.) WILL
  * NOT exercise — that's Phase-7 CI on a Linux runner with `tauri dev`.
+ *
+ * 2026-11-23 C-SESSION-DURABILITY: a default mt_prefs_get_many fanout
+ * handler rides beside the mt_prefs_set_many one — a get_many without
+ * its own override fans each requested key through the resolved
+ * mt_prefs_get handler, so specs seeding the lastSession* keys via
+ * mt_prefs_get keep working unchanged (unanswered keys map to null).
  */
 
 import type { Page } from '@playwright/test'
@@ -226,6 +232,23 @@ export async function installTauriShim(page: Page): Promise<void> {
           const entries: Array<{ key: string; value: unknown }> = args?.entries ?? []
           for (const entry of entries) await Promise.resolve(perKey({ key: entry.key, value: entry.value }))
           return null
+        }
+        // C-SESSION-DURABILITY: the session profile reads through one
+        // batch command now. A get_many without its own override fans
+        // each requested key through the resolved mt_prefs_get handler
+        // (override or default) — the set_many fanout precedent — so
+        // every spec seeding the lastSession* keys via mt_prefs_get keeps
+        // working unchanged. Unlike the write fanout's quiet null, a read
+        // answers the backend's absent-key semantics: each unanswered key
+        // maps to null.
+        if (cmd === 'mt_prefs_get_many' && !overrides[cmd]) {
+          const perKey = overrides['mt_prefs_get'] || defaults['mt_prefs_get']
+          const keys: string[] = args?.keys ?? []
+          const out: Record<string, unknown> = {}
+          for (const key of keys) {
+            out[key] = perKey ? await Promise.resolve(perKey({ key })) : null
+          }
+          return out
         }
         const handler = overrides[cmd] || defaults[cmd]
         if (!handler) {

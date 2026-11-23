@@ -26,7 +26,7 @@
       "name": "Welcome Screen",
       "tests": [
         { "id": "wel-001", "name": "Action row buttons fire", "steps": "Close all tabs → welcome shows → click Open File / Open Folder / New", "expected": "Each button opens its dialog or creates a tab; nothing is a dead click", "status": "pending" },
-        { "id": "wel-002", "name": "Last session row restores session", "steps": "Close all tabs → click “Last session”", "expected": "Previous session tabs reopen; not a dead click", "status": "pending", "notes": "FIX-009 open (2026-10-20) — reported broken; verify after its repair" },
+        { "id": "wel-002", "name": "Last session row restores session", "steps": "Close all tabs → click “Last session”", "expected": "Previous session tabs reopen; not a dead click", "status": "pass", "lastRun": "2026-11-23", "notes": "Automating cover: tests/e2e/affordance-audit.spec.ts «Last session row restores the frozen boot offer» (C-SESSION-DURABILITY T-007) — the row gating, the frozen-offer restore and the empty-snapshot no-row case run on the shipped C-FIX-009 cold-start contract on every push" },
         { "id": "wel-003", "name": "Recent files/folders rows open their target", "steps": "Click several recent files and one folder", "expected": "File opens in a tab; folder opens as project sidebar", "status": "pending" },
         { "id": "wel-004", "name": "Remove recent + Undo toast", "steps": "Context-menu remove a recent → Undo in toast", "expected": "Row disappears and restores in exact order", "status": "pending" },
         { "id": "wel-005", "name": "Agent prompt copy chip writes clipboard", "steps": "Click Copy prompt", "expected": "Clipboard contains the agent prompt text", "status": "pending" }

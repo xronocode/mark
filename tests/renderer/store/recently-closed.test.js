@@ -4,6 +4,14 @@
  * entry: dedup to the newest close, consume on any open, bounded list,
  * deterministic Reopen-all ordering with active-tab metadata, missing-
  * file drops with notices, clear, and the memory-only cold-start state.
+ * C-SESSION-DURABILITY: the stat verdict is tri-state (the shared
+ * exported filePositionStore.statFileExists) — an entry is dropped ONLY
+ * on a confirmed-missing verdict (isFile:false or an MT_FS_NOT_FOUND-
+ * coded rejection); a cannot-tell verdict keeps the entry behind its own
+ * localized notice. The stat seam is window.fileUtils.stat (the
+ * file-position-store.test.js:255-285 injection precedent): the vitest
+ * setup's default stat answers is_file:true, per-test overrides stub
+ * window.fileUtils.stat directly.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { setActivePinia } from 'pinia'
@@ -32,7 +40,6 @@ vi.mock('@/bus', () => ({
   default: { on: vi.fn(), off: vi.fn(), emit: vi.fn() }
 }))
 
-import { ipcFs } from '@/ipc/runtime'
 import notice from '@/services/notification'
 import bus from '@/bus'
 import {
@@ -41,6 +48,18 @@ import {
 } from '@/store/recentlyClosed'
 
 const electronInvoke = vi.fn(async () => true)
+
+// C-SESSION-DURABILITY: the coded-rejection injection seam — the shared
+// verdict helper reads window.fileUtils.stat (the setup installs a
+// default is_file:true stat per test; overrides stub it directly).
+const stubStat = (impl) => {
+  window.fileUtils.stat = vi.fn(impl)
+}
+const codedError = (code, message = 'stat failed') => {
+  const err = new Error(message)
+  err.code = code
+  return err
+}
 
 describe('store/recentlyClosed.js (C-FIX-009-RECENTLY-CLOSED)', () => {
   let store
@@ -62,7 +81,7 @@ describe('store/recentlyClosed.js (C-FIX-009-RECENTLY-CLOSED)', () => {
     electronInvoke.mockClear()
     electronInvoke.mockResolvedValue(true)
     window.electron = { ipcRenderer: { invoke: electronInvoke, send: vi.fn() } }
-    vi.mocked(ipcFs.stat).mockImplementation(async () => ({ isFile: true, isDirectory: false, mtimeMs: 1 }))
+    stubStat(async () => ({ isFile: true, isDirectory: false, mtimeMs: 1 }))
     vi.mocked(notice.notify).mockClear()
     vi.mocked(bus.emit).mockClear()
   })
@@ -133,12 +152,69 @@ describe('store/recentlyClosed.js (C-FIX-009-RECENTLY-CLOSED)', () => {
   })
 
   it('REOPEN_ONE drops a missing file with a visible notice (never a silent no-op)', async () => {
+    // C-SESSION-DURABILITY unfolded: the drop path requires a CONFIRMED
+    // missing verdict — a coded MT_FS_NOT_FOUND rejection. Assertions
+    // carry over unchanged from the pre-tri-state pin.
     record('/tmp/gone.md')
-    vi.mocked(ipcFs.stat).mockRejectedValueOnce(new Error('not found'))
+    stubStat(async () => { throw codedError('MT_FS_NOT_FOUND', 'No such file or directory') })
     await expect(store.REOPEN_ONE(store.entries[0])).resolves.toBe(false)
     expect(store.isEmpty).toBe(true)
     expect(notice.notify).toHaveBeenCalledTimes(1)
+    expect(notice.notify.mock.calls[0][0].message).toBe('recent.recentlyClosed.missingNotice')
     expect(electronInvoke).not.toHaveBeenCalled()
+  })
+
+  it('reopen_one_keeps_the_entry_when_the_stat_verdict_is_cannot_tell', async () => {
+    // An EACCES-class rejection carries no NOT_FOUND code: the verdict
+    // is «cannot tell» — the entry stays recoverable, nothing opens, and
+    // the transient notice is the NEW unverified copy, never the
+    // confirmed-missing one.
+    record('/tmp/locked.md')
+    stubStat(async () => { throw codedError('MT_FS_PERM_DENIED', 'Permission denied') })
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {})
+    await expect(store.REOPEN_ONE(store.entries[0])).resolves.toBe(false)
+    expect(store.count).toBe(1)
+    expect(electronInvoke).not.toHaveBeenCalled()
+    expect(notice.notify).toHaveBeenCalledTimes(1)
+    const shown = notice.notify.mock.calls[0][0]
+    expect(shown.message).toBe('recent.recentlyClosed.unverifiedNotice')
+    expect(shown.message).not.toBe('recent.recentlyClosed.missingNotice')
+    expect(String(shown.message)).not.toContain('missingNotice')
+    expect(info).toHaveBeenCalledWith(expect.stringContaining('[RecentlyClosed][REOPEN_ONE][BLOCK_REOPEN_UNVERIFIED] file=locked.md'))
+    info.mockRestore()
+  })
+
+  it('reopen_one_still_drops_on_confirmed_not_found', async () => {
+    // The tri-state keeps today's exact drop behavior for a confirmed
+    // false verdict (isFile:false counts the same way — a directory is
+    // not an openable document).
+    record('/tmp/gone.md')
+    stubStat(async () => { throw codedError('MT_FS_NOT_FOUND') })
+    await expect(store.REOPEN_ONE(store.entries[0])).resolves.toBe(false)
+    expect(store.isEmpty).toBe(true)
+    expect(electronInvoke).not.toHaveBeenCalled()
+    expect(notice.notify.mock.calls[0][0].message).toBe('recent.recentlyClosed.missingNotice')
+  })
+
+  it('reopen_one_default_checker_maps_coded_not_found_to_confirmed_missing', async () => {
+    // The default checker's code mapping (the file-position-store.test.js
+    // :229/:255 precedent, mirrored through the shared exported verdict
+    // helper): MT_FS_NOT_FOUND → confirmed missing → drop;
+    // MT_FS_PERM_DENIED → cannot tell → keep.
+    record('/tmp/n.md')
+    record('/tmp/p.md')
+    stubStat(async (p) => {
+      throw codedError(
+        p === '/tmp/n.md' ? 'MT_FS_NOT_FOUND' : 'MT_FS_PERM_DENIED',
+        p === '/tmp/n.md' ? 'No such file or directory' : 'Permission denied'
+      )
+    })
+    const n = store.entries.find((e) => e.pathname === '/tmp/n.md')
+    const p = store.entries.find((e) => e.pathname === '/tmp/p.md')
+    await expect(store.REOPEN_ONE(n)).resolves.toBe(false)
+    expect(store.entries.map((e) => e.pathname)).toEqual(['/tmp/p.md'])
+    await expect(store.REOPEN_ONE(p)).resolves.toBe(false)
+    expect(store.count).toBe(1)
   })
 
   it('REOPEN_NEWEST reopens the newest entry and is a quiet no-op when empty', async () => {
@@ -171,11 +247,14 @@ describe('store/recentlyClosed.js (C-FIX-009-RECENTLY-CLOSED)', () => {
   })
 
   it('REOPEN_ALL drops missing files with one combined notice and continues', async () => {
+    // C-SESSION-DURABILITY unfolded: the up-front drop requires a
+    // CONFIRMED missing verdict — a coded MT_FS_NOT_FOUND rejection.
+    // Assertions carry over unchanged from the pre-tri-state pin.
     record('/tmp/a.md', { closedAt: 1, stripIndex: 0 })
     record('/tmp/gone.md', { closedAt: 2, stripIndex: 1 })
     record('/tmp/b.md', { closedAt: 3, stripIndex: 2, wasActive: true })
-    vi.mocked(ipcFs.stat).mockImplementation(async (p) => {
-      if (p === '/tmp/gone.md') throw new Error('not found')
+    stubStat(async (p) => {
+      if (p === '/tmp/gone.md') throw codedError('MT_FS_NOT_FOUND', 'No such file or directory')
       return { isFile: true, isDirectory: false, mtimeMs: 1 }
     })
     const openedOrder = []
@@ -187,7 +266,61 @@ describe('store/recentlyClosed.js (C-FIX-009-RECENTLY-CLOSED)', () => {
     expect(openedOrder).toEqual(['/tmp/a.md', '/tmp/b.md'])
     expect(result).toMatchObject({ reopened: 2, missing: 1, active: '/tmp/b.md' })
     expect(notice.notify).toHaveBeenCalledTimes(1)
+    expect(notice.notify.mock.calls[0][0].message).toBe('recent.recentlyClosed.someMissingNotice')
     expect(store.isEmpty).toBe(true)
+  })
+
+  it('reopen_all_keeps_transient_entries_and_counts_only_confirmed_missing', async () => {
+    // A cannot-tell entry is neither opened nor consumed — it stays in
+    // the list for the next attempt and is reported by its own localized
+    // notice; missing counts CONFIRMED-missing only.
+    record('/tmp/a.md', { closedAt: 1, stripIndex: 0 })
+    record('/tmp/gone.md', { closedAt: 2, stripIndex: 1 })
+    record('/tmp/flaky.md', { closedAt: 3, stripIndex: 2 })
+    record('/tmp/b.md', { closedAt: 4, stripIndex: 3, wasActive: true })
+    stubStat(async (p) => {
+      if (p === '/tmp/gone.md') throw codedError('MT_FS_NOT_FOUND', 'No such file or directory')
+      if (p === '/tmp/flaky.md') throw new Error('i/o timeout')
+      return { isFile: true, isDirectory: false, mtimeMs: 1 }
+    })
+    const openedOrder = []
+    electronInvoke.mockImplementation(async (_cmd, path) => {
+      openedOrder.push(path)
+      return true
+    })
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {})
+    const result = await store.REOPEN_ALL()
+    expect(openedOrder).toEqual(['/tmp/a.md', '/tmp/b.md'])
+    expect(result).toMatchObject({ reopened: 2, missing: 1, active: '/tmp/b.md' })
+    // The transient entry survives for the next attempt.
+    expect(store.entries.map((e) => e.pathname)).toEqual(['/tmp/flaky.md'])
+    const messages = notice.notify.mock.calls.map((c) => c[0].message)
+    expect(messages).toContain('recent.recentlyClosed.someMissingNotice')
+    expect(messages).toContain('recent.recentlyClosed.someUnverifiedNotice')
+    expect(info).toHaveBeenCalledWith(expect.stringContaining('unverified=1'))
+    info.mockRestore()
+  })
+
+  it('reopen_all_still_drops_on_confirmed_not_found', async () => {
+    // The tri-state keeps today's exact up-front drop for confirmed
+    // false verdicts: the rest still reopens in strip order.
+    record('/tmp/a.md', { closedAt: 1, stripIndex: 0 })
+    record('/tmp/gone.md', { closedAt: 2, stripIndex: 1 })
+    record('/tmp/b.md', { closedAt: 3, stripIndex: 2, wasActive: true })
+    stubStat(async (p) => {
+      if (p === '/tmp/gone.md') throw codedError('MT_FS_NOT_FOUND')
+      return { isFile: true, isDirectory: false, mtimeMs: 1 }
+    })
+    const openedOrder = []
+    electronInvoke.mockImplementation(async (_cmd, path) => {
+      openedOrder.push(path)
+      return true
+    })
+    const result = await store.REOPEN_ALL()
+    expect(openedOrder).toEqual(['/tmp/a.md', '/tmp/b.md'])
+    expect(result).toMatchObject({ reopened: 2, missing: 1, active: '/tmp/b.md' })
+    expect(store.isEmpty).toBe(true)
+    expect(notice.notify.mock.calls[0][0].message).toBe('recent.recentlyClosed.someMissingNotice')
   })
 
   it('a repeated close/reopen cycle drains the history to empty', async () => {
@@ -208,19 +341,25 @@ describe('REOPEN_ALL accuracy (review wave 2)', () => {
   beforeEach(() => {
     setActivePinia(setupTestPinia())
     window.electron = { ipcRenderer: { invoke: electronInvoke, send: vi.fn() } }
-    vi.mocked(ipcFs.stat).mockReset()
-    vi.mocked(ipcFs.stat).mockImplementation(async () => ({ isFile: true, isDirectory: false, mtimeMs: 1 }))
+    stubStat(async () => ({ isFile: true, isDirectory: false, mtimeMs: 1 }))
     vi.mocked(notice.notify).mockClear()
     vi.mocked(bus.emit).mockClear()
     electronInvoke.mockClear()
     electronInvoke.mockResolvedValue(true)
   })
 
+  it('the empty-list early return keeps its exact shape without an active key', async () => {
+    // C-SESSION-DURABILITY (review minor 3): the asymmetry is preserved
+    // byte-identically — { reopened, missing } only, NO active key.
+    const store = useRecentlyClosedStore()
+    await expect(store.REOPEN_ALL()).resolves.toEqual({ reopened: 0, missing: 0 })
+  })
+
   it('a directory that answers stat is not openable: only isFile entries reopen', async () => {
     const store = useRecentlyClosedStore()
     store.RECORD_CLOSE({ pathname: '/tmp/dir', filename: 'dir', stripIndex: 0, wasActive: false, root: '', closedAt: 1 })
     store.RECORD_CLOSE({ pathname: '/tmp/a.md', filename: 'a.md', stripIndex: 1, wasActive: false, root: '', closedAt: 2 })
-    vi.mocked(ipcFs.stat).mockImplementation(async (p) =>
+    stubStat(async (p) =>
       p === '/tmp/dir'
         ? { isFile: false, isDirectory: true, mtimeMs: 1 }
         : { isFile: true, isDirectory: false, mtimeMs: 1 })

@@ -32,7 +32,19 @@ vi.mock('@/ipc/runtime', () => ({
   },
   ipcWatch: { subscribe: vi.fn(async () => vi.fn()) },
   ipcRecent: { add: vi.fn(), list: vi.fn(async () => []), clear: vi.fn() },
-  ipcPrefs: { get: vi.fn(async () => null), set: vi.fn(async () => {}), setMany: vi.fn(async () => {}) }
+  ipcPrefs: {
+    get: vi.fn(async () => null),
+    set: vi.fn(async () => {}),
+    setMany: vi.fn(async () => {}),
+    // C-SESSION-DURABILITY: the batched read delegates per key to the
+    // SAME get stubbing — every existing per-key mockImplementation
+    // keeps driving the restore/capture paths unchanged.
+    getMany: vi.fn(async function (keys) {
+      const out = {}
+      for (const key of keys) out[key] = await this.get(key)
+      return out
+    })
+  }
 }))
 vi.mock('deep-equal', () => ({ default: vi.fn(() => false) }))
 vi.mock('@/util', () => ({
@@ -275,7 +287,13 @@ describe('store/editor.js — FIX-009 cold start + record hooks', () => {
         closedAt: 1
       })
       await listenerFor('mt::editor-reopen-closed-tab')()
-      expect(electronInvoke).toHaveBeenCalledWith('mt::open-file', '/tmp/a.md', {})
+      // C-SESSION-DURABILITY: the tri-state verdict adds one async hop
+      // before the open invoke, so the discarded reopen promise can no
+      // longer be assumed settled by the time this line runs — await the
+      // SAME assertion instead of relying on microtask ordering.
+      await vi.waitFor(() =>
+        expect(electronInvoke).toHaveBeenCalledWith('mt::open-file', '/tmp/a.md', {})
+      )
     })
 
     it('mt::recently-closed-select waits for the tab and selects it', async () => {

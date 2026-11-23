@@ -1610,6 +1610,8 @@
       "reopenClosedTab": "Reabrir pestaña cerrada",
       "missingNotice": "{name} ya no está disponible",
       "someMissingNotice": "{count} de los archivos cerrados ya no están disponibles",
+      "unverifiedNotice": "No se pudo comprobar {name} — sigue en la lista",
+      "someUnverifiedNotice": "No se pudieron comprobar {count} archivos cerrados — siguen en la lista",
       "buttonLabel": "Reabrir pestañas cerradas ({count})"
     },
     "time": {

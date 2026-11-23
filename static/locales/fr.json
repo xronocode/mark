@@ -1611,6 +1611,8 @@
       "reopenClosedTab": "Rouvrir l'onglet fermé",
       "missingNotice": "{name} n'est plus disponible",
       "someMissingNotice": "{count} des fichiers fermés ne sont plus disponibles",
+      "unverifiedNotice": "Impossible de vérifier {name} — l'entrée reste dans la liste",
+      "someUnverifiedNotice": "Impossible de vérifier {count} fichiers fermés — les entrées restent dans la liste",
       "buttonLabel": "Rouvrir les onglets fermés ({count})"
     },
     "time": {

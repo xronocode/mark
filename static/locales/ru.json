@@ -1617,6 +1617,8 @@
       "reopenClosedTab": "Вернуть закрытую вкладку",
       "missingNotice": "Файл «{name}» больше недоступен",
       "someMissingNotice": "{count} из закрытых файлов больше недоступны",
+      "unverifiedNotice": "Не удалось проверить файл «{name}» — он остаётся в списке",
+      "someUnverifiedNotice": "Не удалось проверить {count} закрытых файлов — они остаются в списке",
       "buttonLabel": "Вернуть закрытые вкладки ({count})"
     },
     "time": {

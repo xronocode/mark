@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/util/filePositionStore.js
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-FILE-POSITION-MEMORY the per-file reading position store — one prefs key (filePositions) holding per-file entries of the last scrollTop and muyaIndexCursor (line/ch), so reopening a file or relaunching the app returns the reader to where they were.
 //   SCOPE: Pure store transforms (sanitizeEntry, normalizeStore, storeWithEntry, capStoreFiles, moveFileEntry, clampEntryToMarkdown) plus the IO-bound high-level flows (loadFilePosition = read + prune missing files + cap + write-back when changed; saveFilePosition = write one file's entry; moveFilePositionsEntry = the Mark-rename move). All three flows serialize through one module-level mutation queue (a concurrent quit-flush of N tabs must not interleave read→transform→write and drop all but the last tab's entry) and never persist a store derived from a failed read. The muyaIndexCursor semantics belong to muya — this module stays schema-only and pure apart from the IO flows, mirroring tableLayoutStore.js.
@@ -17,6 +17,7 @@
 //   normalizeStore - pure: any raw prefs value → a valid store (invalid shapes collapse to EMPTY_STORE).
 //   storeWithEntry - pure: set/replace/delete one file's entry with a fresh savedAt stamp.
 //   capStoreFiles - pure: keep at most max files, newest savedAt first (ties by path for determinism).
+//   statFileExists - exported tri-state verdict: window.fileUtils.stat → true/false, MT_FS_NOT_FOUND → false, anything else → cannot-tell.
 //   moveFileEntry - pure: move one file's entry from one path to another (absent source → unchanged store; destination clobbered).
 //   clampEntryToMarkdown - pure: clamp the entry's muyaIndexCursor into the given markdown's real line/ch range (a file shortened while closed must not feed muya an out-of-range position — muya's setMarkdown branch ignores addCursorToMarkdown's isValid:false). scrollTop is left as-is: the browser clamps it into the real scrollable range at restore.
 //   defaultIo - the ipcPrefs-backed IO the high-level flows use when none is injected.
@@ -24,12 +25,21 @@
 //   writeStore - async: prefs set of the whole store (the mutation flows run on an internal promise-chain queue so concurrent flushes compose instead of racing).
 //   pruneMissingFiles - async: drop entries whose file is CONFIRMED missing; «cannot tell» keeps the entry. The default checker is the internal tri-state stat: true (exists) / false (isFile:false answer or MT_FS_NOT_FOUND rejection) / undefined (no capability, other rejection, flagless answer) — only false prunes.
 //   loadFilePosition - async: the restore path — read, prune, cap, write back when the store changed, return the file's entry (null when none). The stat checker is injectable like pruneMissingFiles's.
-//   saveFilePosition - async: write one file's entry, never pruning (the load path owns that).
+//   saveFilePosition - async: write one file's entry, capped to MAX_POSITION_FILES with the same capStoreFiles discipline as the read path (C-SESSION-DURABILITY), never pruning (the load path owns that).
 //   moveFilePositionsEntry - async: the rename move — the position follows the new path; a Finder move does NOT go through here.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.1.0 - 2026-10-26 C-FILE-POSITION-MEMORY review wave:
+//   - 2026-11-23 C-SESSION-DURABILITY: (1) the save path caps the store
+//     with the existing capStoreFiles before writing — the on-disk store
+//     can never silently exceed MAX_POSITION_FILES between reads (the
+//     read path already applied it; saveFilePosition is now capped too);
+//     (2) the tri-state stat verdict helper statFileExists is EXPORTED
+//     for the recently-closed verdict reuse (the export lands with the
+//     C-SESSION-DURABILITY recently-closed task; body untouched).
+//   LAST_CHANGE: v1.2.0 - 2026-11-23 C-SESSION-DURABILITY (save-path cap
+//                + exported verdict helper).
+//   v1.1.0 - 2026-10-26 C-FILE-POSITION-MEMORY review wave:
 //                (1) all store mutations serialize through one promise
 //                queue — the multi-tab quit-flush (_saveSessionState fires
 //                N saves via Promise.allSettled) used to interleave
@@ -215,7 +225,10 @@ const serializedStoreMutation = (run) => {
 // transient failure can never erase positions forever.
 const STAT_NOT_FOUND_HINT = 'MT_FS_NOT_FOUND'
 
-const statFileExists = async (pathname) => {
+// C-SESSION-DURABILITY: exported for the recently-closed verdict reuse —
+// the tri-state discipline stays single-owned here (pageWidthStore.js
+// keeps its own duplicate helper, recorded as residue). Body untouched.
+export const statFileExists = async (pathname) => {
   const stat = typeof window !== 'undefined' &&
     window.fileUtils &&
     typeof window.fileUtils.stat === 'function'
@@ -286,6 +299,10 @@ export const loadFilePosition = (pathname, io = defaultIo, statExists = statFile
 // The save path: replace ONE file's entry (the recorder flush owns
 // coalescing; this write is the debounced/close/quit boundary). Runs on
 // the serialization queue; a failed read aborts without writing.
+// C-SESSION-DURABILITY: the write applies the SAME capStoreFiles
+// discipline the read path already applies (newest-by-savedAt kept,
+// ties deterministic), so the on-disk store can never silently outgrow
+// MAX_POSITION_FILES between reads.
 export const saveFilePosition = (pathname, entry, io = defaultIo) =>
   serializedStoreMutation(async () => {
     if (!pathname) return false
@@ -296,8 +313,9 @@ export const saveFilePosition = (pathname, entry, io = defaultIo) =>
       return false
     }
     const nextStore = storeWithEntry(rawStore, pathname, entry)
+    const { store: cappedStore } = capStoreFiles(nextStore)
     try {
-      await writeStore(nextStore, io)
+      await writeStore(cappedStore, io)
       return true
     } catch (e) {
       console.warn(`[FilePositionStore][saveFilePosition][BLOCK_POSITION_WRITE_FAILED] ${e}`)

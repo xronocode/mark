@@ -1,5 +1,5 @@
 // FILE: tests/e2e/affordance-audit.spec.ts
-// VERSION: 1.1.1
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Behavioral half of the C-73 affordance audit — everything the UI advertises must visibly respond when used: desktop chords pressed as real keys, every registry leaf command dispatched through the mt::menu-invoked bridge, and welcome-screen action buttons.
 //   SCOPE: Real-key presses on the booted Muya surface; menu-bridge walk over registry leaf ids parsed from source; welcome action-button responses. Static advertised-chord ↔ route agreement lives in tests/renderer/commands/shortcut-routing-audit.test.js.
@@ -27,6 +27,15 @@
 //   EXPECTED_BRIDGE_WARNINGS - Already-tracked bridge-warning findings (help.rate capability gate); anything new fails the walk.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 v1.2.0 C-SESSION-DURABILITY T-007: the stale open-era
+//     FIX-009 test.fixme is rewritten as a real, passing pin on the
+//     shipped C-FIX-009 contract shape — the welcome harness is re-aimed
+//     (restoreSessionOnLaunch=false stub + the store value pinned off
+//     before the boot event, the welcome.spec.ts patterns), the row
+//     renders only for a non-empty frozen boot offer, the click restores
+//     the FROZEN offer with no mt_prefs_get_many reread, and an empty
+//     boot snapshot renders no row; the sibling button test keeps its
+//     assertions under the re-aimed harness.
 //   LAST_CHANGE: v1.1.1 - 2026-10-20 FIX-010 review: exclude the explicitly macOS-only registry leaf from non-Darwin bridge walks.
 //   PREV: v1.1.0 - 2026-10-20 FIX-010/FIX-012: Shift+Meta+P opens the populated root Command Palette on macOS; tab cycling after opening the Guide must keep render ancestry valid.
 //   v1.0.0 - C-73: initial audit — desktop keydown/zoom chords as real key presses with generic response detection (bus event, DOM mutation, invoke or state digest), menu-bridge walk over all registry leaves, welcome action-button responses; the FIX-009 Last-session case lands as fixme until its repair ships.
@@ -337,15 +346,26 @@ test.describe('affordance audit — menu bridge walk (C-73)', () => {
 })
 
 test.describe('affordance audit — welcome actions (C-73)', () => {
-  test.beforeEach(async ({ page }) => {
+  // C-SESSION-DURABILITY T-007: the harness is re-aimed at the shipped
+  // C-FIX-009-SESSION-COLD-START contract shape (the welcome.spec.ts
+  // stub + store-pin patterns): the off restoreSessionOnLaunch skips
+  // auto-restore and the seeded lastSessionTabs become the FROZEN boot
+  // offer behind the welcome row — no live-preference read. An optional
+  // sessionTabs override lets a test boot an EMPTY snapshot.
+  const bootWelcomeSession = async (
+    page: Page,
+    opts: { sessionTabs?: string[] | null; withRecorder?: boolean } = {}
+  ): Promise<void> => {
+    const tabs = opts.sessionTabs === undefined ? ['/tmp/one.md', '/tmp/two.md'] : opts.sessionTabs
     await installTauriShim(page)
-    await page.addInitScript(() => {
+    await page.addInitScript((tabs) => {
       const w = window as any
       w.__mockInvoke = {
         ...(w.__mockInvoke || {}),
         mt_prefs_set: () => null,
         mt_prefs_get: (args: any) => {
-          if (args?.key === 'lastSessionTabs') return ['/tmp/one.md', '/tmp/two.md']
+          if (args?.key === 'lastSessionTabs') return tabs
+          if (args?.key === 'restoreSessionOnLaunch') return false
           return null
         },
         mt_recent_list: () => [
@@ -358,7 +378,7 @@ test.describe('affordance audit — welcome actions (C-73)', () => {
         })
       }
       w.__invokeLog = []
-    })
+    }, tabs)
     await page.goto('/?type=editor&wid=0&udp=/tmp/mark-e2e&debug=0')
     await page.waitForFunction(() => {
       const ls = (window as any).__shimListeners
@@ -366,10 +386,17 @@ test.describe('affordance audit — welcome actions (C-73)', () => {
       for (const m of ls.values()) if (m.event === 'mt::bootstrap-editor') return true
       return false
     }, undefined, { timeout: 15_000 })
-    // No document + no blank tab → the welcome screen mounts.
+    // The C-FIX-009 contract shape: pin the preferences-store value off
+    // BEFORE the boot event (the store default is on), so the launch
+    // skips auto-restore and freezes the boot offer. addBlankTab: true
+    // takes the boot path; the blank tab itself is skipped, so the
+    // welcome screen mounts.
     await page.evaluate(() => {
+      const app = document.querySelector('#app') as any
+      const prefs = app?.__vue_app__?.config?.globalProperties?.$pinia?.state?.value?.preferences
+      if (prefs) prefs.restoreSessionOnLaunch = false
       ;(window as any).__emitFakeEvent('mt::bootstrap-editor', {
-        addBlankTab: false,
+        addBlankTab: true,
         markdownList: [],
         lineEnding: 'lf',
         sideBarVisibility: false,
@@ -378,7 +405,11 @@ test.describe('affordance audit — welcome actions (C-73)', () => {
       })
     })
     await page.locator('.welcome-screen').waitFor({ state: 'visible', timeout: 15_000 })
-    await installResponseRecorder(page)
+    if (opts.withRecorder !== false) await installResponseRecorder(page)
+  }
+
+  test.beforeEach(async ({ page }) => {
+    await bootWelcomeSession(page)
   })
 
   test('New, Open File and Open Folder buttons each attempt their action', async ({ page }) => {
@@ -404,14 +435,38 @@ test.describe('affordance audit — welcome actions (C-73)', () => {
     expect(await waitForResponse(page, before), 'New button produced no response').toBe(true)
   })
 
-  // FIX-009 (2026-10-20, open): after closing every tab, clicking
-  // "Last session" on the welcome screen does nothing. Un-skip when
-  // the FIX-009 repair lands; the case stays visible here so the
-  // regression net remembers the defect class.
-  test.fixme('Last session row restores the closed session (FIX-009)', async ({ page }) => {
+  // FIX-009 shipped (C-FIX-009-SESSION-COLD-START, v2.7.0): the row
+  // renders only when this launch SKIPPED auto-restore AND the frozen
+  // boot offer is non-empty; the click restores the FROZEN offer
+  // (RESTORE_SESSION({ from }) — no preference reread) and the editor
+  // mounts. The stale open-era fixme is rewritten as this real pin.
+  test('Last session row restores the frozen boot offer', async ({ page }) => {
     const sessionRow = page.locator('.welcome-screen .row-session')
-    await expect(sessionRow.locator('.row-name')).toHaveText('Last session')
+    await expect(sessionRow).toBeVisible()
+    // The row name carries the frozen count suffix (Last session (2)).
+    await expect(sessionRow.locator('.row-name')).toContainText('Last session')
+
+    // The session-profile reread detector is the BATCH command — the
+    // frozen offer's restore reads no preferences at all, while the
+    // freshly mounted tabs legitimately issue single-key editor reads.
+    const readsBefore = await page.evaluate(
+      () => ((window as any).__invokeLog ?? []).filter((c: string) => c === 'mt_prefs_get_many').length
+    )
     await sessionRow.click()
-    await page.locator('.editor-with-tabs').waitFor({ state: 'visible', timeout: 5000 })
+    await page.locator('.editor-with-tabs').waitFor({ state: 'visible', timeout: 10_000 })
+
+    // The click restored the FROZEN offer — no session-profile reread.
+    const readsAfter = await page.evaluate(
+      () => ((window as any).__invokeLog ?? []).filter((c: string) => c === 'mt_prefs_get_many').length
+    )
+    expect(readsAfter, 'the frozen-offer restore reads no preferences').toBe(readsBefore)
+    // The frozen tabs are what reopened.
+    await expect(page.locator('.tabs-container li')).toHaveCount(2)
+  })
+
+  test('an empty boot snapshot renders no session row', async ({ page }) => {
+    await bootWelcomeSession(page, { sessionTabs: null, withRecorder: false })
+    const sessionRow = page.locator('.welcome-screen .row-session')
+    await expect(sessionRow).toHaveCount(0)
   })
 })

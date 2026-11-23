@@ -310,4 +310,38 @@ describe('C-SESSION-WRITE-ATOMICITY bounded close-wait (real store wiring)', () 
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('BLOCK_SESSION_WRITE_FAILED'))
     expect((await attempt).status).toBe('completed')
   })
+
+  it('close_commit_confirms_per_tab_position_flushes_before_destroy', async () => {
+    // C-SESSION-DURABILITY: the awaited confirmation scope covers the
+    // per-tab reading-position flushes that ride _saveSessionState AFTER
+    // the batched profile write (the C-FILE-POSITION-MEMORY corner C-7
+    // order). The write settles immediately while the flush is held open
+    // on a controlled deferred: the close command must NOT be invoked
+    // while the flush is pending and must be invoked EXACTLY ONCE after
+    // it resolves — a reorder that orphans the flushes behind the
+    // destroy can no longer pass. Recorded honestly: NEW COVERAGE and a
+    // reorder GUARD — the current code already awaits the flushes inside
+    // _saveSessionState, so this pin is green on the baseline shape, not
+    // a red-first defect detector.
+    const store = await bootCloseStore()
+    let releaseFlush
+    const flushGate = new Promise((resolve) => { releaseFlush = resolve })
+    const flushSpy = vi.spyOn(store, '_flushFilePositionForTab').mockImplementation(() => flushGate)
+    store.tabs = [cleanTab('/tmp/session-flush.md')]
+    store.currentFile = store.tabs[0]
+    const commit = vi.fn()
+
+    const attempt = store.REQUEST_DOCUMENT_OPERATION({ kind: 'window-close', commit })
+    await vi.waitFor(() => expect(ipcPrefs.setMany).toHaveBeenCalled())
+    // The batched write settled; the position flush is still pending.
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    expect(commit).not.toHaveBeenCalled()
+
+    releaseFlush()
+    await vi.waitFor(() => expect(commit).toHaveBeenCalledTimes(1))
+    expect(commit).toHaveBeenCalledTimes(1)
+    expect((await attempt).status).toBe('completed')
+    expect(flushSpy).toHaveBeenCalledTimes(1)
+    expect(flushSpy).toHaveBeenCalledWith(store.tabs[0])
+  })
 })

@@ -10,6 +10,10 @@
 //            corrupt the existing file. mt_prefs_set_many applies a whole
 //            key/value batch (the renderer session profile) as one
 //            transaction: one mutex acquisition, one save, one broadcast.
+//            C-SESSION-DURABILITY: mt_prefs_get_many is the read-batch
+//            mirror — one mutex acquisition, absent keys as null,
+//            strictly read-only (no save, no generation change, no
+//            broadcast; a read never fans out).
 //            Corrupt file → quarantine to a preferences.json.corrupt
 //            sibling (BLOCK_PREFS_QUARANTINED / BLOCK_PREFS_QUARANTINE_FAILED)
 //            then empty defaults + stable MT_PREFS_CORRUPT marker.
@@ -45,6 +49,15 @@
 //     empty-defaults fallback (BLOCK_PREFS_QUARANTINED on success,
 //     BLOCK_PREFS_QUARANTINE_FAILED otherwise), preserving the evidence
 //     bytes instead of letting the next save silently overwrite them.
+//   - 2026-11-23 C-SESSION-DURABILITY T-002: add the read batch —
+//     PrefsState::get_many (one mutex acquisition, every absent key as
+//     Value::Null, strictly read-only: no insert, no save, no generation
+//     change, no broadcast) behind the new mt_prefs_get_many command
+//     with the [Prefs][get_many][BLOCK_INVOKED] marker, registered in
+//     main.rs beside mt_prefs_set_many; the read/write asymmetry is
+//     deliberate (a read never fans out). Pinned by
+//     get_many_returns_requested_keys_without_persisting (raw-bytes
+//     byte-identity + no .tmp sibling).
 
 use crate::m013b::SecurityCtx;
 use crate::mt_paths;
@@ -324,6 +337,23 @@ impl PrefsState {
         guard.save()
     }
 
+    /// C-SESSION-DURABILITY: the read-batch mirror of set_many — ONE
+    /// mutex acquisition answering every requested key (absent keys as
+    /// Value::Null, preserving the mt_prefs_get null-for-absent facade
+    /// semantics). Strictly read-only by design: no insert, no save, no
+    /// generation change and NO broadcast — the read/write asymmetry is
+    /// deliberate (a read never fans out), so the on-disk generation is
+    /// untouched by a restore read.
+    pub fn get_many(&self, keys: Vec<String>) -> Map<String, Value> {
+        let guard = self.inner.lock().expect("PrefsState mutex poisoned");
+        keys.into_iter()
+            .map(|key| {
+                let value = guard.get(&key).cloned().unwrap_or(Value::Null);
+                (key, value)
+            })
+            .collect()
+    }
+
     /// C-SESSION-WRITE-ATOMICITY: test-only mirror of set_many with the
     /// final rename injected (the m068 promote_staging_over_live seam) so
     /// pins can fail the promote without touching the production path.
@@ -457,6 +487,25 @@ pub async fn mt_prefs_set_many(
         app.webview_windows().len()
     );
     Ok(())
+}
+
+/// C-SESSION-DURABILITY: read a whole preference batch (the renderer
+/// session profile) as ONE request — one mutex acquisition, absent keys
+/// as null, strictly read-only (no save, no generation change, no
+/// broadcast). The read-batch mirror of mt_prefs_set_many so the
+/// restore payload travels in one round-trip; mt_prefs_get stays the
+/// canonical single-key surface.
+#[tauri::command]
+pub async fn mt_prefs_get_many(
+    keys: Vec<String>,
+    prefs: State<'_, PrefsState>,
+) -> Result<Value, String> {
+    let map = prefs.get_many(keys);
+    safe_eprintln!(
+        "[Prefs][get_many][BLOCK_INVOKED keys={}]",
+        map.len()
+    );
+    Ok(Value::Object(map))
 }
 
 /// Snapshot all prefs as an object. Useful for renderer bootstrap.
@@ -760,6 +809,73 @@ mod tests {
         // The .tmp sibling (if still present mid-transaction) never
         // became the live file — proven by the byte equality above.
         assert!(!tmp.is_dir());
+    }
+
+    #[test]
+    fn get_many_returns_requested_keys_without_persisting() {
+        // C-SESSION-DURABILITY T-001: the read batch returns EXACTLY the
+        // requested keys — every absent key mapped to Value::Null (the
+        // mt_prefs_get null-for-absent semantics) — and is strictly
+        // read-only: no store-file write, no .tmp sibling, no generation
+        // change. The injected-rename seam does not apply here (a
+        // read-only command has no save to inject); the byte-identity of
+        // the raw store file before/after is the no-persist proof (the
+        // raw-bytes discipline of the set_many pins above).
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("preferences.json");
+        let state = PrefsState::from_path(path.clone());
+        // Previous generation: a non-session key plus a distinct
+        // lastSessionTabs value.
+        state
+            .set("theme".to_string(), Value::String("dark".to_string()))
+            .unwrap();
+        state
+            .set("lastSessionTabs".to_string(), json!(["/old/a.md"]))
+            .unwrap();
+        let previous_bytes = std::fs::read(&path).unwrap();
+        let tmp = dir.path().join("preferences.json.tmp");
+
+        let keys = vec![
+            "lastSessionTabs".to_string(),
+            "theme".to_string(),
+            "lastSessionActive".to_string(),
+            "neverUsedKey".to_string(),
+        ];
+        let result = state.get_many(keys);
+
+        assert_eq!(result.len(), 4, "exactly the requested keys, no more");
+        assert_eq!(
+            result.get("lastSessionTabs"),
+            Some(&json!(["/old/a.md"])),
+            "a present key answers its stored value"
+        );
+        assert_eq!(
+            result.get("theme"),
+            Some(&Value::String("dark".to_string())),
+            "a present non-session key answers its stored value"
+        );
+        assert_eq!(
+            result.get("lastSessionActive"),
+            Some(&Value::Null),
+            "an absent-but-session key maps to null"
+        );
+        assert_eq!(
+            result.get("neverUsedKey"),
+            Some(&Value::Null),
+            "a never-used key maps to null"
+        );
+
+        // Strictly read-only: the raw bytes are byte-identical and no
+        // .tmp sibling exists — no store-file write happened at all.
+        let bytes = std::fs::read(&path).unwrap();
+        assert_eq!(
+            bytes, previous_bytes,
+            "a read never writes the store file"
+        );
+        assert!(
+            !tmp.exists(),
+            "a read leaves no .tmp sibling behind"
+        );
     }
 
     #[test]

@@ -683,6 +683,14 @@ export const useEditorStore = defineStore('editor', {
     },
 
     // START_BLOCK_SESSION_RESTORE
+    // C-SESSION-DURABILITY: this block's restore hygiene — the live
+    // path reads the four-key profile as ONE batched mt_prefs_get_many
+    // request, all folder/file existence checks run as ONE concurrent
+    // stat pass BEFORE the first open, and the per-tab format lookup is
+    // an O(1) Map.get keyed by pathname (behavior-preserving by the
+    // captureSessionFormats pathname dedup). The write path (batched
+    // setMany), the bounded close and the frozen-payload restore shape
+    // are unchanged.
     // C-69: the session snapshot — tab paths in order (untitled skipped),
     // the active tab and the open project roots. Written on window close
     // and, debounced, on every change once the boot restore finished
@@ -772,16 +780,25 @@ export const useEditorStore = defineStore('editor', {
             // reopens (review wave 2: the live autosaved preferences can
             // legitimately change mid-run, so the click path must not
             // reread them); never refreshed afterwards.
-            const readList = async (key) => {
-              const value = await ipcPrefs.get(key).catch(() => null)
+            // C-SESSION-DURABILITY: the cold-start capture shares the same
+            // ONE-request read as the live restore — the four-key profile
+            // travels in one mt_prefs_get_many batch (absent keys as
+            // null; a total-transport failure degrades to the all-absent
+            // shape exactly as before).
+            const readBatch = ((await ipcPrefs.getMany([
+              'lastSessionFolders',
+              'lastSessionTabs',
+              'lastSessionActive',
+              'lastSessionFormats'
+            ]).catch(() => null)) || {})
+            const readList = (key) => {
+              const value = readBatch[key]
               return Array.isArray(value) ? value.filter((x) => typeof x === 'string' && x) : []
             }
-            const [tabs, folders, activeRaw, formatsRaw] = await Promise.all([
-              readList('lastSessionTabs'),
-              readList('lastSessionFolders'),
-              ipcPrefs.get('lastSessionActive').catch(() => null),
-              ipcPrefs.get('lastSessionFormats').catch(() => null)
-            ])
+            const tabs = readList('lastSessionTabs')
+            const folders = readList('lastSessionFolders')
+            const activeRaw = readBatch.lastSessionActive
+            const formatsRaw = readBatch.lastSessionFormats
             const active = typeof activeRaw === 'string' && activeRaw ? activeRaw : null
             const { formats, rejected } = captureSessionFormats(formatsRaw, tabs)
             if (rejected) this._notifyFormatError('MT_ENC_INVALID_POLICY')
@@ -808,13 +825,28 @@ export const useEditorStore = defineStore('editor', {
       // autosave legitimately rewrites them during the run, and the
       // offer must reopen exactly what it advertises. The automatic
       // startup path passes nothing and reads the preferences as before.
-      const readList = async (key) => {
+      // C-SESSION-DURABILITY: the live path reads the four-key profile as
+      // ONE batched request — the mt_prefs_get_many read mirror of the
+      // write batch (one backend mutex acquisition, absent keys as null,
+      // strictly read-only). A getMany rejection degrades to the
+      // all-absent shape (tabs/folders empty lists, active/formats null)
+      // — identical to today's total-transport-failure behavior. The
+      // frozen-payload path (`from`) keeps reading NO preferences.
+      const readBatch = from
+        ? {}
+        : ((await ipcPrefs.getMany([
+            'lastSessionFolders',
+            'lastSessionTabs',
+            'lastSessionActive',
+            'lastSessionFormats'
+          ]).catch(() => null)) || {})
+      const readList = (key) => {
         if (from) {
           if (key === 'lastSessionTabs') return [...from.tabs]
           if (key === 'lastSessionFolders') return [...(from.folders || [])]
-          return null
+          return []
         }
-        const value = await ipcPrefs.get(key).catch(() => null)
+        const value = readBatch[key]
         return Array.isArray(value) ? value.filter((p) => typeof p === 'string' && p) : []
       }
       const exists = async (path, kind) => {
@@ -825,11 +857,22 @@ export const useEditorStore = defineStore('editor', {
           return false
         }
       }
-      const folders = await readList('lastSessionFolders')
-      const paths = await readList('lastSessionTabs')
-      const active = from ? (from.active || null) : await ipcPrefs.get('lastSessionActive').catch(() => null)
-      const rawFormats = from ? from.formats : await ipcPrefs.get('lastSessionFormats').catch(() => null)
+      const folders = readList('lastSessionFolders')
+      const paths = readList('lastSessionTabs')
+      const active = from ? (from.active || null) : (readBatch.lastSessionActive ?? null)
+      const rawFormats = from ? from.formats : (readBatch.lastSessionFormats ?? null)
       const { formats, rejected } = captureSessionFormats(rawFormats, paths)
+      // C-SESSION-DURABILITY: the per-tab format lookup is a Map keyed
+      // by pathname (O(1) instead of the linear find inside the open
+      // loop). Behavior-preserving: captureSessionFormats dedups by
+      // pathname — documentFormat.js throws MT_ENC_INVALID_POLICY on a
+      // duplicate pathname within the allowed set and adds a path to the
+      // seen set only after a successful capture — so the list holds at
+      // most one record per allowed pathname, and the Map answers
+      // identically to the previous linear lookup for every input the list can contain
+      // (records for paths outside the session's path list are rejected
+      // upstream and never enter it).
+      const formatsByPath = new Map(formats.map((record) => [record.pathname, record]))
       if (rejected) this._notifyFormatError('MT_ENC_INVALID_POLICY')
       let skipped = 0
       let restoredFolders = 0
@@ -839,9 +882,26 @@ export const useEditorStore = defineStore('editor', {
       // drive/iCloud account comes back), and the remaining roots, tabs
       // and the active tab still restore.
       const skippedFolders = []
+      // C-SESSION-DURABILITY: ONE concurrent stat pass BEFORE the first
+      // open — the folder candidates exclude already-open roots exactly
+      // as today, and the per-path verdict semantics are the unchanged
+      // exists helper (isDirectory for folders, isFile for files, any
+      // rejection to false, via the ipcFs.stat transport). The loops
+      // below consume the precomputed verdicts with the identical skip
+      // counting, visible degradation notice, open order and active-tab
+      // handling.
+      const folderCandidates = folders.filter(
+        (folder) => !projectStore.projectTrees.some((r) => r.pathname === folder)
+      )
+      const [folderVerdicts, fileVerdicts] = await Promise.all([
+        Promise.all(folderCandidates.map((folder) => exists(folder, 'dir'))),
+        Promise.all(paths.map((p) => exists(p, 'file')))
+      ])
+      const dirAlive = new Map(folderCandidates.map((folder, i) => [folder, folderVerdicts[i]]))
+      const fileAlive = new Map(paths.map((p, i) => [p, fileVerdicts[i]]))
       for (const folder of folders) {
         if (projectStore.projectTrees.some((r) => r.pathname === folder)) continue
-        if (!(await exists(folder, 'dir'))) {
+        if (!dirAlive.get(folder)) {
           skipped++
           skippedFolders.push(folder)
           continue
@@ -850,9 +910,9 @@ export const useEditorStore = defineStore('editor', {
         restoredFolders++
       }
       for (const p of paths) {
-        if (!(await exists(p, 'file'))) { skipped++; continue }
+        if (!fileAlive.get(p)) { skipped++; continue }
         try {
-          const record = formats.find(record => record.pathname === p)
+          const record = formatsByPath.get(p)
           const options = record ? { restoredFormat: captureRestoredFormat(record) } : {}
           await window.electron.ipcRenderer.invoke('mt::open-file', p, options)
           restoredTabs++
@@ -2613,6 +2673,15 @@ export const useEditorStore = defineStore('editor', {
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 C-SESSION-DURABILITY: the restore read hygiene — the
+//     live RESTORE_SESSION and the BOOT_SESSION cold-start capture read
+//     the four-key profile as ONE batched ipcPrefs.getMany request
+//     (strictly read-only backend batch), all folder/file existence
+//     checks run as ONE concurrent stat pass BEFORE the first open, and
+//     the per-tab format lookup is an O(1) Map.get keyed by pathname
+//     (behavior-preserving by the captureSessionFormats pathname dedup).
+//     The frozen-payload restore, the write path, the bounded close and
+//     GET_SESSION_PATHS are unchanged.
 //   - 2026-11-21 C-DOCS-SYNC: C-EXTERNAL-RELOAD-OPERATION link repointed to .grace/changes/archive/ (the change archived); no behavior change.
 //   EXPORT: 2026-11-20 C-EXTERNAL-RELOAD-OPERATION: one util/externalReload owner for reload admission, settle/read and the replacement commit; APPLY_FILE_CHANGE and loadChange stay compatible thin adapters.
 //   CURRENT: 2026-11-12 C-EXPORT-SETTINGS-SECTION: snapshot current appearance/page defaults before export and preserve them across Word Save; print retains native-panel geometry.

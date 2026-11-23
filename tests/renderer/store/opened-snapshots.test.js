@@ -25,7 +25,7 @@
 //
 // START_MODULE_MAP
 //   __ipcFsMock - hoisted ipcFs mock (read) shared with the vi.mock factory.
-//   __ipcPrefsMock - hoisted prefs-IPC mock (lastSessionTabs for RESTORE_SESSION).
+//   __ipcPrefsMock - hoisted prefs-IPC mock (batched getMany carries lastSessionTabs for RESTORE_SESSION).
 //   __layoutStub - hoisted layout store stub.
 //   __mainStub - hoisted main store stub.
 //   __preferencesStub - hoisted preferences store stub (liveReload on).
@@ -86,6 +86,8 @@ const __ipcFsMock = {
 }
 const __ipcPrefsMock = {
   get: vi.fn(async () => null),
+  getMany: vi.fn(async keys => Object.fromEntries(keys.map(key => [key, null]))),
+  getMany: vi.fn(async keys => Object.fromEntries(keys.map(key => [key, null]))),
   set: vi.fn(async () => {})
 }
 vi.mock('@/ipc/runtime', () => ({
@@ -282,7 +284,12 @@ describe('store/editor — C-68 opened baselines', () => {
 
   it('session restore records an opened snapshot per restored tab', async () => {
     const paths = ['/tmp/restored.md', '/tmp/second.md']
-    __ipcPrefsMock.get.mockImplementation(async key => key === 'lastSessionTabs' ? paths : null)
+    // C-SESSION-DURABILITY: RESTORE_SESSION reads the profile through the
+    // batched getMany — seed the same fixture there (per-key get stays for
+    // the suite's older direct-pref cases).
+    __ipcPrefsMock.getMany.mockImplementation(async keys =>
+      Object.fromEntries(keys.map(key => [key, key === 'lastSessionTabs' ? paths : null]))
+    )
     __ipcFsMock.stat.mockResolvedValue({ isFile: true })
     // C-69 restores through the normal bridge open path. Its native/browser
     // routing has separate session-restore coverage; pin this load funnel.

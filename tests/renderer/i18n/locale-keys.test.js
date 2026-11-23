@@ -1,5 +1,5 @@
 // FILE: tests/renderer/i18n/locale-keys.test.js
-// VERSION: 1.4.0
+// VERSION: 1.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-TITLEBAR-MODE-CHIPS T-003 pin — the titleBar.modeChips
 //            namespace carries exactly fifteen families in all ten
@@ -29,6 +29,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 v1.5.0 C-SESSION-DURABILITY: the recently-closed
+//     transient-notice pin — recent.recentlyClosed.unverifiedNotice and
+//     recent.recentlyClosed.someUnverifiedNotice present and non-empty
+//     in all ten locale tables, each distinct from its confirmed-missing
+//     twin (the cannot-tell state never borrows the confirmed-missing
+//     voice).
 //   - 2026-11-23 v1.4.0 C-UPDATER-NET-BOUNDS T-003: the updater
 //     install-feedback pin — updater.failureTitle/Body and
 //     updater.inProgressTitle/Body present and non-empty in all ten
@@ -184,6 +190,38 @@ describe('updater install-feedback locale keys (C-UPDATER-NET-BOUNDS T-003)', ()
       for (const key of UPDATER_KEYS) {
         expect(readKey(table, key).trim().length, `${locale}.${key}`).toBeGreaterThan(0)
       }
+    }
+  })
+})
+
+describe('recent.recentlyClosed transient notices (C-SESSION-DURABILITY)', () => {
+  // The cannot-tell (unverified) transient state must NOT borrow the
+  // confirmed-missing copy — the transient notice is its own localized
+  // voice in all ten locales.
+  const UNVERIFIED_KEYS = [
+    'recent.recentlyClosed.unverifiedNotice',
+    'recent.recentlyClosed.someUnverifiedNotice'
+  ]
+
+  it('carries the unverified-transient keys in every locale', () => {
+    for (const locale of LOCALES) {
+      const table = readTable(locale)
+      for (const key of UNVERIFIED_KEYS) {
+        expect(readKey(table, key), `${locale}.${key}`).toBeTypeOf('string')
+      }
+    }
+  })
+
+  it('writes non-empty native copy everywhere, distinct from the confirmed-missing copy', () => {
+    for (const locale of LOCALES) {
+      const table = readTable(locale)
+      for (const key of UNVERIFIED_KEYS) {
+        expect(readKey(table, key).trim().length, `${locale}.${key}`).toBeGreaterThan(0)
+      }
+      expect(readKey(table, 'recent.recentlyClosed.unverifiedNotice'), `${locale}.unverifiedNotice`)
+        .not.toBe(readKey(table, 'recent.recentlyClosed.missingNotice'))
+      expect(readKey(table, 'recent.recentlyClosed.someUnverifiedNotice'), `${locale}.someUnverifiedNotice`)
+        .not.toBe(readKey(table, 'recent.recentlyClosed.someMissingNotice'))
     }
   })
 })

@@ -14,6 +14,12 @@
 //     broadcast). Raw @tauri-apps/api/core invoke per the mt_close_window
 //     precedent: extending the typed M-013-A contract
 //     (ipc/contract/types.ts) is out of this change's scope.
+//   - 2026-11-23 C-SESSION-DURABILITY: add the getMany read-batch wrapper —
+//     the restore reads the four lastSession* keys in ONE
+//     mt_prefs_get_many request (one mutex acquisition, absent keys as
+//     null, strictly read-only: no save, no generation change, no
+//     broadcast). Raw invoke per the setMany precedent; the typed
+//     M-013-A contract stays untouched.
 
 import { ipcInvoke } from '../contract'
 import { invoke as rawInvoke } from '@tauri-apps/api/core'
@@ -38,6 +44,17 @@ export const ipcPrefs = {
    */
   async setMany(entries: Array<{ key: string; value: unknown }>): Promise<void> {
     await rawInvoke('mt_prefs_set_many', { entries })
+  },
+
+  /**
+   * C-SESSION-DURABILITY: the read-batch mirror of setMany — the four
+   * lastSession* keys travel in ONE round-trip (one backend mutex
+   * acquisition, absent keys as null, strictly read-only: no save, no
+   * generation change, no broadcast). Raw invoke per the setMany
+   * precedent, outside the typed M-013-A contract.
+   */
+  async getMany(keys: string[]): Promise<Record<string, unknown>> {
+    return rawInvoke('mt_prefs_get_many', { keys }) as Promise<Record<string, unknown>>
   },
 
   /** Snapshot all prefs as an object. Useful for renderer bootstrap. */

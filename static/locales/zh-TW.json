@@ -1617,6 +1617,8 @@
       "reopenClosedTab": "重新開啟已關閉分頁",
       "missingNotice": "{name} 已無法使用",
       "someMissingNotice": "{count} 個已關閉的檔案已無法使用",
+      "unverifiedNotice": "無法檢查 {name} — 它仍保留在清單中",
+      "someUnverifiedNotice": "{count} 個已關閉的檔案無法檢查 — 它們仍保留在清單中",
       "buttonLabel": "重新開啟已關閉分頁（{count}）"
     },
     "time": {
