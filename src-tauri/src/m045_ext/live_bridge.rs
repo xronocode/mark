@@ -16,6 +16,13 @@
 //   STATUS:  Phase-B5b initial — bridge emit helpers.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-23 C-EXT-DELIVERY-HONESTY T-001: cfg(test)-only emit-failure
+//     injection seam for doc_open — the DOC_OPEN_EMIT_INJECTION atomic flag
+//     plus the arm_doc_open_emit_injection helper; when armed, emit_doc_open
+//     returns Err before any app.emit call. Consulted by emit_doc_open only:
+//     emit_live_update, emit_doc_patch, emit_doc_close and
+//     emit_context_request stay byte-identical, and the seam compiles out of
+//     release builds (the main.rs LiveServerState literal is untouched).
 //   - 2026-11-11 C-SEC-STREAM-AUTH: include session identity and incarnation on every document event.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES T-003: share event emission across production and mock runtimes.
 //   - 2026-06-09 E1a: add emit_context_request helper for /ext/context.
@@ -51,6 +58,22 @@ pub struct LiveUpdate {
 
 // START_BLOCK_EMIT
 
+/// C-EXT-DELIVERY-HONESTY: test-only emit-failure injection seam. Armed by
+/// the delivery-honesty refusal pins so emit_doc_open fails deterministically
+/// without a real webview. cfg(test): compiled out of release builds, and the
+/// shared state (the main.rs LiveServerState literal) is untouched. Only
+/// emit_doc_open consults this flag — the other emit helpers keep the single
+/// emit point through emit_live_update byte-identical.
+#[cfg(test)]
+static DOC_OPEN_EMIT_INJECTION: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// C-EXT-DELIVERY-HONESTY: arm or disarm the test-only doc_open emit-failure
+/// injection. cfg(test) helper — invisible in release builds.
+#[cfg(test)]
+pub fn arm_doc_open_emit_injection(armed: bool) {
+    DOC_OPEN_EMIT_INJECTION.store(armed, std::sync::atomic::Ordering::Relaxed);
+}
+
 /// Emit a live-update event to the frontend.
 ///
 /// The event name `mt::live::update` follows the project convention
@@ -84,6 +107,12 @@ pub fn emit_doc_open<R: tauri::Runtime>(
     title: &str,
     content: &str,
 ) -> Result<(), String> {
+    // C-EXT-DELIVERY-HONESTY: test-only injection — fail BEFORE any
+    // app.emit call when the seam is armed (release builds never see it).
+    #[cfg(test)]
+    if DOC_OPEN_EMIT_INJECTION.load(std::sync::atomic::Ordering::Relaxed) {
+        return Err("injected doc_open emit failure (test)".to_string());
+    }
     emit_live_update(app, LiveUpdate {
         update_type: "doc_open".to_string(),
         payload: serde_json::json!({
