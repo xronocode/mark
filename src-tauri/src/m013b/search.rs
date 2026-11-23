@@ -2888,4 +2888,629 @@ mod tests {
             "out-of-line submatch spans must stay wire-absent; got {raw}"
         );
     }
+
+    // ─── C-QUICKOPEN-FILES-MODE T-001: failing-first receipts ──────────
+    // (a) Behavioral receipts on today's surface: quickOpen's real call
+    // shape is mode "files" with the empty pattern, but today's
+    // mt_search_spawn discards the discriminator, so the CONTENT session
+    // runs. The receipt replays that call shape through the content
+    // run_session (the path mode "files" takes today) and documents the
+    // defects this change fixes. The content path stays byte-for-byte
+    // untouched, so this receipt stays green before and after the
+    // files-mode session lands — it pins the reason the dispatch exists.
+    //
+    // (b) The permanent named files-mode pins below (red-by-absence in
+    // this commit: they target the intended session surface and do not
+    // compile until T-002..T-004 land) become the change's permanent
+    // green backend suite.
+
+    /// Delivered hit paths across a full session trace, in arrival order.
+    fn delivered_paths(events: &[SearchEvent]) -> Vec<String> {
+        events
+            .iter()
+            .filter(|e| e.kind == "match")
+            .flat_map(|e| e.hits.iter().map(|h| h.path.clone()))
+            .collect()
+    }
+
+    #[test]
+    #[allow(dead_code)]
+    fn files_fixture_through_content_run_session_receipts() {
+        // Receipt fixture: a matching-name file, the body-bait decoy (name
+        // misses the inclusion globs, body carries the query text) and —
+        // unix-gated — the unreadable permission decoy (name matches the
+        // inclusion globs). Non-root assumption documented in the plan:
+        // a root process bypasses permission checks, so the decoy proof
+        // requires tests not running as root; the red-first property on
+        // any identity rests on the body-bait and unbounded-count
+        // receipts, which are platform-independent.
+        let dir = TempDir::new().unwrap();
+        write(dir.path().join("note-a.md"), "needle\n").unwrap();
+        write(dir.path().join("bait.txt"), "needle query text\n").unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let locked = dir.path().join("locked.md");
+            write(&locked, "needle\n").unwrap();
+            std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o000)).unwrap();
+        }
+        let opts = SearchOptions {
+            inclusions: Some(vec!["*.md".to_string()]),
+            ..Default::default()
+        };
+        let (total, kind, rx) =
+            run_session_one_root("s-receipt", dir.path(), "", &opts, Arc::new(AtomicBool::new(false)));
+        let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+        assert_eq!(kind, "complete");
+        assert!(total >= 1);
+        // Receipt 1: the body-bait IS delivered with a body-derived
+        // snippet and a non-zero line — the empty content pattern matches
+        // inside every read body regardless of the file name, so a name
+        // filter computed by quickOpen never protects it.
+        let bait = events
+            .iter()
+            .filter(|e| e.kind == "match")
+            .flat_map(|e| e.hits.iter())
+            .find(|h| h.path.ends_with("bait.txt"))
+            .expect("receipt: today's content spawn delivers the body-bait decoy");
+        assert!(bait.line >= 1, "body-derived line number; got {bait:?}");
+        assert!(!bait.snippet.is_empty(), "body-derived snippet; got {bait:?}");
+        // Receipt 2: the unreadable permission decoy is silently skipped —
+        // its open fails and the content walker continues past it.
+        #[cfg(unix)]
+        assert!(
+            !events
+                .iter()
+                .any(|e| e.hits.iter().any(|h| h.path.ends_with("locked.md"))),
+            "receipt: today's content spawn cannot deliver the unreadable decoy (open fails, entry skipped)"
+        );
+        // Receipt 3: the inclusions option changes nothing — the same
+        // fixture searched without them delivers the same name set.
+        let mut with_names = delivered_paths(&events);
+        with_names.sort();
+        let (_t2, _k2, rx2) = run_session_one_root(
+            "s-receipt-no-inc",
+            dir.path(),
+            "",
+            &SearchOptions::default(),
+            Arc::new(AtomicBool::new(false)),
+        );
+        let events2 = collect_all(&rx2, Duration::from_millis(400), Duration::from_millis(1500));
+        let mut without_names = delivered_paths(&events2);
+        without_names.sort();
+        assert_eq!(
+            with_names, without_names,
+            "receipt: the inclusions option is dead on today's content path"
+        );
+        // Receipt 4: the delivered count is unbounded past 30 — a 35-file
+        // fixture delivers every path today.
+        let dir35 = TempDir::new().unwrap();
+        for i in 0..35 {
+            write(dir35.path().join(format!("many-{i:03}.txt")), "needle\n").unwrap();
+        }
+        let (_t35, kind35, rx35) = run_session_one_root(
+            "s-receipt-unbounded",
+            dir35.path(),
+            "",
+            &SearchOptions::default(),
+            Arc::new(AtomicBool::new(false)),
+        );
+        assert_eq!(kind35, "complete");
+        let events35 = collect_all(&rx35, Duration::from_millis(400), Duration::from_millis(1500));
+        let mut names35 = delivered_paths(&events35);
+        names35.sort();
+        names35.dedup();
+        assert_eq!(
+            names35.len(),
+            35,
+            "receipt: today's session delivers all 35 paths — unbounded past 30"
+        );
+    }
+
+    /// Files-mode session harness: single root with a channel sink,
+    /// mirroring run_session_one_root over the intended files-mode
+    /// session surface (C-QUICKOPEN-FILES-MODE T-001 red-by-absence:
+    /// compiles once the files-mode session lands in T-002).
+    fn run_session_files_one_root(
+        search_id: &str,
+        root: &Path,
+        opts: &SearchOptions,
+        cancel: Arc<AtomicBool>,
+    ) -> (u32, &'static str, mpsc::Receiver<SearchEvent>) {
+        let (tx, rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let mut coordinator = SearchSessionCoordinator::new(search_id.to_string(), sink);
+        let roots = vec![root.to_path_buf()];
+        let (total, kind) = run_session_files(&roots, opts, true, cancel, &mut coordinator);
+        (total, kind, rx)
+    }
+
+    #[test]
+    fn files_mode_walker_lists_paths_without_reading_bodies() {
+        // Instrumented fixture (T-001): the files-mode session must make
+        // the name-only decision — no File::open, no line reading, no
+        // matcher anywhere on the walker path leg.
+        let dir = TempDir::new().unwrap();
+        write(dir.path().join("note-a.md"), "needle\n").unwrap();
+        std::fs::create_dir_all(dir.path().join("nested")).unwrap();
+        write(dir.path().join("nested/note-b.md"), "needle\n").unwrap();
+        // Body-bait decoy: the name misses the inclusion globs while the
+        // body carries the query text — a body-reading or name-unfiltered
+        // leg would deliver it.
+        write(dir.path().join("bait.txt"), "needle query text\n").unwrap();
+        // Unreadable permission decoy: the name matches the inclusion
+        // globs; a body read would fail its open and skip it exactly as
+        // today's content spawn does. Non-root assumption documented in
+        // the plan and the spec; the red-first property on any identity
+        // rests on the body-bait absence and the path-only shape
+        // assertions, which are platform-independent.
+        #[cfg(unix)]
+        let locked = dir.path().join("locked.md");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            write(&locked, "needle\n").unwrap();
+            std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o000)).unwrap();
+        }
+        let opts = SearchOptions {
+            inclusions: Some(vec!["*.md".to_string()]),
+            ..Default::default()
+        };
+        let (total, kind, rx) = run_session_files_one_root(
+            "s-files-walker",
+            dir.path(),
+            &opts,
+            Arc::new(AtomicBool::new(false)),
+        );
+        assert_eq!(kind, "complete");
+        let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+        let paths = delivered_paths(&events);
+        // The unreadable decoy IS delivered: the name-only decision never
+        // opened it (a body read would fail its open and skip it).
+        #[cfg(unix)]
+        assert!(
+            paths.iter().any(|p| p.ends_with("locked.md")),
+            "the unreadable permission decoy must be delivered without a body read; paths={paths:?}"
+        );
+        // The body-bait is NEVER delivered.
+        assert!(
+            !paths.iter().any(|p| p.ends_with("bait.txt")),
+            "a file whose name misses the inclusion globs must never be delivered, even with matching body text; paths={paths:?}"
+        );
+        // The nested bare-glob file is delivered (basename at any depth).
+        assert!(
+            paths.iter().any(|p| p.ends_with("note-b.md")),
+            "a bare inclusion glob matches the basename at any depth; paths={paths:?}"
+        );
+        assert!(
+            paths.iter().any(|p| p.ends_with("note-a.md")),
+            "the plain matching-name file is delivered; paths={paths:?}"
+        );
+        assert_eq!(
+            total,
+            paths.len() as u32,
+            "the files-mode total counts delivered path hits only"
+        );
+        // Every delivered hit is pinned path-only through its exact wire
+        // form (serde_json serialization — the wire shape is exact).
+        for ev in &events {
+            assert!(matches!(ev.kind.as_str(), "match" | "complete" | "cancelled" | "error"));
+            for h in &ev.hits {
+                assert_eq!(h.line, 0, "path-only hit carries line 0; got {h:?}");
+                assert_eq!(h.column, 0, "path-only hit carries column 0; got {h:?}");
+                assert_eq!(h.snippet, "", "path-only hit carries the empty snippet");
+                assert!(!h.truncated, "path-only hit is never truncated");
+                let raw = serde_json::to_string(h).unwrap();
+                assert!(
+                    !raw.contains("\"matchStart\"") && !raw.contains("\"matchEnd\""),
+                    "path-only hit bounds stay wire-absent; got {raw}"
+                );
+                assert!(
+                    raw.contains("\"snippet\":\"\""),
+                    "the empty snippet serializes as the empty string; got {raw}"
+                );
+            }
+        }
+        assert_eq!(
+            events.last().unwrap().partial,
+            Some(false),
+            "valid inclusions alone complete with the honest non-partial terminal"
+        );
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o644)).unwrap();
+        }
+    }
+
+    #[test]
+    fn files_mode_inclusions_filter_both_legs() {
+        // Whitelist symmetry on one fixture: inclusions whitelist the name
+        // domain on both legs, exclusions sit ON TOP of inclusions (last
+        // match wins), an invalid inclusion glob is ignored by both legs
+        // and only forces the honest partial flag.
+        let dir = TempDir::new().unwrap();
+        write(dir.path().join("keep.md"), "x\n").unwrap();
+        write(dir.path().join("masked.md"), "x\n").unwrap();
+        write(dir.path().join("plain.txt"), "x\n").unwrap();
+
+        // Inclusions + exclusions: a file matching both is absent while
+        // the included unmasked sibling is present.
+        let opts = SearchOptions {
+            inclusions: Some(vec!["*.md".to_string()]),
+            exclusions: Some(vec!["masked.md".to_string()]),
+            ..Default::default()
+        };
+
+        // Walker leg (always runs — the App Store / missing-rg path).
+        {
+            let (total, kind, rx) = run_session_files_one_root(
+                "s-files-inc-walker",
+                dir.path(),
+                &opts,
+                Arc::new(AtomicBool::new(false)),
+            );
+            assert_eq!(kind, "complete");
+            assert_eq!(total, 1, "only the included, unmasked file is delivered");
+            let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+            let paths = delivered_paths(&events);
+            assert!(
+                paths.iter().any(|p| p.ends_with("keep.md")),
+                "the included unmasked sibling is present; paths={paths:?}"
+            );
+            assert!(
+                !paths.iter().any(|p| p.ends_with("masked.md")),
+                "exclusions sit on top of inclusions (last match wins); paths={paths:?}"
+            );
+            assert!(
+                !paths.iter().any(|p| p.ends_with("plain.txt")),
+                "inclusions whitelist the name domain; paths={paths:?}"
+            );
+            assert_eq!(
+                events.last().unwrap().partial,
+                Some(true),
+                "an active exclusion mask keeps forcing the honest partial flag"
+            );
+        }
+
+        // Invalid inclusion glob: ignored by the walker (filters nothing
+        // beyond the valid globs) and forces the honest partial flag.
+        {
+            let opts_invalid = SearchOptions {
+                inclusions: Some(vec!["*.md".to_string(), "[".to_string()]),
+                ..Default::default()
+            };
+            let (total, kind, rx) = run_session_files_one_root(
+                "s-files-inc-invalid",
+                dir.path(),
+                &opts_invalid,
+                Arc::new(AtomicBool::new(false)),
+            );
+            assert_eq!(kind, "complete", "an invalid inclusion glob never fails the session");
+            assert_eq!(
+                total, 2,
+                "the invalid glob is ignored; the valid inclusion still filters"
+            );
+            let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+            assert_eq!(
+                events.last().unwrap().partial,
+                Some(true),
+                "an ignored invalid inclusion glob forces the honest partial flag"
+            );
+        }
+
+        // Valid inclusions alone complete with partial = false.
+        {
+            let opts_only = SearchOptions {
+                inclusions: Some(vec!["*.md".to_string()]),
+                ..Default::default()
+            };
+            let (_total, kind, rx) = run_session_files_one_root(
+                "s-files-inc-only",
+                dir.path(),
+                &opts_only,
+                Arc::new(AtomicBool::new(false)),
+            );
+            assert_eq!(kind, "complete");
+            let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+            assert_eq!(
+                events.last().unwrap().partial,
+                Some(false),
+                "valid inclusions never force partial by themselves"
+            );
+        }
+
+        // rg leg (availability-guarded, canon skip marker): the same
+        // whitelist semantics through the `rg --files` transport.
+        if rg_available() {
+            let (tx, rx) = mpsc::channel();
+            let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+            let mut coordinator =
+                SearchSessionCoordinator::new("s-files-inc-rg".to_string(), sink);
+            let roots = vec![dir.path().to_path_buf()];
+            let cancel = Arc::new(AtomicBool::new(false));
+            let (total, kind) =
+                run_session_files(&roots, &opts, false, cancel, &mut coordinator);
+            assert_eq!(kind, "complete");
+            assert_eq!(total, 1, "rg applies the same whitelist symmetrically");
+            let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+            let paths = delivered_paths(&events);
+            assert!(paths.iter().any(|p| p.ends_with("keep.md")));
+            assert!(
+                !paths.iter().any(|p| p.ends_with("masked.md")),
+                "rg keeps exclusions on top of inclusions; paths={paths:?}"
+            );
+            assert!(
+                !paths.iter().any(|p| p.ends_with("plain.txt")),
+                "rg whitelists the name domain through the inclusion globs; paths={paths:?}"
+            );
+            assert_eq!(events.last().unwrap().partial, Some(true));
+        }
+    }
+
+    #[test]
+    fn files_mode_cap_truncates_and_marks_partial() {
+        // Above-cap fixture: exactly FILES_RESULT_CAP delivered across the
+        // session's match events, the single complete terminal carrying
+        // partial = true, zero post-terminal events (full-trace
+        // collection). A cap is not a failure and not a cancellation.
+        let dir = TempDir::new().unwrap();
+        for i in 0..(FILES_RESULT_CAP + 10) {
+            write(dir.path().join(format!("file-{i:03}.md")), "x\n").unwrap();
+        }
+        {
+            let (total, kind, rx) = run_session_files_one_root(
+                "s-files-cap",
+                dir.path(),
+                &SearchOptions::default(),
+                Arc::new(AtomicBool::new(false)),
+            );
+            assert_eq!(
+                kind, "complete",
+                "a capped session completes — never cancelled, never an error"
+            );
+            assert_eq!(
+                total,
+                FILES_RESULT_CAP as u32,
+                "the delivered set truncates to the cap exactly"
+            );
+            let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+            let delivered: usize = events
+                .iter()
+                .filter(|e| e.kind == "match")
+                .map(|e| e.hits.len())
+                .sum();
+            assert_eq!(
+                delivered,
+                FILES_RESULT_CAP,
+                "the streamed hit count truncates to the cap exactly, including the crossing batch"
+            );
+            assert_eq!(count_terminals(&events), 1, "exactly one terminal; got {events:?}");
+            let last = events.last().unwrap();
+            assert_eq!(last.kind, "complete");
+            assert_eq!(
+                last.partial,
+                Some(true),
+                "a capped set is never presented as complete"
+            );
+            assert!(
+                events[..events.len() - 1].iter().all(|e| e.kind == "match"),
+                "zero post-terminal events — only match events precede the terminal; got {events:?}"
+            );
+        }
+        // Below-cap fixture: the honest non-partial complete terminal.
+        {
+            let dir2 = TempDir::new().unwrap();
+            for i in 0..5 {
+                write(dir2.path().join(format!("few-{i}.md")), "x\n").unwrap();
+            }
+            let (total, kind, rx) = run_session_files_one_root(
+                "s-files-below-cap",
+                dir2.path(),
+                &SearchOptions::default(),
+                Arc::new(AtomicBool::new(false)),
+            );
+            assert_eq!(total, 5);
+            assert_eq!(kind, "complete");
+            let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+            assert_eq!(
+                events.last().unwrap().partial,
+                Some(false),
+                "a below-cap fixture completes honestly non-partial"
+            );
+        }
+        // rg leg truncation semantics (availability-guarded, canon skip
+        // marker): the cap stops the rg read loop promptly and the
+        // cap-killed child never surfaces as a false cancelled/error.
+        if rg_available() {
+            let (tx, rx) = mpsc::channel();
+            let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+            let mut coordinator = SearchSessionCoordinator::new("s-files-cap-rg".to_string(), sink);
+            let roots = vec![dir.path().to_path_buf()];
+            let cancel = Arc::new(AtomicBool::new(false));
+            let (total, kind) =
+                run_session_files(&roots, &SearchOptions::default(), false, cancel, &mut coordinator);
+            assert_eq!(
+                kind, "complete",
+                "the capped rg-leg session completes — never cancelled, never an error"
+            );
+            assert_eq!(total, FILES_RESULT_CAP as u32);
+            let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+            assert_eq!(count_terminals(&events), 1);
+            let last = events.last().unwrap();
+            assert_eq!(last.kind, "complete");
+            assert_eq!(last.partial, Some(true));
+            assert!(
+                events[..events.len() - 1].iter().all(|e| e.kind == "match"),
+                "zero post-terminal events; got {events:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn files_mode_rg_transport_honesty() {
+        // (a) Injected spawn failure: an impossible executable path — the
+        // single error terminal, the second root never started, zero hits.
+        {
+            let invalid_rg = Path::new("/dev/null/mark-rg-does-not-exist").as_os_str();
+            let root_a = TempDir::new().unwrap();
+            write(root_a.path().join("a.md"), "x\n").unwrap();
+            let root_b = TempDir::new().unwrap();
+            write(root_b.path().join("b.md"), "x\n").unwrap();
+            let (tx, rx) = mpsc::channel();
+            let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+            let mut coordinator =
+                SearchSessionCoordinator::new("s-files-spawn-fail".to_string(), sink);
+            let roots = vec![root_a.path().to_path_buf(), root_b.path().to_path_buf()];
+            let cancel = Arc::new(AtomicBool::new(false));
+            let (total, kind) = run_session_files_with_program(
+                invalid_rg,
+                &roots,
+                &SearchOptions::default(),
+                false,
+                cancel,
+                &mut coordinator,
+            );
+            assert_eq!(kind, "error");
+            assert_eq!(total, 0);
+            let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+            assert_eq!(count_terminals(&events), 1, "exactly one terminal; got {events:?}");
+            let last = events.last().unwrap();
+            assert_eq!(last.kind, "error");
+            assert!(
+                last.error.as_deref().unwrap_or("").contains("spawn rg"),
+                "spawn failure surfaces as the error payload; got {last:?}"
+            );
+            assert!(
+                !events
+                    .iter()
+                    .any(|e| e.hits.iter().any(|h| h.path.ends_with("b.md"))),
+                "the second root must not be started after the engine error; events={events:?}"
+            );
+            assert!(!events.iter().any(|e| e.kind == "complete"));
+        }
+
+        // (b) The write_exec_script exit-2 injection: one listing line
+        // streamed, then exit 2 — exactly one error terminal with the
+        // stable "rg exited with code N" class carrying the code only, and
+        // the partial marker because hits were already streamed.
+        #[cfg(unix)]
+        {
+            let dir = TempDir::new().unwrap();
+            let script = write_exec_script(
+                dir.path(),
+                "rg-files-exit-two.sh",
+                "#!/bin/sh\nprintf '%s\\n' 'streamed-hit.md'\necho 'boom' >&2\nexit 2\n",
+            );
+            let root = TempDir::new().unwrap();
+            write(root.path().join("a.md"), "x\n").unwrap();
+            let (tx, rx) = mpsc::channel();
+            let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+            let mut coordinator =
+                SearchSessionCoordinator::new("s-files-exit-two".to_string(), sink);
+            let roots = vec![root.path().to_path_buf()];
+            let cancel = Arc::new(AtomicBool::new(false));
+            let (total, kind) = run_session_files_with_program(
+                script.as_os_str(),
+                &roots,
+                &SearchOptions::default(),
+                false,
+                cancel,
+                &mut coordinator,
+            );
+            assert_eq!(kind, "error");
+            assert_eq!(total, 1, "the streamed listing line counts");
+            let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+            assert_eq!(count_terminals(&events), 1);
+            let last = events.last().unwrap();
+            assert_eq!(last.kind, "error");
+            assert_eq!(
+                last.error.as_deref(),
+                Some("rg exited with code 2"),
+                "stable class message carries the exit code only (no stderr text); got {last:?}"
+            );
+            assert_eq!(
+                last.partial,
+                Some(true),
+                "an error terminal with already-streamed hits carries the partial marker"
+            );
+            assert!(
+                events[..events.len() - 1].iter().all(|e| e.kind == "match"),
+                "zero post-terminal events; got {events:?}"
+            );
+        }
+
+        // (c) Codes 0 and 1 keep completing normally (1 = no listings).
+        #[cfg(unix)]
+        {
+            let dir = TempDir::new().unwrap();
+            let exit_zero = write_exec_script(
+                dir.path(),
+                "rg-files-exit-zero.sh",
+                "#!/bin/sh\nprintf '%s\\n' 'listed.md'\nexit 0\n",
+            );
+            let root = TempDir::new().unwrap();
+            let (tx, rx) = mpsc::channel();
+            let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+            let mut coordinator =
+                SearchSessionCoordinator::new("s-files-exit-zero".to_string(), sink);
+            let roots = vec![root.path().to_path_buf()];
+            let cancel = Arc::new(AtomicBool::new(false));
+            let (total, kind) = run_session_files_with_program(
+                exit_zero.as_os_str(),
+                &roots,
+                &SearchOptions::default(),
+                false,
+                cancel,
+                &mut coordinator,
+            );
+            assert_eq!(kind, "complete", "exit 0 stays normal");
+            assert_eq!(total, 1);
+            let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+            assert_eq!(events.last().unwrap().kind, "complete");
+            assert_eq!(events.last().unwrap().partial, Some(false));
+
+            let exit_one = write_exec_script(dir.path(), "rg-files-exit-one.sh", "#!/bin/sh\nexit 1\n");
+            let (tx, rx) = mpsc::channel();
+            let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+            let mut coordinator =
+                SearchSessionCoordinator::new("s-files-exit-one".to_string(), sink);
+            let cancel = Arc::new(AtomicBool::new(false));
+            let (total, kind) = run_session_files_with_program(
+                exit_one.as_os_str(),
+                &roots,
+                &SearchOptions::default(),
+                false,
+                cancel,
+                &mut coordinator,
+            );
+            assert_eq!(kind, "complete", "exit 1 (no listings) stays normal");
+            assert_eq!(total, 0);
+            let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+            assert_eq!(events.last().unwrap().kind, "complete");
+        }
+
+        // (d) A pre-cancelled files session: exactly one cancelled
+        // terminal with no match events.
+        {
+            let dir = TempDir::new().unwrap();
+            write(dir.path().join("a.md"), "x\n").unwrap();
+            let (total, kind, rx) = run_session_files_one_root(
+                "s-files-precancel",
+                dir.path(),
+                &SearchOptions::default(),
+                Arc::new(AtomicBool::new(true)),
+            );
+            assert_eq!(total, 0);
+            assert_eq!(kind, "cancelled");
+            let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+            assert_eq!(events.len(), 1, "trace == [cancelled]; got {events:?}");
+            assert_eq!(events[0].kind, "cancelled");
+            assert!(
+                !events.iter().any(|e| e.kind == "match"),
+                "a pre-cancelled files session streams no match events"
+            );
+        }
+    }
+
 }

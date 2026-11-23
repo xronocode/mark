@@ -1,0 +1,176 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-QUICKOPEN-FILES-MODE>
+    <Name>Real files mode for mt_search_spawn — path-only enumeration, wired inclusions and the honest FILES_RESULT_CAP — implementation plan</Name>
+    <ChangeRef>C-QUICKOPEN-FILES-MODE</ChangeRef>
+    <Created>2026-11-23</Created>
+    <Spec>C-QUICKOPEN-FILES-MODE</Spec>
+
+    <IntentSummary>Give mt_search_spawn a real files mode in src-tauri/src/m013b/search.rs: the "let _ = mode;" discriminator discard is replaced by a START_BLOCK_FILES_MODE_DISPATCH branch — mode "files" runs a mirrored files-mode session (run_session_files over the same SearchSessionCoordinator, same engine selection, per-root order, batch size, registry lifecycle and 120 ms warm-up) whose embedded walker leg enumerates file paths without opening a single body (no File::open, no line reading, no matcher) and whose rg leg runs the `rg --files` listing transport inheriting #303's honesty machinery (bounded stderr capture, exit-status 0/1-vs-error gate, cancel watcher, the run_session_files_with_program injection seam). The dead SearchOptions.inclusions option is wired as a whitelist name filter applied symmetrically by both legs under one documented glob semantics beside compile_exclusion_masks — with an explicit, identical application order on both legs: inclusion globs first, exclusion masks after, last-match-wins, so exclusions always sit on top of inclusions; an invalid inclusion glob is ignored by both legs and only forces the honest partial flag. A named FILES_RESULT_CAP = 30 bounds delivered path hits per session, stopping both legs promptly through a walker loop break and an rg-local cap-stop flag that is deliberately NOT the shared cancel token (the cancel watcher and the exit-status gate observe both, so a cap-killed rg child can never surface as a false Cancelled or "rg exited with code N" terminal), and the single terminal completes with partial = true through the #303 additive flag. Results stream as path-only hits (line 0, column 0, empty snippet, truncated false, wire-absent matchStart/matchEnd) through the existing match-kind envelope, so the #320 grouped-envelope contract and quickOpen's string ids keep working unchanged. Renderer changes are additive test-only pins: the shim path-only-hit mapping in the shim-range-array-form family and the quickOpen files-mode grouped-envelope string-id pin. No renderer production file changes; SearchSessionCoordinator stays the single terminal owner and content mode stays byte-for-byte untouched.</IntentSummary>
+
+    <ReferenceState>Authored 2026-11-23 as a draft against the current read-only state of the green-search3 worktree (branch spec/quickopen-files-mode, base 486275c7), which already carries C-SEARCH-RESULT-CONTRACT (#320) and C-SEARCH-LIFECYCLE-DISCARD (#324); all anchors re-verified on this tree on 2026-11-23. Verified defect shapes: mt_search_spawn discards the discriminator — "let _ = mode;" (src-tauri/src/m013b/search.rs:650) — and runs the content session with quickOpen's empty pattern, so the embedded walker opens every body ("std::fs::File::open(file_path)" :556, "reader.lines()" :561, "matcher.find_iter(&amp;line)" :580) and the rg transport builds a content command even for files mode ("cmd.arg(\"--\").arg(pattern).arg(root);" :815 inside START_BLOCK_BUILD_RIPGREP_COMMAND :781-817) — every quick-open keystroke reads the bodies of the whole root. Inclusions dead: SearchOptions carries "pub inclusions: Option&lt;Vec&lt;String&gt;&gt;," (:98) under the struct-level "#[allow(dead_code)]" (:85) whose own comment (:81-84) says "inclusions globs are part of the contract but not yet wired into run_search" (tracked F-SEARCH-INCLUDE-EXCLUDE-GLOBS), while the renderer half has always been live: quickOpen passes "inclusions: this._getInclusions(query)" (src/renderer/src/commands/quickOpen.js:171) and ripgrepSearcher serializes "inclusions" across IPC (src/renderer/src/node/ripgrepSearcher.js:119-131, the "'inclusions', 'exclusions'" whitelist at :122-129). No honest area limit: #324 removed quickOpen's dead ">30 files" self-limit and its replacement comment defers exactly this change — "The files-mode cost and limit design stays with C-QUICKOPEN-FILES-MODE." (quickOpen.js:165-168); the #324 honesty precedent lives in store/search.js "const SEARCH_RESULT_CAP = 100" (:119). Reused as-is: #303's exit-status gate ("let abnormal = match status.code() {" with "code != 0 &amp;&amp; code != 1" at search.rs:1020-1022), the START_BLOCK_CANCEL_WATCHER kill+reap thread, the bounded START_BLOCK_RIPGREP_STDERR_CAPTURE tail, compile_exclusion_masks (:446) and the run_session_with_program injection seam (:336); #320's consumer side — quickOpen's grouped-envelope normalization (quickOpen.js:147-164), the pure zero-import shim sibling translateSearchEvent (src/renderer/src/_shims/search-event-translation.js) and its shim-range-array-form family in tests/renderer/_shims/install-window-globals.test.js — is verified against today's content-spawn envelope precisely so it keeps working when path-only hits land. The shim translation already maps a path-only hit (line 0 falsy-rows to 0, empty snippet, wire-absent bounds) to the zero-pair grouped row, so the renderer pins are test-only by construction. The unreadable-decoy proof assumes a non-root test identity: a root process bypasses permission checks, so the decoy's open would succeed and the body-read red signal would vanish — the decoy portion is #[cfg(unix)]-gated and the failing-first property does not rest on it: the body-bait absence assertion and the path-only shape assertions are platform-independent and stay red against today's content spawn everywhere, including root. Current-state lint carries exactly the 12 known C-SEARCH-LIFECYCLE-DISCARD foreign diagnostics; this plan adds none. Delivery is sequential through the repository technical-debt lane; lane departure into main and train accounting remain separate owner-controlled steps. Approval of the spec alone does not approve this plan, execution, apply/archive or release.</ReferenceState>
+
+    <BaselineAssertions>
+      <MustExist><Value>src-tauri/src/m013b/search.rs</Value></MustExist>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>let _ = mode;</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>pub inclusions: Option&lt;Vec&lt;String&gt;&gt;,</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>inclusions globs are part of the contract but not yet wired into</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>std::fs::File::open(file_path)</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>matcher.find_iter(&amp;line)</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>cmd.arg("--").arg(pattern).arg(root);</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>let abnormal = match status.code() {</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>code != 0 &amp;&amp; code != 1</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>fn compile_exclusion_masks</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>fn run_session_with_program</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>// START_BLOCK_CANCEL_WATCHER</Text></MustContain>
+      <MustExist><Value>src/renderer/src/node/fileSearcher.js</Value></MustExist>
+      <MustContain><File>src/renderer/src/node/fileSearcher.js</File><Text>this._spawn('files', directories, '', options)</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/quickOpen.js</File><Text>inclusions: this._getInclusions(query)</Text></MustContain>
+      <MustContain><File>src/renderer/src/commands/quickOpen.js</File><Text>The files-mode cost and limit design stays with C-QUICKOPEN-FILES-MODE.</Text></MustContain>
+      <MustContain><File>src/renderer/src/node/ripgrepSearcher.js</File><Text>'inclusions', 'exclusions'</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/search.js</File><Text>const SEARCH_RESULT_CAP = 100</Text></MustContain>
+      <MustContain><File>src/renderer/src/_shims/search-event-translation.js</File><Text>export function translateSearchEvent</Text></MustContain>
+      <MustExist><Value>tests/renderer/commands/quickOpen-deep.test.js</Value></MustExist>
+      <MustExist><Value>tests/renderer/_shims/install-window-globals.test.js</Value></MustExist>
+      <MustExist><Value>tests/renderer/node/fileSearcher.test.js</Value></MustExist>
+    </BaselineAssertions>
+
+    <TargetAssertions>
+      <MustVerify><Module>M-004</Module></MustVerify>
+      <MustVerify><Module>M-011</Module></MustVerify>
+      <MustVerify><Module>M-013</Module></MustVerify>
+      <MustVerify><Module>V-M-004</Module></MustVerify>
+      <MustVerify><Module>V-M-011</Module></MustVerify>
+      <MustNotContain><File>src-tauri/src/m013b/search.rs</File><Text>let _ = mode;</Text></MustNotContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>mode == "files"</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>// START_BLOCK_FILES_MODE_DISPATCH</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>// END_BLOCK_FILES_MODE_DISPATCH</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>fn run_session_files</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>fn run_session_files_with_program</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>// START_BLOCK_WALKER_PATH_LEG</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>// END_BLOCK_WALKER_PATH_LEG</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>// START_BLOCK_BUILD_RIPGREP_FILES_COMMAND</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>// END_BLOCK_BUILD_RIPGREP_FILES_COMMAND</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>format!("--glob={glob}")</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>--files</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>fn compile_inclusion_masks</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>inclusions first, exclusions after, last match wins</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>const FILES_RESULT_CAP: usize = 30;</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>// START_BLOCK_FILES_CAP_STOP</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>// END_BLOCK_FILES_CAP_STOP</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>&amp;&amp; !cap_stop.load(Ordering::SeqCst)</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>inclusions.invalid_count &gt; 0</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>cap_fired</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>rg exited with code</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>#[allow(dead_code)]</Text></MustContain>
+      <MustContain><File>src-tauri/src/m013b/search.rs</File><Text>inclusions are wired for files mode</Text></MustContain>
+      <MustNotContain><File>src-tauri/src/m013b/search.rs</File><Text>not yet wired into run_search</Text></MustNotContain>
+      <MustContain><File>tests/renderer/_shims/install-window-globals.test.js</File><Text>shim-path-only-hit-mapping</Text></MustContain>
+      <MustContain><File>tests/renderer/commands/quickOpen-deep.test.js</File><Text>quickopen-files-mode-string-ids</Text></MustContain>
+      <MustPassCommand><Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command></MustPassCommand>
+      <MustPassCommand><Command budgetSeconds="600">npx --no-install vitest run tests/renderer/commands/quickOpen.test.js tests/renderer/commands/quickOpen-deep.test.js tests/renderer/_shims/install-window-globals.test.js</Command></MustPassCommand>
+    </TargetAssertions>
+
+    <DurableScope>
+      <GraphAnchors><M-004/><M-011/><M-013/></GraphAnchors>
+      <VerificationAnchors><V-M-004/><V-M-011/></VerificationAnchors>
+    </DurableScope>
+
+    <ObservedWriteScope>
+      <File>src-tauri/src/m013b/search.rs</File>
+      <File>tests/renderer/_shims/install-window-globals.test.js</File>
+      <File>tests/renderer/commands/quickOpen-deep.test.js</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+    </ObservedWriteScope>
+
+    <ImplementationPlan>
+      <T-001>
+        <Title>Failing-first files-mode backend proofs: the instrumented no-body-read fixture, inclusions, cap and transport-honesty tests red against today's tree</Title>
+        <DependsOn/>
+        <AcceptanceCriteria>
+          <Criterion>Record the failing receipts against the current tree before implementing, in two complementary forms. (a) Behavioral receipts on today's surface: drive the files fixture through the existing content run_session (the path mode "files" takes today, because mt_search_spawn discards the discriminator) and capture: the body-bait decoy IS delivered with a body-derived snippet and non-zero line (its name misses the inclusion globs; its body contains the query text), the unreadable permission decoy is silently skipped (its open fails and the content walker continues past it), the inclusions option changes nothing (dead), and the delivered count is unbounded past 30. (b) Red-by-absence receipts: add the permanent inline #[cfg(test)] files-mode tests named below against the intended session surface — until T-002 lands they do not compile (the by-absence receipt); once T-002..T-004 land they are the permanent green pins.</Criterion>
+          <Criterion>files-mode-walker-lists-paths-without-reading-bodies — one temp-dir fixture carrying: a plain matching-name file, a nested-directory file matching a bare inclusion glob (basename at any depth), the unreadable permission decoy (name matching the inclusion globs, #[cfg(unix)] permission gate, with the non-root assumption documented in the test comment and here: tests must not run as root for this proof; the red-first property on any identity, root included, is carried by the body-bait absence assertion and the path-only shape assertions, which are platform-independent), and the body-bait decoy (name missing the inclusion globs, body containing the query text). Assertions: the unreadable decoy IS delivered (a body read would fail its open and skip it exactly as today's content spawn does), the body-bait is NEVER delivered, every delivered hit is pinned path-only (empty snippet, line 0, column 0, truncated false, matchStart/matchEnd wire-absent — pinned through serde_json serialization so the wire form is exact), and the nested bare-glob file is delivered.</Criterion>
+          <Criterion>files-mode-inclusions-filter-both-legs, files-mode-cap-truncates-and-marks-partial and files-mode-rg-transport-honesty tests added red-by-absence in the same failing-first commit: inclusions whitelist both legs symmetrically (matching names only; a file matching both an inclusion glob and an exclusion mask is absent while an included unmasked sibling is present — the exclusions-over-inclusions order), an invalid inclusion glob is ignored by both legs and forces partial, valid inclusions alone complete with partial = false; a fixture with more matching files than FILES_RESULT_CAP ends with exactly the cap delivered, the single complete terminal carrying partial = true and zero post-terminal events (full-trace collect_all), a below-cap fixture completes with partial = false; the injected rg spawn failure and the write_exec_script exit-2 script yield exactly one error terminal with the stable "rg exited with code N" class, codes 0 and 1 complete normally, and a pre-cancelled files session yields exactly one cancelled terminal with no match events.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Files-mode session in search.rs: mode dispatch, mirrored run_session_files, walker path leg and the rg --files transport with inherited #303 honesty</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Replace the "let _ = mode;" discard inside a paired // START_BLOCK_FILES_MODE_DISPATCH / // END_BLOCK_FILES_MODE_DISPATCH marker in mt_search_spawn: mode == "files" runs the files-mode session through the same spawned worker thread (120 ms warm-up, same registry insert/remove lifecycle, same M-010 root validation before registry insert, same engine selection — App Store in-process walker, ripgrep_available missing-rg fallback with BLOCK_RIPGREP_FALLBACK, rg shell-out otherwise), every other mode value keeps the existing content run_session byte-for-byte. The files session never invokes build_matcher and never fails on the pattern or the content-matcher options — an invalid content pattern can never fail a files search.</Criterion>
+          <Criterion>fn run_session_files / fn run_session_files_with_program mirror run_session's structure with the same discipline: the per-root loop with between-roots cancel checks, matches streamed through the SAME SearchSessionCoordinator (emit_matches only), exactly one terminal through finalize, an engine error stopping the remaining roots with the partial marker when hits were already streamed. The walker path leg (// START_BLOCK_WALKER_PATH_LEG) reuses the identical WalkBuilder filter setup (standard_filters, hidden, ignore rules, require_git(false), follow_links, max_filesize metadata skip — no body read) minus the body scan: no File::open, no BufReader lines, no matcher; each admitted file entry emits one SearchHit { path, line: 0, column: 0, snippet: String::new(), truncated: false, match_start: None, match_end: None } in ordinary traversal order through DEFAULT_BATCH_SIZE batching. The rg transport (// START_BLOCK_BUILD_RIPGREP_FILES_COMMAND in fn run_ripgrep_files_with_program) runs `rg --files` listing instead of the pattern search: it inherits #303's honesty machinery verbatim in shape — piped bounded stderr capture (BLOCK log only), the START_BLOCK_CANCEL_WATCHER kill+reap thread, exit codes 0 and 1 completing normally, any other exit or a signal producing the single "rg exited with code N" error class carrying the code only, and the run_session_files_with_program injection seam so spawn-failure and exit-2 tests stay deterministic under parallel cargo test (write_exec_script reuse; never mutate process-global PATH). The `rg --files` listing passes no --max-filesize (a content-search-time filter; the walker's max_filesize metadata skip stays) — this per-transport size divergence is documented here and owned by C-SEARCH-ENGINE-PARITY; the parity fixture stays below any configured limit and quickOpen never sends maxFileSize. Update the file-local VERSION to 2.6.0-beta, the MODULE_CONTRACT scope line, the MODULE_MAP (run_session_files, run_session_files_with_program, run_ripgrep_files, run_ripgrep_files_with_program, compile_inclusion_masks, FILES_RESULT_CAP, walker path leg) and the CHANGE_SUMMARY with paired, unique START_CONTRACT blocks for the new functions.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Inclusion globs wired symmetrically on both legs with one documented order, invalid-ignored honesty, and the dead_code comment retired for inclusions only</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>fn compile_inclusion_masks beside compile_exclusion_masks (one START_CONTRACT block, semantics documented exactly once as the extension of the exclusion canon): valid globs match against the path relative to its root, a bare glob without "/" matches the basename at any depth, "*" does not cross path separators, case-SENSITIVE (recorded v1 parity with rg's --glob default); an INVALID glob (empty/whitespace-only, NUL byte, or a glob the engine rejects) is explicitly ignored by BOTH legs — never passed to rg, never used by the walker — and increments invalid_count so the terminal forces the honest partial flag. Application order is explicit and identical on both legs, pinned in a shared comment "inclusions first, exclusions after, last match wins": the walker builds ONE combined OverrideBuilder per root adding every valid inclusion glob first and every valid exclusion mask ("!mask") after — gitignore last-match-wins semantics make exclusions sit on top of inclusions, so a path matching both is excluded; the rg transport passes each valid inclusion verbatim as a --glob= argument in the exact form format!("--glob={glob}") followed by each valid exclusion as --glob=! — the same order, the same precedence. Valid inclusions never force partial by themselves; absent or empty inclusions mean no name filter.</Criterion>
+          <Criterion>The files-mode complete-terminal partial formula carries the #303 triggers over unchanged (an active size limit, at least one valid exclusion mask, any ignored invalid glob — exclusion or inclusion: "inclusions.invalid_count &gt; 0" in the formula) and grows exactly one new trigger: cap_fired. Content mode is untouched: run_session, both content engine legs, build_matcher and compile_exclusion_masks keep their current behavior; inclusions remain unwired in content mode.</Criterion>
+          <Criterion>The SearchOptions struct-level #[allow(dead_code)] attribute STAYS — leading/trailing_context_line_count are still dead — and only its comment is updated: the "inclusions globs are part of the contract but not yet wired into run_search" sentence is replaced by one naming that inclusions are wired for files mode through compile_inclusion_masks (content mode keeps ignoring them), with F-SEARCH-CONTEXT-LINES remaining the tracked dead remainder; the "not yet wired into run_search" phrasing no longer exists in the file.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>FILES_RESULT_CAP = 30: prompt stop on both legs through a local cap-stop flag, the extended exit gate, and the honest complete+partial terminal</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>One named documented constant "const FILES_RESULT_CAP: usize = 30;" — the number of the removed quick-open promise — counted on delivered path hits per session, enforced per delivered hit before emission so the delivered set never exceeds the cap exactly, including when the crossing batch overshot (the overshooting remainder is dropped, never emitted). The cap is honesty, not the count: adjusting the number would require documented rationale in this change record (the #324 precedent).</Criterion>
+          <Criterion>The cap stop is a LOCAL flag, deliberately distinct from the shared cancel token (// START_BLOCK_FILES_CAP_STOP / // END_BLOCK_FILES_CAP_STOP): "let cap_stop = Arc::new(AtomicBool::new(false));" local to the files-mode session. The walker leg breaks its entry loop on the cap and drains the pending batch; the rg files leg's read loop breaks on the cap, and BOTH the cancel watcher and the exit-status gate observe the local flag — the watcher kills and reaps the child on cancel OR cap_stop, and the gate at the "let abnormal = match status.code() {" shape is extended to "if !cancel.load(Ordering::SeqCst) &amp;&amp; !cap_stop.load(Ordering::SeqCst)" so a cap-killed rg child (signal or nonzero exit) can never surface as a false "rg exited with code N" error terminal, while a genuine exit-2 without cap or cancel still errors exactly as in #303. The shared cancel token is never written by the cap path, so run_session_files's terminal decision — which reads ONLY the shared cancel flag — completes the capped session with SearchTerminal::Complete and partial = true through the #303 additive flag; a cap is not a failure, not a cancellation, the error state is untouched, no second terminal and no cancellation is ever emitted. Test pins: the capped rg-leg session ends kind == "complete" with partial == Some(true) (never "cancelled"/"error"), zero post-terminal events; a genuine cancel during a capped-capable walk still yields exactly one cancelled terminal; and an exit-2 injected on a below-cap fixture still yields the single error terminal (the extension did not mute #303).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Additive renderer pins, test-only: the shim path-only-hit mapping and the quickOpen files-mode string ids</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/renderer/_shims/install-window-globals.test.js gains exactly one additive test in the shim-range-array-form family, titled with the marker shim-path-only-hit-mapping: a files-mode match envelope whose hits are path-only ({ path, line: 0, column: 0, snippet: "", truncated: false } with matchStart/matchEnd wire-absent) translates through translateSearchEvent into one grouped envelope per path with matches[0].range equal to [[0, 0], [0, 0]] (the zero pair, no fabricated span), empty matchText/lineText, searchId forwarded and terminal envelopes unchanged; the existing shim-range-array-form, C-52 boot-order and C-SEARCH-LIFECYCLE-DISCARD pins stay untouched and green. The shim source and the translation helper are NOT edited — the pin documents the already-correct mapping of the new hit shape.</Criterion>
+          <Criterion>tests/renderer/commands/quickOpen-deep.test.js gains exactly one additive test in the shim-shaped-feed family, titled with the marker quickopen-files-mode-string-ids: the FileSearcher mock feeds the files-mode grouped envelope ({ filePath, matches: [{ matchText: "", lineText: "", range: [[0, 0], [0, 0]] }] }) through options.didMatch, _doSearch resolves with the string pathname id, and executeSubcommand sends ("mt::open-file-by-window-id", windowId, the string pathname); the #320 string-id and #324 lifecycle pins stay untouched and green. No renderer production file changes: quickOpen.js, fileSearcher.js, ripgrepSearcher.js, store/search.js, the shim translation and the typed facade stay byte-for-byte read-only, and the shim gains no per-searchId mode map.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/commands/quickOpen.test.js tests/renderer/commands/quickOpen-deep.test.js tests/renderer/_shims/install-window-globals.test.js</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>Per-engine verification: walker-always and availability-guarded rg on one fixture, rg honesty by injection</Title>
+        <DependsOn>T-005</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>files-mode-rg-parity-with-walker-on-one-fixture: both supported engines are pinned individually on the same instrumented fixture — the walker leg always (run_session_files with in_process = true, no guard), the rg leg under the existing availability guard (the rg_available() test probe with the canon skip marker on machines without rg) — yielding identical expected path sets under the same inclusions, exclusions and cap; App Store and missing-rg fallback paths are exercised through the in-process walker suites, and native rg behavior stays guarded with the canon skip marker.</Criterion>
+          <Criterion>rg honesty stays injection-driven and parallel-safe: the spawn-failure (impossible executable path) and exit-2 (write_exec_script) cases run through run_session_files_with_program, codes 0 and 1 complete normally, a pre-cancelled files session yields exactly one cancelled terminal with no match events, a mid-walk cancel drains the pending batch then cancels (the walker's between-entry cancel discipline, mirroring cancellation_drains_partial_batch_before_emit_cancelled), and zero post-terminal events hold on every files-mode terminal. No test mutates process-global PATH.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>Graph and verification deltas plus final target assertions on the delivery baseline</Title>
+        <DependsOn>T-006</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Update .grace/graph/runtime.xml keeping unrelated content untouched: M-004's module map and SummaryDelta describe the files-mode session, the walker path leg, the rg --files transport, compile_inclusion_masks and FILES_RESULT_CAP; M-011's SummaryDelta documents the unchanged consumer compatibility (grouped envelope, string ids, no shim mode map, path-only hits riding the existing match kind); M-013 stays a read-only adjacency (its stub records name the facade and commands; no M-013 file is edited).</Criterion>
+          <Criterion>Update .grace/verification/runtime.xml: V-M-004 gains the files-mode scenario family (no-body-read fixture with the documented #[cfg(unix)] non-root decoy gating, inclusions symmetry with the explicit order, cap truncation with the local cap-stop flag and the extended exit gate, rg transport honesty by injection, walker/rg parity) and V-M-011 gains the files-mode renderer compatibility scenario (shim-path-only-hit-mapping, quickopen-files-mode-string-ids); both carry the commands below; existing scenario text and assertions stay unweakened.</Criterion>
+          <Criterion>Run the target assertions on the delivery baseline with the spec commands; all pre-existing suites — the #289 session-trace family, the #303 honest-state family, the #320 range/keyboard/quickOpen-string-id family, the #324 store-cap and lifecycle family, the shim C-52 boot-order pins, the quickOpen/fileSearcher suites and the e2e search-bar spec (tests/e2e/search-bar.spec.ts, run separately by the owner via npx --no-install playwright test --project=chromium tests/e2e/search-bar.spec.ts) — pass without weakened assertions or budgets; record native rg transport on unmatched platforms, App Store build and owner acceptance as explicitly open unless separately obtained; no apply/archive, commit/push or lane departure inside this plan. grace lint --path . reports only the 12 known C-SEARCH-LIFECYCLE-DISCARD foreign diagnostics and none from this change's files.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command>
+          <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/commands/quickOpen.test.js tests/renderer/commands/quickOpen-deep.test.js tests/renderer/_shims/install-window-globals.test.js</Command>
+        </Verification>
+      </T-007>
+    </ImplementationPlan>
+
+    <AcceptanceVerification>
+      <Command budgetSeconds="900">cargo test --manifest-path src-tauri/Cargo.toml --bin mark search</Command>
+      <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/commands/quickOpen.test.js tests/renderer/commands/quickOpen-deep.test.js tests/renderer/node/fileSearcher.test.js tests/renderer/_shims/install-window-globals.test.js</Command>
+      <Environment>Baseline is the green-search3 worktree (branch spec/quickopen-files-mode, base 486275c7) executed in the repository root of the actual technical-debt lane worktree with cargo and installed node_modules available. Content mode stays byte-for-byte untouched and every existing backend suite keeps its assertions and budgets; SearchSessionCoordinator remains the single terminal owner throughout; the files-mode cap stop lives on a local flag that never writes the shared cancel token, and the extended exit gate suppresses the error class only under cancel or cap_stop, never silently elsewhere. Tests never mutate process-global PATH: engine-failure and exit-2 proofs use the run_session_files_with_program injection seam and the existing availability guards, because the App Store build never spawns rg and the missing-rg fallback on Windows is the legitimate walker path, not a failure state. The unreadable-decoy proof is #[cfg(unix)] with the non-root assumption documented in the change record; Windows coverage rides the shape, inclusion and cap pins which run everywhere; hosted supported-host checks plus native/manual acceptance records stay separate from these controlled proofs and remain open until separately obtained. The e2e search-bar spec (tests/e2e/search-bar.spec.ts) runs separately by the owner with the --project=chromium form. All commands must pass with no skips, retries, budget increases or weakened assertions; grace lint --path . must report only the 12 known C-SEARCH-LIFECYCLE-DISCARD foreign diagnostics.</Environment>
+    </AcceptanceVerification>
+  </C-QUICKOPEN-FILES-MODE>
+</GraceChangePlan>
