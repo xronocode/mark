@@ -101,9 +101,9 @@ pub const MAX_LINE_BYTES: usize = 1024 * 1024;
 /// only force the session's partial flag.
 ///
 /// allow(dead_code) on the struct — leading/trailing context line counts
-/// remain unwired (tracked F-SEARCH-CONTEXT-LINES); inclusions are wired
-/// for files mode through compile_inclusion_masks (content mode keeps
-/// ignoring them).
+/// remain unwired (tracked F-SEARCH-CONTEXT-LINES);
+/// inclusions are wired for files mode through compile_inclusion_masks
+/// (content mode keeps ignoring them).
 #[allow(dead_code)]
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
@@ -1393,7 +1393,7 @@ fn run_ripgrep_files(
 //   PURPOSE: Run the `rg --files` listing transport with an explicitly selected executable for deterministic failure verification; the child's exit status decides normal completion (0/1) versus the single error terminal class, and its stderr feeds a bounded BLOCK-log-only capture — the #303 honesty machinery inherited in shape from the content transport, with the exit gate extended for the session-local cap stop so a cap-killed child is never a false error.
 //   INPUTS: { rg_program: &OsStr - executable path/name, remaining inputs: same as run_ripgrep_files }
 //   OUTPUTS: { Result<(u32, bool), (u32, String)> - per-root delivered path hits plus the cap-fired marker, or the streamed-so-far total plus a stable spawn/stream/exit-status error class }
-//   SIDE_EFFECTS: Spawns the selected child process; a START_BLOCK_CANCEL_WATCHER thread kills+waits a silent child on the cancel OR cap-stop flag and reaps it exactly once; a bounded stderr capture thread drains the pipe to the BLOCK log only; emits path-only match batches through the coordinator (terminals are owned by run_session_files).
+//   SIDE_EFFECTS: Spawns the selected child process; a START_BLOCK_CANCEL_WATCHER_FILES thread kills+waits a silent child on the cancel OR cap-stop flag and reaps it exactly once; a bounded stderr capture thread drains the pipe to the BLOCK log only; emits path-only match batches through the coordinator (terminals are owned by run_session_files).
 //   LINKS: run_ripgrep_files, run_session_files, compile_inclusion_masks, compile_exclusion_masks, V-M-004, C-QUICKOPEN-FILES-MODE
 // END_CONTRACT: run_ripgrep_files_with_program
 fn run_ripgrep_files_with_program(
@@ -1484,7 +1484,7 @@ fn run_ripgrep_files_with_program(
     });
     // END_BLOCK_RIPGREP_FILES_STDERR_CAPTURE
 
-    // START_BLOCK_CANCEL_WATCHER
+    // START_BLOCK_CANCEL_WATCHER_FILES
     // The #303 watcher shape inherited verbatim, extended for the files cap
     // (C-QUICKOPEN-FILES-MODE T-004): a quiet rg child must not hold the
     // session hostage until its next stdout line. The watcher observes BOTH
@@ -1526,7 +1526,7 @@ fn run_ripgrep_files_with_program(
             let _ = status_tx.send(status);
         })
     };
-    // END_BLOCK_CANCEL_WATCHER
+    // END_BLOCK_CANCEL_WATCHER_FILES
 
     let mut total: u32 = 0;
     let mut capped = false;
