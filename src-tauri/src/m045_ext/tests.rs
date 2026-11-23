@@ -34,7 +34,11 @@
 //     committed failing-first (the revoke-pending API did not exist: the
 //     red run was the compile error, the C-STREAM-BUDGET style) and the
 //     fixture builder injects the marker test backend mechanically with
-//     Drop cleanup, no call site changes.
+//     Drop cleanup, no call site changes. Ported onto the C-EXT-EDIT-PROOF
+//     base: the clear-on-proof liveness legs ride the deprecated route's
+//     honest 501 (an authorized fresh token reaches the refusal, a dead
+//     one stops at the 401 gate, zero events) instead of the removed
+//     insert 200.
 //   - 2026-11-23 C-EXT-TRUST-COHERENCE T-001: failing-first fence pins —
 //     apply_fences_disable_crossing_paused_authentication and
 //     text_insert_fences_disable_crossing_paused_authentication (the
@@ -2251,8 +2255,11 @@ async fn revoke_pending_clears_on_successful_disable_or_rebind() {
     assert_eq!(super::auth::get_revoke_pending(&f.id).unwrap(), false, "the successful disable cleared the marker");
     let fresh = fresh_pair_secret(&f).await;
     super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap();
-    assert_eq!(insert_fixture(&f, Some(&fresh)).await, StatusCode::OK);
-    assert_eq!(f.events.lock().unwrap().len(), 1);
+    // C-EXT-EDIT-PROOF: the deprecated insert route answers the honest 501
+    // for an authorized caller — reaching it proves the fresh token is live
+    // (a dead token stops at the 401 gate) — with zero events.
+    assert_eq!(insert_fixture(&f, Some(&fresh)).await, StatusCode::NOT_IMPLEMENTED, "the granted route works with the fresh token");
+    assert!(f.events.lock().unwrap().is_empty());
 
     // Proof path 2: a successful rebind after the failed disable (the
     // prior-secret proof through pair_request) also clears the marker,
@@ -2270,8 +2277,8 @@ async fn revoke_pending_clears_on_successful_disable_or_rebind() {
     let rebound = paired["shared_secret"].as_str().unwrap().to_string();
     super::mt_ext_enable(g.id.clone(), g.app.state()).await.unwrap();
     assert_eq!(insert_fixture(&g, Some(&g.token)).await, StatusCode::UNAUTHORIZED, "the prior token is dead");
-    assert_eq!(insert_fixture(&g, Some(&rebound)).await, StatusCode::OK, "the granted route works with the fresh token");
-    assert_eq!(g.events.lock().unwrap().len(), 1);
+    assert_eq!(insert_fixture(&g, Some(&rebound)).await, StatusCode::NOT_IMPLEMENTED, "the granted route works with the fresh token — the authorized caller reaches the honest refusal");
+    assert!(g.events.lock().unwrap().is_empty());
 }
 
 #[tokio::test]
