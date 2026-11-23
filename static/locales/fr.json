@@ -1836,7 +1836,8 @@
   },
   "extensions": {
     "disableFailed": "L’extension est désactivée, mais la révocation de l’accès n’a pas pu être vérifiée. Réessayez.",
-    "revokePending": "Désactivez à nouveau l'extension pour réessayer de révoquer son accès ; réassociez-la une fois la révocation réussie."
+    "revokePending": "Désactivez à nouveau l'extension pour réessayer de révoquer son accès ; réassociez-la une fois la révocation réussie.",
+    "scanFailed": "Certains manifestes d'extensions n'ont pas pu être lus ou analysés lors de la découverte ; ils ont été ignorés."
   },
   "documentOperations": {
     "title": "Modifications non enregistrées",

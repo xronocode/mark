@@ -1,5 +1,7 @@
 import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick } from 'vue'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 const invokeMock = vi.fn()
 
@@ -117,6 +119,119 @@ describe('ExtensionGallery – extended coverage', () => {
     invokeMock.mockResolvedValueOnce([SAMPLE_EXT])
     await flushPromises()
     await nextTick()
+  })
+
+  // ── Fetch generation (C-EXT-GALLERY-STATE) ───────────────────
+
+  it('older_generation_resolving_late_renders_the_newer_list', async () => {
+    // C-EXT-GALLERY-STATE: every list fetch carries a fetch generation and
+    // a resolved list lands only when its generation is still the newest —
+    // an older snapshot resolving late never overwrites the newer truth.
+    let resolveOldList
+    invokeMock.mockImplementationOnce(() => new Promise(r => { resolveOldList = r })) // mount list (older generation) hangs
+    const mod = await import('@/components/extensionGallery/index.vue')
+    const wrapper = mount(mod.default, { attachTo: document.createElement('div') })
+
+    invokeMock.mockResolvedValueOnce(undefined) // refresh: discover
+    invokeMock.mockResolvedValueOnce([{ ...SAMPLE_EXT, name: 'Newer' }]) // refresh: list (newer generation)
+    await wrapper.find('.gallery-refresh-btn').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('.ext-name').text()).toBe('Newer')
+
+    // The older generation resolves late with a different list.
+    resolveOldList([SAMPLE_EXT, { ...SAMPLE_EXT, id: 'com.example.stale', name: 'Stale' }])
+    await flushPromises()
+    await nextTick()
+    expect(wrapper.findAll('.ext-card').length).toBe(1)
+    expect(wrapper.find('.ext-name').text()).toBe('Newer')
+  })
+
+  it('stale_fetch_discarded_by_generation_does_not_clear_revoke_pending', async () => {
+    // C-EXT-GALLERY-STATE + C-EXT-TRUST-COHERENCE: a list discarded by the
+    // generation rule mutates neither the displayed list nor the
+    // revoke-pending id set — observed through the #326 action rule: after
+    // the stale late resolution the next toggle on the card still sends
+    // mt_ext_disable.
+    const wrapper = await mountComponent([SAMPLE_EXT])
+    // Arm the retry state: the disable's revocation fails.
+    invokeMock.mockRejectedValueOnce('ext_disable_revoke_failed')
+    invokeMock.mockResolvedValueOnce([{ ...SAMPLE_EXT, enabled: false }])
+    await wrapper.find('input[type="checkbox"]').setValue(false)
+    await flushPromises()
+
+    // A refresh whose list fetch (an older generation) hangs.
+    let resolveStaleList
+    invokeMock.mockResolvedValueOnce(undefined) // refresh: discover
+    invokeMock.mockImplementationOnce(() => new Promise(r => { resolveStaleList = r })) // stale list hangs
+    await wrapper.find('.gallery-refresh-btn').trigger('click')
+    await flushPromises()
+
+    // The toggle starts a newer generation; its disable errs generically,
+    // so the armed retry set survives, and its list lands disabled.
+    invokeMock.mockRejectedValueOnce(new Error('toggle fail'))
+    invokeMock.mockResolvedValueOnce([{ ...SAMPLE_EXT, enabled: false }])
+    await wrapper.find('input[type="checkbox"]').setValue(true)
+    await flushPromises()
+
+    // The stale older generation resolves late with an enabled listing —
+    // if it landed it would clear the armed retry and flip the card's
+    // rendered state (the ext-disabled class binding would drop).
+    resolveStaleList([{ ...SAMPLE_EXT, enabled: true }])
+    await flushPromises()
+    await nextTick()
+    expect(wrapper.findAll('.ext-card').length).toBe(1)
+    expect(wrapper.find('.ext-card').classes()).toContain('ext-disabled')
+
+    // The #326 action rule: the next toggle on the disabled card still
+    // sends mt_ext_disable because the armed retry set survived (the
+    // change event drives the same handler a user click would).
+    invokeMock.mockClear()
+    invokeMock.mockResolvedValueOnce(undefined) // retry disable
+    invokeMock.mockResolvedValueOnce([{ ...SAMPLE_EXT, enabled: false }])
+    await wrapper.find('input[type="checkbox"]').trigger('change')
+    await flushPromises()
+    expect(invokeMock).toHaveBeenCalledWith('mt_ext_disable', { id: 'com.example.hello' })
+  })
+
+  // ── Scan-failure notice (C-EXT-GALLERY-STATE) ────────────────
+
+  it('scan_failure_notice_survives_the_list_fetch', async () => {
+    // C-EXT-GALLERY-STATE: a discover Ok payload carrying failed_manifests
+    // renders the distinct localized notice and the notice SURVIVES the
+    // successful list fetch that follows; the next failure-free refresh
+    // (an absent failed_manifests field means no notice) replaces it with
+    // nothing.
+    const wrapper = await mountComponent([SAMPLE_EXT])
+    invokeMock.mockResolvedValueOnce({
+      extensions: [SAMPLE_EXT],
+      failed_manifests: [{ path: '/fixture/broken.json', kind: 'parse' }]
+    }) // refresh: discover with scan failures
+    invokeMock.mockResolvedValueOnce([SAMPLE_EXT]) // refresh: list succeeds
+    await wrapper.find('.gallery-refresh-btn').trigger('click')
+    await flushPromises()
+    const notice = wrapper.find('.gallery-notice')
+    expect(notice.exists()).toBe(true)
+    expect(notice.text()).toContain('could not be read or parsed')
+
+    invokeMock.mockResolvedValueOnce({ extensions: [SAMPLE_EXT] }) // next refresh: discover, no failures
+    invokeMock.mockResolvedValueOnce([SAMPLE_EXT]) // next refresh: list
+    await wrapper.find('.gallery-refresh-btn').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('.gallery-notice').exists()).toBe(false)
+  })
+
+  it('ships_the_scan_failure_notice_key_in_all_ten_locales', () => {
+    // C-EXT-GALLERY-STATE (the C-10/C-12/C-32/C-56 canon): the one new
+    // extensions-namespace key exists, non-empty, in every shipped locale.
+    const locales = ['de', 'en', 'es', 'fr', 'ja', 'ko', 'pt', 'ru', 'zh-CN', 'zh-TW']
+    for (const code of locales) {
+      const table = JSON.parse(
+        readFileSync(join(process.cwd(), 'static', 'locales', `${code}.json`), 'utf8')
+      )
+      const value = table && table.extensions && table.extensions.scanFailed
+      expect(value, `extensions.scanFailed must exist in ${code}.json`).toBeTruthy()
+      expect(String(value).length, `extensions.scanFailed must be non-empty in ${code}.json`).toBeGreaterThan(0)
+    }
   })
 
   // ── Toggle ───────────────────────────────────────────────────

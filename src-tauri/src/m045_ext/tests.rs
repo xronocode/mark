@@ -18,6 +18,28 @@
 // END_MODULE_MAP
 
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 C-EXT-GALLERY-STATE CI fix: the discover payload pin's
+//     fixture lands in the scan root the canonical identifier resolves on
+//     the running platform (the legacy $HOME/.config/mark/extensions
+//     everywhere plus the macOS/Windows-only data root — Windows reads
+//     APPDATA, Linux never scans the data leg) with HOME, APPDATA
+//     (Windows) and XDG_DATA_HOME (Linux) under one Drop guard, and a
+//     file-local env mutex serializes the env-sensitive discovery readers
+//     against the parallel path pin.
+//   - 2026-11-23 C-EXT-GALLERY-STATE T-001: failing-first native pins —
+//     registry_re_register_preserves_enabled (the moved
+//     registry_re_register_overwrites reset leg) with the growth-reset and
+//     epoch-continues-to-bump insurance pins
+//     registry_re_register_growth_resets_enabled /
+//     registry_re_register_still_bumps_authorization_epoch; the honest
+//     no-op toggle pins mt_ext_enable_already_enabled_is_a_noop /
+//     mt_ext_disable_already_absent_is_a_noop observed through the
+//     #[cfg(test)] stored_authorization_epoch registry seam; and the
+//     discovery-seam family discover_probes_bounded_concurrent_in_scan_order
+//     / discover_surfaces_scan_failures_beside_extensions over the
+//     discover_extensions_in(dirs, prober) seam, with the payload pin
+//     mt_ext_discover_payload_carries_failures_beside_the_list committed
+//     compile-red against the target command signature (T-004 lands it).
 //   - 2026-11-23 C-EXT-TRUST-COHERENCE T-006: the rebind honesty family —
 //     rebind_growth_classification_enumerates_added_capabilities,
 //     rebind_equality_and_narrowing_dialogs_state_the_grant_truth and
@@ -355,17 +377,67 @@ fn registry_get_manifest_not_found() {
 }
 
 #[test]
-fn registry_re_register_overwrites() {
+fn registry_re_register_preserves_enabled() {
     let reg = ExtRegistry::new();
     reg.register(test_manifest("ext-a"), true).unwrap();
     reg.enable("ext-a").unwrap();
 
-    // Re-register resets state.
+    // C-EXT-GALLERY-STATE: re-discovery must not wipe the enabled flag.
+    // Re-registering the same id with an equal incoming request and fresh
+    // health preserves the enabled state while the stored manifest and
+    // the health value update; the map keeps exactly one entry.
     reg.register(test_manifest("ext-a"), false).unwrap();
     let list = reg.list();
     assert_eq!(list.len(), 1);
-    assert!(!list[0].enabled);
+    assert!(list[0].enabled);
     assert!(!list[0].healthy);
+
+    // A first registration for a fresh id keeps the disabled default.
+    reg.register(test_manifest("ext-fresh"), false).unwrap();
+    let list = reg.list();
+    assert_eq!(list.len(), 2);
+    let fresh = list.iter().find(|e| e.id == "ext-fresh").unwrap();
+    assert!(!fresh.enabled);
+    assert!(!fresh.healthy);
+}
+
+#[test]
+fn registry_re_register_growth_resets_enabled() {
+    let reg = ExtRegistry::new();
+    reg.register(test_manifest("ext-a"), true).unwrap();
+    reg.enable("ext-a").unwrap();
+
+    // C-EXT-GALLERY-STATE insurance: a re-discovered manifest requesting
+    // an incoming name the stored manifest lacked resets the enabled flag
+    // into the #298 ext_enable_reapproval_required re-approval path (the
+    // composed enable leg stays pinned by
+    // grow_after_pairing_enable_is_refused_to_reapproval).
+    let mut grown = test_manifest("ext-a");
+    grown.capabilities.push(Capability { name: "context.read".to_string(), version: 1 });
+    reg.register(grown, true).unwrap();
+
+    let list = reg.list();
+    assert_eq!(list.len(), 1);
+    assert!(!list[0].enabled);
+}
+
+#[test]
+fn registry_re_register_still_bumps_authorization_epoch() {
+    let reg = ExtRegistry::new();
+    reg.register(test_manifest("ext-a"), true).unwrap();
+    reg.enable("ext-a").unwrap();
+    let epoch_before = reg.authorization_epoch("ext-a").unwrap();
+
+    // C-EXT-GALLERY-STATE insurance: even a preserved-enabled
+    // re-registration keeps bumping the authorization epoch so an
+    // in-flight credential crossing the re-discovery stays fenced (the
+    // C-SEC-STREAM-AUTH invalidation wording stays true).
+    reg.register(test_manifest("ext-a"), true).unwrap();
+    let epoch_after = reg.authorization_epoch("ext-a").unwrap();
+    assert_ne!(
+        epoch_after, epoch_before,
+        "every registration keeps bumping the authorization_epoch"
+    );
 }
 
 #[test]
@@ -982,7 +1054,10 @@ fn extension_dirs_include_config() {
     // C-15 T-W2: compare real PathBufs instead of a forward-slash string
     // match (which broke on Windows where join uses '\') — and assert
     // against the ACTUAL discovery::extension_dirs() output rather than
-    // re-deriving the path in the test.
+    // re-deriving the path in the test. The env lock keeps both HOME
+    // reads below on one stable snapshot while the discovery payload pin
+    // mutates the environment in a parallel test.
+    let _env_serial = discovery_env_lock();
     if let Some(home) = std::env::var_os("HOME") {
         let expected = std::path::Path::new(&home)
             .join(".config")
@@ -996,6 +1071,265 @@ fn extension_dirs_include_config() {
     }
 }
 // END_BLOCK_DISCOVERY_PATH_TESTS
+
+// START_BLOCK_DISCOVERY_SEAM_TESTS
+// C-EXT-GALLERY-STATE: the discovery seam pins — bounded probe
+// concurrency with scan order and the scan-failure surfacing, both over
+// the injected discover_extensions_in(dirs, prober) seam (the
+// extension_dirs_for_profile precedent).
+
+fn manifest_file_json(id: &str) -> String {
+    valid_manifest_json().replace("com.example.test-ext", id)
+}
+
+#[tokio::test]
+async fn discover_probes_bounded_concurrent_in_scan_order() {
+    let dir = tempfile::tempdir().unwrap();
+    let ids = [
+        "com.example.probe-a",
+        "com.example.probe-b",
+        "com.example.probe-c",
+        "com.example.probe-d",
+        "com.example.probe-e",
+    ];
+    for (i, id) in ids.iter().enumerate() {
+        let path = dir.path().join(format!("probe-{i:02}.json"));
+        std::fs::write(&path, manifest_file_json(id)).unwrap();
+    }
+
+    let in_flight = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let max_in_flight = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let in_flight_for_prober = std::sync::Arc::clone(&in_flight);
+    let max_in_flight_for_prober = std::sync::Arc::clone(&max_in_flight);
+    let outcome = super::discovery::discover_extensions_in(
+        vec![dir.path().to_path_buf()],
+        move |_manifest: ExtensionManifest| {
+            let in_flight = std::sync::Arc::clone(&in_flight_for_prober);
+            let max_in_flight = std::sync::Arc::clone(&max_in_flight_for_prober);
+            async move {
+                let now = in_flight.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+                max_in_flight.fetch_max(now, std::sync::atomic::Ordering::Relaxed);
+                tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+                in_flight.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
+                true
+            }
+        },
+    )
+    .await;
+
+    // Bounded concurrency: probes overlap, never above the named cap.
+    let max = max_in_flight.load(std::sync::atomic::Ordering::Relaxed);
+    assert!(
+        max >= 2,
+        "the probes must overlap: observed max concurrency {max}"
+    );
+    assert!(
+        max <= super::discovery::DISCOVERY_PROBE_CONCURRENCY_CAP,
+        "observed max concurrency {max} exceeds DISCOVERY_PROBE_CONCURRENCY_CAP"
+    );
+
+    // Scan order: the outcome follows the scan's own directory iteration
+    // (read_dir order), so the expected sequence is derived from that same
+    // single pass, not from the file-creation order.
+    let mut expected = Vec::new();
+    for entry in std::fs::read_dir(dir.path()).unwrap().flatten() {
+        let path = entry.path();
+        if path.extension().and_then(|e| e.to_str()) == Some("json") {
+            if let Ok(content) = std::fs::read_to_string(&path) {
+                if let Ok(manifest) = parse_manifest(&content) {
+                    expected.push(manifest.id);
+                }
+            }
+        }
+    }
+    let listed: Vec<String> = outcome
+        .extensions
+        .iter()
+        .map(|e| e.manifest.id.clone())
+        .collect();
+    assert_eq!(listed.len(), ids.len(), "every manifest lands in the outcome");
+    assert_eq!(listed, expected, "results keep the manifests' scan order");
+}
+
+#[tokio::test]
+async fn discover_surfaces_scan_failures_beside_extensions() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    std::fs::write(
+        root.join("valid.json"),
+        manifest_file_json("com.example.scan-valid"),
+    )
+    .unwrap();
+    // A directory carrying the .json extension: read_to_string refuses it.
+    std::fs::create_dir(root.join("unreadable.json")).unwrap();
+    // An invalid manifest: read succeeds, parse refuses it.
+    std::fs::write(root.join("garbage.json"), "not json at all").unwrap();
+
+    let outcome = super::discovery::discover_extensions_in(
+        vec![root.to_path_buf()],
+        |_manifest: ExtensionManifest| async move { true },
+    )
+    .await;
+
+    assert_eq!(outcome.extensions.len(), 1);
+    assert_eq!(outcome.extensions[0].manifest.id, "com.example.scan-valid");
+
+    assert_eq!(
+        outcome.failed_manifests.len(),
+        2,
+        "both scan failures surface beside the extensions"
+    );
+    let read_failure = outcome
+        .failed_manifests
+        .iter()
+        .find(|f| f.kind == super::discovery::ScanFailureKind::Read)
+        .expect("the unreadable entry reports the read kind");
+    assert!(read_failure.path.ends_with("unreadable.json"));
+    let parse_failure = outcome
+        .failed_manifests
+        .iter()
+        .find(|f| f.kind == super::discovery::ScanFailureKind::Parse)
+        .expect("the invalid JSON reports the parse kind");
+    assert!(parse_failure.path.ends_with("garbage.json"));
+}
+
+/// C-EXT-GALLERY-STATE CI fix: the discovery payload pin mutates the
+/// process environment the path resolution reads; this file-local mutex
+/// keeps the env-sensitive readers (this pin and the parallel
+/// extension_dirs_include_config path pin) on one stable snapshot.
+static DISCOVERY_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+fn discovery_env_lock() -> std::sync::MutexGuard<'static, ()> {
+    DISCOVERY_ENV_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+/// Restores every environment variable the discovery path resolution
+/// reads on the running platform (HOME everywhere, APPDATA on Windows,
+/// XDG_DATA_HOME on Linux) once the payload pin finishes.
+struct DiscoveryEnvGuard {
+    home: Option<std::path::PathBuf>,
+    #[cfg(target_os = "windows")]
+    appdata: Option<std::path::PathBuf>,
+    #[cfg(target_os = "linux")]
+    xdg_data: Option<std::path::PathBuf>,
+}
+
+impl Drop for DiscoveryEnvGuard {
+    fn drop(&mut self) {
+        match &self.home {
+            Some(home) => std::env::set_var("HOME", home),
+            None => std::env::remove_var("HOME"),
+        }
+        #[cfg(target_os = "windows")]
+        match &self.appdata {
+            Some(appdata) => std::env::set_var("APPDATA", appdata),
+            None => std::env::remove_var("APPDATA"),
+        }
+        #[cfg(target_os = "linux")]
+        match &self.xdg_data {
+            Some(xdg) => std::env::set_var("XDG_DATA_HOME", xdg),
+            None => std::env::remove_var("XDG_DATA_HOME"),
+        }
+    }
+}
+
+#[tokio::test]
+async fn mt_ext_discover_payload_carries_failures_beside_the_list() {
+    // C-EXT-GALLERY-STATE: the discover Ok payload carries the scan
+    // failures beside the registered list. Written against the target
+    // command signature — compile-red until T-004 lands the payload (the
+    // C-STREAM-BUDGET compile-error red precedent: the missing shape is
+    // the baseline red). The scan root rides a synthetic home (the
+    // discovery-path test precedent), restored by the guard. CI fix: the
+    // fixture lands in the directory the canonical identifier actually
+    // scans on the running platform (extension_dirs_for_profile — the
+    // legacy $HOME/.config/mark/extensions everywhere plus the data root
+    // only on macOS/Windows, whose Windows leg reads APPDATA rather than
+    // HOME), so the payload shape is pinned platform-deterministically.
+    let _env_serial = discovery_env_lock();
+    let home = tempfile::tempdir().unwrap();
+    let guard = DiscoveryEnvGuard {
+        home: std::env::var_os("HOME").map(std::path::PathBuf::from),
+        #[cfg(target_os = "windows")]
+        appdata: std::env::var_os("APPDATA").map(std::path::PathBuf::from),
+        #[cfg(target_os = "linux")]
+        xdg_data: std::env::var_os("XDG_DATA_HOME").map(std::path::PathBuf::from),
+    };
+    std::env::set_var("HOME", home.path());
+
+    #[cfg(target_os = "linux")]
+    let scan = {
+        // The canonical Linux release scans only the legacy directory.
+        let scan = home.path().join(".config").join("mark").join("extensions");
+        std::fs::create_dir_all(&scan).unwrap();
+        // Hermetic data root beside the synthetic home (not scanned for
+        // the canonical identifier; guarded for determinism).
+        std::env::set_var(
+            "XDG_DATA_HOME",
+            home.path().join("xdg-data"),
+        );
+        scan
+    };
+    #[cfg(target_os = "macos")]
+    let scan = {
+        let scan = home
+            .path()
+            .join("Library")
+            .join("Application Support")
+            .join(crate::mt_paths::application_identifier())
+            .join("extensions");
+        std::fs::create_dir_all(&scan).unwrap();
+        scan
+    };
+    #[cfg(target_os = "windows")]
+    let scan = {
+        // The Windows data root resolves from APPDATA, not HOME.
+        let appdata = home.path().join("appdata");
+        let scan = appdata
+            .join(crate::mt_paths::application_identifier())
+            .join("Data")
+            .join("extensions");
+        std::fs::create_dir_all(&scan).unwrap();
+        std::env::set_var("APPDATA", &appdata);
+        scan
+    };
+
+    std::fs::write(
+        scan.join("valid.json"),
+        manifest_file_json("com.example.discover-payload"),
+    )
+    .unwrap();
+    std::fs::create_dir(scan.join("unreadable.json")).unwrap();
+    std::fs::write(scan.join("garbage.json"), "not json at all").unwrap();
+
+    let app = tauri::test::mock_app();
+    app.manage(ExtRegistry::new());
+    let payload = super::mt_ext_discover(app.state::<ExtRegistry>()).await.unwrap();
+    drop(guard);
+
+    assert_eq!(payload.extensions.len(), 1);
+    assert_eq!(payload.extensions[0].id, "com.example.discover-payload");
+    assert_eq!(payload.failed_manifests.len(), 2);
+    assert!(
+        payload
+            .failed_manifests
+            .iter()
+            .any(|f| f.kind == super::discovery::ScanFailureKind::Read
+                && f.path.ends_with("unreadable.json")),
+        "the read failure rides the payload beside the list"
+    );
+    assert!(
+        payload
+            .failed_manifests
+            .iter()
+            .any(|f| f.kind == super::discovery::ScanFailureKind::Parse
+                && f.path.ends_with("garbage.json")),
+        "the parse failure rides the payload beside the list"
+    );
+}
+// END_BLOCK_DISCOVERY_SEAM_TESTS
 
 // START_BLOCK_INCOMING_DATA_TESTS
 use axum::{extract::State, http::{HeaderMap, StatusCode}, response::IntoResponse, Json};
@@ -1854,6 +2188,62 @@ async fn disable_refuses_unverified_revocation() {
             assert!(super::auth::get_secret(&f.id).unwrap().is_none());
         }
     }
+}
+
+#[tokio::test]
+async fn mt_ext_enable_already_enabled_is_a_noop() {
+    let f = incoming_fixture(true, "text.insert");
+    let registry = f.app.state::<ExtRegistry>();
+    let epoch_before = registry
+        .stored_authorization_epoch(&f.id)
+        .expect("the fixture registers the id");
+    let secret_before = super::auth::get_secret(&f.id).unwrap();
+
+    // C-EXT-GALLERY-STATE: a duplicate enable on an already-enabled
+    // extension is an honest backend no-op — Ok, no mint (no re-key) and
+    // no epoch bump re-fencing the in-flight credential.
+    super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap();
+
+    assert_eq!(
+        registry.stored_authorization_epoch(&f.id),
+        Some(epoch_before),
+        "the no-op enable bumps no epoch"
+    );
+    assert_eq!(
+        super::auth::get_secret(&f.id).unwrap(),
+        secret_before,
+        "the no-op enable re-keys nothing"
+    );
+}
+
+#[tokio::test]
+async fn mt_ext_disable_already_absent_is_a_noop() {
+    let f = incoming_fixture(false, "text.insert");
+    // Strict no-op preconditions, read in the production order: the
+    // marker absent, the secret verifiably absent (persistent and
+    // memory), the id registered-and-disabled.
+    assert_eq!(super::auth::get_revoke_pending(&f.id).unwrap(), false);
+    super::auth::revoke_secret(&f.id).unwrap();
+    super::auth::verify_secret_absent(&f.id).unwrap();
+    let registry = f.app.state::<ExtRegistry>();
+    assert!(registry.peek_manifest(&f.id).is_some());
+    assert!(registry.authorization_epoch(&f.id).is_err());
+    let epoch_before = registry
+        .stored_authorization_epoch(&f.id)
+        .expect("the id stays registered");
+
+    // C-EXT-GALLERY-STATE: a duplicate disable under proven absence is an
+    // honest no-op — Ok, no fence replay, no revocation re-entry, no
+    // epoch bump.
+    super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone())
+        .await
+        .unwrap();
+
+    assert_eq!(
+        registry.stored_authorization_epoch(&f.id),
+        Some(epoch_before),
+        "the no-op disable bumps no epoch"
+    );
 }
 
 #[tokio::test]

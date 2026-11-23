@@ -22,6 +22,28 @@
 //            Phase-B4 — text_ops (text.insert + text.transform) added.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-23 C-EXT-GALLERY-STATE T-004: mt_ext_discover consumes the
+//     full discovery outcome — the register loop stays inside its
+//     existing stream_gate block and the Ok payload (DiscoverReport)
+//     carries the registered extensions beside the scan failures as
+//     failed_manifests (each entry path + machine kind "read"/"parse";
+//     serde snake_case; raw error text stays in the BLOCK_ logs; the
+//     gallery reads an absent field as no notice); the command name,
+//     allowlist entry and registration are unchanged.
+//   - 2026-11-23 C-EXT-GALLERY-STATE T-003: honest no-op toggles —
+//     mt_ext_enable answers Ok on an already-enabled id AFTER the #326
+//     revoke-pending marker gate (BLOCK_ENABLE_ALREADY_ENABLED) without
+//     minting, without the coverage gate, without stream_gate and without
+//     an epoch bump; mt_ext_disable takes its no-op decision before the
+//     fence from three gate-free reads executed on every disable (the
+//     marker auth::get_revoke_pending, the strict
+//     auth::verify_secret_absent, and registered-and-disabled =
+//     peek_manifest Some AND authorization_epoch Err) — only their full
+//     agreement returns Ok (BLOCK_DISABLE_ALREADY_ABSENT) with no fence
+//     replay, no revocation re-entry and no epoch bump; every other
+//     combination (standing or unreadable marker, surviving or unreadable
+//     secret, enabled or unregistered id) runs the full disable path and
+//     the #326 recovery legs unchanged.
 //   - 2026-11-23 C-EXT-TRUST-COHERENCE T-004: a failed revocation stays
 //     failed until proven otherwise — mt_ext_disable's failure branch
 //     records the persistent revoke-pending marker best-effort
@@ -79,25 +101,39 @@ pub use text_ops::{mt_ext_text_insert, mt_ext_text_transform};
 
 // START_BLOCK_TAURI_COMMANDS
 
+/// The mt_ext_discover Ok payload: the registered extension list beside
+/// the scan failures discovery could not read or parse. C-EXT-GALLERY-STATE:
+/// each failure carries its path and machine kind ("read"/"parse") — the
+/// raw error text stays in the BLOCK_ logs, the gallery reads the field
+/// tolerantly (an absent field means no notice).
+#[derive(Debug, serde::Serialize)]
+pub struct DiscoverReport {
+    pub extensions: Vec<ExtensionInfo>,
+    pub failed_manifests: Vec<discovery::ScanFailure>,
+}
+
 /// Discover extensions from known directories, probe health, and
-/// register them in the registry. Returns the list of discovered
-/// extensions.
+/// register them in the registry. Returns the registered list beside the
+/// scan failures the discovery could not read or parse.
 #[tauri::command]
 pub async fn mt_ext_discover(
     registry: tauri::State<'_, ExtRegistry>,
-) -> Result<Vec<ExtensionInfo>, String> {
-    let discovered = discovery::discover_extensions().await;
+) -> Result<DiscoverReport, String> {
+    let outcome = discovery::discover_extensions().await;
 
     let _stream_gate = registry.stream_gate.lock().await;
-    for ext in &discovered {
+    for ext in &outcome.extensions {
         registry.register(ext.manifest.clone(), ext.healthy)?;
     }
 
     safe_eprintln!(
         "[ExtHost][command][BLOCK_DISCOVER count={}]",
-        discovered.len()
+        outcome.extensions.len()
     );
-    Ok(registry.list())
+    Ok(DiscoverReport {
+        extensions: registry.list(),
+        failed_manifests: outcome.failed_manifests,
+    })
 }
 
 /// Enable an extension by id. Generates and stores a shared secret
@@ -128,6 +164,16 @@ pub async fn mt_ext_enable(
             return Err("ext_enable_revoke_pending".to_string());
         }
         Ok(false) => {}
+    }
+
+    // C-EXT-GALLERY-STATE: a duplicate enable on an already-enabled
+    // extension is an honest backend no-op — Ok without minting, without
+    // the coverage gate, without taking stream_gate and without an epoch
+    // bump re-fencing the in-flight credential. The enabled-only Ok of
+    // registry.authorization_epoch doubles as the query.
+    if registry.authorization_epoch(&id).is_ok() {
+        safe_eprintln!("[ExtHost][command][BLOCK_ENABLE_ALREADY_ENABLED id={id}]");
+        return Ok(());
     }
 
     // Ensure a shared secret exists for this extension.
@@ -186,6 +232,29 @@ pub async fn mt_ext_disable<R: tauri::Runtime>(
     registry: tauri::State<'_, ExtRegistry>,
     app: tauri::AppHandle<R>,
 ) -> Result<(), String> {
+    // C-EXT-GALLERY-STATE: the no-op disable decision reads its three
+    // sources strictly BEFORE any gate is taken and holds neither
+    // stream_gate nor the session lock (native credential I/O holds
+    // neither), in order: the revoke-pending marker — this read IS
+    // executed on every disable, so a standing or unreadable marker is
+    // always seen before the decision; the strict secret absence proof
+    // (an unreadable persistent store can never mean absent); and the
+    // registry state (registered-and-disabled = peek_manifest Some AND
+    // the enabled-only epoch query refusing). Only when all three agree —
+    // marker Ok(false), secret verifiably absent, id registered and
+    // disabled — the command is an honest no-op: no fence replay, no
+    // revocation retry, no marker record or clear, no grant revoke, no
+    // epoch bump. Any other combination sends the full path below exactly
+    // as before.
+    let marker = auth::get_revoke_pending(&id);
+    let absence = auth::verify_secret_absent(&id);
+    let registered_and_disabled = registry.peek_manifest(&id).is_some()
+        && registry.authorization_epoch(&id).is_err();
+    if matches!(marker, Ok(false)) && absence.is_ok() && registered_and_disabled {
+        safe_eprintln!("[ExtHost][command][BLOCK_DISABLE_ALREADY_ABSENT id={id}]");
+        return Ok(());
+    }
+
     // Fence stream mutations and deactivate the owned session before native I/O.
     // Lock order matches handlers: stream_gate, then session; never keyring I/O.
     {
