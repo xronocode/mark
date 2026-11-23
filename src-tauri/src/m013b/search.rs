@@ -53,7 +53,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager, State};
 
@@ -64,6 +64,20 @@ pub const SEARCH_EVENT_CHANNEL: &str = "mt::search-event";
 /// to feel snappy in the UI but large enough that tauri emit() overhead
 /// doesn't dominate.
 pub const DEFAULT_BATCH_SIZE: usize = 16;
+
+/// C-QUICKOPEN-FILES-MODE: the honest area cap of one files-mode session —
+/// the number of the quick-open ">30 files" promise that C-SEARCH-
+/// LIFECYCLE-DISCARD removed as dead code, now enforced where the cost
+/// lives: on DELIVERED path hits per session, by both legs (the walker
+/// entry-loop break and the rg-local cap-stop flag). The cap is honesty,
+/// not the count — the number would only move with documented rationale in
+/// the change record (the #324 SEARCH_RESULT_CAP precedent). When it
+/// fires, both legs stop promptly, the overshooting remainder is dropped
+/// (never emitted), and the session's single terminal completes with
+/// partial = true through the #303 additive flag: a cap is not a failure
+/// and not a cancellation — the error voice stays empty and no capped set
+/// is ever presented as complete.
+const FILES_RESULT_CAP: usize = 30;
 
 /// Per-line read ceiling. V-M-004 ec calls for "no full-line buffer
 /// >4 MB allocated" — we cap at 1 MB per line; matches beyond the cap
@@ -442,25 +456,43 @@ fn run_session_files_with_program(
     coordinator: &mut SearchSessionCoordinator,
 ) -> (u32, &'static str) {
     let mut total_paths: u32 = 0;
+    // START_BLOCK_FILES_CAP_STOP
+    // C-QUICKOPEN-FILES-MODE T-004: the cap machinery is LOCAL to the
+    // files-mode session and deliberately distinct from the shared cancel
+    // token. `cap_stop` stops both legs promptly once FILES_RESULT_CAP
+    // delivered path hits are reached; the cancel watcher and the
+    // exit-status gate of the rg transport observe it too, so a cap-killed
+    // rg child can never surface as a false Cancelled or "rg exited with
+    // code N" terminal. `delivered` counts delivered path hits per session
+    // exactly, so the delivered set never exceeds the cap — including when
+    // the crossing batch overshoots (the remainder is dropped, never
+    // emitted). The shared cancel token is never written by the cap path:
+    // the terminal decision below reads ONLY the shared cancel flag, so a
+    // capped session completes (never cancels, never errors).
+    let cap_stop = Arc::new(AtomicBool::new(false));
+    let delivered = Arc::new(AtomicUsize::new(0));
+    // END_BLOCK_FILES_CAP_STOP
     // Honest partial accounting, mirroring run_session: a complete terminal
     // must not silently claim completeness when a size limit, at least one
     // exclusion mask, or any explicitly-ignored invalid glob (exclusion or
     // inclusion) was active; error/cancelled terminals are partial whenever
     // hits were already streamed.
-    let inclusion = compile_inclusion_masks(opts.inclusions.as_ref());
+    let inclusions = compile_inclusion_masks(opts.inclusions.as_ref());
     let masks = compile_exclusion_masks(opts.exclusions.as_ref());
     let size_limit_active = opts.max_file_size.is_some();
     for root in roots {
-        if cancel.load(Ordering::SeqCst) {
+        if cancel.load(Ordering::SeqCst) || cap_stop.load(Ordering::SeqCst) {
             break;
         }
         let result = if in_process {
             Ok(run_files_walker(
                 root,
                 opts,
-                &inclusion.valid,
+                &inclusions.valid,
                 &masks.valid,
                 cancel.clone(),
+                cap_stop.clone(),
+                delivered.clone(),
                 coordinator,
             ))
         } else {
@@ -468,14 +500,16 @@ fn run_session_files_with_program(
                 rg_program,
                 root,
                 opts,
-                &inclusion.valid,
+                &inclusions.valid,
                 &masks.valid,
                 cancel.clone(),
+                cap_stop.clone(),
+                delivered.clone(),
                 coordinator,
             )
         };
         match result {
-            Ok(hits) => total_paths += hits,
+            Ok((hits, _capped)) => total_paths += hits,
             Err((root_streamed, e)) => {
                 total_paths += root_streamed;
                 safe_eprintln!(
@@ -493,12 +527,19 @@ fn run_session_files_with_program(
     } else {
         SearchTerminal::Complete
     };
+    // C-QUICKOPEN-FILES-MODE: the complete-terminal partial formula carries
+    // the #303 triggers over unchanged (size limit, valid exclusion masks,
+    // any ignored invalid glob — exclusion or inclusion) and grows exactly
+    // one new trigger: cap_fired — a capped set is never presented as
+    // complete.
+    let cap_fired = cap_stop.load(Ordering::SeqCst);
     let partial = match terminal {
         SearchTerminal::Complete => {
             size_limit_active
                 || masks.invalid_count > 0
-                || inclusion.invalid_count > 0
+                || inclusions.invalid_count > 0
                 || !masks.valid.is_empty()
+                || cap_fired
         }
         _ => total_paths > 0,
     };
@@ -519,8 +560,10 @@ fn run_files_walker(
     inclusion_globs: &[String],
     exclusion_masks: &[String],
     cancel: Arc<AtomicBool>,
+    cap_stop: Arc<AtomicBool>,
+    delivered: Arc<AtomicUsize>,
     coordinator: &mut SearchSessionCoordinator,
-) -> u32 {
+) -> (u32, bool) {
     let mut walker = WalkBuilder::new(root);
     let respect_ignore = !opts.no_ignore.unwrap_or(false);
     walker
@@ -557,12 +600,19 @@ fn run_files_walker(
 
     let mut batch: Vec<SearchHit> = Vec::with_capacity(DEFAULT_BATCH_SIZE);
     let mut total: u32 = 0;
+    let mut capped = false;
     for entry in walker.build() {
         if cancel.load(Ordering::SeqCst) {
             // Drain the pending batch; the session terminal is owned by
             // run_session_files's coordinator, not by this leg.
             coordinator.emit_matches(std::mem::take(&mut batch));
-            return total;
+            return (total, capped);
+        }
+        if cap_stop.load(Ordering::SeqCst) {
+            // The session-wide FILES_RESULT_CAP fired (possibly in another
+            // root): stop the traversal promptly.
+            capped = true;
+            break;
         }
         let entry = match entry {
             Ok(e) => e,
@@ -570,6 +620,16 @@ fn run_files_walker(
         };
         if !entry.file_type().map(|t| t.is_file()).unwrap_or(false) {
             continue;
+        }
+        // C-QUICKOPEN-FILES-MODE T-004: cap enforcement per delivered hit,
+        // BEFORE emission, against the session-wide delivered counter — the
+        // delivered set truncates to the cap exactly; the overshooting
+        // remainder is dropped, never emitted.
+        let seen = delivered.fetch_add(1, Ordering::SeqCst);
+        if seen >= FILES_RESULT_CAP {
+            capped = true;
+            cap_stop.store(true, Ordering::SeqCst);
+            break;
         }
         // Path-only hit: the name-only decision. The body is never opened —
         // line 0, column 0, empty snippet, truncated false, bounds wire-absent
@@ -591,7 +651,7 @@ fn run_files_walker(
     if !batch.is_empty() {
         coordinator.emit_matches(std::mem::take(&mut batch));
     }
-    total
+    (total, capped)
 }
 // END_BLOCK_WALKER_PATH_LEG
 
@@ -1301,8 +1361,8 @@ fn run_ripgrep_with_program(
 
 // START_CONTRACT: run_ripgrep_files
 //   PURPOSE: Execute the `rg --files` listing transport for one root and stream path-only hits through the session coordinator (C-QUICKOPEN-FILES-MODE) — the files-mode counterpart of run_ripgrep.
-//   INPUTS: { root: &Path, opts: &SearchOptions, inclusion_globs: &[String] - valid globs from compile_inclusion_masks, exclusion_masks: &[String] - valid masks from compile_exclusion_masks, cancel: Arc<AtomicBool>, coordinator: &mut SearchSessionCoordinator }
-//   OUTPUTS: { Result<u32, (u32, String)> - per-root delivered path hits, or a stable spawn/stream error }
+//   INPUTS: { root: &Path, opts: &SearchOptions, inclusion_globs: &[String] - valid globs from compile_inclusion_masks, exclusion_masks: &[String] - valid masks from compile_exclusion_masks, cancel: Arc<AtomicBool>, cap_stop: Arc<AtomicBool> - session-local cap flag, delivered: Arc<AtomicUsize> - session-wide delivered counter, coordinator: &mut SearchSessionCoordinator }
+//   OUTPUTS: { Result<(u32, bool), (u32, String)> - per-root delivered path hits plus the cap-fired marker, or the streamed-so-far total plus a stable spawn/stream error }
 //   SIDE_EFFECTS: Spawns and waits for an rg child process; emits path-only match batches through the coordinator (terminals are owned by run_session_files).
 //   LINKS: M-004, V-M-004, run_session_files
 // END_CONTRACT: run_ripgrep_files
@@ -1312,8 +1372,10 @@ fn run_ripgrep_files(
     inclusion_globs: &[String],
     exclusion_masks: &[String],
     cancel: Arc<AtomicBool>,
+    cap_stop: Arc<AtomicBool>,
+    delivered: Arc<AtomicUsize>,
     coordinator: &mut SearchSessionCoordinator,
-) -> Result<u32, (u32, String)> {
+) -> Result<(u32, bool), (u32, String)> {
     run_ripgrep_files_with_program(
         std::ffi::OsStr::new("rg"),
         root,
@@ -1321,15 +1383,17 @@ fn run_ripgrep_files(
         inclusion_globs,
         exclusion_masks,
         cancel,
+        cap_stop,
+        delivered,
         coordinator,
     )
 }
 
 // START_CONTRACT: run_ripgrep_files_with_program
-//   PURPOSE: Run the `rg --files` listing transport with an explicitly selected executable for deterministic failure verification; the child's exit status decides normal completion (0/1) versus the single error terminal class, and its stderr feeds a bounded BLOCK-log-only capture — the #303 honesty machinery inherited in shape from the content transport.
+//   PURPOSE: Run the `rg --files` listing transport with an explicitly selected executable for deterministic failure verification; the child's exit status decides normal completion (0/1) versus the single error terminal class, and its stderr feeds a bounded BLOCK-log-only capture — the #303 honesty machinery inherited in shape from the content transport, with the exit gate extended for the session-local cap stop so a cap-killed child is never a false error.
 //   INPUTS: { rg_program: &OsStr - executable path/name, remaining inputs: same as run_ripgrep_files }
-//   OUTPUTS: { Result<u32, (u32, String)> - per-root delivered path hits, or the streamed-so-far total plus a stable spawn/stream/exit-status error class }
-//   SIDE_EFFECTS: Spawns the selected child process; a START_BLOCK_CANCEL_WATCHER thread kills+waits a silent child on the cancel flag and reaps it exactly once; a bounded stderr capture thread drains the pipe to the BLOCK log only; emits path-only match batches through the coordinator (terminals are owned by run_session_files).
+//   OUTPUTS: { Result<(u32, bool), (u32, String)> - per-root delivered path hits plus the cap-fired marker, or the streamed-so-far total plus a stable spawn/stream/exit-status error class }
+//   SIDE_EFFECTS: Spawns the selected child process; a START_BLOCK_CANCEL_WATCHER thread kills+waits a silent child on the cancel OR cap-stop flag and reaps it exactly once; a bounded stderr capture thread drains the pipe to the BLOCK log only; emits path-only match batches through the coordinator (terminals are owned by run_session_files).
 //   LINKS: run_ripgrep_files, run_session_files, compile_inclusion_masks, compile_exclusion_masks, V-M-004, C-QUICKOPEN-FILES-MODE
 // END_CONTRACT: run_ripgrep_files_with_program
 fn run_ripgrep_files_with_program(
@@ -1339,8 +1403,10 @@ fn run_ripgrep_files_with_program(
     inclusion_globs: &[String],
     exclusion_masks: &[String],
     cancel: Arc<AtomicBool>,
+    cap_stop: Arc<AtomicBool>,
+    delivered: Arc<AtomicUsize>,
     coordinator: &mut SearchSessionCoordinator,
-) -> Result<u32, (u32, String)> {
+) -> Result<(u32, bool), (u32, String)> {
     use std::io::{BufRead, BufReader, Read};
     use std::process::{Command, Stdio};
 
@@ -1419,26 +1485,32 @@ fn run_ripgrep_files_with_program(
     // END_BLOCK_RIPGREP_FILES_STDERR_CAPTURE
 
     // START_BLOCK_CANCEL_WATCHER
-    // The #303 watcher shape inherited verbatim: a quiet rg child must not
-    // hold the session hostage until its next stdout line. The watcher
-    // observes the cancel flag, kills the child on the flag, waits for it
-    // and exits. It never removes registry entries and never emits a
-    // terminal — SearchSessionCoordinator (run_session_files) stays the
-    // single terminal owner. The watcher owns the child and reaps it
-    // exactly once; the main path observes the exit status through the
-    // channel below.
+    // The #303 watcher shape inherited verbatim, extended for the files cap
+    // (C-QUICKOPEN-FILES-MODE T-004): a quiet rg child must not hold the
+    // session hostage until its next stdout line. The watcher observes BOTH
+    // the shared cancel flag AND the session-local cap_stop flag, kills the
+    // child on either, waits for it and exits — so a cap-killed child
+    // settles as promptly as a cancelled one. It never removes registry
+    // entries and never emits a terminal — SearchSessionCoordinator
+    // (run_session_files) stays the single terminal owner. The watcher owns
+    // the child and reaps it exactly once; the main path observes the exit
+    // status through the channel below.
     let watcher_stop = Arc::new(AtomicBool::new(false));
     let (status_tx, status_rx) = std::sync::mpsc::channel();
     let watcher = {
         let cancel_for_watcher = Arc::clone(&cancel);
+        let cap_for_watcher = Arc::clone(&cap_stop);
         let stop_for_watcher = Arc::clone(&watcher_stop);
         std::thread::spawn(move || {
             let mut child = child;
-            if cancel_for_watcher.load(Ordering::SeqCst) {
+            if cancel_for_watcher.load(Ordering::SeqCst) || cap_for_watcher.load(Ordering::SeqCst)
+            {
                 let _ = child.kill();
             } else {
                 loop {
-                    if cancel_for_watcher.load(Ordering::SeqCst) {
+                    if cancel_for_watcher.load(Ordering::SeqCst)
+                        || cap_for_watcher.load(Ordering::SeqCst)
+                    {
                         let _ = child.kill();
                         break;
                     }
@@ -1457,14 +1529,21 @@ fn run_ripgrep_files_with_program(
     // END_BLOCK_CANCEL_WATCHER
 
     let mut total: u32 = 0;
+    let mut capped = false;
     let mut batch: Vec<SearchHit> = Vec::with_capacity(DEFAULT_BATCH_SIZE);
 
     // The listing transport reads plain path lines — one path-only hit per
-    // non-empty line, no JSON parsing, no body anywhere.
+    // non-empty line, no JSON parsing, no body anywhere. The session-wide
+    // FILES_RESULT_CAP stops the read loop promptly (T-004): the
+    // overshooting remainder is dropped, never emitted.
     for line in reader.lines() {
         if cancel.load(Ordering::SeqCst) {
             // The watcher owns kill+wait; EOF from the kill unblocks this
             // loop even when the child never produced another line.
+            break;
+        }
+        if cap_stop.load(Ordering::SeqCst) {
+            capped = true;
             break;
         }
         let line = match line {
@@ -1473,6 +1552,12 @@ fn run_ripgrep_files_with_program(
         };
         if line.is_empty() {
             continue;
+        }
+        let seen = delivered.fetch_add(1, Ordering::SeqCst);
+        if seen >= FILES_RESULT_CAP {
+            capped = true;
+            cap_stop.store(true, Ordering::SeqCst);
+            break;
         }
         total += 1;
         batch.push(SearchHit {
@@ -1514,12 +1599,16 @@ fn run_ripgrep_files_with_program(
         );
     }
 
-    // Exit-status honesty, the #303 shape inherited verbatim: codes 0
-    // (listings) and 1 (no listings) keep completing normally; any other
-    // exit — when not cancelled — is the single error terminal class. The
-    // message carries the exit code only: captured stderr text, query text,
-    // match contents and user paths never enter the wire error field.
-    if !cancel.load(Ordering::SeqCst) {
+    // Exit-status honesty, the #303 shape inherited verbatim with the
+    // C-QUICKOPEN-FILES-MODE T-004 gate extension: codes 0 (listings) and
+    // 1 (no listings) keep completing normally; any other exit — when not
+    // cancelled AND not cap-stopped — is the single error terminal class.
+    // A cap-killed rg child (signal or nonzero exit) can never surface as
+    // a false "rg exited with code N" terminal, while a genuine exit-2
+    // without cap or cancel still errors exactly as in #303. The message
+    // carries the exit code only: captured stderr text, query text, match
+    // contents and user paths never enter the wire error field.
+    if !cancel.load(Ordering::SeqCst) && !cap_stop.load(Ordering::SeqCst) {
         let abnormal = match status.code() {
             Some(code) if code != 0 && code != 1 => Some(format!("rg exited with code {code}")),
             Some(_) => None,
@@ -1530,7 +1619,7 @@ fn run_ripgrep_files_with_program(
             return Err((total, message));
         }
     }
-    Ok(total)
+    Ok((total, capped))
 }
 
 
