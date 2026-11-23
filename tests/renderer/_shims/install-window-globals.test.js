@@ -1,5 +1,5 @@
 // FILE: tests/renderer/_shims/install-window-globals.test.js
-// VERSION: 1.2.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-52 gate pin — the boot shim must never STATICALLY import
 //            the C-52 clipboard modules. The shim installs
@@ -54,7 +54,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 1.2.0 - C-SEARCH-LIFECYCLE-DISCARD T-006: wire-truth pins — the shim's mt::search-event branch handles exactly match/complete/cancelled/error (no searchedPaths handling on the wire), the store and quickOpen pass no didSearchPaths option, and the dormant dispatch case in ripgrepSearcher.js stays present (documented dead-parallel, read-only). C-52 boot-order and C-SEARCH-RESULT-CONTRACT translation pins untouched.
+//   LAST_CHANGE: 1.3.0 - C-QUICKOPEN-FILES-MODE T-005: one additive test-only pin in the shim-range-array-form family (shim-path-only-hit-mapping) — a files-mode match envelope whose hits are path-only (line 0, column 0, empty snippet, bounds wire-absent) translates through translateSearchEvent into one grouped envelope per path with the zero-pair range [[0, 0], [0, 0]], empty matchText/lineText, searchId forwarded and terminal envelopes unchanged; the shim source and the translation helper are NOT edited — the pin documents the already-correct mapping. C-52 boot-order, C-SEARCH-LIFECYCLE-DISCARD and C-SEARCH-RESULT-CONTRACT pins untouched.
+//   PREVIOUS: 1.2.0 - C-SEARCH-LIFECYCLE-DISCARD T-006: wire-truth pins — the shim's mt::search-event branch handles exactly match/complete/cancelled/error (no searchedPaths handling on the wire), the store and quickOpen pass no didSearchPaths option, and the dormant dispatch case in ripgrepSearcher.js stays present (documented dead-parallel, read-only). C-52 boot-order and C-SEARCH-RESULT-CONTRACT translation pins untouched.
 //   PREVIOUS: 1.1.0 - C-SEARCH-RESULT-CONTRACT T-003: shim-range-array-form family — behavior-tests translateSearchEvent on a realistic mt::search-event feed (two paths, multi-match line, bounds-absent hit, terminal envelopes) proving honest array-pair ranges, the no-highlight zero pair for absent bounds, unchanged per-path grouping and searchId forwarding, the fabricated end gone from the shim source, and the helper carrying no static imports of its own.
 //   PREVIOUS: 1.0.0 - 2026-10-17 C-52 gate fix: initial pin (would have failed before the fix — the shim had `import { openMarkdownFileTab } from '@/util/clipboardPath'` at module top level).
 // END_CHANGE_SUMMARY
@@ -258,6 +259,55 @@ describe('shim-range-array-form (C-SEARCH-RESULT-CONTRACT mt::search-event trans
     expect(helper).not.toMatch(STATIC_IMPORT_DECL_RE)
     expect(helper).toContain('START_BLOCK_SEARCH_RANGE_TRANSLATION')
     expect(helper).toContain('END_BLOCK_SEARCH_RANGE_TRANSLATION')
+  })
+
+  // C-QUICKOPEN-FILES-MODE T-005: the files-mode backend streams path-only
+  // hits (line 0, column 0, empty snippet, truncated false, matchStart/
+  // matchEnd wire-absent) through the existing match-kind envelope. The
+  // shim translation is NOT edited by the change — this additive pin
+  // documents the already-correct mapping of the new hit shape: one
+  // grouped envelope per path, the zero-pair range (no fabricated span),
+  // empty match texts, searchId forwarded, terminal envelopes unchanged.
+  it('shim-path-only-hit-mapping: a files-mode path-only hit envelope translates to one zero-pair grouped row per path', async () => {
+    const translateSearchEvent = await loadTranslationHelper()
+    const dispatches = translateSearchEvent({
+      searchId: 's-files',
+      kind: 'match',
+      seq: 7,
+      hits: [
+        { path: '/proj/note-a.md', line: 0, column: 0, snippet: '', truncated: false },
+        {
+          path: '/proj/nested/note-b.md',
+          line: 0,
+          column: 0,
+          snippet: '',
+          truncated: false
+        }
+      ]
+    })
+    // One grouped envelope per path — the per-path grouping unchanged.
+    expect(dispatches).toHaveLength(2)
+    expect(dispatches.map((d) => d.payload.filePath).sort()).toEqual([
+      '/proj/nested/note-b.md',
+      '/proj/note-a.md'
+    ])
+    for (const d of dispatches) {
+      expect(d.type).toBe('match')
+      // searchId forwarded.
+      expect(d.searchId).toBe('s-files')
+      expect(d.payload.matches).toHaveLength(1)
+      const m = d.payload.matches[0]
+      // Empty match texts — no body anywhere behind a files-mode hit.
+      expect(m.matchText).toBe('')
+      expect(m.lineText).toBe('')
+      // The zero pair: no fabricated span for a path-only hit.
+      expect(m.range).toEqual([[0, 0], [0, 0]])
+    }
+    // Terminal envelopes unchanged for a files-mode session: the capped
+    // complete still forwards the additive partial flag only on terminals.
+    expect(
+      translateSearchEvent({ searchId: 's-files', kind: 'complete', seq: 8, partial: true })
+    ).toEqual([{ searchId: 's-files', type: 'complete', partial: true }])
   })
 })
 

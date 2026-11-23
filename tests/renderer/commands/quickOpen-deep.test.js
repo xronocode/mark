@@ -400,6 +400,38 @@ describe('QuickOpenCommand — deep coverage', () => {
         '/docs/shim-found.md'
       )
     })
+
+    // C-QUICKOPEN-FILES-MODE T-005: additive test-only pin — the files-mode
+    // backend streams path-only hits that the shim groups into the same
+    // { filePath, matches } envelope with the zero-pair row; quickOpen's
+    // didMatch normalization keeps resolving the string pathname id and
+    // executeSubcommand keeps sending the string pathname to
+    // mt::open-file-by-window-id. No renderer production file changes: the
+    // shim gains no per-searchId mode map and the #320 string-id and
+    // #324 lifecycle pins stay untouched.
+    it('quickopen-files-mode-string-ids: resolves the string pathname from a files-mode grouped envelope', async () => {
+      window.marktext = { env: { windowId: 7 } }
+      mockSearchFn.mockImplementation((_paths, _q, options) => {
+        options.didMatch({
+          filePath: '/docs/files-mode-hit.md',
+          matches: [{ matchText: '', lineText: '', range: [[0, 0], [0, 0]] }]
+        })
+        const p = Promise.resolve()
+        p.cancel = vi.fn()
+        return p
+      })
+
+      const result = await cmd._doSearch('files')
+      expect(result).toHaveLength(1)
+      expect(typeof result[0].id).toBe('string')
+      expect(result[0].id).toBe('/docs/files-mode-hit.md')
+      await cmd.executeSubcommand(result[0].id)
+      expect(window.electron.ipcRenderer.send).toHaveBeenCalledWith(
+        'mt::open-file-by-window-id',
+        7,
+        '/docs/files-mode-hit.md'
+      )
+    })
   })
 
   // ---- executeSubcommand() ----
