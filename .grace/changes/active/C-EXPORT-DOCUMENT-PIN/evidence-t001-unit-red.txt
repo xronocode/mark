@@ -1,0 +1,313 @@
+
+ RUN  v5.1.0 <repo>
+
+ ❯ tests/renderer/store/export-document-pin.test.js (8 tests | 5 failed) 97ms
+   ❯ editor store export document pin (C-EXPORT-DOCUMENT-PIN) (8)
+     × refuses before the save dialog when the pinned document no longer owns the active surface (owner swap) 90ms
+     × refuses before the save dialog when the pinned revision moved 1ms
+     × refuses when the on-disk file changed after consent (digest decides, unchanged stat never waives) 1ms
+     ✓ writes exactly as today when the pin still matches 1ms
+     ✓ keeps today's path for a pin-absent EXPORT call 1ms
+     ✓ cancel in the save dialog stays silent (corner-2) 1ms
+     × derives the pdf default name from the pin and verifies before mt_export_pdf 2ms
+     × derives the docx default name from the pin and writes binary through the pinned run 1ms
+ ❯ tests/renderer/components/editor-export-images.test.js (24 tests | 7 failed) 5248ms
+   ✓ editor.vue — C-SELF-CONTAINED-HTML-EXPORT styledHtml wiring (6)
+     ✓ styledHtml: runs the pass with the generated HTML and the document directory, then EXPORT (R-6) 172ms
+     ✓ styledHtml: a skipped count warns with the embedded/total counts (R-5) 4ms
+     ✓ styledHtml: no notice when nothing was skipped (success path unchanged) 2ms
+     ✓ styledHtml: an untitled document passes no directory and still exports (corner C-9) 2ms
+     ✓ pdf: never runs the embedding pass (corner C-12) 2ms
+     ✓ print: never runs the embedding pass (corner C-12) 2ms
+   ✓ editor.vue — C-EXPORT-BOUNDARIES consent gate wiring (8)
+     ✓ plantuml gate: a plantuml fence raises export-plantuml-consent before exportStyledHTML; Confirm passes plantumlRemoteConsent: true 4ms
+     ✓ plantuml gate: Cancel passes plantumlRemoteConsent: false with the declined marker 3ms
+     ✓ plantuml gate: a document without plantuml fences raises no card and passes plantumlRemoteConsent: false 2ms
+     ✓ plantuml gate: the docx branch raises the same card and passes the decision into exportStyledHTML 3ms
+     ✓ embed gate: the pass receives a requestScopeConsent function; Confirm grants exactly the listed files 3ms
+     ✓ embed gate: Cancel grants the empty list 3ms
+     ✓ consent card shape: sticky dedupKey singleton with two decision actions (rollbackConfirm pattern) 3ms
+     ✓ privacy: consent markers log counts only — no resolved path and no diagram text 4ms
+   ✓ editor.export consent keys — ten-locale completeness (C-EXPORT-BOUNDARIES) (3)
+     ✓ every locale carries all eight consent keys with non-empty copy 3ms
+     ✓ en pins the consent placeholder sets 0ms
+     ✓ every locale keeps the same placeholders as en 2ms
+   ❯ editor.vue — C-EXPORT-DOCUMENT-PIN pin seams (4)
+     × captures the export pin before the first consent raise 7ms
+     × sources the embed directory from the pin, not a live currentFile re-read 5ms
+     × aborts on identity mismatch after consent without EXPORT or embed 5ms
+     × never applies a consent decision to another document 5006ms
+   ❯ editor.export pin refusal keys — ten-locale completeness (C-EXPORT-DOCUMENT-PIN) (3)
+     × every locale carries all four pin refusal keys with non-empty copy 5ms
+     × en pins the pin-refusal placeholder sets 2ms
+     × every locale keeps the {name} placeholder in pinDiskChangedMessage 2ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 12 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/renderer/components/editor-export-images.test.js > editor.vue — C-EXPORT-DOCUMENT-PIN pin seams > captures the export pin before the first consent raise
+AssertionError: expected [] to deeply equal [ '/tmp/test.md' ]
+
+- Expected
++ Received
+
+- [
+-   "/tmp/test.md",
+- ]
++ []
+
+ ❯ tests/renderer/components/editor-export-images.test.js:899:23
+    897|
+    898|     // The capture seam read the pinned document BEFORE the plantuml c…
+    899|     expect(readCalls).toEqual(['/tmp/test.md'])
+       |                       ^
+    900|     expect(pinOrder.indexOf('pin:read')).toBeGreaterThanOrEqual(0)
+    901|     expect(pinOrder.indexOf('export-plantuml-consent')).toBeGreaterTha…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/12]⎯
+
+ FAIL  tests/renderer/components/editor-export-images.test.js > editor.vue — C-EXPORT-DOCUMENT-PIN pin seams > sources the embed directory from the pin, not a live currentFile re-read
+AssertionError: expected "vi.fn()" to be called with arguments: [ …(3) ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+    "<html><body>doc</body></html>",
+-   "/tmp",
++   "/elsewhere",
+    {
+-     "requestScopeConsent": Any<Function>,
++     "requestScopeConsent": [Function requestScopeConsent],
+    },
+  ]
+
+
+Number of calls: 1
+
+ ❯ tests/renderer/components/editor-export-images.test.js:937:23
+    935|     // Pre-fix the branch re-reads the live currentFile directory
+    936|     // ('/elsewhere'); the pin keeps the captured one.
+    937|     expect(embedMock).toHaveBeenCalledWith(
+       |                       ^
+    938|       '<html><body>doc</body></html>',
+    939|       '/tmp',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/12]⎯
+
+ FAIL  tests/renderer/components/editor-export-images.test.js > editor.vue — C-EXPORT-DOCUMENT-PIN pin seams > aborts on identity mismatch after consent without EXPORT or embed
+AssertionError: expected "vi.fn()" to not be called at all, but actually been called 1 times
+
+Received:
+
+  1st vi.fn() call:
+
+    Array [
+      "<html><body>doc</body></html>",
+      "/tmp",
+      Object {
+        "requestScopeConsent": [Function requestScopeConsent],
+      },
+    ]
+
+
+Number of calls: 1
+
+ ❯ tests/renderer/components/editor-export-images.test.js:960:27
+    958|     await done
+    959|
+    960|     expect(embedMock).not.toHaveBeenCalled()
+       |                           ^
+    961|     expect(exportSpy).not.toHaveBeenCalled()
+    962|     expect(mockEditorInstance.exportStyledHTML).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/12]⎯
+
+ FAIL  tests/renderer/components/editor-export-images.test.js > editor.vue — C-EXPORT-DOCUMENT-PIN pin seams > never applies a consent decision to another document
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/renderer/components/editor-export-images.test.js:971:3
+    969|   })
+    970|
+    971|   it('never applies a consent decision to another document', async () …
+       |   ^
+    972|     mockEditorInstance.getMarkdown.mockReturnValue(PLANTUML_DOC)
+    973|     let granted = null
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/12]⎯
+
+ FAIL  tests/renderer/components/editor-export-images.test.js > editor.export pin refusal keys — ten-locale completeness (C-EXPORT-DOCUMENT-PIN) > every locale carries all four pin refusal keys with non-empty copy
+AssertionError: de.pinMismatchTitle: expected 'undefined' to be 'string' // Object.is equality
+
+Expected: "string"
+Received: "undefined"
+
+ ❯ tests/renderer/components/editor-export-images.test.js:1025:57
+    1023|       const table = readTable(locale).editor?.export
+    1024|       for (const key of PIN_KEYS) {
+    1025|         expect(typeof table?.[key], `${locale}.${key}`).toBe('string')
+       |                                                         ^
+    1026|         expect(table[key].trim().length, `${locale}.${key}`).toBeGreat…
+    1027|       }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/12]⎯
+
+ FAIL  tests/renderer/components/editor-export-images.test.js > editor.export pin refusal keys — ten-locale completeness (C-EXPORT-DOCUMENT-PIN) > en pins the pin-refusal placeholder sets
+TypeError: Cannot read properties of undefined (reading 'match')
+ ❯ tests/renderer/components/editor-export-images.test.js:1033:37
+    1031|   it('en pins the pin-refusal placeholder sets', () => {
+    1032|     const table = readTable('en').editor.export
+    1033|     expect(table.pinMismatchMessage.match(/\{\w+\}/)).toBeNull()
+       |                                     ^
+    1034|     expect(table.pinDiskChangedMessage).toContain('{name}')
+    1035|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/12]⎯
+
+ FAIL  tests/renderer/components/editor-export-images.test.js > editor.export pin refusal keys — ten-locale completeness (C-EXPORT-DOCUMENT-PIN) > every locale keeps the {name} placeholder in pinDiskChangedMessage
+TypeError: Cannot read properties of undefined (reading 'includes')
+ ❯ tests/renderer/components/editor-export-images.test.js:1040:42
+    1038|     for (const locale of LOCALES) {
+    1039|       const table = readTable(locale).editor.export
+    1040|       expect(table.pinDiskChangedMessage.includes('{name}'), `${locale…
+       |                                          ^
+    1041|     }
+    1042|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/12]⎯
+
+ FAIL  tests/renderer/store/export-document-pin.test.js > editor store export document pin (C-EXPORT-DOCUMENT-PIN) > refuses before the save dialog when the pinned document no longer owns the active surface (owner swap)
+AssertionError: expected "vi.fn()" to not be called at all, but actually been called 1 times
+
+Received:
+
+  1st vi.fn() call:
+
+    Array [
+      Object {
+        "defaultPath": "other.html",
+        "filters": Array [
+          Object {
+            "extensions": Array [
+              "html",
+              "htm",
+            ],
+            "name": "HTML",
+          },
+        ],
+        "title": "Export HTML",
+      },
+    ]
+
+
+Number of calls: 1
+
+ ❯ tests/renderer/store/export-document-pin.test.js:135:26
+    133|     await store.EXPORT({ type: 'styledHtml', content: '<p>html</p>', e…
+    134|
+    135|     expect(saveMock).not.toHaveBeenCalled()
+       |                          ^
+    136|     expect(ipcFsWriteMock).not.toHaveBeenCalled()
+    137|     expect(notifyMock).toHaveBeenCalledTimes(1)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/12]⎯
+
+ FAIL  tests/renderer/store/export-document-pin.test.js > editor store export document pin (C-EXPORT-DOCUMENT-PIN) > refuses before the save dialog when the pinned revision moved
+AssertionError: expected "vi.fn()" to not be called at all, but actually been called 1 times
+
+Received:
+
+  1st vi.fn() call:
+
+    Array [
+      Object {
+        "defaultPath": "report.html",
+        "filters": Array [
+          Object {
+            "extensions": Array [
+              "html",
+              "htm",
+            ],
+            "name": "HTML",
+          },
+        ],
+        "title": "Export HTML",
+      },
+    ]
+
+
+Number of calls: 1
+
+ ❯ tests/renderer/store/export-document-pin.test.js:152:26
+    150|     await store.EXPORT({ type: 'styledHtml', content: '<p>html</p>', e…
+    151|
+    152|     expect(saveMock).not.toHaveBeenCalled()
+       |                          ^
+    153|     expect(ipcFsWriteMock).not.toHaveBeenCalled()
+    154|     expect(notifyMock).toHaveBeenCalledTimes(1)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/12]⎯
+
+ FAIL  tests/renderer/store/export-document-pin.test.js > editor store export document pin (C-EXPORT-DOCUMENT-PIN) > refuses when the on-disk file changed after consent (digest decides, unchanged stat never waives)
+AssertionError: expected "vi.fn()" to not be called at all, but actually been called 1 times
+
+Received:
+
+  1st vi.fn() call:
+
+    Array [
+      "/tmp/out/report.html",
+      "<p>html</p>",
+    ]
+
+
+Number of calls: 1
+
+ ❯ tests/renderer/store/export-document-pin.test.js:172:32
+    170|
+    171|     expect(saveMock).toHaveBeenCalledTimes(1)
+    172|     expect(ipcFsWriteMock).not.toHaveBeenCalled()
+       |                                ^
+    173|     expect(notifyMock).toHaveBeenCalledTimes(1)
+    174|     const n = notifyMock.mock.calls[0][0]
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/12]⎯
+
+ FAIL  tests/renderer/store/export-document-pin.test.js > editor store export document pin (C-EXPORT-DOCUMENT-PIN) > derives the pdf default name from the pin and verifies before mt_export_pdf
+AssertionError: expected 'report.pdf' to be 'pinned-name.pdf' // Object.is equality
+
+Expected: "pinned-name.pdf"
+Received: "report.pdf"
+
+ ❯ tests/renderer/store/export-document-pin.test.js:229:51
+    227|
+    228|     expect(saveMock).toHaveBeenCalledTimes(1)
+    229|     expect(saveMock.mock.calls[0][0].defaultPath).toBe('pinned-name.pd…
+       |                                                   ^
+    230|     expect(invoke).toHaveBeenCalledWith('mt_export_pdf', { path: '/tmp…
+    231|     expect(notifyMock).toHaveBeenCalledTimes(1)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/12]⎯
+
+ FAIL  tests/renderer/store/export-document-pin.test.js > editor store export document pin (C-EXPORT-DOCUMENT-PIN) > derives the docx default name from the pin and writes binary through the pinned run
+AssertionError: expected 'report.docx' to be 'pinned-name.docx' // Object.is equality
+
+Expected: "pinned-name.docx"
+Received: "report.docx"
+
+ ❯ tests/renderer/store/export-document-pin.test.js:243:51
+    241|
+    242|     expect(saveMock).toHaveBeenCalledTimes(1)
+    243|     expect(saveMock.mock.calls[0][0].defaultPath).toBe('pinned-name.do…
+       |                                                   ^
+    244|     expect(exportToDocxMock).toHaveBeenCalledTimes(1)
+    245|     expect(writeMock).toHaveBeenCalledTimes(1)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/12]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  12 failed | 20 passed (32)
+   Start at  05:26:53
+   Duration  5.55s (tests 93%, environment 5%, setup 1%)
+
