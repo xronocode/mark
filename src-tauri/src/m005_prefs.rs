@@ -58,6 +58,21 @@
 //     deliberate (a read never fans out). Pinned by
 //     get_many_returns_requested_keys_without_persisting (raw-bytes
 //     byte-identity + no .tmp sibling).
+//   - 2026-11-23 C-RECENTS-SERIALIZE T-002: add the encompassing
+//     single-key read-modify-write — PrefsState::update mirrors the
+//     set_many discipline verbatim (the store mutex is taken exactly
+//     once, the transform closure receives the key's current value read
+//     under the guard and produces the next value under the same
+//     acquisition, at most one atomic save while the lock is still
+//     held) with a None outcome signalling «unchanged» so nothing at
+//     all persists (no save, no tmp, no rename, no generation change,
+//     no broadcast); the #[cfg(test)] update_with_rename twin injects
+//     the final rename exactly as set_many_with_rename does. The module
+//     stays generic — no caller key literal lands here; get/set/
+//     set_many/get_many/replace_from_snapshot and every mt_prefs_*
+//     command keep their exact bodies. Pinned by
+//     update_persists_the_transformed_value_with_exactly_one_save and
+//     update_skips_the_save_when_the_transform_signals_unchanged.
 
 use crate::m013b::SecurityCtx;
 use crate::mt_paths;
@@ -337,6 +352,27 @@ impl PrefsState {
         guard.save()
     }
 
+    /// C-RECENTS-SERIALIZE T-002: the encompassing single-key
+    /// read-modify-write — the set_many discipline mirrored for one key.
+    /// The store mutex is taken exactly ONCE; the transform receives the
+    /// key's current value read under the guard and produces the next
+    /// value under the same acquisition (the transform must never call
+    /// back into this Mutex — the mutex is non-reentrant and parking
+    /// inside the closure would deadlock rather than pass, a design
+    /// guard); save() runs at most once while the lock is still held
+    /// (no release between read and write). A None outcome signals
+    /// «unchanged» and persists NOTHING — no save, no tmp file, no
+    /// rename, no generation change, no broadcast.
+    pub fn update(&self, key: &str, transform: impl FnOnce(Option<Value>) -> Option<Value>) -> Result<(), std::io::Error> {
+        let mut guard = self.inner.lock().expect("PrefsState mutex poisoned");
+        let current = guard.get(key).cloned();
+        if let Some(next) = transform(current) {
+            guard.set(key.to_string(), next);
+            return guard.save();
+        }
+        Ok(())
+    }
+
     /// C-SESSION-DURABILITY: the read-batch mirror of set_many — ONE
     /// mutex acquisition answering every requested key (absent keys as
     /// Value::Null, preserving the mt_prefs_get null-for-absent facade
@@ -368,6 +404,22 @@ impl PrefsState {
             guard.set(entry.key, entry.value);
         }
         guard.save_with_rename(rename)
+    }
+
+    /// C-RECENTS-SERIALIZE T-002: test-only mirror of update with the
+    /// final rename injected — the identical one-acquisition shape as
+    /// set_many_with_rename (the m068 promote_staging_over_live seam),
+    /// so pins can fail or count the promote without touching the
+    /// production path.
+    #[cfg(test)]
+    pub(crate) fn update_with_rename(&self, key: &str, transform: impl FnOnce(Option<Value>) -> Option<Value>, rename: &dyn Fn(&Path, &Path) -> std::io::Result<()>) -> Result<(), std::io::Error> {
+        let mut guard = self.inner.lock().expect("PrefsState mutex poisoned");
+        let current = guard.get(key).cloned();
+        if let Some(next) = transform(current) {
+            guard.set(key.to_string(), next);
+            return guard.save_with_rename(rename);
+        }
+        Ok(())
     }
 
     pub fn all(&self) -> Map<String, Value> {
@@ -809,6 +861,102 @@ mod tests {
         // The .tmp sibling (if still present mid-transaction) never
         // became the live file — proven by the byte equality above.
         assert!(!tmp.is_dir());
+    }
+
+    #[test]
+    fn update_persists_the_transformed_value_with_exactly_one_save() {
+        // C-RECENTS-SERIALIZE T-002: the encompassing single-key update —
+        // the transform receives the key's current value read under the
+        // guard, exactly ONE atomic save runs for one update (the
+        // counting rename seam), and a fresh store reads the transformed
+        // value back.
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("preferences.json");
+        let state = PrefsState::from_path(path.clone());
+        state
+            .set("theme".to_string(), Value::String("dark".to_string()))
+            .unwrap();
+
+        let renames = std::cell::RefCell::new(0usize);
+        let seen_current = std::cell::RefCell::new(None);
+        state
+            .update_with_rename(
+                "theme",
+                &|current: Option<Value>| {
+                    *seen_current.borrow_mut() = current.clone();
+                    Some(Value::String("light".to_string()))
+                },
+                &|from, to| {
+                    *renames.borrow_mut() += 1;
+                    fs::rename(from, to)
+                },
+            )
+            .unwrap();
+
+        assert_eq!(
+            seen_current.borrow().as_ref().unwrap(),
+            &Value::String("dark".to_string()),
+            "the closure receives the key's current value read under the guard"
+        );
+        assert_eq!(
+            *renames.borrow(),
+            1,
+            "exactly ONE rename for one encompassing update"
+        );
+        let fresh = PrefsState::from_path(path);
+        assert_eq!(
+            fresh.get("theme"),
+            Some(Value::String("light".to_string()))
+        );
+    }
+
+    #[test]
+    fn update_skips_the_save_when_the_transform_signals_unchanged() {
+        // C-RECENTS-SERIALIZE T-002: a None transform outcome persists
+        // NOTHING — zero renames, the raw store-file bytes are
+        // byte-identical after the call, and no .tmp sibling exists (no
+        // tmp file, no rename, no generation change).
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("preferences.json");
+        let state = PrefsState::from_path(path.clone());
+        state
+            .set("theme".to_string(), Value::String("dark".to_string()))
+            .unwrap();
+        let previous_bytes = std::fs::read(&path).unwrap();
+        let tmp = dir.path().join("preferences.json.tmp");
+
+        let renames = std::cell::RefCell::new(0usize);
+        let seen_current = std::cell::RefCell::new(None);
+        state
+            .update_with_rename(
+                "theme",
+                &|current: Option<Value>| {
+                    *seen_current.borrow_mut() = current.clone();
+                    None
+                },
+                &|from, to| {
+                    *renames.borrow_mut() += 1;
+                    fs::rename(from, to)
+                },
+            )
+            .unwrap();
+
+        assert_eq!(
+            seen_current.borrow().as_ref().unwrap(),
+            &Value::String("dark".to_string()),
+            "the closure received the key's current value under the guard"
+        );
+        assert_eq!(
+            *renames.borrow(),
+            0,
+            "an unchanged transform performs zero saves"
+        );
+        assert_eq!(
+            std::fs::read(&path).unwrap(),
+            previous_bytes,
+            "the raw store file is byte-identical after the skipped save"
+        );
+        assert!(!tmp.exists(), "an unchanged transform leaves no .tmp sibling");
     }
 
     #[test]

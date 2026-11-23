@@ -1,0 +1,422 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-RECENTS-SERIALIZE>
+    <IntentSummary>Close the three linked recents defects without touching any predecessor decision. (1) ENCOMPASSING RMW MUTEX: the recents read-modify-write holds the store mutex across its whole load→modify→save span — m005_prefs.rs gains PrefsState::update mirroring the set_many discipline verbatim (one mutex acquisition, the caller's closure receives the key's current value read under the guard and produces the next one under the same acquisition, at most one save while the lock is still held) with a #[cfg(test)] update_with_rename twin (the set_many_with_rename injected-rename seam), and m017_recent.rs's recent_add_inner moves onto it with dedupe/promote/cap inside the closure while the m047_bookmarks::remember grant moment stays outside the lock, ahead of the list write; pinned failing-first by recent_concurrent_adds_from_two_threads_both_persist — two adds from two threads against one PrefsState::from_path store with the interleaving made deterministic by a #[cfg(test)] gap seam parked between the loaded read and the persist, whose call site disappears with the fix so the same test is green after it (recorded honestly). (2) UNCHANGED-LIST WRITE SKIP: an exact element-sequence equality check between the computed and the loaded list makes an unchanged add return Ok with NO store write at all — no tmp file, no rename, no new on-disk generation, no BLOCK_PERSISTED path — announced by the console-only [Recent][add][BLOCK_RECENT_UNCHANGED count=N] marker in the module's marker convention (count only, never paths), pinned failing-first through the injected-failing rename seam (recent_unchanged_head_add_skips_the_persist, with recent_changed_add_still_persists_through_the_seam as its seam-fires negative control) plus the at-most-one-save discipline pin. (3) RENDERER SERIALIZATION: every recents RMW the renderer emits runs on a chained-promise queue — the filePositionStore serializedStoreMutation shape owned module-locally: the ipcRecent facade serializes add behind one queue (each mt::recent::add invoke completes before the next begins, per-caller results propagate, a rejection fails only its own caller and never breaks the chain; list/clear/remove/insert byte-identical and unqueued; both editor.js fire-and-forget call sites :513/:1936 stay byte-identical — the facade owns the discipline, the callers do not change), and the project store runs ONE recentFolders queue at the action level covering _pushRecentFolder and the SET_RECENT_FOLDERS/GET_RECENT_FOLDERS actions, so an ADD_PROJECT racing a folder addition and the welcome screen's removeRecentFolder/undoRemove all compose onto the same queue with recent/index.vue untouched. Failing-first pins at both layers (runtime-recent.test.ts pending-first parallel-add pin plus its rejection-isolation guard; project-coverage.test.js parallel_folder_additions_all_persist beside its four untouched pins); governance: graph deltas on M-005/M-011/M-017 (runtime graph) and M-036 (features graph), verification scenarios on V-M-005/V-M-017/V-M-036, VERSION bumps and CHANGE_SUMMARY entries on the touched governed files; no new user-facing strings, no new tauri command, no preferences.json schema or broadcast change.</IntentSummary>
+    <Spec>C-RECENTS-SERIALIZE</Spec>
+    <ReferenceState>Authored 2026-11-23 against the read-only green-rec1 worktree (branch spec/recents-serialize, base 1dbe9bb9, carrying all merged waves incl. C-SESSION-WRITE-ATOMICITY, the C-FILE-POSITION-MEMORY review wave and C-SESSION-DURABILITY); every file, line and byte-level anchor below was verified directly against this tree. src-tauri/src/m017_recent.rs (VERSION 1.1.1): KEY_RECENT_DOCS = "recentDocuments" (:55), MAX_RECENT_DOCS = 10 (:58 — the FACT; the legacy graph Summary's «max 12» and legacy scenario-1's «12» are stale legacy text, never to be inherited by new sentences), load (:60-71), store (:73-78), recent_add_inner (:81-90: load :82, retain/insert/truncate :83-87, the [Recent][add][BLOCK_RECENT_UPDATED count=] marker :88, store :89 — the unlocked RMW window this change closes), mt_recent_add (:94-102, the m047_bookmarks::remember grant moment :98-100 with report_persistence_failure, ahead of recent_add_inner), mt_recent_list (:105-108), mt_recent_clear (:111-115, unconditional store by design :114), START_BLOCK_RECENT_REMOVE (:117-135 — recent_remove_inner returns Option&lt;usize&gt;, NO store write for a missing path), START_BLOCK_RECENT_INSERT (:137-151), the mt_recent_remove/insert commands (:156-166), and the 18 inline tests (:168-391) with the tempfile fresh_prefs canon (:174-179), persistence_across_reloads (:265) and the four C-46 remove/insert pins (remove_missing_path_returns_none_and_keeps_list :313, remove_returns_old_index_and_persists :322, remove_then_insert_restores_exact_order :334, remove_persists_across_reloads :380). src-tauri/src/m005_prefs.rs (no VERSION line; CHANGE_SUMMARY header at :27): save_with_rename (:195-216, BLOCK_PERSISTED :210-214), save delegating to it (:221-223), PrefsState::from_path (:305-310, #[cfg(test)]), get (:312-318 — mutex, clone, RELEASE), set (:320-324 — mutex, insert, save), set_many (:332-338 — ONE acquisition, one save, the C-SESSION-WRITE-ATOMICITY discipline this plan mirrors), get_many (:347-355), set_many_with_rename (:360-371 — the #[cfg(test)] injected-rename seam template). src/renderer/src/ipc/runtime/recent.ts (no VERSION line; CHANGE_SUMMARY at :11): the thin facade with add (:20-22, ipcInvoke('mt::recent::add', { path })), list/clear/remove/insert (:23-34); the contract's ipcInvoke translates the mt::x::y namespace to the mt_x_y channel (ipc/contract/invoke.ts :108-109), which is why the runtime-recent pins assert 'mt_recent_add' over the mocked invoke. src/renderer/src/store/editor.js: void ipcRecent.add(tab.pathname).catch(() =&gt; {}) at :513 (onSaved) and ipcRecent.add(pathname).catch(() =&gt; {}) at :1936 (open path :1934-1937) — both fire-and-forget, both stay byte-identical. src/renderer/src/store/project.js (VERSION 2.0.0): MAX_RECENT_FOLDERS = 5 and RECENT_FOLDERS_KEY = 'recentFolders' (:106-107), _pushRecentFolder (:109-118: await ipcPrefs.get :111 → filter/unshift/cap :112-115 → await ipcPrefs.set :116, best-effort catch :117), the ADD_PROJECT call site (:349, fire-and-forget), GET_RECENT_FOLDERS (:650-657) and SET_RECENT_FOLDERS (:663-673, the C-46 replace-in-one-write action). src/renderer/src/components/recent/index.vue: removeRecentFolder (:617-638 — GET_RECENT_FOLDERS :624, SET_RECENT_FOLDERS :626) and undoRemove (:640-662 — SET_RECENT_FOLDERS :657): both dispatch into the store actions, so action-level queueing covers them with ZERO diffs to this file. src/renderer/src/util/filePositionStore.js: writeStore (:198-200) and START_BLOCK_POSITION_MUTEX (:202-217: storeMutationQueue :208, serializedStoreMutation :209-216 — «chained promises preserve per-caller results while composing the writes»), the serializedStoreMutation shape direction (b) mirrors module-locally. tests/renderer/ipc/runtime-recent.test.ts: the ipcRecent describe with the add pins (:15-28, asserting the translated 'mt_recent_add' channel :21 and error propagation :24-27) plus list/clear/remove/insert wrapper pins. tests/renderer/store/project-coverage.test.js: the _pushRecentFolder (via ADD_PROJECT) describe (:471-508, four pins driven by ipcPrefsGetMock/ipcPrefsSetMock over an accumulating fake store) plus the GET_RECENT_FOLDERS describe (:510+); the file has a plain doc-comment header (no VERSION). tests/renderer/components/recent.test.js (VERSION 2.1.0) and tests/renderer/components/recent-paste.test.js (VERSION 1.0.0) — the must-stay-green C-46 welcome-screen suites (review minor 3). Graph facts: .grace/graph/runtime.xml M-005 at :1272 (deltas :1273-1274, :1499-1501 — the trailing C-SESSION-DURABILITY delta :1501 is the append anchor), M-011 at :2636 (trailing C-SESSION-DURABILITY delta :3842), M-017 at :6437 (trailing delta :6438; Sources list only src-tauri/src/m017_recent.rs — there is NO recent.ts anywhere in runtime.xml, which is review minor 1's fact); .grace/graph/features.xml M-036 at :706 (deltas :707-708; KnowledgeGraphPath includes src/renderer/src/store/project.js :753-759); .grace/verification/runtime.xml V-M-005 scenario anchors (:1592-1594, the named-scenario precedent) and V-M-017 at :10583 (Command cargo test --manifest-path src-tauri/Cargo.toml recent :10586, the named scenario-bookmark-durability-v-m-017 precedent :10589, legacy scenario-1's «last 12» :10590); .grace/verification/features.xml V-M-036 at :1339 (Scenarios :1346-1375, named-scenario precedent scenario-folder-close-beats-subscribe :1373). Review-minor resolutions recorded here: (1) the recent.ts facade serialization is narrated in the graph through the M-005 and M-011 SummaryDeltas — M-017's node cannot host it (Sources only the rust file), so the facade delta rides M-011 (editor.js's owner) beside the M-005 backend delta, exactly per the C-SESSION-DURABILITY precedent where the prefs.ts raw-invoke facade note rode M-011's :3842 delta and the backend note M-005's :1501 delta; runtime.xml therefore gains exactly three dated SummaryDeltas (M-005, M-011, M-017) and features.xml exactly one (M-036); (2) every new V-M-017 scenario sentence uses the fact MAX_RECENT_DOCS = 10 and inherits NO legacy «12» figure (the legacy texts stay untouched as legacy); (3) recent.test.js and recent-paste.test.js join the must-stay-green vitest set untouched; (4) the cargo recent filter catches only 2 of the 18 m017 pins (recorded per the 2026-11-23 review), so every new backend pin carries the recent_ prefix AND a compensating module-filter command (--bin mark m017_recent) rides the TargetAssertions and the T-002/T-005 Verification blocks beside the V-M-017 recorded recent command; an m005-focused --bin mark prefs command covers the new m005 pins (the C-SESSION-DURABILITY filter precedent). Deviation notes: (a) Rust failing-first has TWO red modes — the concurrency pin is behaviorally red on the baseline through the parked #[cfg(test)] gap seam (T-001 lands the seam hook plus the pin first and records the red run), while the three rename-seam pins reference the planned recent_add_inner_with_rename / update_with_rename surface and are red-by-absence until T-002 (the compile failure is the recorded failing-first evidence, the C-SESSION-DURABILITY get_many precedent); (b) recent_changed_add_still_persists_through_the_seam and recent_add_performs_at_most_one_save_through_the_seam are recorded honestly as negative-control and discipline pins (green the moment they compile), not defect detectors — the skip behavior's red-first detector is recent_unchanged_head_add_skips_the_persist; (c) the renderer rejection-isolation pin is recorded honestly as a green-by-design queue-continuity guard (no queue exists pre-T-004 to break); (d) recent_remove_inner/recent_insert_inner are NOT migrated onto the update seam — the spec's MAY clause is declined and their C-46 contracts stay pinned with byte-identical bodies (NonGoal: no migration beyond what R-1/R-2 need); mt_recent_clear keeps its unconditional write by design; (e) the worktree commit hash is not recorded here (no shell access from the drafting session); (f) this plan carries no self-referential grace-lint commands and no SpecSha256 field — the orchestrator runs the current/target/final lint gates itself and stamps the spec hash. Writing this draft approves neither implementation, apply/archive, commit/push, lane departure, release, signing, tag nor publication.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src-tauri/src/m017_recent.rs</Value>
+        <Value>src-tauri/src/m005_prefs.rs</Value>
+        <Value>src/renderer/src/ipc/runtime/recent.ts</Value>
+        <Value>src/renderer/src/store/project.js</Value>
+        <Value>src/renderer/src/store/editor.js</Value>
+        <Value>src/renderer/src/util/filePositionStore.js</Value>
+        <Value>src/renderer/src/components/recent/index.vue</Value>
+        <Value>tests/renderer/ipc/runtime-recent.test.ts</Value>
+        <Value>tests/renderer/store/project-coverage.test.js</Value>
+        <Value>tests/renderer/components/recent.test.js</Value>
+        <Value>tests/renderer/components/recent-paste.test.js</Value>
+        <Value>.grace/changes/active/C-RECENTS-SERIALIZE/spec.xml</Value>
+        <Value>.grace/graph/runtime.xml</Value>
+        <Value>.grace/graph/features.xml</Value>
+        <Value>.grace/verification/runtime.xml</Value>
+        <Value>.grace/verification/features.xml</Value>
+      </MustExist>
+      <MustContain>
+        <File>src-tauri/src/m017_recent.rs</File>
+        <Text>pub const MAX_RECENT_DOCS: usize = 10;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m017_recent.rs</File>
+        <Text>pub(crate) fn recent_add_inner(prefs: &amp;PrefsState, path: &amp;str) -&gt; Result&lt;(), String&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m017_recent.rs</File>
+        <Text>let mut current = load(prefs);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m017_recent.rs</File>
+        <Text>store(prefs, &amp;current)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m017_recent.rs</File>
+        <Text>[Recent][add][BLOCK_RECENT_UPDATED count={}]</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m017_recent.rs</File>
+        <Text>fn fresh_prefs() -&gt; (TempDir, PrefsState)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m017_recent.rs</File>
+        <Text>fn recent_add_inner_dedupes_and_promotes_to_head(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m017_recent.rs</File>
+        <Text>fn remove_missing_path_returns_none_and_keeps_list(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m017_recent.rs</File>
+        <Text>fn persistence_across_reloads(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>pub fn set_many(&amp;self, entries: Vec&lt;PrefsEntry&gt;) -&gt; Result&lt;(), std::io::Error&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn set_many_with_rename(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>pub fn get(&amp;self, key: &amp;str) -&gt; Option&lt;Value&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn save_with_rename(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>BLOCK_PERSISTED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/ipc/runtime/recent.ts</File>
+        <Text>return ipcInvoke('mt::recent::add', { path })</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/project.js</File>
+        <Text>const MAX_RECENT_FOLDERS = 5</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/project.js</File>
+        <Text>async function _pushRecentFolder(pathname) {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/project.js</File>
+        <Text>await ipcPrefs.set(RECENT_FOLDERS_KEY, list)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/project.js</File>
+        <Text>async SET_RECENT_FOLDERS(list) {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/project.js</File>
+        <Text>async GET_RECENT_FOLDERS() {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>void ipcRecent.add(tab.pathname).catch(() =&gt; {})</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>ipcRecent.add(pathname).catch(() =&gt; {})</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/filePositionStore.js</File>
+        <Text>START_BLOCK_POSITION_MUTEX</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/filePositionStore.js</File>
+        <Text>let storeMutationQueue = Promise.resolve()</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/ipc/runtime-recent.test.ts</File>
+        <Text>expect(tauriInvoke).toHaveBeenCalledWith('mt_recent_add', { path: '/docs/readme.md' })</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/project-coverage.test.js</File>
+        <Text>describe('_pushRecentFolder (via ADD_PROJECT)', () =&gt; {</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/recent.test.js</File>
+        <Text>__ipcRecentMock</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/recent-paste.test.js</File>
+        <Text>// FILE: tests/renderer/components/recent-paste.test.js</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/changes/active/C-RECENTS-SERIALIZE/spec.xml</File>
+        <Text>status="approved"</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/runtime.xml</File>
+        <Text>C-SESSION-DURABILITY (2026-11-23)</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/features.xml</File>
+        <Text>C-SEARCH-LIFECYCLE-DISCARD</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/runtime.xml</File>
+        <Text>cargo test --manifest-path src-tauri/Cargo.toml recent</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/features.xml</File>
+        <Text>scenario-folder-close-beats-subscribe</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-005</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-017</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-036</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>pub fn update(&amp;self, key: &amp;str</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn update_with_rename(&amp;self, key: &amp;str</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn update_persists_the_transformed_value_with_exactly_one_save(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn update_skips_the_save_when_the_transform_signals_unchanged(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>C-RECENTS-SERIALIZE</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m017_recent.rs</File>
+        <Text>fn recent_concurrent_adds_from_two_threads_both_persist(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m017_recent.rs</File>
+        <Text>fn recent_unchanged_head_add_skips_the_persist(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m017_recent.rs</File>
+        <Text>fn recent_changed_add_still_persists_through_the_seam(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m017_recent.rs</File>
+        <Text>fn recent_add_performs_at_most_one_save_through_the_seam(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m017_recent.rs</File>
+        <Text>fn recent_add_inner_with_rename(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m017_recent.rs</File>
+        <Text>fn recent_test_gap_park(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m017_recent.rs</File>
+        <Text>[Recent][add][BLOCK_RECENT_UNCHANGED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m017_recent.rs</File>
+        <Text>// VERSION: 1.2.0</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m017_recent.rs</File>
+        <Text>C-RECENTS-SERIALIZE</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/ipc/runtime/recent.ts</File>
+        <Text>addQueue</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/ipc/runtime/recent.ts</File>
+        <Text>mt::recent::add</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/ipc/runtime/recent.ts</File>
+        <Text>C-RECENTS-SERIALIZE</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/project.js</File>
+        <Text>recentFoldersQueue</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/project.js</File>
+        <Text>// VERSION: 2.1.0</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/project.js</File>
+        <Text>C-RECENTS-SERIALIZE</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>void ipcRecent.add(tab.pathname).catch(() =&gt; {})</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>ipcRecent.add(pathname).catch(() =&gt; {})</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/ipc/runtime-recent.test.ts</File>
+        <Text>parallel_adds_invoke_one_at_a_time_and_all_resolve</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/ipc/runtime-recent.test.ts</File>
+        <Text>a_rejecting_add_fails_only_its_own_caller</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/project-coverage.test.js</File>
+        <Text>parallel_folder_additions_all_persist</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/project-coverage.test.js</File>
+        <Text>describe('_pushRecentFolder (via ADD_PROJECT)', () =&gt; {</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/runtime.xml</File>
+        <Text>C-RECENTS-SERIALIZE (2026-11-23)</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/features.xml</File>
+        <Text>C-RECENTS-SERIALIZE (2026-11-23)</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/runtime.xml</File>
+        <Text>scenario-recents-serialize-v-m-005</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/runtime.xml</File>
+        <Text>scenario-recents-serialize-v-m-017</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/features.xml</File>
+        <Text>scenario-recents-serialize-v-m-036</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src-tauri/src/m017_recent.rs</File>
+        <Text>thread::sleep</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>recentDocuments</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>addQueue</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark recent</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m017_recent</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark prefs</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/ipc/runtime-recent.test.ts tests/renderer/store/project-coverage.test.js tests/renderer/components/recent.test.js tests/renderer/components/recent-paste.test.js</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-005 />
+        <M-011 />
+        <M-017 />
+        <M-036 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-005 />
+        <V-M-017 />
+        <V-M-036 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src-tauri/src/m005_prefs.rs</File>
+      <File>src-tauri/src/m017_recent.rs</File>
+      <File>src/renderer/src/ipc/runtime/recent.ts</File>
+      <File>src/renderer/src/store/project.js</File>
+      <File>tests/renderer/ipc/runtime-recent.test.ts</File>
+      <File>tests/renderer/store/project-coverage.test.js</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+      <File>.grace/verification/features.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Failing-first backend pins: the deterministic two-thread RMW-race pin through the #[cfg(test)] gap seam (behaviorally red on the un-encompassed tree), then the unchanged-skip rename-seam pin pair and the at-most-one-save discipline pin (red-by-absence)</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Failing-first proof precedes implementation, in two recorded steps. Step 1: tests/renderer-free backend-only — m017_recent.rs gains the #[cfg(test)] gap-seam hook fn recent_test_gap_park plus its SINGLE call site between the loaded read and the persist inside recent_add_inner (compiling away outside test builds — cfg(test) only, zero production behavior change), armed exclusively by the new pin through a tests-module static channel pair; the pin recent_concurrent_adds_from_two_threads_both_persist is then shown RED on the baseline with cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark recent: the parked interleaving deterministically loses one insert. Step 2: the three rename-seam pins are authored against the planned T-002 surface (#[cfg(test)] fn recent_add_inner_with_rename(prefs: &amp;PrefsState, path: &amp;str, rename: &amp;dyn Fn(&amp;Path, &amp;Path) -&gt; std::io::Result&lt;()&gt;) -&gt; Result&lt;(), String&gt; and PrefsState::update_with_rename) and the compile failure is recorded as their red-by-absence evidence (the C-SESSION-DURABILITY get_many precedent). Both red records exist before T-002 lands any implementation.</Criterion>
+          <Criterion>recent_concurrent_adds_from_two_threads_both_persist is deterministic with NO sleeps, NO busy-waits and NO timing: the pin arms the seam, spawns thread A running the add under test, and dispatches on the FIRST message of one mpsc channel — Ready (sent by the seam hook when A is parked between its read and its persist; the pre-fix shape) → the pin then spawns thread B running a full add, waits for B's completion, sends the seam release and joins both; Done (sent by A's wrapper at completion; the post-fix shape once the seam call site is retired) → the pin spawns B and joins. After join the pin reloads through a fresh PrefsState::from_path over the same tempfile preferences.json and asserts BOTH paths present; survivor order is deliberately not asserted. On the pre-change tree the parked interleaving loses B's insert (A's stale-list store erases it) — red; after the encompassing fix the SAME test body is green by mutex serialization alone — recorded honestly, and the pin never blocks on Ready when the seam is unreachable (a post-fix hang is a design violation, not a pass).</Criterion>
+          <Criterion>The three rename-seam pins, all carrying the recent_ prefix (review minor 4): recent_unchanged_head_add_skips_the_persist seeds a list with P at head through the fresh_prefs canon, adds P via recent_add_inner_with_rename with a rename closure injected to FAIL, and asserts the call resolves Ok with the reloaded list unchanged in content and order — proof the persist provably never ran, since any rewrite would surface the injected failure; recent_changed_add_still_persists_through_the_seam proves the same failing seam fires exactly when the list changes — a genuinely new path returns Err and an add that only REORDERS (existing path, not at head) also returns Err with the reloaded list showing the new order (recorded honestly as the negative control of the skip pin: against the always-persist pre-fix behavior it is green the moment it compiles); recent_add_performs_at_most_one_save_through_the_seam drives one changed add and one unchanged add through a COUNTING (non-failing) rename closure and asserts at most one rename for the changed add and zero for the unchanged add — a discipline pin, recorded honestly as green both sides once it compiles.</Criterion>
+          <Criterion>No production behavior change in this task beyond the cfg(test) hook call site; the 18 existing m017 pins stay green throughout step 1 (the hook is inert while disarmed); m005_prefs.rs, recent.ts, project.js and editor.js are untouched in this task; no locale file is touched.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark recent</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>M-005/M-017 encompassing RMW: PrefsState::update (one acquisition, at most one save, unchanged-skip outcome) plus the #[cfg(test)] update_with_rename twin, recent_add_inner onto the encompassing update through the shared skip/dedupe transform, the BLOCK_RECENT_UNCHANGED console marker, and the seam call site retirement</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>T-001's two red records exist (the behavioral red run and the compile-failure record) before any implementation of this task lands.</Criterion>
+          <Criterion>src-tauri/src/m005_prefs.rs gains pub fn update(&amp;self, key: &amp;str, transform: ...) -&gt; Result&lt;(), std::io::Error&gt; mirroring the set_many discipline (:332-338) verbatim: the store mutex is taken exactly ONCE; the caller's closure receives the key's current value read under the guard (never calling back into the non-reentrant Mutex — parking inside the closure would deadlock on the mutex rather than pass, recorded as the design guard); the next value is produced under the same acquisition; save() runs at most once while the lock is still held (no release between read and write); an unchanged-indicating transform outcome persists NOTHING — no save, no tmp file, no rename, no generation change, no broadcast. The #[cfg(test)] twin fn update_with_rename(&amp;self, key: &amp;str, transform: ..., rename: &amp;dyn Fn(&amp;Path, &amp;Path) -&gt; std::io::Result&lt;()&gt;) mirrors set_many_with_rename (:360-371) with the identical one-acquisition shape. Two inline m005 pins in the existing prefs test module: update_persists_the_transformed_value_with_exactly_one_save (a counting rename closure records exactly one rename, the transformed value lands, a fresh PrefsState::from_path reload sees it) and update_skips_the_save_when_the_transform_signals_unchanged (zero renames, raw store-file bytes unchanged). get/set/set_many/get_many/replace_from_snapshot and every mt_prefs_* command keep their exact bodies; no new command, main.rs untouched, and the recents key literal stays out of m005 (the module stays generic).</Criterion>
+          <Criterion>src-tauri/src/m017_recent.rs: recent_add_inner moves onto prefs.update — the dedupe-by-path/promote-to-head/MAX_RECENT_DOCS-cap transform is a SHARED fn used by both the production path and the #[cfg(test)] recent_add_inner_with_rename variant (shared skip logic; the variant delegates the persist to update_with_rename so the rename-seam pins exercise the real list path, not a re-implemented one); the skip is EXACT element-sequence equality of the computed vs loaded list, compared before persist: an identical list returns Ok WITHOUT any store write (no tmp, no rename, no generation, no BLOCK_PERSISTED path) and prints the console-only [Recent][add][BLOCK_RECENT_UNCHANGED count=N] marker (count only, never paths — the module convention); a changed list persists exactly as today (a path present but NOT at head still reorders and persists). The [Recent][add][BLOCK_RECENT_UPDATED count=] marker, the Ok/Err contract, every command signature, and the m047_bookmarks::remember grant moment in mt_recent_add (:94-102 — outside the lock, ahead of the list write) are unchanged. The pre-fix gap-seam call site is REMOVED with the un-encompassed body (its call site disappears with the fix); the recent_test_gap_park scaffolding left behind is inert because T-001's pin dispatches on Done. mt_recent_clear keeps its unconditional store write; recent_remove_inner/recent_insert_inner keep byte-identical bodies (deviation d — the C-46 contracts stay pinned untouched); mt_recent_add/list/clear/remove/insert signatures untouched.</Criterion>
+          <Criterion>T-001's four pins turn green: the concurrency pin green via the mutex (both paths on disk, no hang), the skip pin Ok through the failing seam, the negative control Err on genuinely-changed and reorder-only adds, the count pin at most one save per changed add and zero per unchanged add; the two new m005 pins pass; the 18 existing m017 pins and the m005 set_many/get_many/quarantine pins stay green unweakened.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark recent</Command>
+          <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m017_recent</Command>
+          <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark prefs</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Failing-first renderer pins: the facade parallel-add serialization pin and its rejection-isolation guard (runtime-recent.test.ts), and the racing folder-add persistence pin beside the four untouched _pushRecentFolder pins (project-coverage.test.js)</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Failing-first proof precedes T-004: tests/renderer/ipc/runtime-recent.test.ts gains parallel_adds_invoke_one_at_a_time_and_all_resolve and it is shown RED on the baseline — a controlled invoke mock holds the FIRST mt_recent_add invoke pending; while it is pending NO second mt_recent_add invoke is issued (pre-fix both invokes fire concurrently, which the red run records); after release every queued add resolves and per-caller results keep propagating.</Criterion>
+          <Criterion>tests/renderer/ipc/runtime-recent.test.ts gains a_rejecting_add_fails_only_its_own_caller — one rejecting add fails only its own caller's promise while adds queued behind it still resolve (queue continuity). Recorded honestly as a green-by-design guard on the baseline (there is no queue to break before T-004): its contract binds the post-fix implementation — a rejection must never poison the queue chain.</Criterion>
+          <Criterion>tests/renderer/store/project-coverage.test.js gains parallel_folder_additions_all_persist inside the existing _pushRecentFolder (via ADD_PROJECT) describe (:471-508): two racing ADD_PROJECT calls against an accumulating fake ipcPrefs store with the FIRST ipcPrefs.get held pending; after await-quiescence the persisted recentFolders list contains BOTH folders. RED on the baseline (the second set overwrites the first folder — the red run records exactly that loss). The existing four pins in the describe stay green with UNCHANGED bodies, and the GET_RECENT_FOLDERS/SET_RECENT_FOLDERS pins stay untouched.</Criterion>
+          <Criterion>No production file is touched in this task (recent.ts, project.js, editor.js stay untouched; only pins and mock members land); recent.test.js and recent-paste.test.js stay untouched (review minor 3).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/ipc/runtime-recent.test.ts tests/renderer/store/project-coverage.test.js</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Renderer serialization: the ipcRecent.add chained-promise queue in the facade and the ONE project-store recentFolders queue covering _pushRecentFolder and the SET/GET_RECENT_FOLDERS actions, callers byte-identical</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>T-003's red runs exist before any implementation of this task lands.</Criterion>
+          <Criterion>src/renderer/src/ipc/runtime/recent.ts: add serializes behind ONE module-local chained-promise queue (addQueue, the serializedStoreMutation shape of filePositionStore.js:202-217 owned module-locally): each mt::recent::add invoke completes before the next begins; per-caller results and errors propagate unchanged to each caller; a rejection fails only its own caller and must NOT break the chain (the queue tail swallows to stay alive and keep serializing). list/clear/remove/insert wrappers stay unqueued and byte-identical; every wrapper's wire shape is unchanged. Markup: a dated 2026-11-23 C-RECENTS-SERIALIZE CHANGE_SUMMARY entry (no VERSION line exists in this file — recorded fact).</Criterion>
+          <Criterion>src/renderer/src/store/project.js: ONE module-local recentFoldersQueue owned at the project-store action level — _pushRecentFolder's get→filter/unshift/cap→set RMW (:109-118), SET_RECENT_FOLDERS's clean→set (:663-673) and GET_RECENT_FOLDERS's get (:650-657) ALL compose onto the same queue, so an ADD_PROJECT racing a folder addition and the welcome screen's removeRecentFolder/undoRemove (recent/index.vue:624-626/:657, which dispatch into these actions) serialize without any change to that component — recent/index.vue carries ZERO diffs. Best-effort error swallowing is preserved per action (each keeps its catch semantics; the queue tail swallows rejections to keep serializing); MAX_RECENT_FOLDERS = 5, the dedupe/cap transforms, ADD_PROJECT's dedup/nested-rejection and its :349 call site, and CLOSE_PROJECT are untouched. Markup: VERSION 2.0.0 → 2.1.0 plus a dated 2026-11-23 C-RECENTS-SERIALIZE CHANGE_SUMMARY entry.</Criterion>
+          <Criterion>T-003's pins turn green: no second mt_recent_add invoke while the first is pending, every queued add resolving after release; a rejection isolating to its own caller; both racing folders persisting; the four existing _pushRecentFolder pins and the GET/SET_RECENT_FOLDERS pins green unweakened; the four-file must-stay-green set (incl. recent.test.js and recent-paste.test.js — review minor 3) green; editor.js keeps both fire-and-forget call sites (:513, :1936) byte-identical — asserted by the editor suites staying green in the full npm test gate and by the TargetAssertions re-pins.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/ipc/runtime-recent.test.ts tests/renderer/store/project-coverage.test.js tests/renderer/components/recent.test.js tests/renderer/components/recent-paste.test.js</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Governance: graph deltas on M-005/M-011/M-017 (runtime graph) and M-036 (features graph), verification scenarios on V-M-005/V-M-017/V-M-036, file-local markup, and the combined-diff audit against the ObservedWriteScope</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>.grace/graph/runtime.xml: one dated C-RECENTS-SERIALIZE (2026-11-23) SummaryDelta appended inside M-005 adjacent to the trailing :1501 delta (the encompassing one-acquisition PrefsState::update with the unchanged-skip outcome, the #[cfg(test)] update_with_rename twin, the two inline m005 pins, at most one save under the lock; the single-key, get_all and write-batch surfaces unchanged) and inside M-017 adjacent to the trailing :6438 delta (recent_add_inner on the encompassing update with the shared skip/dedupe transform, the exact-sequence unchanged skip with the console-only [Recent][add][BLOCK_RECENT_UNCHANGED count=N] marker, the retired #[cfg(test)] gap seam, the four new recent_-prefixed pins, the fact MAX_RECENT_DOCS = 10); and inside M-011 adjacent to the trailing :3842 delta — REVIEW MINOR 1 resolution stated explicitly: the recent.ts facade serialization has no graph node of its own (M-017's Sources list only src-tauri/src/m017_recent.rs; recent.ts appears nowhere in runtime.xml), so the facade delta narrates through M-011, editor.js's owner — both fire-and-forget ipcRecent.add call sites (:513 onSaved, :1936 open path) stay byte-identical because the M-017 frontend facade serializes add behind one chained-promise queue whose rejections fail only their own caller — per the C-SESSION-DURABILITY precedent where the prefs.ts raw-invoke facade note rode M-011's :3842 delta. Strictly on the M-005/M-011/M-017 entries; no other graph content changes, no new module nodes.</Criterion>
+          <Criterion>.grace/graph/features.xml: one dated C-RECENTS-SERIALIZE (2026-11-23) SummaryDelta inside M-036 adjacent to the trailing :707-708 deltas — the ONE recentFolders queue at the project-store action level covering _pushRecentFolder and the SET/GET_RECENT_FOLDERS actions, so parallel folder additions and an ADD_PROJECT racing a welcome-screen removal all land on disk while recent/index.vue stays untouched; the ADD_PROJECT dedup/nested-rejection and CLOSE_PROJECT unchanged. Strictly on the M-036 entry.</Criterion>
+          <Criterion>.grace/verification/runtime.xml: one dated scenario appended inside V-M-005 (the :1592-1594 named-scenario neighborhood, element scenario-recents-serialize-v-m-005) naming update_persists_the_transformed_value_with_exactly_one_save and update_skips_the_save_when_the_transform_signals_unchanged with the counting-rename one-save/zero-save proof and the command cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark prefs; one dated scenario appended inside V-M-017 (:10583, element scenario-recents-serialize-v-m-017) naming recent_concurrent_adds_from_two_threads_both_persist (the parked-seam determinism, the Ready/Done dispatch, the honest green-after-fix recording and the no-sleeps bar), recent_unchanged_head_add_skips_the_persist, recent_changed_add_still_persists_through_the_seam and recent_add_performs_at_most_one_save_through_the_seam — REVIEW MINOR 2: every sentence uses the fact MAX_RECENT_DOCS = 10 and inherits NO legacy «12» figure (the legacy scenario-1 «last 12» and the graph Summary's «max 12» stay untouched as legacy text) — and records BOTH commands: the V-M-017 command cargo test --manifest-path src-tauri/Cargo.toml recent AND the compensating module filter --bin mark m017_recent (review minor 4: the recent filter catches 2/18). No other verification content changes.</Criterion>
+          <Criterion>.grace/verification/features.xml: one dated scenario appended inside V-M-036's Scenarios block (:1346-1375, element scenario-recents-serialize-v-m-036): parallel_folder_additions_all_persist (both racing folders persist; red-first where the second set overwrote the first) beside the four untouched _pushRecentFolder pins, plus the runtime-recent queue pins parallel_adds_invoke_one_at_a_time_and_all_resolve and a_rejecting_add_fails_only_its_own_caller (the rejection-isolation guard recorded honestly), with the four-file vitest command. No other verification content changes.</Criterion>
+          <Criterion>File-local markup: VERSION bumps and dated 2026-11-23 C-RECENTS-SERIALIZE CHANGE_SUMMARY entries on m017_recent.rs (1.1.1 → 1.2.0) and project.js (2.0.0 → 2.1.0); dated C-RECENTS-SERIALIZE CHANGE_SUMMARY entries only on m005_prefs.rs and recent.ts (no VERSION lines exist in those two files — recorded fact); dated header notes on the touched test files per their existing header style (runtime-recent.test.ts, project-coverage.test.js). No locale file changes anywhere in the bundle (no new user-facing strings — the skip marker is console-only).</Criterion>
+          <Criterion>Combined-diff audit: the whole change touches exactly the ObservedWriteScope files; the read-only anchors carry ZERO diffs — editor.js (both call sites byte-identical), recent/index.vue, filePositionStore.js, m047_bookmarks.rs, main.rs, m013b, ipc/contract/types.ts, static/locales/* and tauri.conf.json. Final assertions all green with no skips and no budget increases: the four TargetAssertions MustPassCommands plus the XML parse check below; grace lint stays the orchestrator's gate (no self-referential lint command in this plan); the spec VerificationIntent's full gates (cargo test --manifest-path src-tauri/Cargo.toml --bin mark, npm test, grace lint --change C-RECENTS-SERIALIZE --assertions final --run-commands) run at the orchestrator's final gate.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m017_recent</Command>
+          <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark prefs</Command>
+          <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/ipc/runtime-recent.test.ts tests/renderer/store/project-coverage.test.js tests/renderer/components/recent.test.js tests/renderer/components/recent-paste.test.js</Command>
+          <Command budgetSeconds="60">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/runtime.xml'); ET.parse('.grace/graph/features.xml'); ET.parse('.grace/verification/runtime.xml'); ET.parse('.grace/verification/features.xml'); ET.parse('.grace/changes/active/C-RECENTS-SERIALIZE/plan.xml')"</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Environment>Baseline discipline: this plan was drafted against the read-only green-rec1 worktree (branch spec/recents-serialize, base 1dbe9bb9); at implementation start the executor revalidates every BaselineAssertions anchor on the actual delivery baseline (recent_add_inner's unlocked load→modify→store at m017_recent.rs:81-90, the get/release and set/re-lock split in m005_prefs.rs:312-324, set_many :332-338 and set_many_with_rename :360-371, the fire-and-forget call sites editor.js:513/:1936, _pushRecentFolder :109-118 and the SET/GET actions :650-673, the serializedStoreMutation precedent filePositionStore.js:202-217, the four _pushRecentFolder pins :471-508, the runtime-recent wrapper pins, and the graph/verification anchors :1272/:2636/:6437/:1501/:3842/:6438/:10583/:1592/:1339/:706) and reruns the affected suites before landing anything. Tasks run strictly sequentially T-001 → T-002 → T-003 → T-004 → T-005 (T-003 is logically independent of T-002 but lands in this order). Every new pin is demonstrated failing-first per its task before its implementation lands, with the recorded red-state conventions: the backend concurrency pin RED behaviorally through the parked #[cfg(test)] gap seam (deterministic Ready/Done dispatch, no sleeps), the three rename-seam backend pins RED-BY-ABSENCE (compile failure) until T-002, the renderer parallel-add and racing-folder pins RED behaviorally, and the honestly-recorded green pins (recent_changed_add_still_persists_through_the_seam, recent_add_performs_at_most_one_save_through_the_seam, a_rejecting_add_fails_only_its_own_caller) recorded as negative-control/discipline/guard coverage, exactly per the spec's VerificationIntent honesty bar. CAUTION ledger: (1) the concurrency pin's dispatch must NEVER block on the Ready message when the seam is unreachable — a post-fix hang is a design violation, not a pass; (2) the gap seam must never move inside the update closure — parking there deadlocks on the non-reentrant mutex (the recorded design guard); (3) both renderer queue tails swallow rejections to stay alive while per-caller results propagate — a broken chain is a contract breach; (4) recent_remove_inner/recent_insert_inner and mt_recent_clear keep their exact bodies (deviation d; the C-46 pins and the clear pins are the guard); (5) m005 stays generic — the recents key literal must not appear in m005_prefs.rs (the MustNotContain guard); (6) the m047_bookmarks::remember grant moment stays outside the lock and ahead of the list write; (7) the ten-locale rule does NOT bind — no user-facing string is surfaced (the skip marker is console-only; serialization is silent); (8) the four-file must-stay-green vitest set includes recent.test.js and recent-paste.test.js untouched (review minor 3). Review-minor resolutions carried: (1) the recent.ts facade delta narrates through M-005 and M-011 (M-017's Sources list only the rust file), stated in T-005 criterion 1; (2) new V-M-017 scenario text uses MAX_RECENT_DOCS = 10 and inherits no legacy «12»; (3) recent.test.js/recent-paste.test.js in the must-stay-green set; (4) the compensating --bin mark m017_recent command rides the TargetAssertions and T-002/T-005 beside the V-M-017 recorded recent command, and an --bin mark prefs command covers the new m005 pins (the C-SESSION-DURABILITY filter precedent; the full --bin mark run stays the orchestrator's final gate per the spec VerificationIntent). Predecessor contracts stay green and unweakened: all 18 m017 tests incl. the four C-46 remove/insert pins, the m005 set_many/get_many/quarantine pins, the filePositionStore queue/tri-state/cap pins (file-position-store.test.js), the recentlyClosed and session-restore suites, the runtime-recent wrapper pins, the four existing _pushRecentFolder pins, and the recent.test.js/recent-paste.test.js suites. Final gates are the orchestrator's: grace lint --path . --assertions current before editing, --change C-RECENTS-SERIALIZE --assertions target during implementation, --assertions final --run-commands before handoff, and current after archiving; the drafting lint requirement on this plan is ZERO new lint errors. No apply/archive, commit/push, lane departure, release, signing, version, tag or publication is authorized by this plan; no SpecSha256 field is carried (the orchestrator stamps it).</Environment>
+    </AcceptanceVerification>
+    <ExecutionMode>sequential</ExecutionMode>
+    <Lifecycle>Drafted 2026-11-23 from the approved spec C-RECENTS-SERIALIZE for orchestrator admission; the orchestrator owns status transitions and the durable/final/archive/publication boundaries. Writing this draft approves neither implementation nor apply/archive, commit/push, lane admission, release, signing, tag or publication.</Lifecycle>
+  </C-RECENTS-SERIALIZE>
+</GraceChangePlan>
