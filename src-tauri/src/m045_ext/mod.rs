@@ -93,7 +93,7 @@ pub use registry::{ExtRegistry, ExtensionInfo};
 #[allow(unused_imports)]
 pub use live_server::{start_live_server, LiveServerState};
 #[allow(unused_imports)]
-pub use live_endpoint::{write_endpoint, cleanup_endpoint, make_endpoint};
+pub use live_endpoint::{write_endpoint, cleanup_endpoint, make_endpoint, publish_endpoint_with_retry, EndpointPublication, ENDPOINT_PUBLISH_ATTEMPTS, ENDPOINT_PUBLISH_RETRY_PAUSE_MS};
 #[allow(unused_imports)]
 pub use live_bridge::{emit_live_update, emit_doc_open, emit_doc_patch, emit_doc_close, emit_context_request, LiveUpdate};
 #[allow(unused_imports)]

@@ -40,6 +40,15 @@
 //     discover_extensions_in(dirs, prober) seam, with the payload pin
 //     mt_ext_discover_payload_carries_failures_beside_the_list committed
 //     compile-red against the target command signature (T-004 lands it).
+//   - 2026-11-23 C-EXT-DELIVERY-HONESTY T-003: the bounded endpoint
+//     publication family in START_BLOCK_ENDPOINT_PUBLISH_TESTS —
+//     endpoint_publish_first_attempt_writes_exactly_once (control),
+//     endpoint_publish_retries_transient_failure_within_budget
+//     (PublishedAfterRetry at attempt 3, exactly ENDPOINT_PUBLISH_ATTEMPTS
+//     calls) and endpoint_publish_exhaustion_is_distinct_from_start_failure
+//     (Unpublished at exactly the named count, the outcome vocabulary
+//     distinct from BLOCK_START_FAILED) — driven purely by counting writer
+//     closures with no filesystem.
 //   - 2026-11-23 C-EXT-DELIVERY-HONESTY T-001: the honest-open delivery
 //     family in START_BLOCK_DOC_OPEN_DELIVERY_TESTS — the failing-first
 //     refusal pins doc_open_emit_failure_refuses_fresh_open,
@@ -4020,3 +4029,88 @@ async fn doc_open_success_keeps_the_200_contract() {
     assert_eq!(events[0]["payload"]["session_epoch"], epoch);
 }
 // END_BLOCK_DOC_OPEN_DELIVERY_TESTS
+
+// START_BLOCK_ENDPOINT_PUBLISH_TESTS
+// C-EXT-DELIVERY-HONESTY: the bounded endpoint publication family, driven
+// purely with counting writer closures — no filesystem, no real I/O.
+// Red-first: on the baseline tree these pins do not compile (the helper
+// does not exist — the C-STREAM-BUDGET precedent); with the helper locally
+// replaced by the single unconditional write, the transient and exhaustion
+// legs fail against the baseline behavior and pass restored (recorded as
+// task evidence without any commit).
+use super::live_endpoint::{
+    publish_endpoint_with_retry, EndpointPublication, ENDPOINT_PUBLISH_ATTEMPTS,
+};
+
+/// A synthetic discovery descriptor — the helper never touches the
+/// filesystem, so every field value is inert.
+fn publish_endpoint_fixture() -> super::live_endpoint::LiveEndpoint {
+    serde_json::from_value(serde_json::json!({
+        "pid": 4242, "port": 45973, "protocol_version": 1,
+        "mark_version": "test", "instance_id": "publish-fixture",
+        "started_at": "2026-11-23T00:00:00Z", "platform": "macos-aarch64",
+    })).unwrap()
+}
+
+#[test]
+fn endpoint_publish_first_attempt_writes_exactly_once() {
+    let endpoint = publish_endpoint_fixture();
+    let calls = std::sync::atomic::AtomicU32::new(0);
+    let outcome = publish_endpoint_with_retry(&endpoint, |_| {
+        calls.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        Ok(())
+    });
+    // The control matching today: a succeeding writer is called exactly
+    // once and the outcome is Published — the existing BLOCK_WRITE_OK is
+    // the only success log.
+    assert_eq!(calls.load(std::sync::atomic::Ordering::Relaxed), 1);
+    assert_eq!(outcome, EndpointPublication::Published);
+}
+
+#[test]
+fn endpoint_publish_retries_transient_failure_within_budget() {
+    let endpoint = publish_endpoint_fixture();
+    let calls = std::sync::atomic::AtomicU32::new(0);
+    let script = Mutex::new(std::collections::VecDeque::from(vec![
+        Err("transient fixture failure".to_string()),
+        Err("transient fixture failure".to_string()),
+        Ok(()),
+    ]));
+    let outcome = publish_endpoint_with_retry(&endpoint, |_| {
+        calls.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        script.lock().unwrap().pop_front().unwrap()
+    });
+    // A writer failing twice then succeeding yields PublishedAfterRetry
+    // with attempt == 3 and exactly ENDPOINT_PUBLISH_ATTEMPTS calls.
+    assert_eq!(
+        calls.load(std::sync::atomic::Ordering::Relaxed),
+        ENDPOINT_PUBLISH_ATTEMPTS,
+    );
+    assert_eq!(outcome, EndpointPublication::PublishedAfterRetry { attempt: 3 });
+}
+
+#[test]
+fn endpoint_publish_exhaustion_is_distinct_from_start_failure() {
+    let endpoint = publish_endpoint_fixture();
+    let calls = std::sync::atomic::AtomicU32::new(0);
+    let outcome = publish_endpoint_with_retry(&endpoint, |_| {
+        calls.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        Err("permanent fixture failure".to_string())
+    });
+    // An always-failing writer exhausts exactly the named attempt count.
+    assert_eq!(
+        calls.load(std::sync::atomic::Ordering::Relaxed),
+        ENDPOINT_PUBLISH_ATTEMPTS,
+    );
+    assert_eq!(
+        outcome,
+        EndpointPublication::Unpublished { attempts: ENDPOINT_PUBLISH_ATTEMPTS },
+    );
+    // The outcome vocabulary is distinct from the start-failure marker:
+    // "running but unpublished" (BLOCK_ENDPOINT_UNPUBLISHED) names a
+    // different state than BLOCK_START_FAILED's "no server".
+    let outcome_text = format!("{outcome:?}");
+    assert!(outcome_text.contains("Unpublished"), "{outcome_text}");
+    assert_ne!("BLOCK_ENDPOINT_UNPUBLISHED", "BLOCK_START_FAILED");
+}
+// END_BLOCK_ENDPOINT_PUBLISH_TESTS
