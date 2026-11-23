@@ -27,6 +27,64 @@ describe('ipcRecent', () => {
     })
   })
 
+  describe('add serialization (C-RECENTS-SERIALIZE T-003)', () => {
+    it('parallel_adds_invoke_one_at_a_time_and_all_resolve', async () => {
+      // C-RECENTS-SERIALIZE T-003: the facade serializes add behind one
+      // chained-promise queue — while the FIRST mt_recent_add invoke is
+      // pending, NO second invoke may be issued (pre-fix both invokes
+      // fire concurrently, which the red run records); after release
+      // every queued add resolves and per-caller results keep
+      // propagating. Deterministic: a controlled pending-first mock, no
+      // timers, no sleeps — only microtask turns.
+      let releaseFirst!: () => void
+      const firstPending = new Promise<void>((resolve) => {
+        releaseFirst = resolve
+      })
+      let inFlight = 0
+      ;(tauriInvoke as any).mockImplementationOnce(() => {
+        inFlight += 1
+        return firstPending.then(() => {
+          inFlight -= 1
+        })
+      })
+
+      const first = ipcRecent.add('/docs/one.md')
+      await vi.waitFor(() => expect(tauriInvoke).toHaveBeenCalledTimes(1))
+      expect(inFlight).toBe(1)
+
+      const second = ipcRecent.add('/docs/two.md')
+      const third = ipcRecent.add('/docs/three.md')
+
+      // Give any eager (pre-fix) implementation every chance to fire —
+      // several microtask turns, still no timers and no sleeps. The
+      // pending first invoke must remain the ONLY one issued.
+      for (let i = 0; i < 10; i++) await Promise.resolve()
+      expect(tauriInvoke).toHaveBeenCalledTimes(1)
+      expect(inFlight).toBe(1)
+
+      releaseFirst()
+      await Promise.all([first, second, third])
+      expect(tauriInvoke).toHaveBeenCalledTimes(3)
+      expect(tauriInvoke).toHaveBeenNthCalledWith(2, 'mt_recent_add', { path: '/docs/two.md' })
+      expect(tauriInvoke).toHaveBeenNthCalledWith(3, 'mt_recent_add', { path: '/docs/three.md' })
+    })
+
+    it('a_rejecting_add_fails_only_its_own_caller', async () => {
+      // C-RECENTS-SERIALIZE T-003: queue-continuity guard — one
+      // rejecting add fails ONLY its own caller while adds behind it
+      // still resolve. Recorded honestly as green-by-design on the
+      // baseline (there is no queue to break before the facade queue
+      // lands); the contract binds the post-fix implementation: a
+      // rejection must never poison the queue chain.
+      ;(tauriInvoke as any)
+        .mockRejectedValueOnce(new Error('recent add boom'))
+        .mockResolvedValueOnce(undefined)
+
+      await expect(ipcRecent.add('/docs/bad.md')).rejects.toThrow('recent add boom')
+      await expect(ipcRecent.add('/docs/good.md')).resolves.toBeUndefined()
+    })
+  })
+
   describe('list', () => {
     it('calls ipcInvoke with mt::recent::list and returns string[]', async () => {
       const paths = ['/a.md', '/b.md', '/c.md']

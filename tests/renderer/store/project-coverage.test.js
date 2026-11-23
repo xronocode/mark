@@ -505,6 +505,54 @@ describe('store/project — coverage gaps', () => {
       store.ADD_PROJECT('/safe')
       expect(store.projectTrees).toHaveLength(1)
     })
+
+    it('parallel_folder_additions_all_persist', async () => {
+      // C-RECENTS-SERIALIZE T-003: two racing ADD_PROJECT calls against
+      // an accumulating fake ipcPrefs store with the FIRST get held
+      // pending — after await-quiescence the persisted recentFolders
+      // list must contain BOTH folders. RED on the pre-fix baseline:
+      // the held RMW's read landed at invoke time, so after the second
+      // RMW fully settles (its set landed) the release makes the stale
+      // first write land LAST and erase the second folder. Deterministic
+      // per side: pre-fix the release is gated on the second set having
+      // landed; post-fix the one queue holds the second RMW behind the
+      // first, so no set can land before the release and a bounded
+      // quiescence probe (not a sleep — nothing can fire in that window
+      // by queue semantics) proves exactly that.
+      let releaseFirstGet
+      const firstGetGate = new Promise((resolve) => {
+        releaseFirstGet = resolve
+      })
+      const persisted = ['/old']
+      ipcPrefsGetMock.mockImplementation(async () => [...persisted])
+      ipcPrefsGetMock.mockImplementationOnce(() => {
+        // Faithful read-at-invoke semantics: the captured read is what
+        // the unserialized store returned when this get was issued.
+        const read = [...persisted]
+        return firstGetGate.then(() => read)
+      })
+      ipcPrefsSetMock.mockImplementation(async (_key, list) => {
+        persisted.length = 0
+        persisted.push(...list)
+      })
+
+      const store = await loadStore()
+      store.ADD_PROJECT('/first/proj')
+      store.ADD_PROJECT('/second/proj')
+
+      await vi
+        .waitFor(() => expect(ipcPrefsSetMock).toHaveBeenCalledTimes(1), {
+          timeout: 100,
+          interval: 1
+        })
+        .catch(() => {})
+      releaseFirstGet()
+
+      // Await-quiescence: every recents RMW has landed its write.
+      await vi.waitFor(() => expect(ipcPrefsSetMock).toHaveBeenCalledTimes(2))
+      expect(persisted).toContain('/first/proj')
+      expect(persisted).toContain('/second/proj')
+    })
   })
 
   describe('GET_RECENT_FOLDERS', () => {
