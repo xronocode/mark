@@ -2808,6 +2808,7 @@ export const useEditorStore = defineStore('editor', {
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   EXPORT: 2026-11-23 C-EXPORT-DOCUMENT-PIN: additive optional exportPin through EXPORT/_EXPORT_DOCX/_EXPORT_PDF — assertExportPinCurrent refuses before any dialog when the pinned document no longer owns the active surface (owner token + currentFile.id + contentRevision + pathname equality, closing the rename window for free) and re-verifies after each save dialog resolves and before any write or mt_export_pdf invocation; the disk predicate is HASH-OVER-BYTES (SHA-256 over the ipcFs.readBinary bytes via crypto.subtle.digest with a stat short-circuit that may refuse early and NEVER waives the digest compare — a same-size same-mtime rewrite cannot pass); refusals raise exactly one localized editor.export.pinMismatch / pinDiskChanged notice (four new keys in all ten locales) plus the count-only [export][pin][BLOCK_EXPORT_PIN_MISMATCH class=identity|disk] marker; pin-absent callers keep today's path and live default-name reads byte-identical, pinned runs derive names from the pinned pieces (including the pdf default name); cancel in the save dialog returns before verification and stays silent (corner-2).
 //   - 2026-11-23 C-SESSION-DURABILITY: the restore read hygiene — the
 //     live RESTORE_SESSION and the BOOT_SESSION cold-start capture read
 //     the four-key profile as ONE batched ipcPrefs.getMany request

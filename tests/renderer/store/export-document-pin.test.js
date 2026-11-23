@@ -62,6 +62,12 @@ const digestHex = async (text) => {
   return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
+// ──────────────────────────────────────────────────────────────────────
+// START_BLOCK_EXPORT_DOCUMENT_PIN
+// C-EXPORT-DOCUMENT-PIN: the store-level refusal and compatibility pins
+// (see the module contract above).
+// ──────────────────────────────────────────────────────────────────────
+
 describe('editor store export document pin (C-EXPORT-DOCUMENT-PIN)', () => {
   let store
   let debugSpy
