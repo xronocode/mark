@@ -1822,7 +1822,8 @@
     }
   },
   "extensions": {
-    "disableFailed": "扩展已禁用，但无法确认访问权限已撤销。请重试。"
+    "disableFailed": "扩展已禁用，但无法确认访问权限已撤销。请重试。",
+    "revokePending": "请再次停用该扩展以重试撤销其访问权限；撤销成功后请重新配对。"
   },
   "documentOperations": {
     "title": "未保存的更改",

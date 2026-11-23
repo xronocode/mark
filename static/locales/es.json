@@ -1830,7 +1830,8 @@
     }
   },
   "extensions": {
-    "disableFailed": "La extensión está desactivada, pero no se pudo verificar la revocación del acceso. Inténtalo de nuevo."
+    "disableFailed": "La extensión está desactivada, pero no se pudo verificar la revocación del acceso. Inténtalo de nuevo.",
+    "revokePending": "Desactive de nuevo la extensión para reintentar revocar su acceso; vincúlela de nuevo cuando la revocación se haya completado."
   },
   "documentOperations": {
     "title": "Cambios sin guardar",

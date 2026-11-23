@@ -1831,7 +1831,8 @@
     }
   },
   "extensions": {
-    "disableFailed": "A extensão está desativada, mas não foi possível verificar a revogação do acesso. Tente novamente."
+    "disableFailed": "A extensão está desativada, mas não foi possível verificar a revogação do acesso. Tente novamente.",
+    "revokePending": "Desative a extensão novamente para repetir a revogação do acesso; pareie novamente assim que a revogação for concluída."
   },
   "documentOperations": {
     "title": "Alterações não guardadas",

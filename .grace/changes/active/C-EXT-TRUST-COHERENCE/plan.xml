@@ -1,0 +1,527 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-EXT-TRUST-COHERENCE>
+    <ChangeRef>C-EXT-TRUST-COHERENCE</ChangeRef>
+    <Created>2026-11-23</Created>
+    <IntentSummary>Make the extension trust lifecycle coherent end to end: the incoming data routes (/ext/text-insert, /ext/context, /ext/apply) get the same post-authentication disable fence the /stream/* routes already have — authenticate_incoming snapshots the authorization_epoch beside the resolved id and every data handler re-checks it under stream_gate before any dedup, fence, validation or emit, refusing 401 with the file's plain "extension is not enabled" body and a distinct BLOCK_ log; a disable in flight drains the pending /ext/context reads it owns (the woken handler re-checks the epoch before serving or recording anything, a late renderer response is discarded, nothing enters EXT_DOCUMENT_BINDINGS); a disable whose credential revocation failed records a persistent revoke-pending marker beside the credential so the retry-enable path can no longer silently re-arm the surviving secret — re-arming requires an explicit successful revocation retry or a fresh pairing, mt_ext_enable answers ext_enable_revoke_pending meanwhile, and the gallery's retry keeps sending Disable with the refusal surfaced through a new ten-locale instruction key; and a rebind whose manifest has grown shows every added capability in the pairing dialog before any grant is overwritten (equality and narrowing dialogs state the grant truth instead of today's unconditional "a rebind changes no grant set"), with the dialogs never displaying a caller-reported name that contradicts the registered manifest. Proven by failing-first read_pause fence pins on apply and insert, the context-cancellation pin with its no-binding 409 proof and late-response discard, the revoke-penable enable-refusal family with both clear-on-proof paths and the unreadable-marker refusal, the gallery retry-sync and instruction-mapping vitest pins with the locale parity pin, the pure rebind-classification and name-trust helper pins with harness-approved growth/narrowing/legacy paths, and the unchanged predecessor suites (disable-revocation, grant-bound, rebind, stream-security, binding matrix, incoming refusals) with zero moved pins.</IntentSummary>
+    <ReferenceState>Authored 2026-11-23 against the exact base 689df8aa of the spec/ext-trust-coherence worktree, post C-SEC-EXT-GRANT-BOUND and before C-EXT-EDIT-PROOF (#321, in review — the rebase duty is recorded in Environment): src-tauri/src/m045_ext/live_server.rs: StreamIdentity (547-560) whose is_enabled compares registry.authorization_epoch against the snapshotted epoch (554-556); authenticate_stream (568-602) enforcing the stored stream.document grant with BLOCK_STREAM_GRANT_REFUSED (584, 590) and the stream fence voice "extension is not enabled" (574); handle_doc_open's fence precedent — stream_gate taken (1008), identity.is_enabled re-check answering 401 "extension is not enabled" (1016-1018); RouteCapability (625-661) with name/grant_phrase/all in fixed order; grant_authorizes (667-669); incoming_capability_names (674-676); authenticate_incoming (686-711) returning ONLY the resolved id as Result&lt;String, (StatusCode, String)&gt; — candidates from registry.get_manifest(id) for a declared identity (695) or registry.get_enabled(cap.name()) (696), the token+grant decision inside spawn_blocking (698-705), refusal 401 BLOCK_AUTH_FAILED_INCOMING (709-710) — no epoch snapshot comes back, which is exactly the fence gap this change closes. Pairing: pairing_grant_description (724-744), pairing_rebind_description (752-759) whose doc comment and text claim "a rebind changes no grant set" unconditionally (748-750), handle_pair (780-994): peek_manifest declared read (796-801), prior-secret rebind gate constant-time (808-837), cfg(test) auto-approval (841-848), release dialog arm cfg(not(test)) building both descriptions from req.extension_name (849-876), denial branch (878-887) returning before any store, approved capture = declared∩RouteCapability::all() stored BEFORE the secret (889-909), the rebind old-key-death proof (929-978: BLOCK_PAIR_OLD_KEY_STILL_VALID 953, BLOCK_PAIR_CREDENTIAL_VERIFY_READ_FAILED 960) before BLOCK_PAIR_OK (980-983). Data routes: handle_text_insert (1542-1587) authenticates (1547) and emits mt::text::op (1568) answering {"ok": true} (1583-1586) with no re-check; handle_ext_context (1593-1680) authenticates (1598), registers the pending oneshot (1612-1617), emits the renderer request (1619), waits 5 s (1635), records EXT_DOCUMENT_BINDINGS on success (1642-1651), answers 500 on channel closed (1659-1667) and 504 on timeout (1668-1678); handle_ext_apply (1689-1811) authenticates (1694), the C-SEC-EDIT-TARGETING binding fence (1705-1737), then emits the whole batch (1745-1796) and answers applied:true (1798-1810) with no re-check. LiveServerState.pending_context is HashMap&lt;String, oneshot::Sender&lt;ExtContextResponse&gt;&gt; (168); the mt::ext::context_response listener drops missing entries silently (1954-1969); the src-tauri/src/main.rs literal (823-828) constructs pending_context as HashMap::new() and stays textually unchanged by this change. src-tauri/src/m045_ext/mod.rs: mt_ext_enable (98-149) mints when no secret exists (103-107), the coverage gate before stream_gate (109-143, ext_enable_reapproval_required 141), enable under stream_gate (145-147); mt_ext_disable (153-199) fences and deactivates under stream_gate (160-171), revokes strictly (172-177), the failure branch BLOCK_DISABLE_REVOKE_FAILED / ext_disable_revoke_failed returning BEFORE the grant block (178-181), best-effort grant revocation (182-196). src-tauri/src/m045_ext/registry.rs: register overwrites state (91-110), disable bumps authorization_epoch (133-150), authorization_epoch answers only for enabled ids (199-203), get_manifest refuses disabled ids (206-216, "extension '{id}' is disabled" 213), peek_manifest answers regardless of enabled state (223-226), stream_gate (77). src-tauri/src/m045_ext/auth.rs: the credential store — secret_key (42-44), MEM_STORE (46-47), the Credential trait (51-55), TEST_BACKENDS injection (91-99), verifying store_secret (127-155), restore_previous_memory (159-167), read_credential_record (173-175), the two-records-per-id grant family — grant_key "ext:{ext_id}:approved_grant" (179-181), MEM_GRANTS (185-186), grant_credential with TEST_GRANT_BACKENDS (188-206), store_grant verifying through get_grant (213-232), get_grant with get_secret's precedence (238-249), revoke_grant (251-257) — get_secret (261-269), revoke_secret/verify_secret_absent (273-291), validate_token/constant_time_eq (295-324), test helpers (327-350). src-tauri/src/m045_ext/tests.rs: the incoming_fixture family (929-1035) with the grant injection mechanically inside incoming_fixture_with_grant (961-1035), the incoming-refusal pins (1056-1150), the binding matrix (1159-1231), DummyCredential with read_pause/fail_delete/fail_read/fail_write/keep_after_delete (1243-1283, the pause leg 1256-1262), the disable family (1322-1368: disable_surfaces_revoke_failure sets fail_delete at 1342), enabled_extension_passes_only_declared_capability_routes (1371), pairing_grant_description_names_only_declared_capabilities (1396), fresh_pair_secret/fresh_pairing_restores_access (1421-1492), the #298 grant family (1513-1680), the stream security family (1857-1989) with the read_pause disable-crossing pattern in stream_authentication_cannot_cross_disable_or_session_replacement (1924-1965) and the response-body reader budget_body (2049). src/renderer/src/components/extensionGallery/index.vue: toggleExtension (177-204) choosing the action purely from the refetched flag — `const action = ext.enabled ? 'mt_ext_disable' : 'mt_ext_enable'` (178), the stale-flag retry bug — with the ext_enable_reapproval_required mapping (187-192) and the ext_disable_revoke_failed mapping (193-194); the ten static/locales tables carry extensions.disableFailed and NO extensions.reapprovalRequired key (the renderer falls back to its English copy — an inherited gap recorded as a B3 non-goal). tests/renderer/components/extensionGallery/index.test.js drives toggles through input[type="checkbox"] setValue with invokeMock (124-165, the re-approval mapping test 152-165); tests/renderer/i18n/locale-keys.test.js pins FEEDBACK_KEYS incl. extensions.disableFailed across the ten locales (50-64, 108-125). Graph anchor .grace/graph/features.xml M-045 (SummaryDelta chain ends at the C-SEC-EXT-GRANT-BOUND delta, lines 2373-2375, before the closing tag 2376); verification anchor .grace/verification/features.xml V-M-045 (native Command 1981 already the executed form; scenario chain ends at scenario-security-stream-budget 2424). Design decisions locked by this plan: (1) Fence mechanism — authenticate_incoming returns IncomingIdentity { extension_id, authorization_epoch } (the epoch snapshotted via registry.authorization_epoch on the resolved id before return; a disable already landed at resolution keeps today's BLOCK_AUTH_FAILED_INCOMING 401); every data handler takes stream_gate immediately after authentication — before any dedup, binding fence, validation or emit — re-checks IncomingIdentity against the registry exactly like StreamIdentity::is_enabled, refuses 401 with the plain "extension is not enabled" body plus BLOCK_INCOMING_FENCE_REFUSED (route= and id= fields), and holds the gate across the in-memory pre-emit section only (apply: re-check → binding lookup → emit loop; insert: re-check → emit; context: re-check → pending registration, the gate RELEASED before the 5 s wait); no keyring I/O, no bounded renderer wait and no session mutation join the gate; today's lock order (stream_gate, then session, then leaf std Mutexes) is preserved. (2) Composed route order, the invariant regardless of merge order with #321: capability authentication → enabled fence (this change) → #321's dedup short-circuit → binding fence → #321's op validation → emit/ack; anchors are anchor-semantic ("immediately after the authenticate_incoming call in each data handler") and are re-anchored on the merged tree. (3) Context cancellation — the pending value gains the extension id inside live_server.rs (struct PendingContextEntry; the main.rs literal stays textually unchanged); mt_ext_disable drains the disabled extension's entries under stream_gate (pub(super) fn drain_pending_context, BLOCK_DISABLE_CONTEXT_DRAINED count); the woken handler re-checks the epoch under stream_gate before answering or recording — the choice is fixed YES to the pre-serve re-check (review minor a), because it bounds even a response that legitimately overtook the drain: disabled ⇒ 401 fence voice BLOCK_EXT_CONTEXT_CANCELLED with nothing recorded, still-enabled channel closure keeps the existing 500 voice, late responses stay dropped by the unchanged listener. (4) Revoke-pending — the marker is auth.rs's third record (revoke_pending_key "ext:{ext_id}:revoke_pending", a constant value, no secret material, MEM mirror, its own backend family with test injection, store/get/clear with the store_grant discipline at auth.rs:213-232) precisely because re-discovery's state-overwriting register (registry.rs:91-110) cannot touch auth.rs records; the marker is written on the EXISTING ext_disable_revoke_failed branch AFTER the failure is known — marker-before-revoke is rejected because it would mark every successful disable pending too — and a marker write failing alongside the revocation failure (a backend that cannot delete usually cannot write) is the distinct logged BLOCK_DISABLE_REVOKE_PENDING_UNRECORDED residual, documented in the auth.rs MODULE_CONTRACT, not handled (review minor b); mt_ext_enable refuses Err("ext_enable_revoke_pending") before the mint and before stream_gate (BLOCK_ENABLE_REVOKE_PENDING; an unreadable marker BLOCK_ENABLE_REVOKE_PENDING_UNREADABLE — one machine code, two log states); the marker clears on proof only — a successful disable (strict persistent and memory absence; the clear is best-effort with BLOCK_REVOKE_PENDING_CLEAR_FAILED logged, the idempotent retry-disable being the recovery) or a successful pairing (best-effort BLOCK_PAIR_REVOKE_PENDING_CLEARED / _CLEAR_FAILED after the rebind proof, before BLOCK_PAIR_OK). (5) Gallery retry — a per-id revoke-pending set in index.vue; the action is mt_ext_disable when the id is pending or the flag is enabled; pending is added on ext_disable_revoke_failed, removed on a successful disable and whenever the refetched list shows the extension enabled; the ext_enable_revoke_pending refusal surfaces t('extensions.revokePending', ...) — the single new gallery-visible key, shipped under the extensions namespace in all ten locales with non-empty native copy and pinned by FEEDBACK_KEYS (review minor c: the inherited fallback-only extensions.reapprovalRequired gap stays a recorded B3 non-goal and is not repeated here). (6) Rebind honesty — classify_grant_change (pure; Growth{added}/Equal/Narrow over the stored grant vs the declared incoming set; a None stored grant classifies as growth over everything declared) runs before the approval decision; an unreadable stored grant is BLOCK_PAIR_GRANT_UNREADABLE 500 pairing nothing; the growth dialog keeps the key-replacement statement and enumerates every added capability's grant phrase in all() order; equality states no grant change; narrowing names the accesses that stop being served; the capture rule is unchanged (declared∩all() in all() order); the denial branch is byte-unchanged — the harness auto-approves by design, so deny-safety is pinned through the pure descriptions plus the unchanged refusal branch and the unproven-rebind pin keeping the prior grant and key fully valid. (7) Name trust — pairing_display_name (pure, beside pairing_grant_description) yields the registered manifest's name for a registered id, the reported name for an unregistered one, and a distinct mismatch flag; a mismatch is BLOCK_PAIR_NAME_MISMATCH log-only, no refusal (review minor e — the justification is spec Goal 5's: the id anchors authorization, the name is advisory, and refusing would let a lying caller disrupt a legitimate pairing). (8) Apply emit→ack boundary (review minor d) — the fence guarantees emit ordering: every mt::text::op passes the fence first; ops emitted under the gate before a disable lands answer applied:true even when the disable completes before the HTTP ack is written; no un-emit or rollback exists or is attempted; the disable's own fence and doc_close govern everything after; a fenced refusal never answers ok:true or applied:true. (9) Verification — the two MustPassCommands below are the executed forms; the spec's second ExpectedCommand names the extensionGallery/textOps pair: deviation recorded deliberately, textOps.test.js is an untouched regression-only suite (still green, run as task evidence) while locale-keys.test.js is load-bearing because this change adds a locale key. (10) This draft carries no SpecSha256 field; the orchestrator computes and injects it over the approved spec bytes at admission, per the drafting instruction. Deviation note (one, deliberate): the spec enumerates an exact fifteen-file ObservedWriteScope; this plan appends .grace/graph/features.xml and .grace/verification/features.xml because the spec's own constraints require the GRACE surface to stay synchronized and task T-007 writes those governed files — the same extension the C-SEC-EXT-GRANT-BOUND, C-SEC-STREAM-SCOPE and C-SEC-PAIR-REBIND plans applied over their specs. Per the drafting instruction this plan carries no self-referential grace-lint MustPassCommand; the orchestrator runs current/target/final lifecycle assertions itself. Writing this draft approves neither the execution plan nor code implementation, apply/archive, commits, departure into main, manual-acceptance exceptions or release.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src-tauri/src/m045_ext/live_server.rs</Value>
+        <Value>src-tauri/src/m045_ext/auth.rs</Value>
+        <Value>src-tauri/src/m045_ext/mod.rs</Value>
+        <Value>src-tauri/src/m045_ext/registry.rs</Value>
+        <Value>src-tauri/src/m045_ext/tests.rs</Value>
+        <Value>src-tauri/src/main.rs</Value>
+        <Value>src/renderer/src/components/extensionGallery/index.vue</Value>
+        <Value>tests/renderer/components/extensionGallery/index.test.js</Value>
+        <Value>tests/renderer/components/extensionGallery/textOps.test.js</Value>
+        <Value>tests/renderer/i18n/locale-keys.test.js</Value>
+        <Value>static/locales/en.json</Value>
+        <Value>static/locales/de.json</Value>
+        <Value>static/locales/es.json</Value>
+        <Value>static/locales/fr.json</Value>
+        <Value>static/locales/ja.json</Value>
+        <Value>static/locales/ko.json</Value>
+        <Value>static/locales/pt.json</Value>
+        <Value>static/locales/ru.json</Value>
+        <Value>static/locales/zh-CN.json</Value>
+        <Value>static/locales/zh-TW.json</Value>
+        <Value>.grace/graph/features.xml</Value>
+        <Value>.grace/verification/features.xml</Value>
+      </MustExist>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>async fn authenticate_incoming</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>impl StreamIdentity</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>extension is not enabled</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_AUTH_FAILED_INCOMING</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>a rebind changes no grant set</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>pairing_rebind_description</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>pub(super) async fn handle_text_insert</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>pub(super) async fn handle_ext_context</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>pub(super) async fn handle_ext_apply</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>tokio::time::timeout(std::time::Duration::from_secs(5), rx)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>if let Some(tx) = pending.remove(&amp;resp.request_id)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/auth.rs</File>
+        <Text>ext:{ext_id}:approved_grant</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/auth.rs</File>
+        <Text>pub(super) fn store_grant</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/auth.rs</File>
+        <Text>pub(super) fn get_grant</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/auth.rs</File>
+        <Text>BLOCK_STORE_VERIFY_MISMATCH</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/auth.rs</File>
+        <Text>in-memory fallback active</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>BLOCK_DISABLE_REVOKE_FAILED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>ext_disable_revoke_failed</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>ext_enable_reapproval_required</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>let _stream_gate = registry.stream_gate.lock().await;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/registry.rs</File>
+        <Text>pub fn peek_manifest</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/registry.rs</File>
+        <Text>stream_gate: tokio::sync::Mutex</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>read_pause</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>disable_surfaces_revoke_failure</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>fresh_pairing_restores_access</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>stream_authentication_cannot_cross_disable_or_session_replacement</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>fn incoming_fixture_with_grant</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>inject_test_grant_backend</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>pairing_grant_description_names_only_declared_capabilities</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>rebind_refused_when_new_key_fails_verification</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>pair_keychain_read_error_is_a_distinct_refusal</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/main.rs</File>
+        <Text>pending_context: std::sync::Mutex::new(std::collections::HashMap::new())</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/extensionGallery/index.vue</File>
+        <Text>const action = ext.enabled ? 'mt_ext_disable' : 'mt_ext_enable'</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/extensionGallery/index.vue</File>
+        <Text>ext_disable_revoke_failed</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/extensionGallery/index.test.js</File>
+        <Text>surfaces the re-approval instruction when enable exceeds the pairing grant</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/i18n/locale-keys.test.js</File>
+        <Text>extensions.disableFailed</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/en.json</File>
+        <Text>disableFailed</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-045</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>struct IncomingIdentity</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_INCOMING_FENCE_REFUSED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>struct PendingContextEntry</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>pub(super) fn drain_pending_context</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_EXT_CONTEXT_CANCELLED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>fn classify_grant_change</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>fn pairing_display_name</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_PAIR_GRANT_UNREADABLE</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_PAIR_NAME_MISMATCH</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_PAIR_REVOKE_PENDING_CLEARED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_PAIR_OLD_KEY_STILL_VALID</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/auth.rs</File>
+        <Text>ext:{ext_id}:revoke_pending</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/auth.rs</File>
+        <Text>pub(super) fn store_revoke_pending</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/auth.rs</File>
+        <Text>pub(super) fn get_revoke_pending</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/auth.rs</File>
+        <Text>pub(super) fn clear_revoke_pending</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/auth.rs</File>
+        <Text>BLOCK_REVOKE_PENDING_STORED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>ext_enable_revoke_pending</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>BLOCK_ENABLE_REVOKE_PENDING</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>BLOCK_DISABLE_REVOKE_PENDING_RECORDED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>BLOCK_DISABLE_REVOKE_PENDING_UNRECORDED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>BLOCK_DISABLE_CONTEXT_DRAINED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>apply_fences_disable_crossing_paused_authentication</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>text_insert_fences_disable_crossing_paused_authentication</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>context_disable_cancels_the_pending_read</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>enable_after_failed_revocation_is_locked_to_revoke_pending</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>revoke_pending_clears_on_successful_disable_or_rebind</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>unreadable_revoke_pending_marker_is_a_distinct_enable_refusal</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>rebind_growth_classification_enumerates_added_capabilities</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>rebind_equality_and_narrowing_dialogs_state_the_grant_truth</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>legacy_credential_rebind_classifies_as_growth</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>pairing_dialogs_use_the_registered_manifest_name</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>disable_surfaces_revoke_failure</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>fresh_pairing_restores_access</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>pairing_persists_the_captured_grant</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>grow_after_pairing_enable_is_refused_to_reapproval</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>legacy_credential_without_grant_fails_closed</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>stream_requires_stored_stream_document_grant</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>rebind_refused_when_new_key_fails_verification</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>pair_keychain_read_error_is_a_distinct_refusal</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>pairing_grant_description_names_only_declared_capabilities</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>stream_authentication_cannot_cross_disable_or_session_replacement</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/extensionGallery/index.vue</File>
+        <Text>ext_enable_revoke_pending</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/extensionGallery/index.vue</File>
+        <Text>extensions.revokePending</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/extensionGallery/index.test.js</File>
+        <Text>retries disable after a failed revocation instead of enabling</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/extensionGallery/index.test.js</File>
+        <Text>surfaces the revoke-pending instruction when enable is locked</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/extensionGallery/index.test.js</File>
+        <Text>clears the disable retry after a successful disable or an enabled listing</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/i18n/locale-keys.test.js</File>
+        <Text>extensions.revokePending</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/en.json</File>
+        <Text>revokePending</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/main.rs</File>
+        <Text>pending_context: std::sync::Mutex::new(std::collections::HashMap::new())</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/features.xml</File>
+        <Text>C-EXT-TRUST-COHERENCE</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/features.xml</File>
+        <Text>scenario-security-extension-trust-coherence</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/components/extensionGallery/index.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-045 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-045 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src-tauri/src/m045_ext/live_server.rs</File>
+      <File>src-tauri/src/m045_ext/auth.rs</File>
+      <File>src-tauri/src/m045_ext/mod.rs</File>
+      <File>src-tauri/src/m045_ext/tests.rs</File>
+      <File>src/renderer/src/components/extensionGallery/index.vue</File>
+      <File>tests/renderer/components/extensionGallery/index.test.js</File>
+      <File>static/locales/en.json</File>
+      <File>static/locales/de.json</File>
+      <File>static/locales/es.json</File>
+      <File>static/locales/fr.json</File>
+      <File>static/locales/ja.json</File>
+      <File>static/locales/ko.json</File>
+      <File>static/locales/pt.json</File>
+      <File>static/locales/ru.json</File>
+      <File>static/locales/zh-CN.json</File>
+      <File>static/locales/zh-TW.json</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/features.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Failing-first in-flight fence pins on /ext/apply and /ext/text-insert (read_pause disable-crossing legs)</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src-tauri/src/m045_ext/tests.rs gains apply_fences_disable_crossing_paused_authentication: a dual-capability fixture (context.read + text.edit) performs a real context read so handed_binding (1037) holds the pair the apply must echo; the DummyCredential read_pause arm (1250-1262) then pauses authenticate_incoming's credential read for the apply (apply_bound with that valid binding, so the baseline run passes the binding fence and reaches the emit); mt_ext_disable with fail_delete armed completes its registry flip during the pause — the stream_authentication_cannot_cross_disable_or_session_replacement pattern (1924-1965, fail_delete then disable is_err at 1950-1951) — and the resumed apply must answer 401 with the "extension is not enabled" body (read through a response-body reader in the manner of budget_body, 2049) with zero mt::text::op events; against the baseline it answers 200 applied:true and emits the batch (live_server.rs:1694-1810), so the pin is red before T-002; the red run is recorded as task evidence without any commit.</Criterion>
+          <Criterion>text_insert_fences_disable_crossing_paused_authentication: the identical read_pause leg on /ext/text-insert — a live emitting route on this pre-#321 tree — must answer an explicit non-2xx refusal with the "extension is not enabled" body and zero events; the baseline answers 200 {"ok": true} with one emitted event (live_server.rs:1547-1586), so the pin is red before T-002; on the tree merged with #321 the route already refuses and the pin composes with that refusal, the composed disabled-leg status being 401 with the fence body (never dependent on emit ordering, never reporting success) — recorded here as the composed-status documentation the spec demands.</Criterion>
+          <Criterion>Test-only discipline: no fixture call site changes (new assertion helpers only, e.g. a response-body reader); the existing read_pause mechanics are reused as-is; no implementation file is touched by this task; the assertion inventory of the predecessor families (incoming refusals 1056-1150, binding matrix 1159-1231, disable family 1322-1368) is untouched.</Criterion>
+          <Criterion>Module hygiene: a dated 2026-11-23 C-EXT-TRUST-COHERENCE entry in the tests.rs CHANGE_SUMMARY naming the two pins and their red-before-green status; every START_BLOCK_/END_BLOCK_ marker stays paired and unique codebase-wide.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">cargo check --locked --offline --manifest-path src-tauri/Cargo.toml</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>The disable fence on the incoming data routes: epoch snapshot in authenticate_incoming, stream_gate re-check before any emit</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>authenticate_incoming returns IncomingIdentity { extension_id, authorization_epoch } — the epoch snapshotted via registry.authorization_epoch on the resolved id before return; a resolution whose id went disabled before the snapshot keeps today's BLOCK_AUTH_FAILED_INCOMING 401; the doc comment states that the snapshot exists so callers can fence at the mutation boundary, exactly the StreamIdentity contract (604-607).</Criterion>
+          <Criterion>The three data handlers take stream_gate immediately after the authenticate_incoming call — the anchor is anchor-semantic, before any dedup, binding fence, validation or emit, so it re-anchors unchanged on the tree merged with #321 — re-check the identity via registry.authorization_epoch exactly like StreamIdentity::is_enabled (553-556), and refuse 401 with the plain "extension is not enabled" body plus BLOCK_INCOMING_FENCE_REFUSED carrying route= and id= fields when the epoch no longer matches; the gate is held only across the in-memory pre-emit section — apply: re-check → EXT_DOCUMENT_BINDINGS lookup → the emit loop (1745-1796); insert: re-check → emit (1568); context: re-check → pending registration (1614-1617), the gate released before the 5 s wait (1635); no keyring I/O, no bounded renderer wait and no state mutation join the gate; today's lock order (stream_gate, then session, then leaf std Mutexes) is preserved and the apply handler comment states the emit→ack boundary (design decision 8): ops emitted under the gate before a disable lands answer applied:true even when the disable completes before the HTTP ack is written — no un-emit exists — while a fenced refusal never answers ok:true or applied:true.</Criterion>
+          <Criterion>T-001's pins go green; the predecessor families stay green with unchanged assertions and zero moved pins — the capability pins (1108-1150), the binding matrix (1159-1231), the disable family (1322-1368), fresh_pairing_restores_access (1435), the #298 grant family (1513-1680) and the stream security suite (1877-1989); the /stream/* fencing and its suite are untouched.</Criterion>
+          <Criterion>Module hygiene: a dated 2026-11-23 C-EXT-TRUST-COHERENCE entry in the live_server.rs CHANGE_SUMMARY; markers paired and unique; no wire request/response field changes and no response-shape additions on already-fenced paths — the externally visible additions are the refusal statuses and bodies on the newly fenced legs.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">cargo check --locked --offline --manifest-path src-tauri/Cargo.toml</Command>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Context cancellation: failing-first drain pin, then the pending-entry extension id, the disable-side drain and the pre-serve epoch re-check</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Failing-first (red recorded intra-task before the implementation lands in this same task): the fixture builder gains an opt-in gated context responder — an Arc&lt;(Mutex&lt;bool&gt;, Condvar)&gt; the fixture's mt::ext::context_request listener consults before handing its response, absent by default so no call site changes — plus a counter of context-request emissions; context_disable_cancels_the_pending_read spawns /ext/context, waits for the pending registration, runs a successful mt_ext_disable, then releases the responder's late response, and asserts: the handler answered 401 with the fence voice (baseline: 200 serving the markdown — red), zero mt::text::op events, nothing recorded into EXT_DOCUMENT_BINDINGS — proven by a fresh_pair_secret + mt_ext_enable trust reset (the fresh_pairing_restores_access pattern, 1441-1447) followed by an apply echoing the binding the late response handed, which must answer 409 (never-issued binding; baseline records it and the same apply answers 200 — red) — and the late mt::ext::context_response for the drained entry is discarded by the unchanged listener (1954-1969); the fixed path wakes immediately instead of spending the 5 s timeout, and the one-off red run's timeout window is recorded as task evidence without any commit.</Criterion>
+          <Criterion>A second leg arms read_pause across the /ext/context authentication (the T-001 pattern) and asserts 401 with zero renderer traffic — no mt::ext::context_request emission counted by the fixture; against the pre-T-002 baseline this leg was red (the request was emitted and served) and it is committed here as the composed regression pin, its red-first evidence recorded by locally reverting the T-002 context fence (red) and re-applying it (green) without any commit.</Criterion>
+          <Criterion>Implementation: the pending_context value type gains the extension id inside live_server.rs — struct PendingContextEntry { tx: oneshot::Sender&lt;ExtContextResponse&gt;, extension_id: String } — while the src-tauri/src/main.rs literal (823-828) stays textually unchanged (HashMap::new() infers the new type); handle_ext_context registers the entry with its extension id and takes/releases the gate per T-002; on wake — content or closed channel — the handler re-checks the epoch under stream_gate before answering or recording (design decision 3): disabled ⇒ 401 "extension is not enabled" + BLOCK_EXT_CONTEXT_CANCELLED with no EXT_DOCUMENT_BINDINGS mutation; still-enabled channel closure keeps the existing 500 voice (1659-1667); the listener stays byte-unchanged.</Criterion>
+          <Criterion>Implementation: mt_ext_disable drains the disabled extension's pending entries inside its existing stream_gate block (mod.rs:160-171) via pub(super) fn drain_pending_context, logging BLOCK_DISABLE_CONTEXT_DRAINED with the drained count; the pending map stays a leaf std::sync::Mutex with no inverse-order path, so the lock order stream_gate → pending map is safe and the 5 s wait never happens under the gate.</Criterion>
+          <Criterion>Module hygiene: dated 2026-11-23 C-EXT-TRUST-COHERENCE entries in the live_server.rs and mod.rs CHANGE_SUMMARYs; markers paired and unique; editor.vue and the renderer context responder stay untouched (the server-side cancellation is the authoritative fence, spec NonGoal 4).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Revoke-pending: failing-first enable-lock pins, then the third auth.rs record, the enable refusal and the clear-on-proof paths</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Failing-first (red recorded intra-task): the fixture builder injects a marker test backend mechanically inside incoming_fixture_with_grant (961-1035) without changing any call site; enable_after_failed_revocation_is_locked_to_revoke_pending reproduces the disable_surfaces_revoke_failure pattern (1340-1348) — fail_delete disable answers ext_disable_revoke_failed and the marker is recorded (asserted via super::auth::get_revoke_pending) — and then asserts mt_ext_enable answers Err("ext_enable_revoke_pending") leaving the registry disabled (get_manifest still errs), re-keying nothing, the surviving credential inert and zero events; the baseline enable succeeds and re-arms the pre-disable credential with its pre-disable grant (mod.rs:102-149) — red; revoke_pending_clears_on_successful_disable_or_rebind proves both clear-on-proof paths: a subsequent successful disable clears the state (get_revoke_pending None) and the disable-pair-enable flow then works exactly as fresh_pairing_restores_access (1435) pins it, and a successful rebind after the failed disable — the prior-secret proof through pair_request (1505) — also clears it, after which enable proceeds and the granted route works with the fresh token; unreadable_revoke_pending_marker_is_a_distinct_enable_refusal swaps the marker backend to a failing read before the enable and asserts the distinct refusal that enables nothing, mints nothing and leaves the registry disabled.</Criterion>
+          <Criterion>Implementation in auth.rs: the third record beside the credential — revoke_pending_key "ext:{ext_id}:revoke_pending" holding a constant value with no secret material; a memory mirror; its own backend family (a not(test) keyring entry builder; #[cfg(test)] TEST_PENDING_BACKENDS plus inject_test_pending_backend/clear_test_pending mirroring the grant family, 188-206 and 342-349); pub(super) fn store_revoke_pending / get_revoke_pending / clear_revoke_pending with exactly the store_grant discipline (213-232: verify-through-read before Ok; get_secret's read precedence) and their BLOCK_REVOKE_PENDING_* logs; the auth.rs MODULE_CONTRACT gains the residual note (review minor b): the marker is written only after the revocation failure is known — marker-before-revoke is rejected because it would mark every successful disable pending too — and a marker write failing alongside the revocation failure (a backend that cannot delete usually cannot write) is the distinct logged BLOCK_DISABLE_REVOKE_PENDING_UNRECORDED residual, documented not handled; the record deliberately lives in auth.rs so re-discovery's state-overwriting register (registry.rs:91-110) cannot clear it.</Criterion>
+          <Criterion>Implementation in mod.rs: the existing failure branch (178-181) writes the marker best-effort with BLOCK_DISABLE_REVOKE_PENDING_RECORDED / BLOCK_DISABLE_REVOKE_PENDING_UNRECORDED logs and returns exactly as today — the fence/deactivate-under-gate → strict revocation → grant-best-effort sequence and the success condition keep their order untouched; mt_ext_enable refuses BEFORE the mint and BEFORE stream_gate (native credential I/O holds neither gate nor session lock): marker present ⇒ BLOCK_ENABLE_REVOKE_PENDING + Err("ext_enable_revoke_pending"); marker unreadable ⇒ BLOCK_ENABLE_REVOKE_PENDING_UNREADABLE + the same machine code — one machine code, two log states; a successful disable clears the marker best-effort (BLOCK_REVOKE_PENDING_CLEAR_FAILED logged; the strict-absence success condition unchanged — the idempotent retry-disable is the recovery path); handle_pair clears the marker best-effort on its success path (BLOCK_PAIR_REVOKE_PENDING_CLEARED / _CLEAR_FAILED) after the rebind proof, before BLOCK_PAIR_OK.</Criterion>
+          <Criterion>The predecessor disable-revocation suite (1322, 1340, 1351), the #298 grant family and fresh_pairing_restores_access keep their assertions and statuses — no existing test asserts the failed-disable enable behavior, so no pin moves; an id that never had a failed revocation has no marker and behaves exactly as today, including the enable-mint path of #298 and a restart between the failed disable and the retry (the marker persists through the credential store with memory mirror and verify-through-read).</Criterion>
+          <Criterion>Module hygiene: dated 2026-11-23 C-EXT-TRUST-COHERENCE entries in the auth.rs, mod.rs and tests.rs CHANGE_SUMMARYs; markers paired and unique; no log line, error body or marker record carries secret material (the marker value is a constant).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Gallery retry sync: failing-first vitest pins, then the per-id pending set in index.vue and the ten-locale revoke-pending instruction</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Failing-first (red recorded intra-task) in tests/renderer/components/extensionGallery/index.test.js: "retries disable after a failed revocation instead of enabling" — after a toggle whose mt_ext_disable rejects with 'ext_disable_revoke_failed' and the refetched list shows the extension disabled, the next toggle on the same card must send mt_ext_disable again (the baseline sends mt_ext_enable because the action is chosen from the refetched enabled:false flag, index.vue:178 — red); "clears the disable retry after a successful disable or an enabled listing" — the pending state clears after a successful disable (the next toggle follows the list flag again) and whenever the refetched list shows the extension enabled; "surfaces the revoke-pending instruction when enable is locked" — an mt_ext_enable rejection of 'ext_enable_revoke_pending' surfaces the instruction text on the gallery-error surface, in the manner of the existing re-approval mapping test (152-165), which keeps passing untouched.</Criterion>
+          <Criterion>Implementation in src/renderer/src/components/extensionGallery/index.vue: a per-id revoke-pending set; the toggle action is mt_ext_disable when the id is pending or ext.enabled is true; the id is added on an 'ext_disable_revoke_failed' rejection, removed on a successful disable and whenever the refetched list shows the extension enabled; the 'ext_enable_revoke_pending' refusal maps to t('extensions.revokePending', fallback) whose honest English fallback instructs the owner to disable again to retry the revocation and pair afresh once it succeeds; the toggle flow, the fetch/refresh flow, the template structure, the existing ext_enable_reapproval_required and ext_disable_revoke_failed mappings and the absence of any pairing dialog in the gallery are preserved; no other renderer file changes; dated CHANGE_SUMMARY entry.</Criterion>
+          <Criterion>i18n per the ten-locale canon (C-10/C-12/C-32/C-56 precedent): exactly one new gallery-visible key — extensions.revokePending under the extensions namespace in all ten static/locales/*.json files, non-empty native copy everywhere — while extensions.disableFailed keeps its meaning byte-for-byte; tests/renderer/i18n/locale-keys.test.js FEEDBACK_KEYS (58-64) gains 'extensions.revokePending', making the ten-locale presence and non-empty parity a pinned test; the inherited fallback-only extensions.reapprovalRequired gap (no locale key in any of the ten tables) is recorded here as a B3 non-goal — it is not fixed and not repeated by this change (review minor c).</Criterion>
+          <Criterion>Module hygiene: markers paired and unique; the pairing dialogs stay native-dialog English in live_server.rs and trigger no locale work; no renderer source behavior beyond the error mapping and the retry set is asserted.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/components/extensionGallery/index.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+          <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/components/extensionGallery/textOps.test.js</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>Rebind grant honesty and dialog name trust: failing-first classifier and name-helper pins, then the pure helpers and the handle_pair wiring</Title>
+        <DependsOn>T-005</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Failing-first (red recorded intra-task) pure-helper pins beside pairing_grant_description_names_only_declared_capabilities (1396): rebind_growth_classification_enumerates_added_capabilities — classify_grant_change distinguishes growth (the added names in RouteCapability::all() order), equality and narrowing from the stored grant, a None stored grant classifies as growth over everything declared, and the growth description keeps the key-replacement statement and enumerates every added capability's grant phrase (the pairing_grant_description vocabulary); rebind_equality_and_narrowing_dialogs_state_the_grant_truth — the equality text claims no grant change and lists no grant phrases, the narrowing text names the accesses that stop being served and never claims "no grant change" (the baseline serves the single unconditional "a rebind changes no grant set" text, live_server.rs:746-759, for all three while the capture overwrites the grant, 889-909 — red); pairing_dialogs_use_the_registered_manifest_name — the pure name helper yields the registered manifest's name for a registered id with a distinct mismatch state when the caller-reported name differs (the baseline has no comparison, 851-855 — red) and keeps the reported name for an unregistered id.</Criterion>
+          <Criterion>Harness-approved paths in tests.rs: an approved growth rebind (pair → re-register a grown manifest → rebind with the prior secret) stores the presented capture including the added name and fences the prior token; a narrowing rebind captures the shrunk subset; an equality rebind captures the unchanged set; legacy_credential_rebind_classifies_as_growth — a grant-less credential's rebind (the incoming_fixture_grantless shape) classifies as growth and the full declared set is presented before any capture; the denial leg is pinned at description level plus the unchanged refusal branch source shape — the harness auto-approves by design (cfg(test), 841-848), and the unproven-rebind refusal keeping the prior grant and prior key fully valid stays pinned by the C-SEC-PAIR-REBIND family.</Criterion>
+          <Criterion>Implementation in live_server.rs: the stored grant read is hoisted before the approval decision; an unreadable stored grant is BLOCK_PAIR_GRANT_UNREADABLE — a distinct logged 500 refusal that pairs nothing, raised before any dialog; classify_grant_change (pure) selects the dialog text: growth = the key-replacement statement plus every added capability's grant phrase in all() order; equality = the honest no-grant-change statement; narrowing = the accesses that stop being served; the dialogs stay native-dialog English; the capture rule stays the declared∩all() set in all() order; the denial branch is byte-unchanged; the old-key-death proof composes unchanged on the growth path — an approved growth rebind still answers paired:true only after the prior token verifiably no longer validates (929-978), with rebind_refused_when_new_key_fails_verification (1644) and pair_keychain_read_error_is_a_distinct_refusal (1662) keeping their assertions and statuses.</Criterion>
+          <Criterion>Implementation name trust: pairing_display_name (pure, beside pairing_grant_description) — the registered manifest's name wins for a registered id, the reported name serves an unregistered id, a mismatch is a distinct flagged state the caller logs as BLOCK_PAIR_NAME_MISMATCH; the mismatch is log-only, no refusal (review minor e — spec Goal 5's justification: the id anchors authorization, the name is advisory, and refusing would let a lying caller disrupt a legitimate pairing); the dialogs and every user-visible text never carry the contradicting reported name.</Criterion>
+          <Criterion>Module hygiene: dated 2026-11-23 C-EXT-TRUST-COHERENCE entries in the live_server.rs and tests.rs CHANGE_SUMMARYs; markers paired and unique; no new capability name, no manifest schema change, no pairing UX surface beyond the existing single native dialog with extended text.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>Record the M-045 graph delta, the V-M-045 verification evidence and the synchronized module contracts</Title>
+        <DependsOn>T-006</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>In .grace/graph/features.xml append a dated C-EXT-TRUST-COHERENCE SummaryDelta to M-045 after the C-SEC-EXT-GRANT-BOUND delta (2375), before the closing tag: the incoming data routes carry the disable fence (epoch snapshot in authenticate_incoming, stream_gate re-check before any dedup/fence/validation/emit, 401 with the "extension is not enabled" voice); a disable drains its pending context reads instead of serving them (the pre-serve epoch re-check, nothing recorded, late responses discarded); a failed revocation stays failed until proven otherwise (the auth.rs revoke-pending marker that re-discovery cannot clear, ext_enable_revoke_pending, clear on successful disable or successful pairing, the gallery retry staying Disable with the ten-locale instruction); a growing rebind asks first (classify_grant_change, growth/equality/narrowing dialogs, unchanged capture rule) and the dialogs display the registered manifest name with mismatches logged; preserve every existing SummaryDelta, Summary sentence, LegacySource, LegacyAttributes and annotation byte-identical.</Criterion>
+          <Criterion>In .grace/verification/features.xml record only executed evidence in V-M-045: add the executed vitest Command form (npx --no-install vitest run tests/renderer/components/extensionGallery/index.test.js tests/renderer/i18n/locale-keys.test.js) beside the native-suite entry (whose Command already matches the executed cargo form) and add scenario-security-extension-trust-coherence naming the new tests by name — apply_fences_disable_crossing_paused_authentication, text_insert_fences_disable_crossing_paused_authentication, context_disable_cancels_the_pending_read, enable_after_failed_revocation_is_locked_to_revoke_pending, revoke_pending_clears_on_successful_disable_or_rebind, unreadable_revoke_pending_marker_is_a_distinct_enable_refusal, rebind_growth_classification_enumerates_added_capabilities, rebind_equality_and_narrowing_dialogs_state_the_grant_truth, legacy_credential_rebind_classifies_as_growth, pairing_dialogs_use_the_registered_manifest_name — with their expected statuses and refusal bodies (401 "extension is not enabled" on fenced legs with zero events, 409 for the never-recorded binding proof, Err("ext_enable_revoke_pending") for the locked enable, the applied:true emit→ack boundary stated), plus the gallery vitest pins and the ten-locale parity; keep every existing scenario, Marker, TraceAssertion and the LegacyMatrixEvidence block verbatim; do not claim pass evidence for the real rfd pairing dialog rendering or the macOS keychain itself — those stay explicitly open and are exercised only through pure descriptions, injected backends and source shapes.</Criterion>
+          <Criterion>Module contracts synchronized: the dated 2026-11-23 C-EXT-TRUST-COHERENCE CHANGE_SUMMARY entries present in live_server.rs, auth.rs, mod.rs, tests.rs and index.vue; the auth.rs MODULE_CONTRACT carries the residual fail-open marker note (review minor b); every START_BLOCK_/END_BLOCK_ marker paired and unique codebase-wide; no durable artifact outside the ObservedWriteScope changes; no release publication, version change or lane action is authorized by this task.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+        </Verification>
+      </T-007>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+      <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/components/extensionGallery/index.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+      <Environment>Baseline is the current spec/ext-trust-coherence worktree at base 689df8aa: the Rust toolchain runs with --locked --offline against the committed Cargo.lock and all MustExist files exist (verified 2026-11-23). Tasks run strictly sequentially T-001 through T-007. After T-001 the native suite is knowingly red — the two fence pins answer 200/applied:true and emit against the unfenced baseline — and becomes green at T-002, staying green thereafter; T-002, T-003, T-004, T-005 and T-006 record their failing-first evidence intra-task in the C-SEC-EXT-GRANT-BOUND style: the red run is observed against the pre-fix state (for legs already covered by an earlier task's landing, by locally reverting the landed check and re-applying it) and recorded as task evidence without any commit. cargo check passes alone after T-001 and T-002; the renderer suites are regression-only until T-005 adds the three retry-sync/instruction pins and the locale parity pin. #321 coordination: this plan executes on 689df8aa, WITHOUT C-EXT-EDIT-PROOF (#321, in review) — on this tree /ext/text-insert is still a live emitting route, which is why T-001 pins its fence red; after #321 merges, the orchestrator rebases this change onto it and re-runs #321's pin list, which today does not exist on this baseline and must be re-collected from the merged tree: (a) the /ext/apply verdict pins C-EXT-EDIT-PROOF adds to src-tauri/src/m045_ext/tests.rs; (b) the verdict pins it adds to the editor-coverage renderer suites (tests/renderer/**/editor-coverage.test.js); (c) its two relocated /ext/text-insert refusal pins. The fence anchors are anchor-semantic — immediately after the authenticate_incoming call in each data handler, before any dedup, fence, validation or emit — and are re-anchored on the merged tree; the composed per-route order (capability authentication → enabled fence → #321's dedup short-circuit → binding fence → #321's op validation → emit/ack) is the invariant regardless of merge order, and on the merged tree the disabled insert leg answers 401 with the "extension is not enabled" body, never depending on #321's emit ordering and never reporting success; #321's read-only-main.rs constraint is preserved because the pending_context value type gains the extension id inside live_server.rs while the main.rs literal (823-828) is textually unchanged. Review-minor resolutions recorded: (a) the pre-serve epoch re-check before serving context content is ADOPTED (design decision 3) — it bounds even a response that overtook the drain; (b) the residual fail-open marker leg (marker write failing alongside the revocation failure) is documented in the auth.rs MODULE_CONTRACT with the distinct BLOCK_DISABLE_REVOKE_PENDING_UNRECORDED log, and marker-before-revoke is explicitly rejected in ReferenceState decision 4; (c) the inherited fallback-only extensions.reapprovalRequired locale gap is recorded as a B3 non-goal in T-005 and not fixed here; (d) the disable-after-emit-before-ack window on apply is stated as the emit-ordering boundary in T-002 and ReferenceState decision 8 — ops emitted under the gate legitimately answer applied:true, fenced refusals never do; (e) the name-trust mismatch is log-only (BLOCK_PAIR_NAME_MISMATCH, no refusal) per spec Goal 5's recorded justification. Spec-command deviation recorded deliberately: the spec's second ExpectedCommand names the extensionGallery/textOps pair; this plan pins the coordinator-directed executed form (index + locale-keys, --no-install) as its MustPassCommand because the new locale key makes locale-keys.test.js load-bearing, while textOps.test.js stays an untouched regression-only suite run as T-005 task evidence and still green. Debug/unsigned-build semantics are unchanged: the memory fallback, the injected backends and the cfg(test) auto-approval keep their shapes; the growth dialog is the same single native rfd dialog with extended text, compiled out in test builds and pinned through the pure helpers and the harness-approved path exactly how pairing_grant_description is pinned today. Lock and budget discipline: stream_gate is held only across in-memory work (epoch re-checks, binding lookup, the synchronous emit leg, pending registration and drain); no keyring I/O and no bounded renderer wait happens under it; the lock order stays stream_gate, then session, then the leaf std Mutexes (EXT_DOCUMENT_BINDINGS, the pending-context map) with no inverse-order path; the context handler releases the gate before its 5 s wait. Security hygiene: no log line, error body, dialog or marker record carries secret material (the marker value is a constant; grants hold capability names only; comparisons stay constant time); the disable order of C-SEC-STREAM-AUTH/#298 — fence and deactivate under stream_gate, strict revocation, best-effort grant revocation — keeps its sequence and its success condition, with the marker written on the existing failure branch without moving either. Every START_BLOCK_/END_BLOCK_ marker stays paired and unique after each task. This plan deliberately carries no self-referential grace-lint MustPassCommand and no SpecSha256 field — the orchestrator runs grace lint --assertions current/target/final itself and computes and injects the SpecSha256 over the approved spec bytes at admission. Owned cargo/vitest processes are cleaned up after runs; no apply/archive, commit/push, lane admission, departure into main, version/tag or release is authorized by this plan.</Environment>
+    </AcceptanceVerification>
+  </C-EXT-TRUST-COHERENCE>
+</GraceChangePlan>

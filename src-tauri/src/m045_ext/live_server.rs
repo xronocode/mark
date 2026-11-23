@@ -21,6 +21,65 @@
 //   STATUS:  Phase-B5b — handlers emit to frontend via live_bridge.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-23 C-EXT-TRUST-COHERENCE T-006: the rebind dialogs state the
+//     grant truth and display the registered name — the stored grant read
+//     is hoisted before the approval decision (an unreadable grant is the
+//     distinct logged 500 BLOCK_PAIR_GRANT_UNREADABLE, pairing nothing);
+//     classify_grant_change (pure; Growth{added}/Equal/Narrow{stopped}
+//     over the stored grant vs the declared incoming set, a None stored
+//     grant classifying as growth) selects the dialog text (growth keeps
+//     the key-replacement statement and enumerates every added
+//     capability's grant phrase in all() order; equality states no grant
+//     change; narrowing names the accesses that stop being served); the
+//     unconditional "a rebind changes no grant set" rebind text is gone;
+//     pairing_display_name (pure) yields the registered manifest's name
+//     for a registered id with a distinct mismatch flag logged as
+//     BLOCK_PAIR_NAME_MISMATCH (log-only — the id anchors authorization,
+//     the name is advisory) and the reported name for an unregistered id;
+//     the capture rule (declared∩all() in all() order), the denial branch
+//     and the old-key-death proof are unchanged.
+//   - 2026-11-23 C-EXT-TRUST-COHERENCE T-003: a disable cancels the
+//     context reads it owns — the pending /ext/context entry carries its
+//     extension id (PendingContextEntry; the main.rs LiveServerState
+//     literal keeps its HashMap::new() expression, the value type is
+//     inferred), mt_ext_disable drains the disabled extension's entries
+//     under its stream_gate block (drain_pending_context,
+//     BLOCK_DISABLE_CONTEXT_DRAINED), and the woken handler re-checks
+//     the epoch under stream_gate before answering or recording:
+//     disabled ⇒ 401 with the fence voice BLOCK_EXT_CONTEXT_CANCELLED
+//     and no EXT_DOCUMENT_BINDINGS mutation, a still-enabled channel
+//     closure keeps the 500 voice, the timeout leg keeps its 504, and
+//     the mt::ext::context_response listener stays byte-unchanged
+//     (drained entries' late responses keep being dropped).
+//   - 2026-11-23 C-EXT-TRUST-COHERENCE T-002: the incoming data routes
+//     carry the disable fence the /stream/* routes already have —
+//     authenticate_incoming snapshots the authorization_epoch beside the
+//     resolved id (IncomingIdentity, the StreamIdentity contract; an id
+//     that went disabled before the snapshot keeps the
+//     BLOCK_AUTH_FAILED_INCOMING 401) and every data handler re-checks it
+//     under stream_gate immediately after authentication — before any
+//     dedup, binding fence, validation or emit — refusing 401 with the
+//     plain "extension is not enabled" body and a distinct
+//     BLOCK_INCOMING_FENCE_REFUSED (route= and id= fields). The gate is
+//     held only across in-memory work (apply: the anchor re-check and each
+//     synchronous emit leg behind a fresh per-operation re-check; insert:
+//     re-check → refusal; context: re-check → pending registration,
+//     released before the 5 s wait); no keyring I/O, no bounded renderer
+//     wait — C-EXT-EDIT-PROOF's apply ack budget and dedup coalesce
+//     included — and no session mutation joins it, and the lock order
+//     (stream_gate, then session, then leaf std Mutexes) is preserved.
+//     Emit→ack boundary: an operation emitted under the gate before a
+//     disable lands answers applied:true even when the disable completes
+//     before the HTTP ack is written — no un-emit exists — while a fenced
+//     refusal never answers ok:true or applied:true; a disable crossing
+//     the batch stops it at the next operation's re-check with the honest
+//     applied prefix in the 409 not-applied shape (the reason names the
+//     disable). Composed with C-EXT-EDIT-PROOF: on /ext/apply the fence
+//     precedes the request_id dedup (a replay of a disabled extension is
+//     refused by the fence, never answered from a recorded verdict), and
+//     on /ext/text-insert the fence precedes the honest 501 refusal (a
+//     disabled id keeps the plain fence voice, the deprecated-route
+//     reason stays the authorized caller's answer).
 //   - 2026-11-22 C-EXT-EDIT-PROOF T-006: both directions of Retry-After
 //     are honest — the budget rate refusal's 429 (unchanged status, body
 //     and zero-mutation semantics) now carries a retry-after header of
@@ -196,6 +255,16 @@ pub struct LiveSession {
     pub last_heartbeat: Instant,
 }
 
+/// C-EXT-TRUST-COHERENCE: a pending /ext/context read carries the id of
+/// the extension that owns it, so a disable can drain exactly its own
+/// reads (drain_pending_context). The LiveServerState literal in
+/// src-tauri/src/main.rs keeps its HashMap::new() expression — the value
+/// type is inferred here.
+pub struct PendingContextEntry {
+    pub tx: tokio::sync::oneshot::Sender<ExtContextResponse>,
+    pub extension_id: String,
+}
+
 /// Shared state for the live server. Thread-safe via tokio::sync::Mutex
 /// (async-aware, no blocking across await points).
 pub struct LiveServerState<R: tauri::Runtime = tauri::Wry> {
@@ -205,7 +274,9 @@ pub struct LiveServerState<R: tauri::Runtime = tauri::Wry> {
     /// Pending /ext/context requests awaiting frontend response.
     /// Uses std::sync::Mutex (not tokio) because the lock is held
     /// only briefly for insert/remove — never across await points.
-    pub pending_context: std::sync::Mutex<HashMap<String, tokio::sync::oneshot::Sender<ExtContextResponse>>>,
+    /// C-EXT-TRUST-COHERENCE: a leaf lock taken under stream_gate by the
+    /// disable-side drain, never the inverse order.
+    pub pending_context: std::sync::Mutex<HashMap<String, PendingContextEntry>>,
 }
 
 // END_BLOCK_TYPES
@@ -775,7 +846,7 @@ async fn validate_bearer<R: tauri::Runtime>(
 /// content is returned or any event is emitted; /stream/* routes require
 /// StreamDocument from the same stored grant inside authenticate_stream.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum RouteCapability {
+pub(super) enum RouteCapability {
     /// stream.document — extension sends streamed documents into Mark's live view.
     StreamDocument,
     /// context.read — read the active tab's markdown/cursor/selection (/ext/context).
@@ -788,7 +859,7 @@ enum RouteCapability {
 
 #[cfg_attr(debug_assertions, allow(dead_code))] // grant_phrase is read by pairing_grant_description, which is allow(dead_code) in test builds where the dialog decision arm is compiled out
 impl RouteCapability {
-    fn name(self) -> &'static str {
+    pub(super) fn name(self) -> &'static str {
         match self {
             RouteCapability::StreamDocument => "stream.document",
             RouteCapability::ContextRead => "context.read",
@@ -835,31 +906,65 @@ pub(super) fn incoming_capability_names() -> [&'static str; 4] {
 /// stored approved grant — captured at pairing, not the live manifest —
 /// names the same capability. Grant absence and grant read failure both
 /// fail closed through the 401 path before any content or event.
+///
+/// C-EXT-TRUST-COHERENCE: the resolved id comes back with the
+/// authorization epoch snapshotted beside it (IncomingIdentity) so every
+/// caller can fence the mutation boundary under stream_gate exactly like
+/// the /stream/* handlers — a disable landing in flight after
+/// authentication can no longer be emitted through.
+#[derive(Debug, Clone)]
+struct IncomingIdentity {
+    extension_id: String,
+    authorization_epoch: u64,
+}
+
+impl IncomingIdentity {
+    fn is_enabled(&self, registry: &super::registry::ExtRegistry) -> bool {
+        registry.authorization_epoch(&self.extension_id).ok() == Some(self.authorization_epoch)
+    }
+}
+
 async fn authenticate_incoming<R: tauri::Runtime>(
     state: &LiveServerState<R>,
     headers: &HeaderMap,
     requested_id: Option<&str>,
     capability: Option<RouteCapability>,
-) -> Result<String, (StatusCode, String)> {
+) -> Result<IncomingIdentity, (StatusCode, String)> {
     let token = extract_bearer(headers)?;
     let registry = state.app_handle.state::<super::registry::ExtRegistry>();
     let candidates = match requested_id {
         Some(id) => registry.get_manifest(id).map(|m| vec![m]).unwrap_or_default(),
         None => capability.map(|cap| registry.get_enabled(cap.name())).unwrap_or_default(),
     };
+    // C-EXT-TRUST-COHERENCE: the authorization epoch is snapshotted beside
+    // every resolved candidate BEFORE the credential I/O — exactly the
+    // StreamIdentity contract — so the caller can fence the mutation
+    // boundary under stream_gate. A resolution whose id went disabled
+    // before the snapshot keeps today's BLOCK_AUTH_FAILED_INCOMING 401
+    // (no snapshot, no identity).
+    let epochs: HashMap<String, Option<u64>> = candidates.iter()
+        .map(|manifest| (manifest.id.clone(), registry.authorization_epoch(&manifest.id).ok()))
+        .collect();
     let identity = tokio::task::spawn_blocking(move || {
-        candidates.into_iter().find(|manifest| {
+        candidates.into_iter().find_map(|manifest| {
+            let authorization_epoch = match epochs.get(&manifest.id) {
+                Some(Some(epoch)) => *epoch,
+                _ => return None,
+            };
             let grant = super::auth::get_grant(&manifest.id).ok();
-            super::auth::validate_token(&manifest.id, &token)
-                && capability.is_none_or(|cap| grant_authorizes(grant.flatten().as_deref(), cap))
+            (super::auth::validate_token(&manifest.id, &token)
+                && capability.is_none_or(|cap| grant_authorizes(grant.flatten().as_deref(), cap)))
+                .then(|| (manifest.id, authorization_epoch))
         })
-        .map(|manifest| manifest.id)
     }).await.ok().flatten();
-    if let Some(id) = identity {
-        return Ok(id);
-    }
-    safe_eprintln!("[ExtHost][live_server][BLOCK_AUTH_FAILED_INCOMING]");
-    Err((StatusCode::UNAUTHORIZED, "invalid token or disabled extension".to_string()))
+    let (id, authorization_epoch) = match identity {
+        Some(pair) => pair,
+        None => {
+            safe_eprintln!("[ExtHost][live_server][BLOCK_AUTH_FAILED_INCOMING]");
+            return Err((StatusCode::UNAUTHORIZED, "invalid token or disabled extension".to_string()));
+        }
+    };
+    Ok(IncomingIdentity { extension_id: id, authorization_epoch })
 }
 
 // END_BLOCK_AUTH_EXTRACT
@@ -895,19 +1000,108 @@ pub(super) fn pairing_grant_description(
     )
 }
 
+/// C-EXT-TRUST-COHERENCE: the rebind grant-change class, decided from the
+/// stored approved grant versus the declared incoming set (capability
+/// names). A stored grant of None — the legacy shape — classifies as
+/// growth over everything declared. Any addition is growth (the dialog
+/// asks first); no additions but stored names beyond the declared set is
+/// narrowing; otherwise equality.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) enum GrantChange {
+    /// The incoming set names capabilities the stored grant does not
+    /// cover — the added capabilities in RouteCapability::all() order.
+    Growth { added: Vec<RouteCapability> },
+    /// The declared incoming set matches the stored grant.
+    Equal,
+    /// The manifest stopped declaring capabilities the stored grant
+    /// serves — the stopped capabilities in RouteCapability::all() order.
+    Narrow { stopped: Vec<RouteCapability> },
+}
+
+/// Pure classifier for the rebind dialog decision.
+pub(super) fn classify_grant_change(stored: Option<&[String]>, declared: &[String]) -> GrantChange {
+    let stored_names: Vec<&str> = stored.unwrap_or(&[]).iter().map(String::as_str).collect();
+    let added: Vec<RouteCapability> = RouteCapability::all()
+        .into_iter()
+        .filter(|cap| declared.iter().any(|name| name == cap.name()))
+        .filter(|cap| !stored_names.contains(&cap.name()))
+        .collect();
+    if !added.is_empty() {
+        return GrantChange::Growth { added };
+    }
+    let stopped: Vec<RouteCapability> = RouteCapability::all()
+        .into_iter()
+        .filter(|cap| stored_names.contains(&cap.name()))
+        .filter(|cap| !declared.iter().any(|name| name == cap.name()))
+        .collect();
+    if stopped.is_empty() {
+        GrantChange::Equal
+    } else {
+        GrantChange::Narrow { stopped }
+    }
+}
+
 /// Pure description of what a pairing approval does to an extension that
-/// already holds a live credential, rendered for the pairing dialog. It
-/// names the extension and states the key replacement; it deliberately
-/// lists no capability grants, because a rebind changes no grant set —
-/// the same manifest stays in force.
+/// already holds a live credential, rendered for the pairing dialog.
+/// C-EXT-TRUST-COHERENCE: the text states the grant truth — growth keeps
+/// the key-replacement statement and enumerates every added capability's
+/// grant phrase; equality honestly states no grant change; narrowing
+/// names the accesses that stop being served and never claims "no grant
+/// change" (today's single unconditional "a rebind changes no grant set"
+/// text served all three while the capture overwrote the grant).
 #[cfg_attr(debug_assertions, allow(dead_code))]
-pub(super) fn pairing_rebind_description(extension_name: &str, extension_id: &str) -> String {
-    format!(
+pub(super) fn pairing_rebind_change_description(
+    extension_name: &str,
+    extension_id: &str,
+    change: &GrantChange,
+) -> String {
+    let head = format!(
         "The extension \"{extension_name}\" ({extension_id}) is already paired with Mark.\n\n\
          Approving this request replaces its live key: the previous secret stops working \
-         immediately, and only the new secret will be accepted afterwards.\n\n\
-         Allow this only if you hold the extension's current secret and intend to re-key it."
-    )
+         immediately, and only the new secret will be accepted afterwards.\n\n"
+    );
+    match change {
+        GrantChange::Growth { added } => {
+            let lines: String = added.iter()
+                .map(|cap| format!("- {}\n", cap.grant_phrase()))
+                .collect();
+            format!(
+                "{head}Its manifest now also requests access it was not granted before: \
+                 approving will additionally allow it to:\n{lines}\
+                 Allow this only if you intend to grant the new access and re-key the extension."
+            )
+        }
+        GrantChange::Equal => format!(
+            "{head}This rebind causes no grant change: the extension keeps exactly the access \
+             its pairing already approved.\n\n\
+             Allow this only if you hold the extension's current secret and intend to re-key it."
+        ),
+        GrantChange::Narrow { stopped } => {
+            let lines: String = stopped.iter()
+                .map(|cap| format!("- it will no longer be able to {}\n", cap.grant_phrase()))
+                .collect();
+            format!(
+                "{head}Its manifest no longer declares access it was granted before. \
+                 After this rebind:\n{lines}\
+                 Allow this only if you hold the extension's current secret and intend to re-key it."
+            )
+        }
+    }
+}
+
+/// C-EXT-TRUST-COHERENCE: the pairing dialogs display the registered
+/// manifest's name for a registered id; a caller-reported name that
+/// contradicts it never reaches the user and is a distinct flagged state
+/// the caller logs (log-only — the id anchors authorization and the name
+/// is advisory, so refusing would only let a lying caller disrupt a
+/// legitimate pairing). An unregistered id keeps the reported name —
+/// there is nothing to compare against.
+#[cfg_attr(debug_assertions, allow(dead_code))]
+pub(super) fn pairing_display_name(reported: &str, registered: Option<&str>) -> (String, bool) {
+    match registered {
+        Some(name) => (name.to_string(), name != reported),
+        None => (reported.to_string(), false),
+    }
 }
 
 /// POST /ext/pair — pairing initiation.
@@ -945,12 +1139,29 @@ pub(super) async fn handle_pair<R: tauri::Runtime>(
     // both the release dialog description and the shared post-approval
     // grant capture below. An unregistered id yields an empty list, the
     // honest empty grant.
-    let declared: Vec<String> = state
+    let registered_manifest = state
         .app_handle
         .state::<super::registry::ExtRegistry>()
-        .peek_manifest(&req.extension_id)
+        .peek_manifest(&req.extension_id);
+    let declared: Vec<String> = registered_manifest
+        .as_ref()
         .map(|m| m.capabilities.iter().map(|c| c.name.clone()).collect())
         .unwrap_or_default();
+
+    // C-EXT-TRUST-COHERENCE: the dialogs display the registered
+    // manifest's name; a contradicting caller-reported name is a distinct
+    // logged state (log-only — the id anchors authorization and the name
+    // is advisory) and never reaches the user.
+    let (display_name, name_mismatch) = pairing_display_name(
+        &req.extension_name,
+        registered_manifest.as_ref().map(|m| m.name.as_str()),
+    );
+    if name_mismatch {
+        safe_eprintln!(
+            "[ExtHost][live_server][BLOCK_PAIR_NAME_MISMATCH ext_id={}]",
+            req.extension_id,
+        );
+    }
 
     // Rebind gate: an id that already holds a stored credential is paired
     // only on constant-time proof of the prior secret. The gate runs
@@ -988,10 +1199,29 @@ pub(super) async fn handle_pair<R: tauri::Runtime>(
         );
     }
 
+    // C-EXT-TRUST-COHERENCE: the stored grant read is hoisted before the
+    // approval decision; an unreadable stored grant is a distinct logged
+    // 500 refusal that pairs nothing, raised before any dialog.
+    let stored_grant = match super::auth::get_grant(&req.extension_id) {
+        Ok(grant) => grant,
+        Err(e) => {
+            safe_eprintln!(
+                "[ExtHost][live_server][BLOCK_PAIR_GRANT_UNREADABLE ext_id={} reason={e}]",
+                req.extension_id,
+            );
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"error": "pairing grant state unavailable"})),
+            );
+        }
+    };
+    let grant_change = classify_grant_change(stored_grant.as_deref(), &declared);
+
     // Auto-approval exists ONLY inside the Rust test harness. No ordinary
     // build — debug or release — approves pairing without a user decision.
     #[cfg(test)]
     let approved = {
+        let _ = &grant_change;
         safe_eprintln!(
             "[ExtHost][live_server][BLOCK_PAIR_AUTO_APPROVE ext_id={} (test harness only)]",
             req.extension_id,
@@ -1001,9 +1231,9 @@ pub(super) async fn handle_pair<R: tauri::Runtime>(
     #[cfg(not(test))]
     let approved = {
         let description = if is_rebind {
-            pairing_rebind_description(&req.extension_name, &req.extension_id)
+            pairing_rebind_change_description(&display_name, &req.extension_id, &grant_change)
         } else {
-            pairing_grant_description(&req.extension_name, &req.extension_id, &declared)
+            pairing_grant_description(&display_name, &req.extension_id, &declared)
         };
         tokio::task::spawn_blocking(move || {
             use rfd::{MessageButtons, MessageDialog, MessageDialogResult, MessageLevel};
@@ -1127,6 +1357,25 @@ pub(super) async fn handle_pair<R: tauri::Runtime>(
                 Json(serde_json::json!({ "error": error })),
             );
         }
+    }
+
+    // C-EXT-TRUST-COHERENCE: a successful pairing is proof — the honest
+    // replace just established the prior record dead (rebind) or fresh
+    // trust (first pair) — so a standing revoke-pending marker clears
+    // best-effort after the rebind proof, before the success answer.
+    let marker_id = req.extension_id.clone();
+    let cleared = tokio::task::spawn_blocking(move || super::auth::clear_revoke_pending(&marker_id))
+        .await
+        .map_err(|e| format!("credential worker failed: {e}"));
+    match cleared {
+        Ok(Ok(())) => safe_eprintln!(
+            "[ExtHost][live_server][BLOCK_PAIR_REVOKE_PENDING_CLEARED ext_id={}]",
+            req.extension_id,
+        ),
+        Ok(Err(e)) | Err(e) => safe_eprintln!(
+            "[ExtHost][live_server][BLOCK_PAIR_REVOKE_PENDING_CLEAR_FAILED ext_id={} reason={e}]",
+            req.extension_id,
+        ),
     }
 
     safe_eprintln!(
@@ -1722,10 +1971,27 @@ pub(super) async fn handle_text_insert<R: tauri::Runtime>(
     headers: HeaderMap,
     Json(req): Json<TextInsertRequest>,
 ) -> impl IntoResponse {
-    let extension_id = match authenticate_incoming(&state, &headers, None, Some(RouteCapability::TextInsert)).await {
-        Ok(id) => id,
+    let identity = match authenticate_incoming(&state, &headers, None, Some(RouteCapability::TextInsert)).await {
+        Ok(identity) => identity,
         Err((status, message)) => return (status, Json(serde_json::json!({"error": message}))),
     };
+    // C-EXT-TRUST-COHERENCE: the disable fence, taken immediately after
+    // authentication and before any emit — the same post-authentication
+    // re-check the /stream/* handlers run under stream_gate. The gate is
+    // held only across the in-memory emit leg.
+    let registry = state.app_handle.state::<super::registry::ExtRegistry>();
+    let _stream_gate = registry.stream_gate.lock().await;
+    if !identity.is_enabled(&registry) {
+        safe_eprintln!(
+            "[ExtHost][live_server][BLOCK_INCOMING_FENCE_REFUSED route=/ext/text-insert id={}]",
+            identity.extension_id,
+        );
+        return (
+            StatusCode::UNAUTHORIZED,
+            Json(serde_json::json!({"error": "extension is not enabled"})),
+        );
+    }
+    let extension_id = identity.extension_id;
     safe_eprintln!(
         "[ExtHost][live_server][BLOCK_TEXT_INSERT_REFUSED ext_id={} len={} source={:?}]",
         extension_id,
@@ -1748,9 +2014,10 @@ pub(super) async fn handle_ext_context<R: tauri::Runtime>(
     headers: HeaderMap,
     Json(req): Json<ExtContextRequest>,
 ) -> impl IntoResponse {
-    if let Err(e) = authenticate_incoming(&state, &headers, Some(&req.extension_id), Some(RouteCapability::ContextRead)).await {
-        return (e.0, Json(serde_json::json!({"error": e.1})));
-    }
+    let identity = match authenticate_incoming(&state, &headers, Some(&req.extension_id), Some(RouteCapability::ContextRead)).await {
+        Ok(identity) => identity,
+        Err((status, message)) => return (status, Json(serde_json::json!({"error": message}))),
+    };
 
     safe_eprintln!(
         "[ExtHost][live_server][BLOCK_EXT_CONTEXT_REQUEST ext_id={}]",
@@ -1765,8 +2032,27 @@ pub(super) async fn handle_ext_context<R: tauri::Runtime>(
     let (tx, rx) = tokio::sync::oneshot::channel::<ExtContextResponse>();
 
     {
+        // C-EXT-TRUST-COHERENCE: the disable fence, taken immediately
+        // after authentication and held only across the in-memory
+        // pre-emit section (re-check + pending registration); the gate is
+        // released before the 5 s renderer wait below.
+        let registry = state.app_handle.state::<super::registry::ExtRegistry>();
+        let _stream_gate = registry.stream_gate.lock().await;
+        if !identity.is_enabled(&registry) {
+            safe_eprintln!(
+                "[ExtHost][live_server][BLOCK_INCOMING_FENCE_REFUSED route=/ext/context id={}]",
+                identity.extension_id,
+            );
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(serde_json::json!({"error": "extension is not enabled"})),
+            );
+        }
         let mut pending = state.pending_context.lock().unwrap();
-        pending.insert(request_id.clone(), tx);
+        pending.insert(request_id.clone(), PendingContextEntry {
+            tx,
+            extension_id: identity.extension_id.clone(),
+        });
     }
 
     if let Err(e) = super::live_bridge::emit_context_request(
@@ -1786,37 +2072,61 @@ pub(super) async fn handle_ext_context<R: tauri::Runtime>(
     }
 
     match tokio::time::timeout(std::time::Duration::from_secs(5), rx).await {
-        Ok(Ok(context)) => {
-            // C-SEC-EDIT-TARGETING: remember the binding this context read
-            // carried (a (None, None) pair too — it refuses every apply
-            // for this extension until a context read carries rendered
-            // identity). A timed-out or channel-closed request records
-            // nothing.
-            {
-                let mut bindings = EXT_DOCUMENT_BINDINGS.lock().unwrap();
-                bindings.insert(
-                    req.extension_id.clone(),
-                    DocumentBinding {
-                        document_id: context.document_id.clone(),
-                        document_generation: context.document_generation.clone(),
-                    },
+        // C-EXT-TRUST-COHERENCE: content and channel closure both pass the
+        // pre-serve re-check under stream_gate first — a disable that
+        // cancelled this read (drained entry, closed channel) or landed
+        // while the response was in flight is fenced here: 401 with the
+        // fence voice, nothing served and nothing recorded into
+        // EXT_DOCUMENT_BINDINGS. A still-enabled channel closure keeps
+        // the existing 500 voice; the context_response listener stays
+        // unchanged and keeps dropping drained entries' late responses.
+        Ok(wake) => {
+            let registry = state.app_handle.state::<super::registry::ExtRegistry>();
+            let _stream_gate = registry.stream_gate.lock().await;
+            if !identity.is_enabled(&registry) {
+                safe_eprintln!(
+                    "[ExtHost][live_server][BLOCK_EXT_CONTEXT_CANCELLED id={}]",
+                    identity.extension_id,
+                );
+                return (
+                    StatusCode::UNAUTHORIZED,
+                    Json(serde_json::json!({"error": "extension is not enabled"})),
                 );
             }
-            safe_eprintln!(
-                "[ExtHost][live_server][BLOCK_EXT_CONTEXT_OK ext_id={} md_len={}]",
-                req.extension_id,
-                context.markdown.len(),
-            );
-            (StatusCode::OK, Json(serde_json::to_value(&context).unwrap()))
-        }
-        Ok(Err(_)) => {
-            safe_eprintln!(
-                "[ExtHost][live_server][BLOCK_EXT_CONTEXT_CHANNEL_CLOSED]"
-            );
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "context channel closed unexpectedly"})),
-            )
+            match wake {
+                Ok(context) => {
+                    // C-SEC-EDIT-TARGETING: remember the binding this context read
+                    // carried (a (None, None) pair too — it refuses every apply
+                    // for this extension until a context read carries rendered
+                    // identity). A timed-out or channel-closed request records
+                    // nothing.
+                    {
+                        let mut bindings = EXT_DOCUMENT_BINDINGS.lock().unwrap();
+                        bindings.insert(
+                            req.extension_id.clone(),
+                            DocumentBinding {
+                                document_id: context.document_id.clone(),
+                                document_generation: context.document_generation.clone(),
+                            },
+                        );
+                    }
+                    safe_eprintln!(
+                        "[ExtHost][live_server][BLOCK_EXT_CONTEXT_OK ext_id={} md_len={}]",
+                        req.extension_id,
+                        context.markdown.len(),
+                    );
+                    (StatusCode::OK, Json(serde_json::to_value(&context).unwrap()))
+                }
+                Err(_) => {
+                    safe_eprintln!(
+                        "[ExtHost][live_server][BLOCK_EXT_CONTEXT_CHANNEL_CLOSED]"
+                    );
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Json(serde_json::json!({"error": "context channel closed unexpectedly"})),
+                    )
+                }
+            }
         }
         Err(_) => {
             let mut pending = state.pending_context.lock().unwrap();
@@ -1832,6 +2142,29 @@ pub(super) async fn handle_ext_context<R: tauri::Runtime>(
     }
 }
 
+/// C-EXT-TRUST-COHERENCE: wake and discard the disabled extension's
+/// pending /ext/context reads. Called from mt_ext_disable inside its
+/// existing stream_gate block — the pending map stays a leaf std Mutex
+/// with no inverse-order path, and the handlers' 5 s wait never happens
+/// under the gate. Dropping each drained sender wakes its handler
+/// immediately; the pre-serve re-check then refuses the cancelled read.
+/// Returns the drained count for BLOCK_DISABLE_CONTEXT_DRAINED.
+pub(super) fn drain_pending_context<R: tauri::Runtime>(
+    state: &LiveServerState<R>,
+    extension_id: &str,
+) -> usize {
+    let mut pending = state.pending_context.lock().unwrap();
+    let owned: Vec<String> = pending.iter()
+        .filter(|(_, entry)| entry.extension_id == extension_id)
+        .map(|(request_id, _)| request_id.clone())
+        .collect();
+    let drained = owned.len();
+    for request_id in owned {
+        pending.remove(&request_id);
+    }
+    drained
+}
+
 /// POST /ext/apply — apply edit operations to the active editor.
 /// E1a: used by TokMo EditAgent to apply LLM-generated edits.
 /// C-SEC-EDIT-TARGETING: the request must echo the document binding
@@ -1839,7 +2172,7 @@ pub(super) async fn handle_ext_context<R: tauri::Runtime>(
 /// the fence runs after the capability gate and before any event.
 /// C-EXT-EDIT-PROOF: the handler answers by fact — the dedup short-circuit
 /// consults the bounded process-local verdict store after authentication
-/// and before the fence (a replay answers the recorded verdict with an
+/// and the disable fence (a replay answers the recorded verdict with an
 /// additive duplicate marker, a same-key in-flight retry coalesces); the
 /// op set is validated before any emission (an unknown op_type refuses the
 /// whole batch 400 with zero events); every emitted payload carries the
@@ -1847,15 +2180,44 @@ pub(super) async fn handle_ext_context<R: tauri::Runtime>(
 /// renderer's mt::ext::text_op_ack verdicts under one per-batch deadline —
 /// 200 {"applied": true, "operations_count": n} only when every operation
 /// ack'd applied, 409 naming the failed index and the applied prefix on a
-/// nack, 504 on the bounded ack timeout. Muya's 1500ms debounce groups
-/// rapid operations as a single undo step.
+/// nack (a disable crossing the batch stops it with the same shape), 504
+/// on the bounded ack timeout. Muya's 1500ms debounce groups rapid
+/// operations as a single undo step.
 pub(super) async fn handle_ext_apply<R: tauri::Runtime>(
     State(state): State<Arc<LiveServerState<R>>>,
     headers: HeaderMap,
     Json(req): Json<ExtApplyRequest>,
 ) -> impl IntoResponse {
-    if let Err(e) = authenticate_incoming(&state, &headers, Some(&req.extension_id), Some(RouteCapability::TextEdit)).await {
-        return (e.0, Json(serde_json::json!({"error": e.1})));
+    let identity = match authenticate_incoming(&state, &headers, Some(&req.extension_id), Some(RouteCapability::TextEdit)).await {
+        Ok(identity) => identity,
+        Err((status, message)) => return (status, Json(serde_json::json!({"error": message}))),
+    };
+    // C-EXT-TRUST-COHERENCE: the disable fence anchor — taken immediately
+    // after authentication, before the dedup short-circuit, the binding
+    // fence, op validation or any emit — so a replay from a disabled
+    // extension is refused by the fence, never served a recorded verdict.
+    // Composed with C-EXT-EDIT-PROOF's ack-backed loop, one hold cannot
+    // span the batch: stream_gate is taken again around every synchronous
+    // emit leg with a fresh epoch re-check, and the ack waits run ungated
+    // (no bounded renderer wait joins the gate). Emit→ack boundary: an
+    // operation emitted under the gate before a disable lands answers
+    // applied:true even when the disable completes before the HTTP ack is
+    // written — no un-emit exists or is attempted — while a fenced refusal
+    // (at the anchor or mid-batch, where the batch stops with the applied
+    // prefix) never answers ok:true or applied:true.
+    {
+        let registry = state.app_handle.state::<super::registry::ExtRegistry>();
+        let _stream_gate = registry.stream_gate.lock().await;
+        if !identity.is_enabled(&registry) {
+            safe_eprintln!(
+                "[ExtHost][live_server][BLOCK_INCOMING_FENCE_REFUSED route=/ext/apply id={}]",
+                identity.extension_id,
+            );
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(serde_json::json!({"error": "extension is not enabled"})),
+            );
+        }
     }
 
     // C-EXT-EDIT-PROOF: the dedup short-circuit — after authentication,
@@ -2052,18 +2414,44 @@ pub(super) async fn handle_ext_apply<R: tauri::Runtime>(
             extension_id: req.extension_id.clone(),
         };
 
-        if let Err(e) = state.app_handle.emit("mt::text::op", &event) {
-            safe_eprintln!(
-                "[ExtHost][live_server][BLOCK_EXT_APPLY_EMIT_FAILED op={op_type} index={i} reason={e}]"
-            );
-            let body = serde_json::json!({
-                "error": format!("emit failed for operation {i}: {e}"),
-            });
-            record_apply_verdict(&dedup_slot, StatusCode::INTERNAL_SERVER_ERROR, &body);
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(body),
-            );
+        // C-EXT-TRUST-COHERENCE: the synchronous emit leg runs under the
+        // gate behind a fresh epoch re-check — a disable that landed during
+        // an earlier operation's ungated ack wait stops the batch here with
+        // the honest applied prefix, so no mt::text::op is emitted after
+        // the disable's own completion.
+        {
+            let registry = state.app_handle.state::<super::registry::ExtRegistry>();
+            let _stream_gate = registry.stream_gate.lock().await;
+            if !identity.is_enabled(&registry) {
+                safe_eprintln!(
+                    "[ExtHost][live_server][BLOCK_INCOMING_FENCE_REFUSED route=/ext/apply id={} index={}]",
+                    identity.extension_id,
+                    i,
+                );
+                let body = serde_json::json!({
+                    "error": format!(
+                        "apply refused: operation {} not applied (extension disabled mid-batch); {} of {} earlier operations applied",
+                        i,
+                        applied_prefix,
+                        i,
+                    )
+                });
+                record_apply_verdict(&dedup_slot, StatusCode::CONFLICT, &body);
+                return (StatusCode::CONFLICT, Json(body));
+            }
+            if let Err(e) = state.app_handle.emit("mt::text::op", &event) {
+                safe_eprintln!(
+                    "[ExtHost][live_server][BLOCK_EXT_APPLY_EMIT_FAILED op={op_type} index={i} reason={e}]"
+                );
+                let body = serde_json::json!({
+                    "error": format!("emit failed for operation {i}: {e}"),
+                });
+                record_apply_verdict(&dedup_slot, StatusCode::INTERNAL_SERVER_ERROR, &body);
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(body),
+                );
+            }
         }
 
         // C-EXT-EDIT-PROOF: await this operation's verdict under the shared
@@ -2275,7 +2663,11 @@ pub async fn start_live_server<R: tauri::Runtime>(state: Arc<LiveServerState<R>>
             Ok(resp) => {
                 let mut pending = ctx_state.pending_context.lock().unwrap();
                 if let Some(tx) = pending.remove(&resp.request_id) {
-                    let _ = tx.send(resp.context);
+                    // C-EXT-TRUST-COHERENCE: the pending value gained the
+                    // extension id (PendingContextEntry); the listener's
+                    // behavior is unchanged — it still drops entries
+                    // missing at response time, drained ones included.
+                    let _ = tx.tx.send(resp.context);
                 }
             }
             Err(e) => {

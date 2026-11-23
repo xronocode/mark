@@ -164,6 +164,79 @@ describe('ExtensionGallery – extended coverage', () => {
     expect(error.text()).toContain('pair again')
   })
 
+  it('retries disable after a failed revocation instead of enabling', async () => {
+    const wrapper = await mountComponent([SAMPLE_EXT])
+    // C-EXT-TRUST-COHERENCE: the disable's revocation failed and the
+    // refetched list shows the extension disabled — the retry toggle on
+    // the same card must send Disable again, not Enable.
+    invokeMock.mockRejectedValueOnce('ext_disable_revoke_failed')
+    invokeMock.mockResolvedValueOnce([{ ...SAMPLE_EXT, enabled: false }])
+    await wrapper.find('input[type="checkbox"]').setValue(false)
+    await flushPromises()
+    expect(invokeMock).toHaveBeenCalledWith('mt_ext_disable', { id: 'com.example.hello' })
+    invokeMock.mockClear()
+    invokeMock.mockResolvedValueOnce(undefined) // retry disable
+    invokeMock.mockResolvedValueOnce([{ ...SAMPLE_EXT, enabled: false }])
+    await wrapper.find('input[type="checkbox"]').setValue(true)
+    await flushPromises()
+    expect(invokeMock).toHaveBeenCalledWith('mt_ext_disable', { id: 'com.example.hello' })
+  })
+
+  it('clears the disable retry after a successful disable or an enabled listing', async () => {
+    const wrapper = await mountComponent([SAMPLE_EXT])
+    // A successful disable clears the retry state: the next toggle
+    // follows the list flag again.
+    invokeMock.mockResolvedValueOnce(undefined) // disable succeeds
+    invokeMock.mockResolvedValueOnce([{ ...SAMPLE_EXT, enabled: false }])
+    await wrapper.find('input[type="checkbox"]').setValue(false)
+    await flushPromises()
+    invokeMock.mockClear()
+    invokeMock.mockResolvedValueOnce(undefined) // enable succeeds
+    invokeMock.mockResolvedValueOnce([{ ...SAMPLE_EXT, enabled: true }])
+    await wrapper.find('input[type="checkbox"]').setValue(true)
+    await flushPromises()
+    expect(invokeMock).toHaveBeenCalledWith('mt_ext_enable', { id: 'com.example.hello' })
+
+    // An enabled listing clears the retry state too: after the armed
+    // retry state saw one enabled listing, the next toggle on a disabled
+    // listing follows the flag again instead of retrying Disable.
+    const wrapper2 = await mountComponent([SAMPLE_EXT])
+    invokeMock.mockRejectedValueOnce('ext_disable_revoke_failed')
+    invokeMock.mockResolvedValueOnce([{ ...SAMPLE_EXT, enabled: false }])
+    await wrapper2.find('input[type="checkbox"]').setValue(false)
+    await flushPromises()
+    invokeMock.mockResolvedValueOnce(undefined) // refresh: discover
+    invokeMock.mockResolvedValueOnce([{ ...SAMPLE_EXT, enabled: true }]) // refresh: list
+    await wrapper2.find('.gallery-refresh-btn').trigger('click')
+    await flushPromises()
+    invokeMock.mockResolvedValueOnce(undefined) // refresh: discover
+    invokeMock.mockResolvedValueOnce([{ ...SAMPLE_EXT, enabled: false }]) // refresh: list
+    await wrapper2.find('.gallery-refresh-btn').trigger('click')
+    await flushPromises()
+    invokeMock.mockClear()
+    invokeMock.mockResolvedValueOnce(undefined) // enable succeeds
+    invokeMock.mockResolvedValueOnce([{ ...SAMPLE_EXT, enabled: false }])
+    await wrapper2.find('input[type="checkbox"]').setValue(true)
+    await flushPromises()
+    expect(invokeMock).toHaveBeenCalledWith('mt_ext_enable', { id: 'com.example.hello' })
+  })
+
+  it('surfaces the revoke-pending instruction when enable is locked', async () => {
+    const disabled = { ...SAMPLE_EXT, enabled: false }
+    const wrapper = await mountComponent([disabled])
+    // C-EXT-TRUST-COHERENCE: mt_ext_enable refuses into the explicit
+    // revoke-pending instruction (disable again to retry the revocation,
+    // pair afresh once it succeeds).
+    invokeMock.mockRejectedValueOnce('ext_enable_revoke_pending')
+    invokeMock.mockResolvedValueOnce([disabled])
+    await wrapper.find('input[type="checkbox"]').setValue(true)
+    await flushPromises()
+    expect(invokeMock).toHaveBeenCalledWith('mt_ext_enable', { id: 'com.example.hello' })
+    const error = wrapper.find('.gallery-error')
+    expect(error.exists()).toBe(true)
+    expect(error.text()).toContain('Disable the extension again')
+  })
+
   // ── Template branch coverage ─────────────────────────────────
 
   it('shows offline badge and install link for unhealthy ext with install_url', async () => {

@@ -22,6 +22,19 @@
 //            Phase-B4 — text_ops (text.insert + text.transform) added.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-23 C-EXT-TRUST-COHERENCE T-004: a failed revocation stays
+//     failed until proven otherwise — mt_ext_disable's failure branch
+//     records the persistent revoke-pending marker best-effort
+//     (BLOCK_DISABLE_REVOKE_PENDING_RECORDED / _UNRECORDED) and returns
+//     exactly as before; mt_ext_enable refuses BEFORE the mint and
+//     BEFORE stream_gate while the marker stands
+//     (BLOCK_ENABLE_REVOKE_PENDING, unreadable marker
+//     BLOCK_ENABLE_REVOKE_PENDING_UNREADABLE — one machine code
+//     ext_enable_revoke_pending, two log states); a successful disable
+//     clears the marker best-effort (BLOCK_REVOKE_PENDING_CLEAR_FAILED
+//     logged; the strict-absence success condition unchanged — the
+//     idempotent retry-disable is the recovery).
+//   - 2026-11-23 C-EXT-TRUST-COHERENCE T-003: mt_ext_disable drains the disabled extension's pending /ext/context reads inside its existing stream_gate block (live_server::drain_pending_context, BLOCK_DISABLE_CONTEXT_DRAINED with the drained count), so the woken handlers' pre-serve epoch re-check refuses them — lock order stays stream_gate, then the leaf pending-context map.
 //   - 2026-11-21 C-SEC-EXT-GRANT-BOUND T-002: mt_ext_enable refuses — before taking stream_gate — while the current manifest (registry.peek_manifest) requests incoming capabilities beyond the stored approved grant (BLOCK_ENABLE_GRANT_EXCEEDED / ext_enable_reapproval_required, unreadable grant BLOCK_ENABLE_GRANT_UNREADABLE / ext_enable_grant_unreadable); an enable-minted credential deliberately receives no grant and authorizes no incoming route; mt_ext_disable additionally revokes the stored grant best-effort (BLOCK_DISABLE_GRANT_REVOKED / BLOCK_DISABLE_GRANT_REVOKE_FAILED) without joining the strict-absence success condition.
 //   - 2026-11-11 C-SEC-STREAM-AUTH: fence and close the owner stream before credential revocation, including failure.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES T-004: fence disable before strict credential revocation and read-back.
@@ -99,6 +112,24 @@ pub async fn mt_ext_enable(
     id: String,
     registry: tauri::State<'_, ExtRegistry>,
 ) -> Result<(), String> {
+    // C-EXT-TRUST-COHERENCE: a revoke-pending marker stands between the
+    // failed disable and its proof — a surviving secret cannot be
+    // silently re-armed while the revocation has never succeeded. The
+    // refusal runs BEFORE the mint and BEFORE stream_gate (this native
+    // credential I/O holds neither gate nor session lock); one machine
+    // code, two log states.
+    match auth::get_revoke_pending(&id) {
+        Ok(true) => {
+            safe_eprintln!("[ExtHost][command][BLOCK_ENABLE_REVOKE_PENDING id={id}]");
+            return Err("ext_enable_revoke_pending".to_string());
+        }
+        Err(e) => {
+            safe_eprintln!("[ExtHost][command][BLOCK_ENABLE_REVOKE_PENDING_UNREADABLE id={id} reason={e}]");
+            return Err("ext_enable_revoke_pending".to_string());
+        }
+        Ok(false) => {}
+    }
+
     // Ensure a shared secret exists for this extension.
     if auth::get_secret(&id)?.is_none() {
         let secret = auth::generate_secret();
@@ -162,6 +193,16 @@ pub async fn mt_ext_disable<R: tauri::Runtime>(
         let _stream_gate = registry.stream_gate.lock().await;
         registry.disable(&id)?;
         if let Some(state) = app.try_state::<std::sync::Arc<LiveServerState<R>>>() {
+            // C-EXT-TRUST-COHERENCE: drain this extension's pending
+            // /ext/context reads under the same fence, so the woken
+            // handlers' pre-serve epoch re-check refuses them instead of
+            // serving content for a disabled extension.
+            let drained = live_server::drain_pending_context(&state, &id);
+            if drained > 0 {
+                safe_eprintln!(
+                    "[ExtHost][command][BLOCK_DISABLE_CONTEXT_DRAINED id={id} count={drained}]"
+                );
+            }
             let mut guard = state.session.lock().await;
             if let Some(session) = guard.as_mut().filter(|s| s.active && s.extension_id == id) {
                 session.active = false;
@@ -177,7 +218,41 @@ pub async fn mt_ext_disable<R: tauri::Runtime>(
         .and_then(|result| result);
     if let Err(detail) = revoked {
         safe_eprintln!("[ExtHost][command][BLOCK_DISABLE_REVOKE_FAILED id={id} reason={detail}]");
+        // C-EXT-TRUST-COHERENCE: record the revoke-pending marker AFTER
+        // the failure is known (marker-before-revoke would mark every
+        // successful disable pending too), best-effort: a marker write
+        // failing alongside the revocation failure it documents is the
+        // distinct logged BLOCK_DISABLE_REVOKE_PENDING_UNRECORDED
+        // residual, documented not handled in the auth.rs contract. The
+        // return stays exactly as before.
+        let marker_id = id.clone();
+        let marked = tokio::task::spawn_blocking(move || auth::store_revoke_pending(&marker_id))
+            .await
+            .map_err(|e| format!("credential worker failed: {e}"));
+        match marked {
+            Ok(Ok(())) => safe_eprintln!(
+                "[ExtHost][command][BLOCK_DISABLE_REVOKE_PENDING_RECORDED id={id}]"
+            ),
+            Ok(Err(e)) | Err(e) => safe_eprintln!(
+                "[ExtHost][command][BLOCK_DISABLE_REVOKE_PENDING_UNRECORDED id={id} reason={e}]"
+            ),
+        }
         return Err("ext_disable_revoke_failed".to_string());
+    }
+    // C-EXT-TRUST-COHERENCE: a successful disable is proof — the marker
+    // (if one stands from an earlier failed disable) clears best-effort;
+    // BLOCK_REVOKE_PENDING_CLEAR_FAILED is logged and the idempotent
+    // retry-disable is the recovery path. The strict-absence success
+    // condition above is unchanged.
+    let clear_id = id.clone();
+    let cleared = tokio::task::spawn_blocking(move || auth::clear_revoke_pending(&clear_id))
+        .await
+        .map_err(|e| format!("credential worker failed: {e}"));
+    match cleared {
+        Ok(Ok(())) => {}
+        Ok(Err(e)) | Err(e) => safe_eprintln!(
+            "[ExtHost][command][BLOCK_REVOKE_PENDING_CLEAR_FAILED id={id} reason={e}]"
+        ),
     }
     // C-SEC-EXT-GRANT-BOUND: the approved grant is revoked best-effort
     // with its own log. A stale grant is inert while no valid token

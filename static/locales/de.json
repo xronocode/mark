@@ -1827,7 +1827,8 @@
     }
   },
   "extensions": {
-    "disableFailed": "Die Erweiterung ist deaktiviert, aber der Entzug des Zugriffs konnte nicht bestätigt werden. Versuchen Sie es erneut."
+    "disableFailed": "Die Erweiterung ist deaktiviert, aber der Entzug des Zugriffs konnte nicht bestätigt werden. Versuchen Sie es erneut.",
+    "revokePending": "Deaktivieren Sie die Erweiterung erneut, um den Entzug des Zugriffs zu wiederholen; koppeln Sie sie nach erfolgreichem Entzug neu."
   },
   "documentOperations": {
     "title": "Ungespeicherte Änderungen",

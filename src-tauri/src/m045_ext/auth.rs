@@ -6,8 +6,17 @@
 //            for unsigned debug builds where keychain may silently fail.
 //   SCOPE:   Generate / store / retrieve / revoke / validate shared
 //            secrets, plus the pairing-time approved capability grant
-//            stored beside each secret (capability names only). One
-//            secret per extension id.
+//            stored beside each secret (capability names only), plus the
+//            persistent revoke-pending marker (constant value) that
+//            keeps a failed revocation failed until proven otherwise.
+//            One secret per extension id.
+//   RESIDUAL: a revoke-pending marker write failing alongside the
+//            revocation failure it documents (a backend that cannot
+//            delete usually cannot write) is the distinct logged
+//            BLOCK_DISABLE_REVOKE_PENDING_UNRECORDED state, documented
+//            not handled (review minor b); marker-before-revoke is
+//            rejected — it would mark every successful disable pending
+//            too. The idempotent retry-disable is the recovery path.
 //   DEPENDS: keyring 4, rand 0.10 (hex secret generation), serde_json,
 //            mt_paths configured service identity.
 //   LINKS: M-045, M-022
@@ -27,9 +36,28 @@
 //   get_grant - Read the stored grant with exactly get_secret's precedence.
 //   revoke_grant - Revoke both grant stores without swallowing backend errors.
 //   read_credential_record - Strictly read the persistent credential record for rebind proofs.
+//   store_revoke_pending - Persist the revoke-pending marker beside the credential (constant value), verifying through get_revoke_pending.
+//   get_revoke_pending - Read the revoke-pending marker persistent-first; a failing persistent read is an error, never an absent answer.
+//   clear_revoke_pending - Revoke both marker stores best-effort on proof.
 // END_MODULE_MAP
 
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 C-EXT-TRUST-COHERENCE T-004: the third record beside the
+//     credential — the revoke-pending marker (revoke_pending_key
+//     "ext:{id}:revoke_pending", constant REVOKE_PENDING_VALUE payload,
+//     MEM_REVOKE_PENDING mirror, its own backend family with test
+//     injection) written by mt_ext_disable's failure branch and cleared
+//     only on proof (a successful disable or a successful pairing), with
+//     exactly the store_grant discipline at store and get_secret's
+//     absent-leg precedence at read; a failing persistent marker read is
+//     an error, never an absent answer, so the enable gate fails closed.
+//     RESIDUAL (review minor b): the marker is written only AFTER the
+//     revocation failure is known — marker-before-revoke is rejected
+//     because it would mark every successful disable pending too — and a
+//     marker write failing alongside the revocation failure it documents
+//     (a backend that cannot delete usually cannot write) is the distinct
+//     logged BLOCK_DISABLE_REVOKE_PENDING_UNRECORDED state, documented
+//     not handled; the idempotent retry-disable is the recovery path.
 //   - 2026-11-21 C-SEC-EXT-GRANT-BOUND T-001..T-003: the approved incoming capability set persists beside the credential (grant_key "ext:{id}:approved_grant", MEM_GRANTS mirror, store_grant/get_grant/revoke_grant with get_secret's precedence; capability names only), and store_secret became honest — it verifies the new secret through get_secret (the effective credential path) before the now-conditional BLOCK_STORE_OK and restores the previous memory value on every refusal (BLOCK_STORE_VERIFY_MISMATCH / _ABSENT / _READ_FAILED); read_credential_record gives the rebind proof a strict record read.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES T-004: strict revocation and explicit injectable credential errors.
 // END_CHANGE_SUMMARY
@@ -257,6 +285,96 @@ pub(super) fn revoke_grant(ext_id: &str) -> Result<(), String> {
 }
 // END_BLOCK_GRANT_STORE
 
+// START_BLOCK_REVOKE_PENDING_STORE
+fn revoke_pending_key(ext_id: &str) -> String {
+    format!("ext:{ext_id}:revoke_pending")
+}
+
+/// The marker's constant payload. No secret material ever enters a
+/// revoke-pending record — the presence of the record is the fact.
+const REVOKE_PENDING_VALUE: &str = "pending";
+
+/// Memory mirror of the revoke-pending markers, shaped like MEM_GRANTS.
+static MEM_REVOKE_PENDING: std::sync::LazyLock<Mutex<HashMap<String, String>>> =
+    std::sync::LazyLock::new(|| Mutex::new(HashMap::new()));
+
+#[cfg(not(test))]
+fn revoke_pending_credential(ext_id: &str) -> Result<Arc<dyn Credential>, String> {
+    let entry = keyring::Entry::new(crate::mt_paths::application_identifier(), &revoke_pending_key(ext_id))
+        .map_err(|e| format!("credential_entry_failed: {e}"))?;
+    Ok(Arc::new(KeyringCredential(entry)))
+}
+
+// Third parallel injection map so secret, grant and marker backends can
+// fail independently in tests. Mirrors TEST_BACKENDS. The marker lives
+// in auth.rs deliberately: re-discovery's state-overwriting register
+// (registry.rs register) cannot clear an auth.rs record.
+#[cfg(test)]
+type TestPendingBackends = HashMap<String, Result<Arc<dyn Credential>, String>>;
+#[cfg(test)]
+static TEST_PENDING_BACKENDS: std::sync::LazyLock<Mutex<TestPendingBackends>> =
+    std::sync::LazyLock::new(|| Mutex::new(HashMap::new()));
+#[cfg(test)]
+fn revoke_pending_credential(ext_id: &str) -> Result<Arc<dyn Credential>, String> {
+    TEST_PENDING_BACKENDS.lock().map_err(|_| "test revoke-pending backend lock failed".to_string())?
+        .get(ext_id).cloned().unwrap_or_else(|| Err("test revoke-pending backend not installed".to_string()))
+}
+
+/// Persist the revoke-pending marker beside the credential after a
+/// disable whose revocation failed. Exactly the store_grant discipline:
+/// the write reports success only after the marker verifies through
+/// get_revoke_pending (the effective read path every caller uses).
+pub(super) fn store_revoke_pending(ext_id: &str) -> Result<(), String> {
+    MEM_REVOKE_PENDING.lock().map_err(|_| "memory revoke-pending store unavailable".to_string())?
+        .insert(revoke_pending_key(ext_id), REVOKE_PENDING_VALUE.to_string());
+    let persisted = revoke_pending_credential(ext_id).and_then(|entry| entry.write(REVOKE_PENDING_VALUE));
+    if let Err(e) = persisted {
+        safe_eprintln!("[ExtHost][auth][BLOCK_REVOKE_PENDING_STORE_FAILED id={ext_id} reason={e}]");
+    }
+    match get_revoke_pending(ext_id) {
+        Ok(true) => {
+            safe_eprintln!("[ExtHost][auth][BLOCK_REVOKE_PENDING_STORED id={ext_id}]");
+            Ok(())
+        }
+        other => {
+            safe_eprintln!("[ExtHost][auth][BLOCK_REVOKE_PENDING_STORE_FAILED id={ext_id} reason=verification mismatch]");
+            Err(format!("revoke-pending verification failed (stored {other:?})"))
+        }
+    }
+}
+
+/// Read the revoke-pending marker. Persistent-first like get_secret, but
+/// a failing persistent read can never mean absent — absence read out of
+/// an error would fail the enable gate open — so the error is returned
+/// (the known-present memory mirror still answers); Ok(None) on the
+/// persistent leg falls through to the memory check exactly like
+/// get_secret.
+pub(super) fn get_revoke_pending(ext_id: &str) -> Result<bool, String> {
+    match revoke_pending_credential(ext_id).and_then(|entry| entry.read()) {
+        Ok(Some(value)) => return Ok(value == REVOKE_PENDING_VALUE),
+        Ok(None) => {},
+        Err(e) => {
+            safe_eprintln!("[ExtHost][auth][BLOCK_REVOKE_PENDING_GET_FAILED id={ext_id} reason={e}]");
+            return Err(format!("revoke-pending marker unreadable: {e}"));
+        }
+    }
+    let store = MEM_REVOKE_PENDING.lock().map_err(|_| "memory revoke-pending store unavailable".to_string())?;
+    Ok(store.contains_key(&revoke_pending_key(ext_id)))
+}
+
+/// Best-effort clear on proof — a successful disable or a successful
+/// pairing. A failing persistent delete is returned to the caller for
+/// its BLOCK_REVOKE_PENDING_CLEAR_FAILED log; the idempotent
+/// retry-disable is the documented recovery path.
+pub(super) fn clear_revoke_pending(ext_id: &str) -> Result<(), String> {
+    MEM_REVOKE_PENDING.lock().map_err(|_| "memory revoke-pending store unavailable".to_string())?
+        .remove(&revoke_pending_key(ext_id));
+    revoke_pending_credential(ext_id)?.delete()?;
+    safe_eprintln!("[ExtHost][auth][BLOCK_REVOKE_PENDING_CLEARED id={ext_id}]");
+    Ok(())
+}
+// END_BLOCK_REVOKE_PENDING_STORE
+
 // START_BLOCK_GET
 pub fn get_secret(ext_id: &str) -> Result<Option<String>, String> {
     match credential(ext_id).and_then(|entry| entry.read()) {
@@ -346,5 +464,14 @@ pub(super) fn inject_test_grant_backend(ext_id: &str, backend: Result<Arc<dyn Cr
 pub(super) fn clear_test_grant(ext_id: &str) {
     MEM_GRANTS.lock().unwrap().remove(&grant_key(ext_id));
     TEST_GRANT_BACKENDS.lock().unwrap().remove(ext_id);
+}
+#[cfg(test)]
+pub(super) fn inject_test_pending_backend(ext_id: &str, backend: Result<Arc<dyn Credential>, String>) {
+    TEST_PENDING_BACKENDS.lock().unwrap().insert(ext_id.to_string(), backend);
+}
+#[cfg(test)]
+pub(super) fn clear_test_pending(ext_id: &str) {
+    MEM_REVOKE_PENDING.lock().unwrap().remove(&revoke_pending_key(ext_id));
+    TEST_PENDING_BACKENDS.lock().unwrap().remove(ext_id);
 }
 // END_BLOCK_TEST_BACKEND

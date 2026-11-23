@@ -1830,7 +1830,8 @@
     }
   },
   "extensions": {
-    "disableFailed": "擴充功能已停用，但無法確認存取權限已撤銷。請再試一次。"
+    "disableFailed": "擴充功能已停用，但無法確認存取權限已撤銷。請再試一次。",
+    "revokePending": "請再次停用該擴充功能以重試撤銷其存取權；撤銷成功後請重新配對。"
   },
   "documentOperations": {
     "title": "未儲存的變更",

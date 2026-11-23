@@ -18,6 +18,41 @@
 // END_MODULE_MAP
 
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 C-EXT-TRUST-COHERENCE T-006: the rebind honesty family —
+//     rebind_growth_classification_enumerates_added_capabilities,
+//     rebind_equality_and_narrowing_dialogs_state_the_grant_truth and
+//     pairing_dialogs_use_the_registered_manifest_name (pure-helper pins,
+//     committed failing-first as the missing-API compile error) plus the
+//     harness-approved capture paths approved_rebind_captures_the_presented_declared_set
+//     (growth/narrowing/equality) and legacy_credential_rebind_classifies_as_growth.
+//   - 2026-11-23 C-EXT-TRUST-COHERENCE T-004: the revoke-pending family —
+//     enable_after_failed_revocation_is_locked_to_revoke_pending,
+//     revoke_pending_clears_on_successful_disable_or_rebind (both
+//     clear-on-proof paths: the successful retry-disable and the
+//     successful prior-secret rebind) and
+//     unreadable_revoke_pending_marker_is_a_distinct_enable_refusal —
+//     committed failing-first (the revoke-pending API did not exist: the
+//     red run was the compile error, the C-STREAM-BUDGET style) and the
+//     fixture builder injects the marker test backend mechanically with
+//     Drop cleanup, no call site changes. Ported onto the C-EXT-EDIT-PROOF
+//     base: the clear-on-proof liveness legs ride the deprecated route's
+//     honest 501 (an authorized fresh token reaches the refusal, a dead
+//     one stops at the 401 gate, zero events) instead of the removed
+//     insert 200.
+//   - 2026-11-23 C-EXT-TRUST-COHERENCE T-001: failing-first fence pins —
+//     apply_fences_disable_crossing_paused_authentication and
+//     text_insert_fences_disable_crossing_paused_authentication (the
+//     DummyCredential read_pause disable-crossing legs on /ext/apply and
+//     /ext/text-insert, response bodies read through the budget_body reader)
+//     are committed red and ported onto the C-EXT-EDIT-PROOF base: the
+//     apply leg rides the ack-backed wire path keyless (request_id None,
+//     so the dedup store never admits it and the baseline red is the 504
+//     ack timeout with the batch already emitted), and the text-insert leg
+//     collapses into refusal-ordering — the deprecated route already
+//     answers the honest 501 for any authorized caller, so the pin holds
+//     that a resumed disable-crossing request is refused (never served)
+//     with zero mt::text::op events; both go green with T-002's
+//     IncomingIdentity fence.
 //   - 2026-11-22 C-EXT-EDIT-PROOF T-006: honest retries — the loopback
 //     scripted-response fixture serve_scripted drives the new invoke pins
 //     invoke_carries_stable_idempotency_key_across_retries (a 503 then a
@@ -978,6 +1013,11 @@ struct IncomingFixture {
     // C-SEC-EDIT-TARGETING: the last (document_id, document_generation)
     // pair the context responder handed, recorded for apply-side assertions.
     last_binding: Arc<Mutex<Option<(String, String)>>>,
+    // C-EXT-TRUST-COHERENCE: opt-in gated hand-off for the context
+    // responder (open by default, so no call site changes) and a counter
+    // of emitted context requests, for the cancellation and fence pins.
+    context_gate: Arc<(Mutex<bool>, std::sync::Condvar)>,
+    context_requests: Arc<std::sync::atomic::AtomicU64>,
 }
 
 fn incoming_fixture(enabled: bool, capability: &str) -> IncomingFixture {
@@ -1031,6 +1071,11 @@ fn incoming_fixture_with_grant(enabled: bool, capabilities: &[&str], grant: bool
         super::auth::inject_test_grant_backend(&id, Ok(grant_store));
         super::auth::store_grant(&id, &approved).unwrap();
     }
+    // C-EXT-TRUST-COHERENCE: the revoke-pending marker lives beside the
+    // credential through its own backend, injected mechanically here so
+    // no call site changes (mirrors the grant backend).
+    let pending_store = Arc::new(DummyCredential::default());
+    super::auth::inject_test_pending_backend(&id, Ok(pending_store));
     let events = Arc::new(Mutex::new(Vec::new()));
     let seen = events.clone();
     app.listen("mt::text::op", move |event| {
@@ -1057,22 +1102,44 @@ fn incoming_fixture_with_grant(enabled: bool, capabilities: &[&str], grant: bool
     let fixture_id = id.clone();
     let seq = handed_seq.clone();
     let handed = last_binding.clone();
+    let context_gate = Arc::new((Mutex::new(true), std::sync::Condvar::new()));
+    let context_requests = Arc::new(std::sync::atomic::AtomicU64::new(0));
+    let gate = context_gate.clone();
+    let counter = context_requests.clone();
     app.listen("mt::ext::context_request", move |event| {
+        counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let payload: serde_json::Value = serde_json::from_str(event.payload()).unwrap();
         let state = weak_state.upgrade().unwrap();
+        let n = seq.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+        let response = super::live_server::ExtContextResponse {
+            markdown: "dummy context".to_string(), cursor: None, selection: None, file_path: None,
+            document_id: Some(format!("tab-{fixture_id}")),
+            document_generation: Some(format!("document-gen-{n}")),
+        };
+        *handed.lock().unwrap() = Some((response.document_id.clone().unwrap(), response.document_generation.clone().unwrap()));
+        // C-EXT-TRUST-COHERENCE: the gated hand-off waits BEFORE removing
+        // the pending entry, so a disable can drain the entry (dropping
+        // its sender) while the response waits; the gate stands open
+        // unless a pin armed it, so default behavior is unchanged.
+        {
+            let (ready, wake) = &*gate;
+            let guard = ready.lock().unwrap();
+            drop(wake.wait_while(guard, |ready| !*ready).unwrap());
+        }
         let tx = state.pending_context.lock().unwrap().remove(payload["request_id"].as_str().unwrap());
         if let Some(tx) = tx {
-            let n = seq.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
-            let response = super::live_server::ExtContextResponse {
-                markdown: "dummy context".to_string(), cursor: None, selection: None, file_path: None,
-                document_id: Some(format!("tab-{fixture_id}")),
-                document_generation: Some(format!("document-gen-{n}")),
-            };
-            *handed.lock().unwrap() = Some((response.document_id.clone().unwrap(), response.document_generation.clone().unwrap()));
-            tx.send(response).unwrap();
+            tx.tx.send(response).unwrap();
         }
     });
-    IncomingFixture { app, state, events, id, token, credential, live_events, last_binding }
+    IncomingFixture { app, state, events, id, token, credential, live_events, last_binding, context_gate, context_requests }
+}
+
+/// C-EXT-TRUST-COHERENCE: arm the fixture's context responder to hold its
+/// response until the returned gate is released, so a disable can land
+/// while the read is pending.
+fn gate_context_responder(f: &IncomingFixture) -> Arc<(Mutex<bool>, std::sync::Condvar)> {
+    *f.context_gate.0.lock().unwrap() = false;
+    f.context_gate.clone()
 }
 
 fn handed_binding(f: &IncomingFixture) -> (String, String) {
@@ -1353,6 +1420,7 @@ impl Drop for IncomingFixture {
     fn drop(&mut self) {
         super::auth::clear_test_secret(&self.id);
         super::auth::clear_test_grant(&self.id);
+        super::auth::clear_test_pending(&self.id);
     }
 }
 
@@ -1816,6 +1884,99 @@ async fn enabled_extension_passes_only_declared_capability_routes() {
     assert!(grantless.live_events.lock().unwrap().is_empty());
 }
 
+// C-EXT-TRUST-COHERENCE: the rebind dialogs state the grant truth — the
+// pure change classifier distinguishes growth/equality/narrowing from the
+// stored grant (a None stored grant is growth over everything declared),
+// the growth dialog keeps the key-replacement statement and enumerates
+// every added capability's grant phrase, and the dialogs display the
+// registered manifest's name with a distinct mismatch state.
+#[test]
+fn rebind_growth_classification_enumerates_added_capabilities() {
+    let growth = super::live_server::classify_grant_change(
+        Some(&["context.read".to_string()]),
+        &["text.edit".to_string(), "context.read".to_string()],
+    );
+    match &growth {
+        super::live_server::GrantChange::Growth { added } =>
+            assert_eq!(added.iter().map(|cap| cap.name()).collect::<Vec<_>>(), vec!["text.edit"]),
+        other => panic!("expected growth, got {other:?}"),
+    }
+    // Added names enumerate in RouteCapability::all() order even when the
+    // manifest declares them in reverse.
+    let growth = super::live_server::classify_grant_change(
+        Some(&[]),
+        &["text.insert".to_string(), "stream.document".to_string()],
+    );
+    match &growth {
+        super::live_server::GrantChange::Growth { added } =>
+            assert_eq!(added.iter().map(|cap| cap.name()).collect::<Vec<_>>(), vec!["stream.document", "text.insert"]),
+        other => panic!("expected growth, got {other:?}"),
+    }
+    // A None stored grant classifies as growth over everything declared.
+    let legacy = super::live_server::classify_grant_change(None, &["context.read".to_string()]);
+    assert!(matches!(legacy, super::live_server::GrantChange::Growth { .. }));
+    // The growth dialog keeps the key-replacement statement and
+    // enumerates every added capability's grant phrase.
+    let text = super::live_server::pairing_rebind_change_description("TokMo", "tokmo", &legacy);
+    assert!(text.contains("replaces its live key"), "{text}");
+    assert!(text.contains("read the current text of the active tab"), "{text}");
+    let both = super::live_server::classify_grant_change(None, &["text.edit".to_string(), "context.read".to_string()]);
+    let text = super::live_server::pairing_rebind_change_description("TokMo", "tokmo", &both);
+    let read_pos = text.find("read the current text of the active tab");
+    let edit_pos = text.find("edit the current text of the active tab");
+    assert!(read_pos.is_some() && edit_pos.is_some(), "{text}");
+    assert!(read_pos.unwrap() < edit_pos.unwrap(), "{text}");
+}
+
+#[test]
+fn rebind_equality_and_narrowing_dialogs_state_the_grant_truth() {
+    // Equality: the stored grant and the declared set name the same
+    // incoming capabilities in any order.
+    let equal = super::live_server::classify_grant_change(
+        Some(&["context.read".to_string(), "text.edit".to_string()]),
+        &["text.edit".to_string(), "context.read".to_string()],
+    );
+    assert_eq!(equal, super::live_server::GrantChange::Equal);
+    let text = super::live_server::pairing_rebind_change_description("Editor", "editor", &equal);
+    assert!(text.contains("replaces its live key"), "{text}");
+    assert!(text.to_lowercase().contains("no grant change"), "{text}");
+    assert!(!text.contains("read the current text of the active tab"), "{text}");
+    assert!(!text.contains("edit the current text of the active tab"), "{text}");
+
+    // Narrowing: text.edit stops being served and the dialog names it,
+    // never claiming "no grant change".
+    let narrow = super::live_server::classify_grant_change(
+        Some(&["context.read".to_string(), "text.edit".to_string()]),
+        &["context.read".to_string()],
+    );
+    match &narrow {
+        super::live_server::GrantChange::Narrow { stopped } =>
+            assert_eq!(stopped.iter().map(|cap| cap.name()).collect::<Vec<_>>(), vec!["text.edit"]),
+        other => panic!("expected narrowing, got {other:?}"),
+    }
+    let text = super::live_server::pairing_rebind_change_description("Editor", "editor", &narrow);
+    assert!(text.contains("edit the current text of the active tab"), "{text}");
+    assert!(!text.to_lowercase().contains("no grant change"), "{text}");
+}
+
+#[test]
+fn pairing_dialogs_use_the_registered_manifest_name() {
+    // A registered id displays the registered manifest's name; a
+    // contradicting caller-reported name is a distinct flagged state
+    // (logged, never displayed — log-only, no refusal).
+    let (display, mismatch) = super::live_server::pairing_display_name("A Lying Caller", Some("Registered Extension"));
+    assert_eq!(display, "Registered Extension");
+    assert!(mismatch);
+    let (display, mismatch) = super::live_server::pairing_display_name("Registered Extension", Some("Registered Extension"));
+    assert_eq!(display, "Registered Extension");
+    assert!(!mismatch);
+    // An unregistered id keeps the reported name — there is nothing to
+    // compare against.
+    let (display, mismatch) = super::live_server::pairing_display_name("Reported Name", None);
+    assert_eq!(display, "Reported Name");
+    assert!(!mismatch);
+}
+
 #[test]
 fn pairing_grant_description_names_only_declared_capabilities() {
     let stream_only = super::live_server::pairing_grant_description(
@@ -1919,6 +2080,225 @@ async fn fresh_pairing_restores_access() {
     assert_eq!(insert_fixture(&inserter, Some(&inserter.token)).await, StatusCode::UNAUTHORIZED);
 }
 // END_BLOCK_DISABLE_AUTH_TESTS
+
+// START_BLOCK_INCOMING_FENCE_PINS
+// C-EXT-TRUST-COHERENCE: a disable that completes while an incoming data
+// request is paused inside its credential read must fence the resumed
+// request — 401 with the stream fence's plain "extension is not enabled"
+// voice and zero mt::text::op events — instead of emitting through it.
+// The legs reuse the stream_security read_pause disable-crossing pattern
+// (fail_delete arms a disable whose registry flip lands during the pause)
+// and read refusal bodies through the budget_body reader.
+#[tokio::test]
+async fn apply_fences_disable_crossing_paused_authentication() {
+    // Dual capability: the context read hands the binding the apply echoes,
+    // so the baseline run reaches the emit leg past the binding fence.
+    let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    assert_eq!(context_fixture(&f, &f.token).await, StatusCode::OK);
+    let (document_id, document_generation) = handed_binding(&f);
+    let (entered_tx, entered_rx) = std::sync::mpsc::channel();
+    let release = Arc::new((Mutex::new(false), std::sync::Condvar::new()));
+    *f.credential.read_pause.lock().unwrap() = Some((entered_tx, release.clone()));
+    let state = f.state.clone();
+    let id = f.id.clone();
+    let token = f.token.clone();
+    let pending = tokio::spawn(async move {
+        super::live_server::handle_ext_apply(State(state), bearer_headers(Some(&token)),
+            Json(super::live_server::ExtApplyRequest {
+                extension_id: id, undo_label: None, request_id: None,
+                document_id: Some(document_id), document_generation: Some(document_generation),
+                operations: vec![super::live_server::EditOperation { op_type: "insert_at_cursor".to_string(), content: Some("fixture edit".to_string()) }],
+            })).await.into_response()
+    });
+    tokio::task::spawn_blocking(move || entered_rx.recv_timeout(std::time::Duration::from_secs(5)).unwrap()).await.unwrap();
+    // The disable's registry flip completes during the paused authentication;
+    // its revocation fails, so the credential the resumed auth reads survives.
+    f.credential.fail_delete.store(true, std::sync::atomic::Ordering::Relaxed);
+    assert_eq!(super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap_err(), "ext_disable_revoke_failed");
+    *release.0.lock().unwrap() = true; release.1.notify_all();
+    let response = pending.await.unwrap();
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED, "the resumed apply must be fenced, not served");
+    let body = budget_body(response).await;
+    assert_eq!(body["error"], "extension is not enabled");
+    assert!(f.events.lock().unwrap().is_empty(), "a fenced apply emits zero mt::text::op events");
+}
+
+#[tokio::test]
+async fn text_insert_fences_disable_crossing_paused_authentication() {
+    let f = incoming_fixture(true, "text.insert");
+    let (entered_tx, entered_rx) = std::sync::mpsc::channel();
+    let release = Arc::new((Mutex::new(false), std::sync::Condvar::new()));
+    *f.credential.read_pause.lock().unwrap() = Some((entered_tx, release.clone()));
+    let state = f.state.clone();
+    let token = f.token.clone();
+    let pending = tokio::spawn(async move {
+        let req = serde_json::from_value(serde_json::json!({"text": "fixture text", "source": "fixture"})).unwrap();
+        super::live_server::handle_text_insert(State(state), bearer_headers(Some(&token)), Json(req))
+            .await.into_response()
+    });
+    tokio::task::spawn_blocking(move || entered_rx.recv_timeout(std::time::Duration::from_secs(5)).unwrap()).await.unwrap();
+    f.credential.fail_delete.store(true, std::sync::atomic::Ordering::Relaxed);
+    assert!(super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.is_err());
+    *release.0.lock().unwrap() = true; release.1.notify_all();
+    let response = pending.await.unwrap();
+    assert!(!response.status().is_success(), "the resumed insert must be refused, not served");
+    let body = budget_body(response).await;
+    assert_eq!(body["error"], "extension is not enabled");
+    assert!(f.events.lock().unwrap().is_empty(), "a fenced insert emits zero mt::text::op events");
+}
+
+#[tokio::test]
+async fn context_fences_disable_crossing_paused_authentication() {
+    let f = incoming_fixture(true, "context.read");
+    let (entered_tx, entered_rx) = std::sync::mpsc::channel();
+    let release = Arc::new((Mutex::new(false), std::sync::Condvar::new()));
+    *f.credential.read_pause.lock().unwrap() = Some((entered_tx, release.clone()));
+    let state = f.state.clone();
+    let id = f.id.clone();
+    let token = f.token.clone();
+    let pending = tokio::spawn(async move {
+        super::live_server::handle_ext_context(State(state), bearer_headers(Some(&token)),
+            Json(super::live_server::ExtContextRequest { extension_id: id }))
+            .await.into_response()
+    });
+    tokio::task::spawn_blocking(move || entered_rx.recv_timeout(std::time::Duration::from_secs(5)).unwrap()).await.unwrap();
+    f.credential.fail_delete.store(true, std::sync::atomic::Ordering::Relaxed);
+    assert!(super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.is_err());
+    *release.0.lock().unwrap() = true; release.1.notify_all();
+    let response = pending.await.unwrap();
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED, "the resumed read must be fenced, not served");
+    let body = budget_body(response).await;
+    assert_eq!(body["error"], "extension is not enabled");
+    assert_eq!(f.context_requests.load(std::sync::atomic::Ordering::Relaxed), 0, "a fenced read emits zero renderer traffic");
+    assert!(f.events.lock().unwrap().is_empty());
+    assert!(f.state.pending_context.lock().unwrap().is_empty(), "no pending entry survives the fenced read");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn context_disable_cancels_the_pending_read() {
+    // Dual capability: context.read owns the pending read; the
+    // never-issued-binding proof applies with text.edit after the trust
+    // reset.
+    let f = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    let release = gate_context_responder(&f);
+    let state = f.state.clone();
+    let id = f.id.clone();
+    let token = f.token.clone();
+    let pending = tokio::spawn(async move {
+        super::live_server::handle_ext_context(State(state), bearer_headers(Some(&token)),
+            Json(super::live_server::ExtContextRequest { extension_id: id }))
+            .await.into_response()
+    });
+    // The read is pending: its entry is registered and its renderer
+    // request emitted.
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    loop {
+        let registered = !f.state.pending_context.lock().unwrap().is_empty();
+        if registered || std::time::Instant::now() >= deadline { break; }
+        tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+    }
+    assert!(!f.state.pending_context.lock().unwrap().is_empty(), "the context read registered its pending entry");
+    assert_eq!(f.context_requests.load(std::sync::atomic::Ordering::Relaxed), 1, "the renderer request was emitted");
+    // A successful disable drains the pending read it owns: the woken
+    // handler must fence instead of serving the response that overtook
+    // the drain, and the drained entry makes the unchanged listener drop
+    // the late response released below.
+    super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap();
+    *release.0.lock().unwrap() = true; release.1.notify_all();
+    let response = tokio::time::timeout(std::time::Duration::from_secs(1), pending).await
+        .expect("the drained read wakes immediately instead of spending the 5s timeout")
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED, "the cancelled read must be fenced, not served");
+    let body = budget_body(response).await;
+    assert_eq!(body["error"], "extension is not enabled");
+    assert!(f.events.lock().unwrap().is_empty(), "a cancelled read emits zero mt::text::op events");
+    assert_eq!(f.context_requests.load(std::sync::atomic::Ordering::Relaxed), 1, "no further renderer traffic after cancellation");
+    // Nothing was recorded: after a trust reset, an apply echoing the
+    // binding the late response handed is a never-issued binding (409).
+    let fresh = fresh_pair_secret(&f).await;
+    super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap();
+    let (document_id, document_generation) = handed_binding(&f);
+    assert_eq!(apply_bound(&f, &fresh, Some(document_id), Some(document_generation)).await, StatusCode::CONFLICT, "the cancelled read recorded no binding");
+}
+// END_BLOCK_INCOMING_FENCE_PINS
+
+// START_BLOCK_REVOKE_PENDING_TESTS
+// C-EXT-TRUST-COHERENCE: a disable whose credential revocation failed
+// records a persistent revoke-pending marker beside the credential; the
+// retry-enable stays locked while the marker stands; and the marker
+// clears only on proof — a successful disable or a successful pairing.
+#[tokio::test]
+async fn enable_after_failed_revocation_is_locked_to_revoke_pending() {
+    let f = incoming_fixture(true, "text.insert");
+    f.credential.fail_delete.store(true, std::sync::atomic::Ordering::Relaxed);
+    assert_eq!(super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap_err(), "ext_disable_revoke_failed");
+    assert_eq!(super::auth::get_revoke_pending(&f.id).unwrap(), true, "the failed disable recorded its revoke-pending marker");
+    assert_eq!(super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap_err(), "ext_enable_revoke_pending");
+    assert!(f.app.state::<ExtRegistry>().get_manifest(&f.id).is_err(), "the locked enable leaves the registry disabled");
+    assert_eq!(super::auth::get_secret(&f.id).unwrap().as_deref(), Some(f.token.as_str()), "the locked enable re-keys nothing");
+    assert!(super::auth::validate_token(&f.id, &f.token), "the surviving credential is inert behind the enabled-state gate");
+    assert_old_token_fenced(&f).await;
+    assert!(f.events.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn revoke_pending_clears_on_successful_disable_or_rebind() {
+    // Proof path 1: the retry-disable succeeds and clears the marker;
+    // the disable-pair-enable trust reset then works exactly as
+    // fresh_pairing_restores_access pins it.
+    let f = incoming_fixture(true, "text.insert");
+    f.credential.fail_delete.store(true, std::sync::atomic::Ordering::Relaxed);
+    assert_eq!(super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap_err(), "ext_disable_revoke_failed");
+    assert_eq!(super::auth::get_revoke_pending(&f.id).unwrap(), true);
+    f.credential.fail_delete.store(false, std::sync::atomic::Ordering::Relaxed);
+    super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap();
+    assert_eq!(super::auth::get_revoke_pending(&f.id).unwrap(), false, "the successful disable cleared the marker");
+    let fresh = fresh_pair_secret(&f).await;
+    super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap();
+    // C-EXT-EDIT-PROOF: the deprecated insert route answers the honest 501
+    // for an authorized caller — reaching it proves the fresh token is live
+    // (a dead token stops at the 401 gate) — with zero events.
+    assert_eq!(insert_fixture(&f, Some(&fresh)).await, StatusCode::NOT_IMPLEMENTED, "the granted route works with the fresh token");
+    assert!(f.events.lock().unwrap().is_empty());
+
+    // Proof path 2: a successful rebind after the failed disable (the
+    // prior-secret proof through pair_request) also clears the marker,
+    // after which enable proceeds and the granted route works with the
+    // fresh token.
+    let g = incoming_fixture(true, "text.insert");
+    g.credential.fail_delete.store(true, std::sync::atomic::Ordering::Relaxed);
+    assert_eq!(super::mt_ext_disable(g.id.clone(), g.app.state(), g.app.handle().clone()).await.unwrap_err(), "ext_disable_revoke_failed");
+    assert_eq!(super::auth::get_revoke_pending(&g.id).unwrap(), true);
+    let response = pair_request(&g, &g.id, Some(g.token.clone())).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(super::auth::get_revoke_pending(&g.id).unwrap(), false, "the successful rebind cleared the marker");
+    let bytes = axum::body::to_bytes(response.into_body(), 8192).await.unwrap();
+    let paired: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    let rebound = paired["shared_secret"].as_str().unwrap().to_string();
+    super::mt_ext_enable(g.id.clone(), g.app.state()).await.unwrap();
+    assert_eq!(insert_fixture(&g, Some(&g.token)).await, StatusCode::UNAUTHORIZED, "the prior token is dead");
+    assert_eq!(insert_fixture(&g, Some(&rebound)).await, StatusCode::NOT_IMPLEMENTED, "the granted route works with the fresh token — the authorized caller reaches the honest refusal");
+    assert!(g.events.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn unreadable_revoke_pending_marker_is_a_distinct_enable_refusal() {
+    let f = incoming_fixture(true, "text.insert");
+    f.credential.fail_delete.store(true, std::sync::atomic::Ordering::Relaxed);
+    assert_eq!(super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap_err(), "ext_disable_revoke_failed");
+    assert_eq!(super::auth::get_revoke_pending(&f.id).unwrap(), true);
+    // Swap the marker backend to a failing read: without a trustworthy
+    // record the marker can never be proven absent, so the enable
+    // refuses on the same machine code through its distinct logged
+    // state, enables nothing and mints nothing.
+    super::auth::inject_test_pending_backend(&f.id, Err("dummy marker read access failed".to_string()));
+    assert!(super::auth::get_revoke_pending(&f.id).is_err(), "an unreadable marker is a read error, never an absent answer");
+    assert_eq!(super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap_err(), "ext_enable_revoke_pending");
+    assert!(f.app.state::<ExtRegistry>().get_manifest(&f.id).is_err(), "the refused enable leaves the registry disabled");
+    assert_eq!(super::auth::get_secret(&f.id).unwrap().as_deref(), Some(f.token.as_str()), "the refused enable mints nothing");
+    assert!(f.events.lock().unwrap().is_empty());
+}
+// END_BLOCK_REVOKE_PENDING_TESTS
 
 // START_BLOCK_GRANT_BOUND_SECURITY_TESTS
 // C-SEC-EXT-GRANT-BOUND: the approved incoming set is captured at pairing
@@ -2066,6 +2446,79 @@ async fn stream_requires_stored_stream_document_grant() {
     }
     assert_eq!(f.live_events.lock().unwrap().len(), live_event_count);
     assert!(f.events.lock().unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn approved_rebind_captures_the_presented_declared_set() {
+    // Growth: pair (context.read), grow the manifest, rebind with the
+    // prior secret — the capture includes the added name and the prior
+    // token is fenced.
+    let f = incoming_fixture(true, "context.read");
+    super::mt_ext_disable(f.id.clone(), f.app.state(), f.app.handle().clone()).await.unwrap();
+    let fresh = fresh_pair_secret(&f).await;
+    let mut grown = test_manifest(&f.id);
+    grown.capabilities = vec![
+        Capability { name: "context.read".to_string(), version: 1 },
+        Capability { name: "text.edit".to_string(), version: 1 },
+    ];
+    f.app.state::<ExtRegistry>().register(grown, true).unwrap();
+    let response = pair_request(&f, &f.id, Some(fresh.clone())).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        super::auth::get_grant(&f.id).unwrap().as_deref(),
+        Some(["context.read".to_string(), "text.edit".to_string()].as_slice()),
+        "the presented capture includes the added name",
+    );
+    assert_eq!(context_fixture(&f, &fresh).await, StatusCode::UNAUTHORIZED, "the prior token is fenced");
+    let bytes = axum::body::to_bytes(response.into_body(), 8192).await.unwrap();
+    let paired: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    let second = paired["shared_secret"].as_str().unwrap().to_string();
+    super::mt_ext_enable(f.id.clone(), f.app.state()).await.unwrap();
+    assert_eq!(context_fixture(&f, &second).await, StatusCode::OK, "the fresh token works on the grown grant");
+
+    // Narrowing: the shrunk manifest's rebind captures the shrunk subset.
+    let mut shrunk = test_manifest(&f.id);
+    shrunk.capabilities = vec![Capability { name: "context.read".to_string(), version: 1 }];
+    f.app.state::<ExtRegistry>().register(shrunk, true).unwrap();
+    let response = pair_request(&f, &f.id, Some(second)).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        super::auth::get_grant(&f.id).unwrap().as_deref(),
+        Some(["context.read".to_string()].as_slice()),
+        "the narrowing rebind captures the shrunk subset",
+    );
+    let bytes = axum::body::to_bytes(response.into_body(), 8192).await.unwrap();
+    let paired: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    let third = paired["shared_secret"].as_str().unwrap().to_string();
+
+    // Equality: the unchanged manifest's rebind captures the unchanged set.
+    let unchanged = test_manifest(&f.id);
+    let mut unchanged = unchanged;
+    unchanged.capabilities = vec![Capability { name: "context.read".to_string(), version: 1 }];
+    f.app.state::<ExtRegistry>().register(unchanged, true).unwrap();
+    let response = pair_request(&f, &f.id, Some(third)).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        super::auth::get_grant(&f.id).unwrap().as_deref(),
+        Some(["context.read".to_string()].as_slice()),
+        "the equality rebind captures the unchanged set",
+    );
+}
+
+#[tokio::test]
+async fn legacy_credential_rebind_classifies_as_growth() {
+    // A grant-less (legacy-shape) credential's rebind classifies as
+    // growth over the full declared set, and the capture stores exactly
+    // that presented set.
+    let f = incoming_fixture_grantless(true, "context.read");
+    assert_eq!(super::auth::get_grant(&f.id).unwrap(), None, "the legacy credential holds no grant");
+    let response = pair_request(&f, &f.id, Some(f.token.clone())).await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        super::auth::get_grant(&f.id).unwrap().as_deref(),
+        Some(["context.read".to_string()].as_slice()),
+        "the full declared set was presented and captured",
+    );
 }
 
 #[tokio::test]
