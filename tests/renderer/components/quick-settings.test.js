@@ -1,7 +1,7 @@
 // FILE: tests/renderer/components/quick-settings.test.js
-// VERSION: 1.1.0
+// VERSION: 1.3.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin the C-PAGE-WIDTH-TABLES panel wave (M-061) — the titlebar quick-settings shell (T-003), the Page tab arithmetic (T-004), the View tab theme mode + 17-family grid + the R-4 per-document override pin (T-005) and the Tables tab preferences (T-006): C-38 composition with the neutral palette, dark active-segment fix living in the SHARED segmented component (never forked), outside-click close vs inside-keep, per-unit presets with the 10% snap and the nearest-preset anchor, the 12-36 zoom-shared font range, the scope switch writing global vs per-document tiers, the footer naming the live global default, and the two table preference keys.
+//   PURPOSE: Pin the C-PAGE-WIDTH-TABLES panel wave (M-061) — the titlebar quick-settings shell (T-003), the Page tab arithmetic (T-004), the View tab theme mode + 17-family grid + the R-4 per-document override pin (T-005) and the Tables tab preferences (T-006): C-38 composition with the neutral palette, dark active-segment fix living in the SHARED segmented component (never forked), outside-click close vs inside-keep, per-unit presets with the 10% snap and the nearest-preset anchor (the % row's 100 preset carried once, by the Full window segment), the 12-36 zoom-shared font range, the scope switch writing global vs per-document tiers, the footer naming the live global default, and the two table preference keys.
 //   SCOPE: Vue/jsdom component tests over the real components with the real en locale and the real theme factories; util/pageWidthStore is mocked at the IO boundary (load/save spies) so the persistence contract asserted here is the calls the tabs make, not the prefs transport (pinned by tests/renderer/util/page-width-store.test.js). C-COMPACT-WINDOWS-FIT adds the «Aa» Space/Enter activation pins.
 //   DEPENDS: Vitest, Vue Test Utils, setupTestPinia, static/locales/en.json, the quickSettings components, prefComponents/common/segmented, util/pageWidth.js constants.
 //   LINKS: .grace/changes/archive/C-PAGE-WIDTH-TABLES (plan T-003/T-004/T-005/T-006, corners C-4/C-5/C-6); components/titleBar/quickSettings/*; prefComponents/common/segmented (the dark active-segment contrast fix); util/pageWidth.js; store/preferences.js (the T-006 keys).
@@ -25,7 +25,15 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.2.0 - 2026-11-21 C-COMPACT-WINDOWS-FIT R-5: the
+//   LAST_CHANGE: v1.3.0 - 2026-11-23 owner bug report «switching the
+//   presets 60/80/100, picking 100 turns on Full window»: the Page tab
+//   pins one state, one segment. The % preset row is 60% / 80% / Full
+//   window (the 100 preset IS the {100,'%'} sentinel; the dead "100%"
+//   segment is gone), ch and px rows are unchanged, picking Full window
+//   still persists '100%' with the disabled stepper, and a 95% custom
+//   value anchors on the Full window segment without activating it. The
+//   UNIT_PRESETS constant itself is unchanged.
+//   PREV: v1.2.0 - 2026-11-21 C-COMPACT-WINDOWS-FIT R-5: the
 //   «Aa» button activates on Space keydown with the default prevented
 //   (the recent/index.vue enter+space precedent) and the Enter path is
 //   pinned explicitly unchanged; both produce the same panel-open effect.
@@ -358,7 +366,58 @@ describe('page tab (T-004, corners C-2/C-3/C-5)', () => {
     await clickSegment(wrapper, '%')
     await flush()
     labels = wrapper.findAll('button.pref-segment').map((b) => b.text().trim())
-    expect(labels).toEqual(expect.arrayContaining(['60%', '80%', '100%', 'Full window']))
+    expect(labels).toEqual(expect.arrayContaining(['60%', '80%', 'Full window']))
+    expect(labels).not.toContain('100%')
+  })
+
+  it('the % row carries its 100 preset as the Full window segment — one state, one segment', async () => {
+    const { usePreferencesStore } = await import('@/store/preferences')
+    const preferencesStore = usePreferencesStore()
+    const RangeRow = (await import('@/prefComponents/common/range/index.vue')).default
+    const fullLabel = enMessages.quickSettings.page.fullWindow
+    const wrapper = await mountPageTab({ pathname: '' })
+    const presetRow = () => wrapper.findAll('.pref-segmented-item')[0]
+    const rowLabels = () =>
+      presetRow().findAll('button.pref-segment').map((b) => b.text().trim())
+    const rowActive = () =>
+      presetRow()
+        .findAll('button.pref-segment.is-active')
+        .map((b) => b.text().trim())
+
+    await clickSegment(wrapper, 'ch')
+    await flush()
+    expect(rowLabels()).toEqual(['60', '80', '110', fullLabel])
+    await clickSegment(wrapper, 'px')
+    await flush()
+    expect(rowLabels()).toEqual(['600', '750', '900', fullLabel])
+
+    await clickSegment(wrapper, '%')
+    await flush()
+    expect(rowLabels()).toEqual(['60%', '80%', fullLabel])
+
+    await clickSegment(wrapper, fullLabel)
+    await flush()
+    expect(rowActive()).toEqual([fullLabel])
+    expect(preferencesStore.editorLineWidth).toBe('100%')
+    const widthRow = wrapper.findAllComponents(RangeRow)[0]
+    expect(widthRow.props('displayText')).toBe(fullLabel)
+    expect(widthRow.props('disable')).toBe(true)
+  })
+
+  it('a custom percent closest to 100 anchors on the Full window segment and activates nothing', async () => {
+    const { usePreferencesStore } = await import('@/store/preferences')
+    usePreferencesStore().editorLineWidth = '95%'
+    const wrapper = await mountPageTab({ pathname: '' })
+    const fullLabel = enMessages.quickSettings.page.fullWindow
+
+    expect(wrapper.text()).toContain('95 %')
+    const full = wrapper.findAll('button.pref-segment').find((b) => b.text().trim() === fullLabel)
+    expect(full.classes()).toContain('is-near')
+    expect(full.classes()).not.toContain('is-active')
+    expect(full.attributes('aria-checked')).toBe('false')
+    const presetRow = wrapper.findAll('.pref-segmented-item')[0]
+    expect(presetRow.findAll('button.pref-segment.is-active')).toHaveLength(0)
+    expect(presetRow.findAll('button.pref-segment.is-near')).toHaveLength(1)
   })
 
   it('converts on unit switch with the 10% snap (768px → 80 ch) and updates the store tier', async () => {

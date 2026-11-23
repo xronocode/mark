@@ -83,10 +83,10 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/quickSettings/pageTab.vue
-// VERSION: 1.1.0
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-PAGE-WIDTH-TABLES T-004 (M-061) the quick-settings Page tab — the document typography triple (width / font size / line height) built from the shared C-38 rows: per-unit presets plus Full window, a bounds-respecting stepper whose unit switch converts with the 10% preset snap and the nearest-preset anchor mark, the single 12-36 font range shared with zoom, line height 1.2-2.0 step 0.1, the "For all documents" scope switch writing the global vs per-document tier, and the footer naming the live global default.
-//   SCOPE: Width state machine for the active document. Full window is the R-3 canvas-model sentinel ({ value: 100, unit: '%' } — util/pageWidth.js FULL_WINDOW_WIDTH): the column spans the canvas and follows the sidebar live, and both persistence grammars hold it without a fourth unit. Global-tier writes hand the CSS variable back to the legacy writer (clearAppliedEditorWidth + the editorLineWidth preference the shipped watcher applies); document-tier writes go through the per-document store (util/pageWidthStore.js) and the resolution pipeline (resolveEffectiveWidth → applyEditorWidth — the clamp never mutates the stored value, corner C-2). While the panel is open, a canvas change (window resize, sidebar show/hide/drag) re-applies the pipeline value so % columns follow live (corner C-3) — never a content re-render. The untitled scope is forced global with the panel naming it (review finding F4). Host wiring (applying the stored width on document open/switch and the rename move) stays with the later host wave — the plan's ObservedWriteScope has no editor.vue/editor.js.
+//   SCOPE: Width state machine for the active document. Full window is the R-3 canvas-model sentinel ({ value: 100, unit: '%' } — util/pageWidth.js FULL_WINDOW_WIDTH): the column spans the canvas and follows the sidebar live, and both persistence grammars hold it without a fourth unit. In the % unit that sentinel is the 100 preset, so the preset row renders the state once (the Full window segment) and a custom percent anchors on it when 100 is the nearest preset. Global-tier writes hand the CSS variable back to the legacy writer (clearAppliedEditorWidth + the editorLineWidth preference the shipped watcher applies); document-tier writes go through the per-document store (util/pageWidthStore.js) and the resolution pipeline (resolveEffectiveWidth → applyEditorWidth — the clamp never mutates the stored value, corner C-2). While the panel is open, a canvas change (window resize, sidebar show/hide/drag) re-applies the pipeline value so % columns follow live (corner C-3) — never a content re-render. The untitled scope is forced global with the panel naming it (review finding F4). Host wiring (applying the stored width on document open/switch and the rename move) stays with the later host wave — the plan's ObservedWriteScope has no editor.vue/editor.js.
 //   DEPENDS: vue, vue-i18n, pinia storeToRefs, @/bus (the mt::document-page-state-changed announcement the editor host re-reads the entry on), @/store/preferences (editorLineWidth / fontSize / lineHeight, SET_SINGLE_PREFERENCE, APPLY_FONT_SIZE — the C-49 zoom-shared 12-36 path), @/store/layout (sidebar visibility/width for the canvas), util/pageWidth.js (pure pipeline + writers), util/pageWidthStore.js (load/save), the shared C-38 rows (compound/segmented/range/bool).
 //   LINKS: .grace/changes/archive/C-PAGE-WIDTH-TABLES (plan T-004, corners C-1/C-2/C-3/C-5); .grace/graph/performance.xml M-061; util/pageWidth.js; util/pageWidthStore.js; components/titleBar/quickSettings/index.vue (the shell); the approved mock (approved.html Page tab, panel-layer.final.js presets).
 //   ROLE: RUNTIME
@@ -99,7 +99,8 @@
 //   scopeAll - the "For all documents" switch; scopeGlobal is the effective state (untitled documents are always global, F4).
 //   windowWidth - the live window width (resize listener) feeding the canvas arithmetic.
 //   canvasWidth - canvas = window − sidebar (computeCanvasWidth over the layout store).
-//   presetOptions/presetValue/markedPreset - the preset segmented row: the unit's presets plus Full window; no active segment for a custom value; the nearest preset carries the is-near anchor (markedPreset).
+//   presetOptions/presetValue/markedPreset - the preset segmented row: the unit's presets plus Full window, the % row dropping its 100 preset because Full window IS that sentinel (one state, one segment); no active segment for a custom value; the nearest preset carries the is-near anchor (markedPreset), landing on the Full window segment when the 100 preset is nearest.
+//   isSentinelPreset - true when a unit's preset value is the Full window sentinel ({100,'%'}).
 //   unitBounds - UNIT_BOUNDS of the current unit (the stepper's min/max).
 //   widthHelp - the px equivalence for ch, the fixed/adaptive notes for px/%, the no-limit note for Full.
 //   activeSourceLabel - the named active tier (R-2): this document vs all documents.
@@ -115,7 +116,17 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-11-21 C-COMPACT-WINDOWS-FIT R-3: the footer Reset
+//   LAST_CHANGE: v1.2.0 - 2026-11-23 owner bug report «switching the
+//   presets 60/80/100, picking 100 turns on Full window»: the % preset
+//   row no longer renders a second segment for the Full window sentinel.
+//   {100,'%'} is one stored state (the R-3 canvas model, no fourth unit),
+//   so the 100% segment was a dead pick — it could only light Full window.
+//   The row is now 60% / 80% / Full window (ch and px rows unchanged); the
+//   nearest-preset anchor of a custom percent lands on the Full window
+//   segment when 100 is the nearest preset, so the R-6 anchor never
+//   disappears. The stored grammars, the conversion snap and util/pageWidth
+//   are untouched.
+//   PREV: 2026-11-21 C-COMPACT-WINDOWS-FIT R-3: the footer Reset
 //   link carries the canon :focus-visible outline (2px solid
 //   var(--prefAccent), 1px offset); row arithmetic and write paths are
 //   unchanged.
@@ -213,12 +224,17 @@ const scopeHelp = computed(() => {
 // END_BLOCK_WIDTH_STATE
 
 // START_BLOCK_WIDTH_ROWS
+const isSentinelPreset = (unit, preset) =>
+  unit === FULL_WINDOW_WIDTH.unit && preset === FULL_WINDOW_WIDTH.value
+
 const presetOptions = computed(() => {
   const labels = UNIT_PRESETS[unit.value] || UNIT_PRESETS.px
-  const options = labels.map((preset) => ({
-    value: preset,
-    label: unit.value === '%' ? `${preset}%` : String(preset)
-  }))
+  const options = labels
+    .filter((preset) => !isSentinelPreset(unit.value, preset))
+    .map((preset) => ({
+      value: preset,
+      label: unit.value === '%' ? `${preset}%` : String(preset)
+    }))
   options.push({ value: 'full', label: t('quickSettings.page.fullWindow') })
   return options
 })
@@ -232,7 +248,8 @@ const presetValue = computed(() => {
 // visual anchor on the closest preset of its unit.
 const markedPreset = computed(() => {
   if (isFull.value || presetValue.value !== null) return undefined
-  return nearestPreset(unit.value, value.value)
+  const near = nearestPreset(unit.value, value.value)
+  return isSentinelPreset(unit.value, near) ? 'full' : near
 })
 
 const widthHelp = computed(() => {

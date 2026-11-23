@@ -1634,8 +1634,11 @@
           hairline contrast pin), inner interactions never close it while
           outside click or Escape does, and the footer opens the real
           Settings window; the Page tab arithmetic pins the per-unit
-          presets, the 10% conversion snap with the nearest-preset anchor,
-          the single 12-36 font range shared with zoom, line height 1.2-2.0
+          presets (the % row carries its 100 preset once, as the Full
+          window segment — one state, one segment; a custom percent
+          anchors on it), the 10% conversion snap with the
+          nearest-preset anchor, the single 12-36 font range shared with
+          zoom, line height 1.2-2.0
           step 0.1 and the live global-default footer; the View tab's R-4
           override pins the document against the global cycle with the
           source line naming the pinned family and mode.
