@@ -77,9 +77,63 @@ fn store(prefs: &PrefsState, list: &[String]) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
+// ── C-RECENTS-SERIALIZE T-001: the #[cfg(test)] gap seam ───────────
+// Test-only parked-interleaving seam for
+// recent_concurrent_adds_from_two_threads_both_persist: its SINGLE call
+// site sits between the loaded read and the persist inside the pre-fix
+// recent_add_inner, so the pin can hold thread A deterministically
+// (Ready) and release it only after thread B completed a full add —
+// no sleeps, no busy-waits, no timing. Armed exclusively by that pin
+// through the static channel pair below; inert while disarmed, and the
+// armed-thread guard keeps the park pinned to the one spawned thread
+// the pin designates so parallel in-process tests running their own
+// adds are never intercepted. C-RECENTS-SERIALIZE T-002 retires the
+// call site together with the un-encompassed body; this scaffolding
+// stays behind inert because the pin then dispatches on Done.
+#[cfg(test)]
+static GAP_SEAM_EVENTS: std::sync::Mutex<Option<std::sync::mpsc::Sender<&'static str>>> =
+    std::sync::Mutex::new(None);
+#[cfg(test)]
+static GAP_SEAM_RELEASE: std::sync::Mutex<Option<std::sync::mpsc::Receiver<()>>> =
+    std::sync::Mutex::new(None);
+#[cfg(test)]
+static GAP_SEAM_ARMED_THREAD: std::sync::OnceLock<std::thread::ThreadId> =
+    std::sync::OnceLock::new();
+
+/// Fire Ready and block until the pin releases the park. Only the
+/// armed thread ever parks; unarmed callers return immediately.
+#[cfg(test)]
+fn recent_test_gap_park() {
+    let armed_for_me = GAP_SEAM_ARMED_THREAD
+        .get()
+        .map(|id| *id == std::thread::current().id())
+        .unwrap_or(false);
+    if !armed_for_me {
+        return;
+    }
+    let release = {
+        let mut slot = GAP_SEAM_RELEASE
+            .lock()
+            .expect("gap seam release slot poisoned");
+        slot.take()
+    };
+    if let Some(tx) = GAP_SEAM_EVENTS
+        .lock()
+        .expect("gap seam events slot poisoned")
+        .as_ref()
+    {
+        let _ = tx.send("ready");
+    }
+    if let Some(rx) = release {
+        let _ = rx.recv();
+    }
+}
+
 /// Pure-logic add — see m013b/fs.rs for the inner/outer split rationale.
 pub(crate) fn recent_add_inner(prefs: &PrefsState, path: &str) -> Result<(), String> {
     let mut current = load(prefs);
+    #[cfg(test)]
+    recent_test_gap_park();
     current.retain(|p| p != path);
     current.insert(0, path.to_string());
     if current.len() > MAX_RECENT_DOCS {
@@ -387,5 +441,92 @@ mod tests {
         assert_eq!(removed, Some(0));
         let prefs2 = PrefsState::from_path(path);
         assert_eq!(load(&prefs2), vec!["/a.md".to_string()]);
+    }
+
+    // ── C-RECENTS-SERIALIZE T-001: failing-first pins ──────────────
+
+    #[test]
+    fn recent_concurrent_adds_from_two_threads_both_persist() {
+        // The deterministic RMW-race pin: thread A's add is held at the
+        // gap seam parked between its loaded read and its persist
+        // (Ready), thread B then completes a FULL add, and only then is
+        // A released — the parked interleaving the un-encompassed
+        // load→store window deterministically loses B's insert on
+        // (A's stale-list store erases it). Dispatch on the FIRST seam
+        // event: Ready is the pre-fix shape; Done means the seam call
+        // site is retired (the post-fix shape — the same test body must
+        // then be green by mutex serialization alone, recorded
+        // honestly). No sleeps, no busy-waits, no timing; the pin never
+        // blocks on Ready once the seam is unreachable.
+        let dir = TempDir::new().unwrap();
+        let prefs_path = dir.path().join("preferences.json");
+        let prefs = std::sync::Arc::new(PrefsState::from_path(prefs_path.clone()));
+
+        let (event_tx, event_rx) = std::sync::mpsc::channel::<&'static str>();
+        let (release_tx, release_rx) = std::sync::mpsc::channel::<()>();
+        *GAP_SEAM_EVENTS.lock().unwrap() = Some(event_tx.clone());
+        *GAP_SEAM_RELEASE.lock().unwrap() = Some(release_rx);
+
+        let thread_a = {
+            let prefs = std::sync::Arc::clone(&prefs);
+            let events = event_tx.clone();
+            std::thread::spawn(move || {
+                GAP_SEAM_ARMED_THREAD
+                    .set(std::thread::current().id())
+                    .expect("gap seam armed twice in one process");
+                let result = recent_add_inner(&prefs, "/race-a.md");
+                let _ = events.send("done");
+                result
+            })
+        };
+
+        match event_rx.recv().expect("gap seam event channel closed early") {
+            "ready" => {
+                // Pre-fix shape: A is parked between its read and its
+                // persist. B runs a full add to completion, then A
+                // resumes and stores its stale list.
+                let thread_b = {
+                    let prefs = std::sync::Arc::clone(&prefs);
+                    std::thread::spawn(move || recent_add_inner(&prefs, "/race-b.md"))
+                };
+                thread_b
+                    .join()
+                    .expect("thread B panicked")
+                    .expect("B's add failed");
+                let _ = release_tx.send(());
+                thread_a
+                    .join()
+                    .expect("thread A panicked")
+                    .expect("A's add failed");
+            }
+            "done" => {
+                // Post-fix shape: the encompassing update never reaches
+                // the (retired) seam; A completed without parking and
+                // B serializes behind it on the store mutex.
+                let thread_b = {
+                    let prefs = std::sync::Arc::clone(&prefs);
+                    std::thread::spawn(move || recent_add_inner(&prefs, "/race-b.md"))
+                };
+                thread_b
+                    .join()
+                    .expect("thread B panicked")
+                    .expect("B's add failed");
+                thread_a
+                    .join()
+                    .expect("thread A panicked")
+                    .expect("A's add failed");
+            }
+            other => panic!("unexpected gap-seam event: {other}"),
+        }
+
+        // A fresh store over the same file must hold BOTH paths;
+        // survivor order is deliberately not asserted.
+        let fresh = PrefsState::from_path(prefs_path);
+        let list = load(&fresh);
+        assert!(
+            list.contains(&"/race-a.md".to_string())
+                && list.contains(&"/race-b.md".to_string()),
+            "both concurrent adds must persist, got {list:?}"
+        );
     }
 }
