@@ -1484,7 +1484,7 @@ fn run_ripgrep_files_with_program(
     });
     // END_BLOCK_RIPGREP_FILES_STDERR_CAPTURE
 
-    // START_BLOCK_CANCEL_WATCHER
+    // START_BLOCK_CANCEL_WATCHER_FILES
     // The #303 watcher shape inherited verbatim, extended for the files cap
     // (C-QUICKOPEN-FILES-MODE T-004): a quiet rg child must not hold the
     // session hostage until its next stdout line. The watcher observes BOTH
@@ -1526,7 +1526,7 @@ fn run_ripgrep_files_with_program(
             let _ = status_tx.send(status);
         })
     };
-    // END_BLOCK_CANCEL_WATCHER
+    // END_BLOCK_CANCEL_WATCHER_FILES
 
     let mut total: u32 = 0;
     let mut capped = false;
