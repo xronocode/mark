@@ -3901,9 +3901,12 @@ async fn doc_open_emit_failure_refuses_fresh_open() {
     // session — so a patch echoing the refused session id is refused with
     // zero live events.
     assert!(f.state.session.lock().await.is_none(), "no session survives the refusal");
-    assert_eq!(delivery_patch(&f, "session-a", 1, 1, "stale").await, StatusCode::NOT_FOUND);
+    // With the guard back at None the owner/epoch fence refuses the patch
+    // (the authenticate-time owns gate answers 409 before any lookup).
+    assert_eq!(delivery_patch(&f, "session-a", 1, 1, "stale").await, StatusCode::CONFLICT);
     assert!(f.live_events.lock().unwrap().is_empty());
     // Disarming restores normal behavior on the same fixture.
+    arm_doc_open_emit_injection(false);
     assert_eq!(delivery_open(&f, "session-b", "original").await.status(), StatusCode::OK);
 }
 
