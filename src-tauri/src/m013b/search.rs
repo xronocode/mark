@@ -86,10 +86,10 @@ pub const MAX_LINE_BYTES: usize = 1024 * 1024;
 /// argument); invalid masks are explicitly ignored on both sides and
 /// only force the session's partial flag.
 ///
-/// allow(dead_code) on the struct — leading/trailing context lines and
-/// inclusions globs are part of the contract but not yet wired into
-/// run_search. Tracked: F-SEARCH-CONTEXT-LINES + F-SEARCH-INCLUDE-
-/// EXCLUDE-GLOBS for B3 follow-up.
+/// allow(dead_code) on the struct — leading/trailing context line counts
+/// remain unwired (tracked F-SEARCH-CONTEXT-LINES); inclusions are wired
+/// for files mode through compile_inclusion_masks (content mode keeps
+/// ignoring them).
 #[allow(dead_code)]
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
@@ -443,10 +443,11 @@ fn run_session_files_with_program(
 ) -> (u32, &'static str) {
     let mut total_paths: u32 = 0;
     // Honest partial accounting, mirroring run_session: a complete terminal
-    // must not silently claim completeness when a size limit or at least one
-    // exclusion mask (valid or explicitly-ignored invalid) was active;
-    // error/cancelled terminals are partial whenever hits were already
-    // streamed.
+    // must not silently claim completeness when a size limit, at least one
+    // exclusion mask, or any explicitly-ignored invalid glob (exclusion or
+    // inclusion) was active; error/cancelled terminals are partial whenever
+    // hits were already streamed.
+    let inclusion = compile_inclusion_masks(opts.inclusions.as_ref());
     let masks = compile_exclusion_masks(opts.exclusions.as_ref());
     let size_limit_active = opts.max_file_size.is_some();
     for root in roots {
@@ -457,6 +458,7 @@ fn run_session_files_with_program(
             Ok(run_files_walker(
                 root,
                 opts,
+                &inclusion.valid,
                 &masks.valid,
                 cancel.clone(),
                 coordinator,
@@ -466,6 +468,7 @@ fn run_session_files_with_program(
                 rg_program,
                 root,
                 opts,
+                &inclusion.valid,
                 &masks.valid,
                 cancel.clone(),
                 coordinator,
@@ -492,7 +495,10 @@ fn run_session_files_with_program(
     };
     let partial = match terminal {
         SearchTerminal::Complete => {
-            size_limit_active || masks.invalid_count > 0 || !masks.valid.is_empty()
+            size_limit_active
+                || masks.invalid_count > 0
+                || inclusion.invalid_count > 0
+                || !masks.valid.is_empty()
         }
         _ => total_paths > 0,
     };
@@ -510,6 +516,7 @@ fn run_session_files_with_program(
 fn run_files_walker(
     root: &Path,
     opts: &SearchOptions,
+    inclusion_globs: &[String],
     exclusion_masks: &[String],
     cancel: Arc<AtomicBool>,
     coordinator: &mut SearchSessionCoordinator,
@@ -528,12 +535,18 @@ fn run_files_walker(
     if let Some(max_size) = opts.max_file_size {
         walker.max_filesize(Some(max_size));
     }
-    // Exclusion masks filter entries BEFORE any file is opened, through the
-    // same override globs the content walker builds (compile_exclusion_masks
-    // semantics); invalid masks were dropped at compile time and only force
-    // the session's partial flag.
-    if !exclusion_masks.is_empty() {
+    // Whitelist name filtering (C-QUICKOPEN-FILES-MODE): ONE combined
+    // OverrideBuilder per root, built in the explicit shared order —
+    // inclusions first, exclusions after, last match wins — so the
+    // gitignore last-match-wins semantics make exclusions sit ON TOP of
+    // inclusions (a path matching both is excluded). Invalid globs were
+    // dropped at compile time (compile_inclusion_masks) and only force the
+    // session's partial flag.
+    if !inclusion_globs.is_empty() || !exclusion_masks.is_empty() {
         let mut builder = ignore::overrides::OverrideBuilder::new(root);
+        for glob in inclusion_globs {
+            let _ = builder.add(glob);
+        }
         for mask in exclusion_masks {
             let _ = builder.add(&format!("!{mask}"));
         }
@@ -650,6 +663,72 @@ fn compile_exclusion_masks(exclusions: Option<&Vec<String>>) -> ExclusionMasks {
         }
     }
     ExclusionMasks {
+        valid,
+        invalid_count,
+    }
+}
+
+// START_CONTRACT: compile_inclusion_masks
+//   PURPOSE: The files-mode whitelist-glob semantics (C-QUICKOPEN-FILES-MODE) — the one documented extension of the compile_exclusion_masks canon: the renderer-computed name filter finally reaches BOTH files-mode legs.
+//   INPUTS: { inclusions: Option<&Vec<String>> - raw renderer globs }
+//   OUTPUTS: { InclusionMasks - valid raw glob texts plus the ignored-invalid count }
+//   SIDE_EFFECTS: None.
+//   LINKS: compile_exclusion_masks, run_files_walker, run_ripgrep_files_with_program, run_session_files, V-M-004.
+// END_CONTRACT: compile_inclusion_masks
+/// Files-mode whitelist-glob semantics for BOTH legs (C-QUICKOPEN-FILES-MODE).
+/// Each glob is validated once here and consumed two ways: the walker path
+/// leg applies every valid glob through ignore's whitelist overrides (the
+/// same gitignore-style globset engine rg uses for `--glob`), and the rg
+/// files transport receives every valid raw glob verbatim as a `--glob=`
+/// argument.
+///
+/// Documented semantics (defined exactly once, as the extension of the
+/// exclusion canon beside compile_exclusion_masks):
+/// - valid globs match against the entry's path RELATIVE to its search root
+///   (rg matches against the per-root relative path as well);
+/// - a bare glob (no `/`) matches the basename at any depth and the walker
+///   prunes nothing on its behalf — it widens the whitelist; gitignore-style
+///   glob syntax otherwise (`*` does not cross path separators);
+/// - case-SENSITIVE (the documented choice; recorded v1 parity with rg's
+///   --glob default — quickOpen's tab matching stays case-insensitive
+///   renderer-side);
+/// - an INVALID glob (empty/whitespace-only, NUL byte, or a glob the engine
+///   rejects — e.g. an unclosed `[`) is explicitly ignored by BOTH legs —
+///   never passed to rg, never used by the walker — it only increments
+///   `invalid_count` so the session's terminal can force the honest partial
+///   flag. Valid inclusions never force partial by themselves; absent or
+///   empty inclusions mean no name filter (all traversed files, subject to
+///   ignore rules, exclusions and the files cap).
+struct InclusionMasks {
+    /// Raw valid glob texts, passed to rg as `--glob=glob` verbatim.
+    valid: Vec<String>,
+    /// Invalid globs dropped by both legs; forces the partial flag.
+    invalid_count: usize,
+}
+
+fn compile_inclusion_masks(inclusions: Option<&Vec<String>>) -> InclusionMasks {
+    let mut valid = Vec::new();
+    let mut invalid_count = 0usize;
+    // The plain (whitelist) form is the inclusion class of the same
+    // gitignore-style glob engine rg uses for --glob; the builder root is
+    // irrelevant for a syntax validity check. add() alone validates.
+    let mut validator = ignore::overrides::OverrideBuilder::new(Path::new(""));
+    for raw in inclusions.into_iter().flatten() {
+        let trimmed = raw.trim();
+        if trimmed.is_empty() || trimmed.contains('\0') {
+            invalid_count += 1;
+            continue;
+        }
+        match validator.add(trimmed) {
+            Ok(_) => valid.push(trimmed.to_string()),
+            Err(_) => {
+                // Invalid glob: explicitly ignored by BOTH legs —
+                // never handed to rg, never used by the walker.
+                invalid_count += 1;
+            }
+        }
+    }
+    InclusionMasks {
         valid,
         invalid_count,
     }
@@ -1222,7 +1301,7 @@ fn run_ripgrep_with_program(
 
 // START_CONTRACT: run_ripgrep_files
 //   PURPOSE: Execute the `rg --files` listing transport for one root and stream path-only hits through the session coordinator (C-QUICKOPEN-FILES-MODE) — the files-mode counterpart of run_ripgrep.
-//   INPUTS: { root: &Path, opts: &SearchOptions, exclusion_masks: &[String] - valid masks from compile_exclusion_masks, cancel: Arc<AtomicBool>, coordinator: &mut SearchSessionCoordinator }
+//   INPUTS: { root: &Path, opts: &SearchOptions, inclusion_globs: &[String] - valid globs from compile_inclusion_masks, exclusion_masks: &[String] - valid masks from compile_exclusion_masks, cancel: Arc<AtomicBool>, coordinator: &mut SearchSessionCoordinator }
 //   OUTPUTS: { Result<u32, (u32, String)> - per-root delivered path hits, or a stable spawn/stream error }
 //   SIDE_EFFECTS: Spawns and waits for an rg child process; emits path-only match batches through the coordinator (terminals are owned by run_session_files).
 //   LINKS: M-004, V-M-004, run_session_files
@@ -1230,6 +1309,7 @@ fn run_ripgrep_with_program(
 fn run_ripgrep_files(
     root: &Path,
     opts: &SearchOptions,
+    inclusion_globs: &[String],
     exclusion_masks: &[String],
     cancel: Arc<AtomicBool>,
     coordinator: &mut SearchSessionCoordinator,
@@ -1238,6 +1318,7 @@ fn run_ripgrep_files(
         std::ffi::OsStr::new("rg"),
         root,
         opts,
+        inclusion_globs,
         exclusion_masks,
         cancel,
         coordinator,
@@ -1249,12 +1330,13 @@ fn run_ripgrep_files(
 //   INPUTS: { rg_program: &OsStr - executable path/name, remaining inputs: same as run_ripgrep_files }
 //   OUTPUTS: { Result<u32, (u32, String)> - per-root delivered path hits, or the streamed-so-far total plus a stable spawn/stream/exit-status error class }
 //   SIDE_EFFECTS: Spawns the selected child process; a START_BLOCK_CANCEL_WATCHER thread kills+waits a silent child on the cancel flag and reaps it exactly once; a bounded stderr capture thread drains the pipe to the BLOCK log only; emits path-only match batches through the coordinator (terminals are owned by run_session_files).
-//   LINKS: run_ripgrep_files, run_session_files, compile_exclusion_masks, V-M-004, C-QUICKOPEN-FILES-MODE
+//   LINKS: run_ripgrep_files, run_session_files, compile_inclusion_masks, compile_exclusion_masks, V-M-004, C-QUICKOPEN-FILES-MODE
 // END_CONTRACT: run_ripgrep_files_with_program
 fn run_ripgrep_files_with_program(
     rg_program: &std::ffi::OsStr,
     root: &Path,
     opts: &SearchOptions,
+    inclusion_globs: &[String],
     exclusion_masks: &[String],
     cancel: Arc<AtomicBool>,
     coordinator: &mut SearchSessionCoordinator,
@@ -1280,10 +1362,16 @@ fn run_ripgrep_files_with_program(
     if opts.follow_symlinks.unwrap_or(false) {
         cmd.arg("--follow");
     }
-    // Exclusion masks go to rg symmetrically with the walker leg — each
-    // VALID mask verbatim as a --glob=! argument (compile_exclusion_masks);
-    // invalid masks are explicitly ignored here and only force the
-    // session's partial flag.
+    // Whitelist name filtering symmetric with the walker leg, in the
+    // explicit shared order — inclusions first, exclusions after, last
+    // match wins: each VALID inclusion glob verbatim as a --glob= argument
+    // (compile_inclusion_masks), then each VALID exclusion mask as a
+    // --glob=! argument (compile_exclusion_masks) so exclusions sit ON TOP
+    // of inclusions. Invalid globs are explicitly ignored here (they would
+    // make rg exit 2) and only force the session's partial flag.
+    for glob in inclusion_globs {
+        cmd.arg(format!("--glob={glob}"));
+    }
     for mask in exclusion_masks {
         cmd.arg(format!("--glob=!{mask}"));
     }
