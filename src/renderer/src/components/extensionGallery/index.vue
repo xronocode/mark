@@ -88,6 +88,10 @@
       </div>
     </div>
 
+    <div v-if="scanFailures" class="gallery-notice">
+      {{ t('extensions.scanFailed', 'Some extension manifests could not be read or parsed during discovery; they were skipped.') }}
+    </div>
+
     <div v-if="error" class="gallery-error">
       {{ error }}
     </div>
@@ -108,13 +112,24 @@
 //   extensions - Most recently fetched extension list.
 //   loading - Discovery and refresh progress.
 //   error - Current visible failure message.
+//   scanFailures - Scan-failure notice state from the discover payload.
+//   fetchGeneration - Monotonic list-fetch generation guarding the display.
 //   toggling - Per-extension enable/disable progress.
 //   fetchExtensions - Read the registered extension list.
 //   refresh - Discover extensions and refresh the list.
 //   toggleExtension - Apply an enable/disable action and refresh visible state.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-11-23 - Keep the disable retry honest: a per-id
+//   LAST_CHANGE: 2026-11-23 C-EXT-GALLERY-STATE T-005 - The gallery
+//   display stops trusting arrival order: every list fetch carries a
+//   monotonic fetchGeneration and lands only when still newest (a late
+//   stale snapshot mutates nothing — no list, no error clearing, no
+//   revoke-pending cleanup), and refresh reads the discover Ok payload's
+//   failed_manifests tolerantly (an absent field means no notice) into a
+//   distinct localized scan-failure notice (extensions.scanFailed, all
+//   ten locales) that survives the awaited list fetch and is replaced
+//   only by the next discovery's outcome.
+//   2026-11-23 - Keep the disable retry honest: a per-id
 //   revoke-pending set forces the toggle to keep sending Disable after
 //   ext_disable_revoke_failed (cleared on a successful disable or an
 //   enabled listing), and the ext_enable_revoke_pending refusal maps to
@@ -138,6 +153,13 @@ const toggling = ref({})
 // sending Disable until the revocation is proven by a successful
 // disable or an enabled listing. Not rendered — plain logic state.
 const revokePendingIds = new Set()
+// C-EXT-GALLERY-STATE: monotonic fetch generation — every list fetch
+// captures its generation at start and lands only when that generation
+// is still the newest, so a late stale snapshot flips nothing.
+let fetchGeneration = 0
+// C-EXT-GALLERY-STATE: the distinct scan-failure notice state, set by the
+// discover Ok payload and replaced only by the next discovery's outcome.
+const scanFailures = ref(false)
 
 // END_BLOCK_STATE
 
@@ -146,10 +168,20 @@ const revokePendingIds = new Set()
 /**
  * Fetch the list of registered extensions from the backend.
  * Calls mt_ext_list (normalized from mt::ext::list).
+ * C-EXT-GALLERY-STATE: the fetch is generation-guarded — a resolved list
+ * lands only when its generation is still the newest; a discarded fetch
+ * mutates nothing (list, error surface and revoke-pending set all
+ * untouched).
  */
 const fetchExtensions = async () => {
+  const generation = ++fetchGeneration
   try {
     const list = await invoke('mt_ext_list')
+    if (generation !== fetchGeneration) {
+      // eslint-disable-next-line no-console
+      console.log(`[ExtGallery][BLOCK_LIST_STALE generation=${generation} newest=${fetchGeneration}]`)
+      return
+    }
     extensions.value = list
     // C-EXT-TRUST-COHERENCE: an enabled listing proves the extension is
     // not revoke-pending anymore.
@@ -160,6 +192,11 @@ const fetchExtensions = async () => {
     // eslint-disable-next-line no-console
     console.log(`[ExtGallery][BLOCK_LIST_OK count=${list.length}]`)
   } catch (err) {
+    if (generation !== fetchGeneration) {
+      // eslint-disable-next-line no-console
+      console.log(`[ExtGallery][BLOCK_LIST_STALE generation=${generation} newest=${fetchGeneration}]`)
+      return
+    }
     error.value = String(err)
     // eslint-disable-next-line no-console
     console.error('[ExtGallery][BLOCK_LIST_FAILED]', err)
@@ -168,15 +205,20 @@ const fetchExtensions = async () => {
 
 /**
  * Trigger extension discovery (scan known dirs, health-probe, register).
- * Then refresh the list.
+ * Then refresh the list. C-EXT-GALLERY-STATE: the discover Ok payload
+ * feeds the distinct scan-failure notice through a tolerant reader — an
+ * absent or undefined failed_manifests field means no notice; the notice
+ * survives the awaited list fetch and is replaced only by the next
+ * discovery's outcome (fetchExtensions never touches it).
  */
 const refresh = async () => {
   loading.value = true
   error.value = ''
   try {
-    await invoke('mt_ext_discover')
+    const report = await invoke('mt_ext_discover')
+    scanFailures.value = Array.isArray(report?.failed_manifests) && report.failed_manifests.length > 0
     // eslint-disable-next-line no-console
-    console.log('[ExtGallery][BLOCK_DISCOVER_OK]')
+    console.log(`[ExtGallery][BLOCK_DISCOVER_OK scanFailures=${scanFailures.value}]`)
   } catch (err) {
     error.value = String(err)
     // eslint-disable-next-line no-console
@@ -500,6 +542,15 @@ onMounted(async () => {
   font-size: 12px;
 }
 
+.gallery-notice {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #fff8e1;
+  color: #8d6e00;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
 /* Dark theme support */
 :root.dark .ext-status-active {
   background: #1b5e20;
@@ -519,6 +570,11 @@ onMounted(async () => {
 :root.dark .gallery-error {
   background: #b71c1c;
   color: #ef9a9a;
+}
+
+:root.dark .gallery-notice {
+  background: #4e4000;
+  color: #ffe082;
 }
 
 /* END_BLOCK_STYLES */

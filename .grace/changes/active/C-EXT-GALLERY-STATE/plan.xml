@@ -1,0 +1,477 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-EXT-GALLERY-STATE>
+    <ChangeRef>C-EXT-GALLERY-STATE</ChangeRef>
+    <Created>2026-11-23</Created>
+    <IntentSummary>Make the extension gallery tell the truth about extension state: registry.register preserves the enabled flag it already holds unless the re-discovered manifest grew its incoming request past the stored manifest's (growth resets into the #298 ext_enable_reapproval_required re-approval path, and every registration keeps bumping the authorization_epoch so in-flight credentials stay fenced); duplicate enable and verified-absent duplicate disable become honest backend no-ops that neither re-fence in-flight credentials nor re-enter the revocation machinery, with the #326 marker gate and every recovery leg intact; discovery probes the scanned manifests concurrently under the named bounded cap while keeping every probe's hygiene byte-for-byte and scan order, and scan read/parse failures surface beside the list as the discover Ok payload; the gallery renders a distinct localized scan-failure notice that survives the awaited list fetch, carries the one new extensions-namespace key in all ten locales, and gates every list fetch by a fetch generation so a late stale snapshot can never flip a toggle or clear the revoke-pending state — proven by the failing-first native pin families (preservation, growth-reset insurance, epoch-continues-to-bump insurance, no-op epoch equality, bounded concurrency over an injected prober seam, scan-failure payload) and the failing-first gallery pins (stale-generation discard, surviving notice, ten-locale key), with exactly one predecessor pin moved (registry_re_register_overwrites).</IntentSummary>
+    <ReferenceState>Authored 2026-11-23 against the current read-only state of the spec/ext-gallery-state worktree, base b702a7fe, containing C-EXT-EDIT-PROOF #321 and C-EXT-TRUST-COHERENCE #326: src-tauri/src/m045_ext/registry.rs holds the in-memory registry — ExtensionState (27-33: manifest, enabled, healthy, private authorization_epoch), ExtRegistry (73-78: extensions Mutex map, next_authorization_epoch AtomicU64 from 1, the pub(super) stream_gate tokio Mutex with the lock-order comment "stream_gate, then live session; native credential I/O holds neither"), register (91-110: doc comment "Overwrites any previous entry with the same id (re-discovery replaces stale state)", the unconditional enabled: false literal at 99, the unconditional epoch fetch_add at 101, BLOCK_LOCK_POISONED at 104, BLOCK_REGISTER at 107), enable (113-130) and disable (133-150) both flipping the flag and bumping the epoch, set_health (152-165), list (168-176), get_enabled (178-195), authorization_epoch (199-203: answers the epoch only for enabled ids, "extension is not enabled" otherwise), get_manifest (206-216: refuses a disabled id with "extension '{id}' is disabled"), and C-SEC-EXT-GRANT-BOUND's peek_manifest (223-226: the stored manifest regardless of enabled state, None when unregistered). src-tauri/src/m045_ext/mod.rs: mt_ext_discover (85-101: discovery::discover_extensions().await, the register loop inside the stream_gate lock taken at 91 with `?` propagation, BLOCK_DISCOVER, Ok(registry.list())); mt_ext_enable (110-180: the #326 marker gate at 121-131 — Ok(true) and Err both answer ext_enable_revoke_pending through BLOCK_ENABLE_REVOKE_PENDING / BLOCK_ENABLE_REVOKE_PENDING_UNREADABLE, before the mint and before stream_gate; mint-if-absent 134-138 with BLOCK_ENABLE_SECRET_GENERATED; the #298 coverage gate 140-174 reading live_server::incoming_capability_names() at 146 and registry.peek_manifest at 148, refusing through BLOCK_ENABLE_GRANT_UNREADABLE / ext_enable_grant_unreadable at 158-161 and BLOCK_ENABLE_GRANT_EXCEEDED / ext_enable_reapproval_required at 167-173; stream_gate + registry.enable at 176-179); mt_ext_disable (183-274: the fence block 191-212 — stream_gate, registry.disable, live_server::drain_pending_context with BLOCK_DISABLE_CONTEXT_DRAINED, session deactivate plus emit_doc_close; the spawn_blocking revocation 213-218 revoke_secret + verify_secret_absent; the failure branch 219-241 BLOCK_DISABLE_REVOKE_FAILED, the best-effort marker record BLOCK_DISABLE_REVOKE_PENDING_RECORDED / _UNRECORDED at 228-239, Err("ext_disable_revoke_failed"); the success branch's best-effort marker clear BLOCK_REVOKE_PENDING_CLEAR_FAILED at 247-256; the best-effort grant revoke BLOCK_DISABLE_GRANT_REVOKED / _FAILED at 261-271; BLOCK_DISABLE at 272); mt_ext_invoke (279-305); mt_ext_list (308-313). src-tauri/src/m045_ext/discovery.rs: extension_dirs (42-48, the env-driven wrapper), extension_dirs_for_profile (50-67, the pure seam precedent), scan_manifests (72-124: BLOCK_SCAN_DIR_SKIP at 80, the .json filter at 89, BLOCK_SCAN_READ_FAILED log-and-continue at 96-100, BLOCK_SCAN_FOUND at 106-110, BLOCK_SCAN_PARSE_FAILED log-and-continue at 113-118 — no failure channel), probe_health (130-179: extension_endpoint URL build with BLOCK_HEALTH_URL_REFUSED, the reqwest client at 139-153 with no_proxy() at 140, redirect Policy::none() at 141 and Duration::from_secs(5) at 142, true only on success status at 156), discover_extensions (184-198: the sequential loop at 188-195 awaiting probe_health one manifest at a time over Vec of (ExtensionManifest, PathBuf)). src-tauri/src/m045_ext/live_server.rs (read-only anchor): grant_authorizes (890-892) and the incoming capability vocabulary incoming_capability_names (897-899: pub(super), i.e. pub(in m045_ext), [&amp;str; 4] in RouteCapability::all() fixed order — the exact set the #298 enable coverage gate consults). src-tauri/src/m045_ext/tests.rs: registry_re_register_overwrites (358-369: register, enable, re-register with healthy=false, asserting len 1 + !enabled + !healthy — the reset pin this change moves), the registry idempotency pins registry_enable_already_enabled_is_idempotent / registry_disable_already_disabled_is_idempotent (497-515), disable_revokes_and_verifies_absence (1810-1826, the double-disable success leg at 1824-1825 passing today by harness luck), disable_surfaces_revoke_failure (1828-1837), disable_refuses_unverified_revocation (1839-1857, entry/read/survives modes), grow_after_pairing_enable_is_refused_to_reapproval (2352-2398: the grown-manifest refusal legs at 2353-2371 ride disabled records), approved_rebind_captures_the_presented_declared_set (2451-2506: its narrowing re-registration at 2482 rides an enabled record and asserts nothing about the flag afterwards), legacy_credential_rebind_classifies_as_growth (2508-2522, no re-registration), the incoming_fixture / incoming_fixture_grantless / fresh_pair_secret / pair_request helpers and DummyCredential with fail_delete/fail_read/keep_after_delete/fail_write. src/renderer/src/components/extensionGallery/index.vue: the checkbox at 42-47 (:checked="ext.enabled", :disabled="toggling[ext.id]"), the gallery-error div at 91-94, the state block 130-142 (extensions/loading/error/toggling refs and the plain-logic revokePendingIds Set at 140), fetchExtensions (150-167: invoke mt_ext_list at 152, the list assignment at 153, the enabled-listing revokePendingIds cleanup at 156-158, error.value = '' at 159, BLOCK_LIST_OK/FAILED logs), refresh (173-187: invoke mt_ext_discover at 177 with its Ok payload ignored, BLOCK_DISCOVER_OK/FAILED, the awaited fetchExtensions at 185), toggleExtension (196-232: the action choice at 197 — revokePendingIds.has(ext.id) || ext.enabled sends Disable, the mappings 207-224 reapprovalRequired / disableFailed + revokePendingIds.add / revokePending / catch-all, the awaited fetchExtensions at 229, toggleFailure applied after it at 230), onMounted (238-244). tests/renderer/components/extensionGallery/index.test.js pins: the refresh family 70-120 ('refresh calls discover then re-fetches list' at 70-78 with the bare-undefined discover mock at 72, 'refresh shows error when discover fails and list also fails' at 80-87, 'refresh clears error when discover fails but list succeeds' at 89-97 — the discover IPC-rejection error-clear, 'refresh button disabled while loading' at 99-120), the re-approval mapping pin at 152-165, the #326 retry pins at 167-238 ('retries disable after a failed revocation instead of enabling' at 167-183, 'clears the disable retry after a successful disable or an enabled listing' at 185-222, the revoke-pending mapping pin at 224-238). The sibling tests/renderer/components/extensionGallery.test.js mocks discover bare-undefined at 64 and stays untouched. m001_validate.rs keeps the allowlist names at 98-104 and main.rs the registration literal at 967 (both read-only). src-tauri/Cargo.toml:61 declares tokio 1 with features ["sync", "rt", "time", "net", "macros"] — Semaphore lives under sync and JoinSet under rt, so bounded concurrency needs no new dependency (dev tokio at 89, tempfile at 88). Graph anchor .grace/graph/features.xml M-045 (opened at 1740, SummaryDeltas through C-EXT-TRUST-COHERENCE at 2378); verification anchor .grace/verification/features.xml V-M-045 (opened at 1981, Commands at 1984-1985, scenarios through scenario-security-extension-trust-coherence at 2431). Design decisions locked by this plan, all plan-level constants within the spec's pinned bounds: (1) preservation compares only the incoming capability vocabulary — a capability name counts when it is in live_server::incoming_capability_names(); enabled is preserved iff no incoming name of the new manifest is missing from the stored manifest's incoming names; the decision computes under the existing extensions Mutex with no new lock; the epoch fetch_add stays unconditional. (2) The no-op enable checks the registry's enabled state through authorization_epoch (its enabled-only Ok doubles as the query) AFTER the #326 marker gate; the no-op disable performs its three reads in order — auth::get_revoke_pending, the strict auth::verify_secret_absent, then the registry state (peek_manifest Some AND authorization_epoch Err = registered-and-disabled) — all before any gate, all executed on every disable. (3) The epoch-observation seam for the no-op pins is a #[cfg(test)]-gated stored_authorization_epoch(id) answering the stored epoch without the enabled filter — test plumbing on the peek_manifest precedent; production authorization_epoch keeps answering only for enabled ids. (4) Discovery gains the internal seam discover_extensions_in(dirs, prober) on the extension_dirs_for_profile precedent; the production env-driven wrapper keeps its signature; the cap is the named constant DISCOVERY_PROBE_CONCURRENCY_CAP = 4; the outcome type is DiscoverOutcome carrying extensions beside ScanFailure entries (path plus ScanFailureKind, serialized "read"/"parse"); the command payload field is failed_manifests beside extensions, serde snake_case consistent with ExtensionInfo's install_url, and the component reads the field tolerantly (an absent field means no notice). (5) The no-op logs are BLOCK_ENABLE_ALREADY_ENABLED and BLOCK_DISABLE_ALREADY_ABSENT; the growth reset log is BLOCK_REGISTER_GROWTH_RESET; raw scan error text stays in the BLOCK_ logs. (6) The gallery generation counter is fetchGeneration, the notice state is scanFailures rendered by a single gallery-notice div below the list, and the one new locale key is extensions.scanFailed with the English fallback "Some extension manifests could not be read or parsed during discovery; they were skipped." — paths stay in the console/logs, never in the notice. (7) The failing-first gallery and renderer pins land together with their implementation in T-005, their red state recorded as task evidence without any commit (the C-EXT-EDIT-PROOF proof-direction precedent); the native pins land first in T-001. Deviation note (one, deliberate): the spec enumerates seventeen ObservedWriteScope files; this plan appends .grace/graph/features.xml and .grace/verification/features.xml because the spec's own constraints require the GRACE surface to stay synchronized and task T-006 writes those governed files — the same extension the C-SEC-EXT-GRANT-BOUND and C-EXT-TRUST-COHERENCE plans applied over their specs. The renderer Command of V-M-045 gains the executed form including textOps.test.js and locale-keys.test.js. Per the drafting instruction this plan carries no self-referential grace-lint MustPassCommand; the orchestrator runs grace lint --assertions current/target/final itself. Writing this draft approves neither the execution plan nor code implementation, apply/archive, commits, departure into main, manual-acceptance exceptions or release.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src-tauri/src/m045_ext/registry.rs</Value>
+        <Value>src-tauri/src/m045_ext/discovery.rs</Value>
+        <Value>src-tauri/src/m045_ext/mod.rs</Value>
+        <Value>src-tauri/src/m045_ext/tests.rs</Value>
+        <Value>src/renderer/src/components/extensionGallery/index.vue</Value>
+        <Value>tests/renderer/components/extensionGallery/index.test.js</Value>
+        <Value>static/locales/en.json</Value>
+        <Value>static/locales/de.json</Value>
+        <Value>static/locales/es.json</Value>
+        <Value>static/locales/fr.json</Value>
+        <Value>static/locales/ja.json</Value>
+        <Value>static/locales/ko.json</Value>
+        <Value>static/locales/pt.json</Value>
+        <Value>static/locales/ru.json</Value>
+        <Value>static/locales/zh-CN.json</Value>
+        <Value>static/locales/zh-TW.json</Value>
+        <Value>.grace/graph/features.xml</Value>
+        <Value>.grace/verification/features.xml</Value>
+      </MustExist>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/registry.rs</File>
+        <Text>Overwrites any previous entry</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/registry.rs</File>
+        <Text>enabled: false,</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/registry.rs</File>
+        <Text>pub fn peek_manifest</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/registry.rs</File>
+        <Text>extension is not enabled</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/discovery.rs</File>
+        <Text>BLOCK_SCAN_READ_FAILED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/discovery.rs</File>
+        <Text>BLOCK_SCAN_PARSE_FAILED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/discovery.rs</File>
+        <Text>for (manifest, source_path) in manifests</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/discovery.rs</File>
+        <Text>Duration::from_secs(5)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>BLOCK_ENABLE_REVOKE_PENDING_UNREADABLE</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>BLOCK_ENABLE_SECRET_GENERATED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>BLOCK_ENABLE_GRANT_EXCEEDED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>ext_enable_reapproval_required</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>ext_enable_revoke_pending</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>BLOCK_DISABLE_REVOKE_PENDING_RECORDED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>BLOCK_DISABLE_REVOKE_PENDING_UNRECORDED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>BLOCK_REVOKE_PENDING_CLEAR_FAILED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>BLOCK_DISABLE_CONTEXT_DRAINED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>ext_disable_revoke_failed</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>registry_re_register_overwrites</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>disable_revokes_and_verifies_absence</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>disable_refuses_unverified_revocation</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>grow_after_pairing_enable_is_refused_to_reapproval</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>approved_rebind_captures_the_presented_declared_set</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/extensionGallery/index.vue</File>
+        <Text>revokePendingIds</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/extensionGallery/index.vue</File>
+        <Text>error.value = ''</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/extensionGallery/index.test.js</File>
+        <Text>refresh clears error when discover fails but list succeeds</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/extensionGallery/index.test.js</File>
+        <Text>surfaces the revoke-pending instruction when enable is locked</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/en.json</File>
+        <Text>disableFailed</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-045</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/registry.rs</File>
+        <Text>BLOCK_REGISTER_GROWTH_RESET</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/registry.rs</File>
+        <Text>super::live_server::incoming_capability_names</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/registry.rs</File>
+        <Text>stored_authorization_epoch</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/discovery.rs</File>
+        <Text>DISCOVERY_PROBE_CONCURRENCY_CAP</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/discovery.rs</File>
+        <Text>fn discover_extensions_in</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/discovery.rs</File>
+        <Text>struct ScanFailure</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/discovery.rs</File>
+        <Text>struct DiscoverOutcome</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>BLOCK_ENABLE_ALREADY_ENABLED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>BLOCK_DISABLE_ALREADY_ABSENT</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>failed_manifests</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>registry_re_register_preserves_enabled</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>registry_re_register_growth_resets_enabled</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>registry_re_register_still_bumps_authorization_epoch</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>mt_ext_enable_already_enabled_is_a_noop</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>mt_ext_disable_already_absent_is_a_noop</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>discover_probes_bounded_concurrent_in_scan_order</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>discover_surfaces_scan_failures_beside_extensions</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>mt_ext_discover_payload_carries_failures_beside_the_list</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/extensionGallery/index.vue</File>
+        <Text>fetchGeneration</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/extensionGallery/index.vue</File>
+        <Text>scanFailures</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/extensionGallery/index.vue</File>
+        <Text>gallery-notice</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/extensionGallery/index.vue</File>
+        <Text>extensions.scanFailed</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/extensionGallery/index.test.js</File>
+        <Text>stale_fetch_discarded_by_generation_does_not_clear_revoke_pending</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/extensionGallery/index.test.js</File>
+        <Text>older_generation_resolving_late_renders_the_newer_list</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/extensionGallery/index.test.js</File>
+        <Text>scan_failure_notice_survives_the_list_fetch</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/extensionGallery/index.test.js</File>
+        <Text>ships_the_scan_failure_notice_key_in_all_ten_locales</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/en.json</File>
+        <Text>scanFailed</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/registry.rs</File>
+        <Text>pub fn peek_manifest</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/registry.rs</File>
+        <Text>extension is not enabled</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/discovery.rs</File>
+        <Text>BLOCK_SCAN_READ_FAILED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/discovery.rs</File>
+        <Text>BLOCK_SCAN_PARSE_FAILED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/discovery.rs</File>
+        <Text>Duration::from_secs(5)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>BLOCK_ENABLE_REVOKE_PENDING</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>ext_enable_revoke_pending</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>ext_disable_revoke_failed</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>BLOCK_DISABLE_REVOKE_PENDING_UNRECORDED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>BLOCK_ENABLE_GRANT_EXCEEDED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>disable_revokes_and_verifies_absence</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>disable_refuses_unverified_revocation</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>grow_after_pairing_enable_is_refused_to_reapproval</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>approved_rebind_captures_the_presented_declared_set</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>registry_disable_already_disabled_is_idempotent</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/extensionGallery/index.vue</File>
+        <Text>revokePendingIds</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/extensionGallery/index.vue</File>
+        <Text>ext_enable_reapproval_required</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/extensionGallery/index.test.js</File>
+        <Text>refresh clears error when discover fails but list succeeds</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/extensionGallery/index.test.js</File>
+        <Text>surfaces the revoke-pending instruction when enable is locked</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/extensionGallery/index.test.js</File>
+        <Text>retries disable after a failed revocation instead of enabling</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/en.json</File>
+        <Text>disableFailed</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/en.json</File>
+        <Text>revokePending</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/features.xml</File>
+        <Text>C-EXT-GALLERY-STATE (2026-11-23)</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/features.xml</File>
+        <Text>scenario-security-extension-gallery-state</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/components/extensionGallery/index.test.js tests/renderer/components/extensionGallery/textOps.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-045 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-045 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src-tauri/src/m045_ext/registry.rs</File>
+      <File>src-tauri/src/m045_ext/discovery.rs</File>
+      <File>src-tauri/src/m045_ext/mod.rs</File>
+      <File>src-tauri/src/m045_ext/tests.rs</File>
+      <File>src/renderer/src/components/extensionGallery/index.vue</File>
+      <File>tests/renderer/components/extensionGallery/index.test.js</File>
+      <File>static/locales/en.json</File>
+      <File>static/locales/de.json</File>
+      <File>static/locales/es.json</File>
+      <File>static/locales/fr.json</File>
+      <File>static/locales/ja.json</File>
+      <File>static/locales/ko.json</File>
+      <File>static/locales/pt.json</File>
+      <File>static/locales/ru.json</File>
+      <File>static/locales/zh-CN.json</File>
+      <File>static/locales/zh-TW.json</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/verification/features.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Failing-first native pins and the discovery seams: preservation, growth-reset insurance, epoch insurance, honest no-op toggles, bounded-probe seam, scan-failure surfacing</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src-tauri/src/m045_ext/tests.rs: the moved pin registry_re_register_overwrites (358-369) becomes registry_re_register_preserves_enabled — enable a registered extension, re-register the same id with an equal-incoming-set manifest and fresh health: the entry stays enabled, the stored manifest and healthy values update, the map keeps exactly one entry; red before the fix (the old pin's reset assertions at 367-368 pin the opposite — recorded as task evidence without any commit); the fresh-id leg (a first registration stays disabled) and the single-entry overwrite stay asserted in the same pin.</Criterion>
+          <Criterion>src-tauri/src/m045_ext/tests.rs registry_re_register_growth_resets_enabled — a re-discovered manifest requesting an incoming name the stored manifest lacked resets enabled to false with the distinct logged state; behaviorally green both before and after (insurance against an unconditional-preserve implementation), and its composed leg stays covered by grow_after_pairing_enable_is_refused_to_reapproval (2353-2371), which already pins the ext_enable_reapproval_required refusal for the grown set on the enable path.</Criterion>
+          <Criterion>src-tauri/src/m045_ext/tests.rs registry_re_register_still_bumps_authorization_epoch — a preserved-enabled re-registration changes the authorization_epoch and authorization_epoch (the production query, enabled-only) still answers for the enabled id; green today and after (insurance that C-SEC-STREAM-AUTH's invalidation wording at registry.rs:197-198 stays true).</Criterion>
+          <Criterion>src-tauri/src/m045_ext/registry.rs gains the #[cfg(test)] test plumbing used by the no-op pins: pub(super) fn stored_authorization_epoch(&amp;self, id: &amp;str) -&gt; Option&lt;u64&gt; answering the stored epoch without the enabled filter, compiled only under cfg(test); the production authorization_epoch keeps its enabled-only contract byte-identical.</Criterion>
+          <Criterion>src-tauri/src/m045_ext/tests.rs mt_ext_enable_already_enabled_is_a_noop — a second mt_ext_enable on an already-enabled extension answers Ok with the stored epoch unchanged and no re-key (get_secret identical); red before the fix in the epoch-equality leg (the full path bumps at registry.rs:121); the registry-level idempotency pin registry_enable_already_enabled_is_idempotent (497-505) keeps passing unchanged.</Criterion>
+          <Criterion>src-tauri/src/m045_ext/tests.rs mt_ext_disable_already_absent_is_a_noop — with the marker reading Ok(false), the secret verifiably absent through auth::verify_secret_absent, and the registry reporting the id registered-and-disabled, a second mt_ext_disable answers Ok with the stored epoch unchanged; red before the fix (the full path bumps via registry.disable and re-enters revocation); the predecessor legs keep passing unchanged in the same commit: a standing marker sends the full retry-disable (disable_surfaces_revoke_failure, 1828-1837), the unreadable-store modes keep their refusals (disable_refuses_unverified_revocation, 1839-1857), and the double-disable success leg of disable_revokes_and_verifies_absence (1824-1825) keeps passing.</Criterion>
+          <Criterion>src-tauri/src/m045_ext/discovery.rs gains the internal test seams on the extension_dirs_for_profile precedent: pub(super) fn discover_extensions_in(dirs: Vec&lt;PathBuf&gt;, prober) taking the scan directories and an async prober (anything answerable as an async manifest-to-health-bool fn, probe_health satisfying the bound), and the outcome types struct DiscoverOutcome carrying extensions beside struct ScanFailure (path plus kind: ScanFailureKind, serialized "read"/"parse"); scan_manifests is parameterized over the directories and collects the read/parse failures into the outcome while the BLOCK_SCAN_READ_FAILED / BLOCK_SCAN_PARSE_FAILED logs stay verbatim; the production env-driven discover_extensions wrapper keeps its exact signature and behavior (returning the extensions beside dropping nothing new — today's failures stay dropped only until T-004 routes the command payload); the body stays sequential in this task. src-tauri/src/m045_ext/tests.rs discover_probes_bounded_concurrent_in_scan_order — over the parameterized variant a counting fake prober (AtomicUsize concurrency counter with an await inside) over several manifests observes a maximum concurrency of at least two and never above DISCOVERY_PROBE_CONCURRENCY_CAP, with results in scan order; red before the fix (the sequential loop at discovery.rs:188-195 observes exactly one). The constant DISCOVERY_PROBE_CONCURRENCY_CAP = 4 is declared in discovery.rs in this task.</Criterion>
+          <Criterion>src-tauri/src/m045_ext/tests.rs discover_surfaces_scan_failures_beside_extensions — over a fixture temp directory (tempfile, dev-dependency Cargo.toml:88) containing an unreadable entry (a directory named with a .json extension) and an unparseable entry (invalid JSON): the outcome carries both failures naming the path and the machine kind while the valid manifest still lands in the extensions list; and mt_ext_discover_payload_carries_failures_beside_the_list pins the command's Ok payload carrying both lists beside failed_manifests — written against the target command signature, therefore compile-red until T-004 lands it (the C-STREAM-BUDGET compile-error red precedent, the missing shape is the baseline red, recorded in the Environment).</Criterion>
+          <Criterion>Module hygiene: src-tauri/src/m045_ext/tests.rs gains a dated 2026-11-23 C-EXT-GALLERY-STATE CHANGE_SUMMARY entry; every START_BLOCK_/END_BLOCK_ marker stays paired and unique codebase-wide; no production behavior changes in this task — the seam refactor keeps every existing test green except the new failing-first pins.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">cargo check --locked --offline --manifest-path src-tauri/Cargo.toml</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Register preserves enabled unless the incoming request grows; growth resets into the #298 re-approval path and the epoch keeps bumping</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src-tauri/src/m045_ext/registry.rs register consults the entry already stored under the same id and preserves its enabled flag whenever the incoming manifest requests no incoming capability that the stored manifest did not already request: the comparison runs over the incoming capability vocabulary only — a capability name counts when it is in super::live_server::incoming_capability_names(), the same pub(in m045_ext) set the #298 enable coverage gate consults (live_server.rs:897) — so shrinking or equal incoming sets preserve the flag and non-incoming capability changes never affect the decision. The decision is computed inside the existing extensions Mutex lock discipline with no new lock; the stored manifest and the fresh health always update; a first registration for a fresh id keeps enabled: false exactly as today; the doc comment "Overwrites any previous entry" is rewritten to the preservation truth.</Criterion>
+          <Criterion>Growth is honest: when the re-discovered manifest requests an incoming name the previously stored manifest did not, register resets enabled to false with the distinct BLOCK_REGISTER_GROWTH_RESET log carrying the id, so the owner's next enable passes through the #298 coverage gate (mod.rs:140-174) and refuses into ext_enable_reapproval_required when the stored pairing grant does not cover the grown set — the gallery already surfaces that instruction (index.vue:207-212). This restores the coverage gate's invariant: an enabled extension's manifest was covered by its stored grant at the last enable.</Criterion>
+          <Criterion>Every registration keeps bumping the authorization_epoch: the fetch_add at registry.rs:101 stays unconditional, so an in-flight credential that crosses a re-discovery is fenced exactly as today and register's participation in the invalidation semantics of C-SEC-STREAM-AUTH/#298 is unchanged; the T-001 pin registry_re_register_still_bumps_authorization_epoch turns from insurance into the enforced contract.</Criterion>
+          <Criterion>Predecessor note, one line: approved_rebind_captures_the_presented_declared_set's narrowing re-registration at tests.rs:2482 rides an enabled record and asserts nothing about the flag afterwards — it stays green under preservation deliberately (narrowing preserves), as does every leg of grow_after_pairing_enable_is_refused_to_reapproval (its re-registrations at 2369/2379 ride disabled records) and the idempotency pins (497-515); get_manifest, peek_manifest, enable, disable, list, get_enabled, set_health and authorization_epoch keep byte-identical behavior.</Criterion>
+          <Criterion>Module hygiene: dated 2026-11-23 C-EXT-GALLERY-STATE CHANGE_SUMMARY/SCOPE entries in registry.rs; markers paired and unique; no Cargo.toml, dependency or renderer change.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">cargo check --locked --offline --manifest-path src-tauri/Cargo.toml</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Honest no-op toggles: duplicate enable and verified-absent disable return Ok without fencing, without revocation, without an epoch bump</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src-tauri/src/m045_ext/mod.rs mt_ext_enable: the #326 revoke-pending marker gate (121-131) keeps running first exactly as today; AFTER it, when the registry already reports the extension enabled (the enabled-only Ok of registry.authorization_epoch doubles as the query), the command logs the distinct BLOCK_ENABLE_ALREADY_ENABLED and returns Ok — without minting, without the coverage gate, without taking stream_gate and without an epoch bump; every other id flows through the unchanged mint (134-138), coverage gate (140-174) and stream_gate + enable (176-179) path.</Criterion>
+          <Criterion>src-tauri/src/m045_ext/mod.rs mt_ext_disable takes its no-op decision BEFORE the fence block (191) from three reads that hold neither gate nor session lock (the native credential I/O precedent), in order: the marker read auth::get_revoke_pending — this read IS executed on every disable and is never skipped or short-circuited by a registry-only pre-check; the keyring I/O deliberately precedes any gate so a standing or unreadable marker is always seen before the decision; the strict secret read auth::verify_secret_absent (an unreadable persistent store can never mean absent); and the registry state read (registered-and-disabled = peek_manifest Some AND authorization_epoch Err). Only when all three agree — marker Ok(false), secret verifiably absent, id registered and disabled — the command logs the distinct BLOCK_DISABLE_ALREADY_ABSENT and returns Ok: no gate, no revocation retry, no marker record or clear, no grant revoke, no context drain replay, no epoch bump. Any other combination — any marker error, a standing marker, a surviving or unreadable secret, an enabled or unregistered id — sends the full existing path (fence, disable, drain, revoke, marker record/clear, grant revoke) exactly as today (191-273).</Criterion>
+          <Criterion>The #326 recovery is intact: a standing marker always sends the full revocation retry (the ext_disable_revoke_failed fail_delete pattern and the clear-on-proof semantics unchanged), the BLOCK_DISABLE_REVOKE_PENDING_UNRECORDED residual (a surviving secret with no marker) always re-enters the full path through the verify_secret_absent leg, the strict-absence success condition and every existing BLOCK_ log name are unchanged, and the double-disable success leg of disable_revokes_and_verifies_absence (tests.rs:1824-1825) now passes by explicit no-op instead of harness luck — a duplicate toggle no longer fences in-flight credentials because the no-op paths bump no epoch.</Criterion>
+          <Criterion>Module hygiene: dated 2026-11-23 C-EXT-GALLERY-STATE CHANGE_SUMMARY entry in mod.rs; markers paired and unique; command signatures, the allowlist names (m001_validate.rs:98-104) and the main.rs registration literal (967) unchanged; refusal codes ext_enable_revoke_pending, ext_disable_revoke_failed and ext_enable_reapproval_required keep their meanings and gallery mappings.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">cargo check --locked --offline --manifest-path src-tauri/Cargo.toml</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Bounded concurrent probes in scan order and the honest mt_ext_discover payload</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src-tauri/src/m045_ext/discovery.rs: discover_extensions_in probes the scanned manifests concurrently under DISCOVERY_PROBE_CONCURRENCY_CAP using Semaphore::new(cap) and JoinSet (both inside the current tokio features — Cargo.toml:61, sync and rt; no new dependency), each spawned task carrying its scan index and holding its permit only across its probe. JoinSet yields results in completion order, so reordering by scan index is mandatory: each completed result is written into a slot vec keyed by its scan index and the outcome is drained in index order, keeping the manifests' scan order exactly. Every probe is the unchanged probe_health (loopback-only, no-proxy, no-redirect, the 5-second per-probe timeout — discovery.rs:130-179 byte-for-byte) with health semantics unchanged (true only on a success status); no progress channel and no cancellation are added. The T-001 pin discover_probes_bounded_concurrent_in_scan_order turns green: observed maximum concurrency at least two, never above the cap, results in scan order.</Criterion>
+          <Criterion>src-tauri/src/m045_ext/mod.rs mt_ext_discover consumes the full outcome: the register loop stays inside its existing stream_gate block (91), registers every discovered extension (preservation now applies via T-002), keeps the `?` propagation and the BLOCK_DISCOVER log, and returns the Ok payload carrying extensions (registry.list(), ExtensionInfo as today) beside failed_manifests (the outcome's scan failures, each entry carrying the path and the machine kind "read"/"parse", serde snake_case consistent with ExtensionInfo's install_url) — raw error text stays in the BLOCK_ logs; the command name, its allowlist entry (m001_validate.rs:98) and the main.rs registration (967) are unchanged, and the sole production consumer is the gallery. The T-001 pins discover_surfaces_scan_failures_beside_extensions and mt_ext_discover_payload_carries_failures_beside_the_list turn green, ending the compile-red window.</Criterion>
+          <Criterion>The production env-driven discover_extensions wrapper keeps its exact signature and behavior, entering through discover_extensions_in(extension_dirs(), probe_health); the worst-case Refresh wait drops from N x 5 seconds to roughly ceil(N/4) x 5 seconds; the gallery's existing loading state covers the wait.</Criterion>
+          <Criterion>Module hygiene: dated 2026-11-23 C-EXT-GALLERY-STATE entries in the discovery.rs change summary (bounded concurrency, scan-failure outcome) and mod.rs CHANGE_SUMMARY (discover payload); markers paired and unique; every existing m045_ext test green.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Gallery honesty: the generation-guarded list fetch, the surviving scan-failure notice, one key in ten locales</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Failing-first generation pins in tests/renderer/components/extensionGallery/index.test.js (red recorded as task evidence against the current last-resolve-wins fetchExtensions at index.vue:150-167, no commit): older_generation_resolving_late_renders_the_newer_list — two in-flight mt_ext_list fetches where the older generation resolves after the newer one render the NEWER list's cards (red before the fix); stale_fetch_discarded_by_generation_does_not_clear_revoke_pending — the same discarded-by-generation list mutates neither the displayed list nor the revoke-pending id set, observed through the #326 action rule: after the stale late resolution the next toggle on the card still sends mt_ext_disable. The composition legs stay green in the same family: the post-toggle refetch is awaited and its list renders, and the #326 retry pins (167-238) plus the revoke-pending mapping pin (224-238) pass unchanged.</Criterion>
+          <Criterion>src/renderer/src/components/extensionGallery/index.vue implementation: a monotonic fetchGeneration counter — every fetchExtensions call captures its generation at start and lands only when that generation is still the newest; the list assignment, the error.value = '' clearing and the enabled-listing revokePendingIds cleanup run only for the winning generation, and a discarded fetch mutates nothing (list, error surface and revoke-pending set all untouched). There is no optimistic flip anywhere: the checkbox stays a pure function of the landed backend truth, the in-flight toggling flag keeps disabling the input, the post-toggle refetch stays the awaited observation of record, and the refusal surfaces keep their semantics — the composed state machine pins #326's revokePendingIds as the ACTION governor, #298's re-approval mapping as the enable-refusal text and the generation rule as the DISPLAY guard, none duplicating another.</Criterion>
+          <Criterion>Failing-first notice pins in index.test.js: scan_failure_notice_survives_the_list_fetch — a refresh whose discover Ok payload carries failed_manifests renders the distinct localized notice and the notice SURVIVES the successful list fetch that follows (red before the fix: the payload ignored at index.vue:177 and the error surface cleared at 159), while the next failure-free refresh replaces the notice with nothing; the existing refresh pins (70-120, including the discover IPC-failure error-clear at 89-97) pass unchanged — the notice is a separate additive surface and the gallery `error` surface keeps today's exact semantics.</Criterion>
+          <Criterion>src/renderer/src/components/extensionGallery/index.vue implementation: refresh captures the discover Ok payload and sets the scanFailures state through a tolerant reader — an absent or undefined failed_manifests field means no notice, so the bare-undefined discover mocks of index.test.js:72 and the sibling extensionGallery.test.js:64 keep passing and that sibling suite moves no pin; a single gallery-notice div below the list renders t('extensions.scanFailed', fallback) when failures exist; fetchExtensions never touches the notice state; the gallery stays a list plus toggle plus error/notice surfaces with no redesign, no per-card badges and no native dialog.</Criterion>
+          <Criterion>Ten-locale canon (the C-10/C-12/C-32/C-56 precedent): exactly one new user-facing string — extensions.scanFailed added beside disableFailed/revokePending in the extensions namespace of every one of the ten static/locales/*.json files (the extensions.disableFailed precedent at en.json:1848-1851), each non-empty native copy; the pin ships_the_scan_failure_notice_key_in_all_ten_locales in index.test.js reads the ten locale tables (the locale-keys FEEDBACK_KEYS pattern) and asserts presence and non-emptiness; tests/renderer/i18n/locale-keys.test.js itself stays untouched — its inventory asserts specific keys, not the extensions namespace's exact shape, so the additive key moves nothing there; all existing keys keep their meaning.</Criterion>
+          <Criterion>Module hygiene: dated 2026-11-23 C-EXT-GALLERY-STATE CHANGE_SUMMARY entry in index.vue; markers paired and unique; no other renderer file changes — editor.vue, textOps.js and textOps.test.js untouched; the textOps suite stays a green regression-only run inside the MustPassCommand.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/components/extensionGallery/index.test.js tests/renderer/components/extensionGallery/textOps.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>Record the M-045 graph delta and the V-M-045 verification evidence</Title>
+        <DependsOn>T-005</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>In .grace/graph/features.xml append a dated C-EXT-GALLERY-STATE (2026-11-23) SummaryDelta to M-045 after the C-EXT-TRUST-COHERENCE delta (2378): re-discovery preserves the enabled flag it already holds unless the incoming request grew — growth resets the flag into the #298 ext_enable_reapproval_required re-approval path while every registration keeps bumping the authorization_epoch so in-flight credentials stay fenced; duplicate enable and verified-absent duplicate disable are honest backend no-ops that neither re-fence in-flight credentials nor re-enter revocation, with the #326 marker gate and full-path recoveries intact; discovery probes under the named bounded cap in scan order and reports read/parse scan failures beside the list as the discover Ok payload; the gallery renders the newest fetched list generation (a late stale snapshot flips nothing and clears no revoke-pending state) and a distinct ten-locale scan-failure notice that survives the list fetch. Preserve every existing SummaryDelta, Summary sentence, LegacySource, LegacyAttributes and annotation byte-identical.</Criterion>
+          <Criterion>In .grace/verification/features.xml record only executed evidence in V-M-045: update the renderer Command entry to the executed form npx --no-install vitest run tests/renderer/components/extensionGallery/index.test.js tests/renderer/components/extensionGallery/textOps.test.js tests/renderer/i18n/locale-keys.test.js (the native Command entry at 1984 already matches the executed cargo form) and add one scenario-security-extension-gallery-state naming the pins by name — registry_re_register_preserves_enabled (the moved registry_re_register_overwrites reset leg), registry_re_register_growth_resets_enabled, registry_re_register_still_bumps_authorization_epoch, mt_ext_enable_already_enabled_is_a_noop, mt_ext_disable_already_absent_is_a_noop, discover_probes_bounded_concurrent_in_scan_order, discover_surfaces_scan_failures_beside_extensions, mt_ext_discover_payload_carries_failures_beside_the_list, and the gallery pins older_generation_resolving_late_renders_the_newer_list, stale_fetch_discarded_by_generation_does_not_clear_revoke_pending, scan_failure_notice_survives_the_list_fetch, ships_the_scan_failure_notice_key_in_all_ten_locales — with their red-before-green evidence and the unchanged predecessor families (the idempotency pins, disable_revokes_and_verifies_absence with its double-disable leg, disable_surfaces_revoke_failure, disable_refuses_unverified_revocation, grow_after_pairing_enable_is_refused_to_reapproval, approved_rebind_captures_the_presented_declared_set, the #326 gallery retry and mapping pins, the refresh pins including the discover IPC-failure error-clear, the sibling extensionGallery.test.js); keep every existing scenario, Marker, TraceAssertion and the LegacyMatrixEvidence block verbatim; do not claim pass evidence for real extension processes, real HTTP health endpoints or the macOS keychain itself — those stay explicitly open and are exercised only through fixture directories, injected probers and injected credential backends.</Criterion>
+          <Criterion>The file-local contracts describe the final implementation: the MODULE_CONTRACT/CHANGE_SUMMARY entries of registry.rs (preservation, growth-reset, unconditional epoch), discovery.rs (bounded concurrency, scan-failure outcome), mod.rs (no-op toggles, discover payload), tests.rs (the pin families) and index.vue (generation rule, notice) — completed by the hygiene entries of T-002 through T-005; module maps and graph ownership synchronized; no durable artifact outside the ObservedWriteScope changes; no release, publication, version change or lane action is authorized by this task.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+        </Verification>
+      </T-006>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+      <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/components/extensionGallery/index.test.js tests/renderer/components/extensionGallery/textOps.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+      <Environment>Baseline is the current spec/ext-gallery-state worktree at base b702a7fe containing C-EXT-EDIT-PROOF #321 and C-EXT-TRUST-COHERENCE #326: the Rust toolchain runs with --locked --offline against the committed Cargo.lock, tokio already carries the sync and rt features (Cargo.toml:61) so Semaphore and JoinSet need no dependency change, tempfile is a dev-dependency (Cargo.toml:88), and both gallery suite files plus the locale-keys suite exist (verified). Tasks run strictly sequentially T-001 through T-006. cargo check passes alone after T-001, T-002 and T-003. Between T-001 and T-004 the native suite is knowingly red in its test cfg: the seam, outcome types and cap land with T-001 so the concurrency, scan-failure and preservation pins are assertion-red (not compile-red), while mt_ext_discover_payload_carries_failures_beside_the_list is compile-red against the target command signature — the C-STREAM-BUDGET compile-error red precedent with the missing shape as the baseline red; T-004 lands the signature and greens the whole native suite, which stays green through T-006. The renderer suites are regression-only until T-005 adds the generation and notice pins; T-005 is failing-first and implementation in one task, its red states recorded as task evidence without any commit (the C-EXT-EDIT-PROOF proof-direction precedent), and the suites stay green thereafter. Invariants held across all tasks: the epoch bump is unconditional on every registration, on every full-path enable and on every full-path disable — only the no-op paths skip it, by definition of being no-ops; the no-op decisions read credentials strictly before any gate is taken and hold neither stream_gate nor the session lock across keyring I/O, the disable no-op's marker read executed on every disable; the discover register loop stays inside its existing stream_gate block; the lock order stream_gate, then session, then leaf maps is unchanged; refusal codes ext_enable_revoke_pending, ext_disable_revoke_failed and ext_enable_reapproval_required keep their meanings and gallery mappings; the #326 legs keep exact behavior (marker gate first on enable, marker standing or secret surviving sends the full disable path, strict-absence success condition and BLOCK_ log names unchanged); per-probe hygiene is byte-for-byte (loopback-only, no-proxy, no-redirect, 5-second timeout) and result order follows scan order; the payload shape extends in place with no new IPC channel, command name or allowlist change and keeps the component tolerant of an absent failure field. Plan-level constants locked by this plan: DISCOVERY_PROBE_CONCURRENCY_CAP = 4; BLOCK_REGISTER_GROWTH_RESET; BLOCK_ENABLE_ALREADY_ENABLED; BLOCK_DISABLE_ALREADY_ABSENT; DiscoverOutcome / ScanFailure / ScanFailureKind with "read"/"parse"; the payload field failed_manifests beside extensions (serde snake_case); stored_authorization_epoch (#[cfg(test)] only); discover_extensions_in(dirs, prober); fetchGeneration; scanFailures; gallery-notice; extensions.scanFailed with the English fallback "Some extension manifests could not be read or parsed during discovery; they were skipped."; and the pin names as listed in TargetAssertions. The one moved predecessor pin is registry_re_register_overwrites to registry_re_register_preserves_enabled; everything else in the named predecessor families passes with unchanged assertions, including the narrowing re-registration over the enabled record at tests.rs:2482, which asserts nothing about the flag and stays green under preservation deliberately. No log, error or response carries secret material; the notice carries no raw error text (paths stay in the BLOCK_ logs). Every START_BLOCK_/END_BLOCK_ marker stays paired and unique after each task. This plan deliberately carries no self-referential grace-lint MustPassCommand; the orchestrator runs grace lint --path . --change C-EXT-GALLERY-STATE --assertions target during implementation, grace lint --path . --change C-EXT-GALLERY-STATE --assertions final --run-commands before archiving, then grace lint --path . --assertions current and grace status --path . --with modules --json. Owned cargo/vitest processes are cleaned up after runs; no apply/archive, commit/push, lane admission, departure into main, version/tag or release is authorized by this plan.</Environment>
+    </AcceptanceVerification>
+  </C-EXT-GALLERY-STATE>
+</GraceChangePlan>

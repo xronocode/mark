@@ -5,7 +5,7 @@
 //   SCOPE:   State management only. No I/O, no HTTP. Enable/disable
 //            persists to m005_prefs via a helper (deferred to B2b wiring).
 //   DEPENDS: manifest::ExtensionManifest, std::sync::Mutex, tokio::sync::Mutex.
-//   CHANGE_SUMMARY: 2026-11-21 C-SEC-EXT-GRANT-BOUND: peek_manifest answers the stored manifest regardless of enabled state for the pairing-time grant capture and the enable coverage gate; get_manifest/enable/disable/register/authorization_epoch unchanged. 2026-11-11 C-SEC-STREAM-AUTH: serialize stream mutations and stamp enabled identities across credential I/O.
+//   CHANGE_SUMMARY: 2026-11-23 C-EXT-GALLERY-STATE T-002: register preserves the enabled flag the stored entry holds unless the incoming manifest grew its incoming request past the stored manifest's over the live_server::incoming_capability_names vocabulary — growth resets the flag into the #298 ext_enable_reapproval_required re-approval path (BLOCK_REGISTER_GROWTH_RESET); a fresh id keeps enabled: false; the authorization_epoch fetch_add stays unconditional on every registration; get_manifest/peek_manifest/enable/disable/list/get_enabled/set_health/authorization_epoch unchanged. 2026-11-21 C-SEC-EXT-GRANT-BOUND: peek_manifest answers the stored manifest regardless of enabled state for the pairing-time grant capture and the enable coverage gate; get_manifest/enable/disable/register/authorization_epoch unchanged. 2026-11-11 C-SEC-STREAM-AUTH: serialize stream mutations and stamp enabled identities across credential I/O.
 //   LINKS:   .grace/graph/features.xml M-045;
 //            .grace/graph/features.xml M-045 (PhaseRef Phase-B2b.)
 //   STATUS:  Phase-B2b initial.
@@ -86,24 +86,53 @@ impl ExtRegistry {
         }
     }
 
-    /// Register a discovered extension. Overwrites any previous entry
-    /// with the same id (re-discovery replaces stale state).
+    /// Register a discovered extension. C-EXT-GALLERY-STATE: re-discovery
+    /// overwrites the previous entry with the same id but preserves the
+    /// enabled flag that entry already holds unless the incoming manifest
+    /// grew its incoming request past the stored manifest's — growth
+    /// resets the flag into the #298 ext_enable_reapproval_required
+    /// re-approval path (BLOCK_REGISTER_GROWTH_RESET). A fresh id keeps
+    /// the disabled default, and every registration keeps bumping the
+    /// authorization epoch so in-flight credentials stay fenced.
     pub fn register(
         &self,
         manifest: ExtensionManifest,
         healthy: bool,
     ) -> Result<(), String> {
         let id = manifest.id.clone();
-        let state = ExtensionState {
-            manifest,
-            enabled: false,
-            healthy,
-            authorization_epoch: self.next_authorization_epoch.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
-        };
         let mut map = self.extensions.lock().map_err(|e| {
             safe_eprintln!("[ExtHost][registry][BLOCK_LOCK_POISONED reason={e}]");
             "registry lock poisoned".to_string()
         })?;
+        // The preservation decision compares only the incoming capability
+        // vocabulary (the same set the #298 enable coverage gate
+        // consults), computed under the existing extensions lock with no
+        // new lock. Shrinking or equal incoming sets preserve the flag;
+        // non-incoming capability changes never affect the decision.
+        let preserved_enabled = match map.get(&id) {
+            Some(stored) => {
+                let incoming = super::live_server::incoming_capability_names();
+                let grew = manifest.capabilities.iter().map(|c| c.name.as_str()).any(|name| {
+                    incoming.contains(&name)
+                        && !stored.manifest.capabilities.iter().any(|c| c.name == name)
+                });
+                if grew {
+                    safe_eprintln!(
+                        "[ExtHost][registry][BLOCK_REGISTER_GROWTH_RESET id={id}]"
+                    );
+                    false
+                } else {
+                    stored.enabled
+                }
+            }
+            None => false,
+        };
+        let state = ExtensionState {
+            manifest,
+            enabled: preserved_enabled,
+            healthy,
+            authorization_epoch: self.next_authorization_epoch.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+        };
         safe_eprintln!("[ExtHost][registry][BLOCK_REGISTER id={id} healthy={healthy}]");
         map.insert(id, state);
         Ok(())
@@ -200,6 +229,18 @@ impl ExtRegistry {
         let map = self.extensions.lock().map_err(|_| "registry lock poisoned".to_string())?;
         map.get(id).filter(|state| state.enabled).map(|state| state.authorization_epoch)
             .ok_or_else(|| "extension is not enabled".to_string())
+    }
+
+    /// C-EXT-GALLERY-STATE: test-only observation of the stored epoch
+    /// without the enabled filter — the no-op toggle pins need the raw
+    /// stored value to prove that a duplicate enable/disable bumped no
+    /// epoch. Test plumbing on the peek_manifest precedent; the
+    /// production authorization_epoch above keeps answering only for
+    /// enabled ids.
+    #[cfg(test)]
+    pub(super) fn stored_authorization_epoch(&self, id: &str) -> Option<u64> {
+        let map = self.extensions.lock().ok()?;
+        map.get(id).map(|state| state.authorization_epoch)
     }
 
     /// Get the manifest for a specific extension by id (must be enabled).

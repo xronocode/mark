@@ -1835,7 +1835,8 @@
   },
   "extensions": {
     "disableFailed": "La extensión está desactivada, pero no se pudo verificar la revocación del acceso. Inténtalo de nuevo.",
-    "revokePending": "Desactive de nuevo la extensión para reintentar revocar su acceso; vincúlela de nuevo cuando la revocación se haya completado."
+    "revokePending": "Desactive de nuevo la extensión para reintentar revocar su acceso; vincúlela de nuevo cuando la revocación se haya completado.",
+    "scanFailed": "Algunos manifiestos de extensiones no pudieron leerse ni analizarse durante el descubrimiento; se omitieron."
   },
   "documentOperations": {
     "title": "Cambios sin guardar",
