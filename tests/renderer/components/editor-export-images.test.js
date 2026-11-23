@@ -863,17 +863,23 @@ describe('editor.vue — C-EXPORT-DOCUMENT-PIN pin seams', () => {
     mockEditorInstance.exportStyledHTML.mockResolvedValue('<html><body>doc</body></html>')
     consoleDebugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {})
 
-    // C-EXPORT-DOCUMENT-PIN: the capture seam rides the file-read facade —
-    // record every read and the pin-vs-card ordering through one sequence.
-    // (The notify double stays a vi.fn; only its implementation records.)
+    // C-EXPORT-DOCUMENT-PIN: the capture seam rides the binary-bridge read
+    // (ipc.fs.read_binary) — record every read and the pin-vs-card ordering
+    // through one sequence. (The notify double stays a vi.fn; only its
+    // implementation records.)
     pinOrder = []
     readCalls = []
-    const originalRead = window.fileUtils.readFile
-    window.fileUtils.readFile = async (p) => {
-      readCalls.push(p)
-      pinOrder.push('pin:read')
-      return originalRead(p)
-    }
+    const { invoke } = await import('@tauri-apps/api/core')
+    invoke.mockImplementation(async (cmd, args) => {
+      // ipcInvoke translates mt::fs::read_binary to the Rust-side
+      // mt_fs_read_binary before dispatch — record the translated name.
+      if (cmd === 'mt_fs_read_binary' || cmd === 'mt::fs::read_binary') {
+        readCalls.push(args?.path)
+        pinOrder.push('pin:read')
+        return new TextEncoder().encode('# Hello')
+      }
+      return undefined
+    })
     noticeMock.notify.mockImplementation(async (entry) => {
       if (entry.dedupKey) pinOrder.push(entry.dedupKey)
       return undefined
