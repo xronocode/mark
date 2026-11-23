@@ -383,6 +383,10 @@
     "lockedTitle": "Read-only"
   },
   "preferences": {
+    "writeFailure": {
+      "title": "Setting not saved",
+      "body": "Your change could not be saved — the previous value was restored."
+    },
     "title": "Settings",
     "editor": {
       "title": "Editor",

@@ -375,6 +375,10 @@
     "lockedTitle": "Lecture seule"
   },
   "preferences": {
+    "writeFailure": {
+      "title": "Réglage non enregistré",
+      "body": "Votre modification n’a pas pu être enregistrée — la valeur précédente a été restaurée."
+    },
     "title": "Préférences",
     "editor": {
       "title": "Éditeur",

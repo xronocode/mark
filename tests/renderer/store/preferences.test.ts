@@ -240,13 +240,14 @@ describe('store/preferences', () => {
       expect(s.language).toBe('de')
     })
 
-    it('on invoke failure state stays updated and error is logged', async () => {
+    it('on invoke failure the previous value is restored and the error is logged (C-PREFS-WRITE-TRUTH)', async () => {
       ;(invoke as any).mockRejectedValueOnce(new Error('boom'))
       const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
       const { usePreferencesStore } = await import('@/store/preferences')
       const s = usePreferencesStore()
+      const before = s.tabSize
       await s.SET_SINGLE_PREFERENCE({ type: 'tabSize', value: 2 })
-      expect(s.tabSize).toBe(2)
+      expect(s.tabSize).toBe(before)
       expect(errSpy).toHaveBeenCalled()
       errSpy.mockRestore()
     })

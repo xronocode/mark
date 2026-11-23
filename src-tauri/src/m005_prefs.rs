@@ -10,6 +10,11 @@
 //            corrupt the existing file. mt_prefs_set_many applies a whole
 //            key/value batch (the renderer session profile) as one
 //            transaction: one mutex acquisition, one save, one broadcast.
+//            C-PREFS-WRITE-TRUTH: a failed save rolls the captured
+//            pre-call values back under the SAME mutex acquisition (set
+//            AND set_many; an absent-before key is removed, never a
+//            Value::Null) so a rejected write cannot survive in memory
+//            (BLOCK_PREFS_WRITE_ROLLED_BACK).
 //            C-SESSION-DURABILITY: mt_prefs_get_many is the read-batch
 //            mirror — one mutex acquisition, absent keys as null,
 //            strictly read-only (no save, no generation change, no
@@ -73,6 +78,26 @@
 //     command keep their exact bodies. Pinned by
 //     update_persists_the_transformed_value_with_exactly_one_save and
 //     update_skips_the_save_when_the_transform_signals_unchanged.
+//   - 2026-11-23 C-PREFS-WRITE-TRUTH: memory-side write rollback —
+//     PrefsState::set and set_many capture each key's pre-call value
+//     BEFORE the insert (a duplicate batch key at its FIRST batch
+//     occurrence) and, when the atomic save fails, restore the captured
+//     map under the SAME mutex acquisition (an absent-before key is
+//     REMOVED, never re-inserted as Value::Null; the failure path works
+//     on the already-held guard directly — no re-locking call, the Mutex
+//     is non-reentrant) with the loud
+//     [Prefs][rollback][BLOCK_PREFS_WRITE_ROLLED_BACK key=/batch=
+//     err_kind=] marker (the key or batch size and the std::io::ErrorKind
+//     class only, never a file path) and the original Err propagated
+//     unchanged; the #[cfg(test)] set_with_rename seam (the single-key
+//     mirror of set_many_with_rename) and the pins
+//     failed_set_does_not_survive_the_next_successful_set,
+//     set_many_failure_rolls_every_batch_key_back_out_of_memory and
+//     set_many_duplicate_batch_key_rolls_back_to_the_precall_value prove
+//     a rejected write survives neither the next successful write nor a
+//     fresh from_path re-read; the save machinery, get/get_many/all,
+//     from_path, the quarantine path, the migration marker and the
+//     command bodies are untouched, no new command.
 
 use crate::m013b::SecurityCtx;
 use crate::mt_paths;
@@ -332,10 +357,57 @@ impl PrefsState {
             .cloned()
     }
 
+    /// C-PREFS-WRITE-TRUTH: transactional on the memory side — the
+    /// pre-call value is captured BEFORE the insert and, when the atomic
+    /// save fails, restored under the SAME mutex acquisition (the Mutex
+    /// is non-reentrant: the failure path touches the already-held
+    /// guard directly and never re-locks a PrefsState call). An
+    /// absent-before key is REMOVED from the map on rollback — never
+    /// re-inserted as Value::Null — so a rejected write leaves the map
+    /// exactly as it found it and cannot ride the next successful write
+    /// to disk. The original Err propagates unchanged (the command
+    /// bodies keep returning Err before any broadcast).
     pub fn set(&self, key: String, value: Value) -> Result<(), std::io::Error> {
         let mut guard = self.inner.lock().expect("PrefsState mutex poisoned");
-        guard.set(key, value);
-        guard.save()
+        let mut previous = std::collections::BTreeMap::new();
+        previous.insert(key.clone(), guard.data.get(&key).cloned());
+        guard.set(key.clone(), value);
+        if let Err(e) = guard.save() {
+            Self::rollback_captured_values(&mut guard, previous, format!("key={key}"), &e);
+            return Err(e);
+        }
+        Ok(())
+    }
+
+    /// C-PREFS-WRITE-TRUTH: the one shared failure path for the memory
+    /// rollback — restore every captured pre-call value on the
+    /// ALREADY-HELD guard through the module-visible guard.data field
+    /// (the replace_from_snapshot :395 access shape; the Mutex is
+    /// non-reentrant, so NO re-locking PrefsState call — no
+    /// self.get/self.set/self.all/self.save — happens anywhere here) and
+    /// log the loud rollback marker naming the key or the batch size and
+    /// the std::io::ErrorKind class only, never a file path (the raw
+    /// error text stays with the propagated Err).
+    fn rollback_captured_values(
+        guard: &mut PrefsStore,
+        previous: std::collections::BTreeMap<String, Option<Value>>,
+        marker: String,
+        err: &std::io::Error,
+    ) {
+        for (key, value) in previous {
+            match value {
+                Some(value) => {
+                    guard.data.insert(key, value);
+                }
+                None => {
+                    guard.data.remove(&key);
+                }
+            }
+        }
+        safe_eprintln!(
+            "[Prefs][rollback][BLOCK_PREFS_WRITE_ROLLED_BACK {marker} err_kind={}]",
+            err.kind()
+        );
     }
 
     /// C-SESSION-WRITE-ATOMICITY: apply a whole preference batch (the
@@ -344,12 +416,55 @@ impl PrefsState {
     /// save() runs exactly once (no intermediate flush, no per-key
     /// transaction, no lock release between inserts), so the whole
     /// profile lands as one temp+sync_all+rename generation.
+    ///
+    /// C-PREFS-WRITE-TRUTH: the batch is transactional on the memory
+    /// side too — every key's pre-call value is captured at its FIRST
+    /// batch occurrence (so a duplicate batch key captures the true
+    /// pre-call value, never an intermediate insert of the same batch),
+    /// and on a save Err the whole captured map restores atomically
+    /// under the same guard (all-or-nothing: every fresh key removed,
+    /// every overwritten key restored) before the original Err
+    /// propagates. The get_many reader can never observe a rejected
+    /// intermediate state: the rollback completes before the guard
+    /// drops.
     pub fn set_many(&self, entries: Vec<PrefsEntry>) -> Result<(), std::io::Error> {
         let mut guard = self.inner.lock().expect("PrefsState mutex poisoned");
+        let batch_size = entries.len();
+        let previous = Self::capture_pre_call_values(&mut guard, entries.iter());
         for entry in entries {
             guard.set(entry.key, entry.value);
         }
-        guard.save()
+        if let Err(e) = guard.save() {
+            Self::rollback_captured_values(
+                &mut guard,
+                previous,
+                format!("batch={batch_size}"),
+                &e,
+            );
+            return Err(e);
+        }
+        Ok(())
+    }
+
+    /// C-PREFS-WRITE-TRUTH (review minor 3): capture each key's pre-call
+    /// value at its FIRST batch occurrence — a duplicate batch key's
+    /// capture is never overwritten by an intermediate insert of the
+    /// same batch, so the rollback always restores the true pre-call
+    /// value. Plain std BTreeMap: serde_json::Map's mutation surface is
+    /// bound to Map&lt;String, Value&gt; and the rollback only needs
+    /// deterministic (key, Option&lt;Value&gt;) pairs.
+    fn capture_pre_call_values<'a>(
+        guard: &mut PrefsStore,
+        entries: impl Iterator<Item = &'a PrefsEntry>,
+    ) -> std::collections::BTreeMap<String, Option<Value>> {
+        let mut previous: std::collections::BTreeMap<String, Option<Value>> =
+            std::collections::BTreeMap::new();
+        for entry in entries {
+            if !previous.contains_key(&entry.key) {
+                previous.insert(entry.key.clone(), guard.data.get(&entry.key).cloned());
+            }
+        }
+        previous
     }
 
     /// C-RECENTS-SERIALIZE T-002: the encompassing single-key
@@ -393,6 +508,10 @@ impl PrefsState {
     /// C-SESSION-WRITE-ATOMICITY: test-only mirror of set_many with the
     /// final rename injected (the m068 promote_staging_over_live seam) so
     /// pins can fail the promote without touching the production path.
+    /// C-PREFS-WRITE-TRUTH: the mirror carries the SAME memory-rollback
+    /// transaction shape as set_many (capture-before-insert at the first
+    /// batch occurrence, all-or-nothing restore under the same lock), so
+    /// pins failing the promote prove the production contract.
     #[cfg(test)]
     fn set_many_with_rename(
         &self,
@@ -400,10 +519,47 @@ impl PrefsState {
         rename: &dyn Fn(&Path, &Path) -> std::io::Result<()>,
     ) -> Result<(), std::io::Error> {
         let mut guard = self.inner.lock().expect("PrefsState mutex poisoned");
+        let batch_size = entries.len();
+        let previous = Self::capture_pre_call_values(&mut guard, entries.iter());
         for entry in entries {
             guard.set(entry.key, entry.value);
         }
-        guard.save_with_rename(rename)
+        if let Err(e) = guard.save_with_rename(rename) {
+            Self::rollback_captured_values(
+                &mut guard,
+                previous,
+                format!("batch={batch_size}"),
+                &e,
+            );
+            return Err(e);
+        }
+        Ok(())
+    }
+
+    /// C-PREFS-WRITE-TRUTH T-001: the single-key mirror of
+    /// set_many_with_rename — one mutex acquisition, one insert, and the
+    /// final rename injected (the same m068 promote_staging_over_live
+    /// seam) so pins can fail a SINGLE-key write's promote without
+    /// touching the production path. The mirror carries the SAME
+    /// memory-rollback transaction shape as set (capture-before-insert,
+    /// absent-before key removed on rollback), so pins failing the
+    /// promote prove the production contract.
+    #[cfg(test)]
+    fn set_with_rename(
+        &self,
+        key: String,
+        value: Value,
+        rename: &dyn Fn(&Path, &Path) -> std::io::Result<()>,
+    ) -> Result<(), std::io::Error> {
+        let mut guard = self.inner.lock().expect("PrefsState mutex poisoned");
+        let mut previous = std::collections::BTreeMap::new();
+        previous.insert(key.clone(), guard.data.get(&key).cloned());
+        guard.set(key.clone(), value);
+        if let Err(e) = guard.save_with_rename(rename) {
+            Self::rollback_captured_values(&mut guard, previous, format!("key={key}"), &e);
+            return Err(e);
+        }
+        Ok(())
     }
 
     /// C-RECENTS-SERIALIZE T-002: test-only mirror of update with the
@@ -911,6 +1067,60 @@ mod tests {
     }
 
     #[test]
+    fn failed_set_does_not_survive_the_next_successful_set() {
+        // C-PREFS-WRITE-TRUTH T-001: the scout contract — a failed
+        // single-key write leaves NOTHING behind. The Err reaches the
+        // caller; the key (absent before the call) is removed from
+        // memory immediately after (never left in place, never a
+        // Value::Null); the next successful set persists only accepted
+        // values, so a fresh PrefsState re-read (the restart leg) holds
+        // key2 and no key1.
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("preferences.json");
+        let state = PrefsState::from_path(path.clone());
+        // Previous generation: a non-batch key through the ordinary set.
+        state
+            .set("theme".to_string(), Value::String("dark".to_string()))
+            .unwrap();
+
+        let err = state
+            .set_with_rename(
+                "key1".to_string(),
+                Value::String("rejected".to_string()),
+                &|_from, _to| {
+                    Err(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        "injected rename failure",
+                    ))
+                },
+            )
+            .unwrap_err();
+        assert!(
+            err.to_string().contains("injected rename failure"),
+            "the error reaches the caller: {err}"
+        );
+        assert_eq!(
+            state.get("key1"),
+            None,
+            "the absent-before key is REMOVED from memory on rollback, never left and never Null"
+        );
+
+        // The next successful write carries only the accepted value.
+        state
+            .set("key2".to_string(), Value::String("accepted".to_string()))
+            .unwrap();
+        let fresh = PrefsState::from_path(path);
+        assert_eq!(
+            fresh.get("key2"),
+            Some(Value::String("accepted".to_string()))
+        );
+        assert!(
+            fresh.get("key1").is_none(),
+            "a failed set(key1) is NOT carried to disk by the next successful set(key2)"
+        );
+    }
+
+    #[test]
     fn update_skips_the_save_when_the_transform_signals_unchanged() {
         // C-RECENTS-SERIALIZE T-002: a None transform outcome persists
         // NOTHING — zero renames, the raw store-file bytes are
@@ -957,6 +1167,120 @@ mod tests {
             "the raw store file is byte-identical after the skipped save"
         );
         assert!(!tmp.exists(), "an unchanged transform leaves no .tmp sibling");
+    }
+
+    #[test]
+    fn set_many_failure_rolls_every_batch_key_back_out_of_memory() {
+        // C-PREFS-WRITE-TRUTH T-001: the batch twin — a failed set_many
+        // rolls EVERY batch key back: fresh keys are absent from memory,
+        // the overwritten key holds its exact pre-call value, the raw
+        // store bytes stay at the previous generation, and a fresh
+        // re-read carries none of the batch's new values.
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("preferences.json");
+        let state = PrefsState::from_path(path.clone());
+        state
+            .set("theme".to_string(), Value::String("dark".to_string()))
+            .unwrap();
+        state
+            .set("lastSessionTabs".to_string(), json!(["/old/a.md"]))
+            .unwrap();
+        let previous_bytes = std::fs::read(&path).unwrap();
+
+        let entries = vec![
+            PrefsEntry {
+                key: "brandNewKey".to_string(),
+                value: json!("fresh"),
+            },
+            PrefsEntry {
+                key: "anotherFreshKey".to_string(),
+                value: json!(42),
+            },
+            PrefsEntry {
+                key: "lastSessionTabs".to_string(),
+                value: json!(["/new/a.md"]),
+            },
+        ];
+        let err = state
+            .set_many_with_rename(entries, &|_from, _to| {
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    "injected rename failure",
+                ))
+            })
+            .unwrap_err();
+        assert!(
+            err.to_string().contains("injected rename failure"),
+            "the error reaches the caller: {err}"
+        );
+
+        assert_eq!(
+            state.get("brandNewKey"),
+            None,
+            "fresh batch key absent from memory"
+        );
+        assert_eq!(
+            state.get("anotherFreshKey"),
+            None,
+            "second fresh batch key absent from memory"
+        );
+        assert_eq!(
+            state.get("lastSessionTabs"),
+            Some(json!(["/old/a.md"])),
+            "the overwritten key holds its exact pre-call value"
+        );
+
+        // Disk side: the previous generation survives untouched.
+        let bytes = std::fs::read(&path).unwrap();
+        assert_eq!(bytes, previous_bytes, "previous generation survives");
+
+        // Restart leg: a fresh re-read carries none of the batch values.
+        let fresh = PrefsState::from_path(path);
+        assert!(fresh.get("brandNewKey").is_none());
+        assert!(fresh.get("anotherFreshKey").is_none());
+        assert_eq!(fresh.get("lastSessionTabs"), Some(json!(["/old/a.md"])));
+    }
+
+    #[test]
+    fn set_many_duplicate_batch_key_rolls_back_to_the_precall_value() {
+        // C-PREFS-WRITE-TRUTH T-001 (review minor 3): a duplicate batch
+        // key captures at its FIRST occurrence, so the rollback restores
+        // the true pre-call value — never an intermediate insert of the
+        // same batch.
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("preferences.json");
+        let state = PrefsState::from_path(path);
+        state
+            .set("dup".to_string(), Value::String("before".to_string()))
+            .unwrap();
+
+        let entries = vec![
+            PrefsEntry {
+                key: "dup".to_string(),
+                value: Value::String("mid".to_string()),
+            },
+            PrefsEntry {
+                key: "dup".to_string(),
+                value: Value::String("after".to_string()),
+            },
+        ];
+        let err = state
+            .set_many_with_rename(entries, &|_from, _to| {
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    "injected rename failure",
+                ))
+            })
+            .unwrap_err();
+        assert!(
+            err.to_string().contains("injected rename failure"),
+            "the error reaches the caller: {err}"
+        );
+        assert_eq!(
+            state.get("dup"),
+            Some(Value::String("before".to_string())),
+            "the rollback restores the first-occurrence (pre-call) value, not an intermediate batch insert"
+        );
     }
 
     #[test]

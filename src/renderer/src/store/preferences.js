@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/store/preferences.js
-// VERSION: 2.2.0
+// VERSION: 2.3.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pinia store for persistent user preferences, their hydration, persistence, the unified fontSize zoom actions (C-49), the UI-language application paths (concrete or 'system'), the retired-theme id migration (C-41 T-002), the C-38 T-004 «Restore all defaults» reset, the C-51 T-001 treeShowAllFiles preference, the C-LARGE-DOC-WAVE-A T-004 experimental progressive-mount toggle plus its session-only served-opens counters, and the C-PAGE-WIDTH-TABLES T-006 table preferences (the default table mode under the existing muya option name tableFullWidthDefault and the rememberTableColumnSizes switch — the quick-settings Tables tab writes them through the same SET_SINGLE_PREFERENCE path as every other row).
 //   SCOPE: Supported-codec default validation with visible retained legacy values; C-PREFS-TRUTH (F-007) schema-driven hydration validation with one-shot in-memory repair (the documented _shims/preferences/schema.json keys only, legacy consumer value forms preserved); default state, SET_USER_PREFERENCE / SET_SINGLE_PREFERENCE, the C-49 zoom actions (APPLY_FONT_SIZE / ZOOM_STEP / ZOOM_ACTUAL_SIZE) and the one-time legacy `zoom` migration, the C-41 T-002 retired-theme migration in ASK_FOR_USER_PREFERENCE, ASK_FOR_USER_PREFERENCE boot hydration, buildCapabilities + default-handler queries, LISTEN_SYSTEM_LANGUAGE re-resolution (C-45), RESET_PREFERENCES_TO_DEFAULTS (C-38 T-004), treeShowAllFiles default + resettable membership (C-51 T-001), the experimental session-only surface (SET_EXPERIMENTAL_PROGRESSIVE_MOUNT / RECORD_EXPERIMENTAL_MOUNT_SERVED / LISTEN_EXPERIMENTAL_PROGRESSIVE_MOUNT, the hydration strip of EXPERIMENTAL_SESSION_ONLY_KEYS and the mt::experimental-progressive-* cross-window events; never persisted, never resettable).
@@ -21,7 +21,17 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.2.0 - 2026-11-21 C-PREFS-TRUTH (F-007): the single
+//   LAST_CHANGE: v2.3.0 - 2026-11-23 C-PREFS-WRITE-TRUTH: the
+//   SET_SINGLE_PREFERENCE write-truth rollback boundary — the optimistic
+//   apply and the happy path stay byte-identical, but a rejected
+//   mt_prefs_set restores the pre-write store value, reverts the
+//   language side effect, drops the boot-dirty mark and surfaces exactly
+//   one localized preferences.writeFailure.* notice (source 'settings',
+//   severity error); the raw error stays console-only
+//   ([PREFERENCES][BLOCK_PREFS_WRITE_ROLLED_BACK key=... + the existing
+//   BLOCK_INVOKE_FAILED line), no retry and no write loop — the watcher
+//   replay of the restored value is declarative and idempotent.
+//   - 2026-11-21 C-PREFS-TRUTH (F-007): the single
 //   hydration load point (SET_USER_PREFERENCE) validates every key
 //   documented in _shims/preferences/schema.json against its declared
 //   type/enum/minimum/maximum/pattern and repairs an invalid value IN
@@ -792,6 +802,18 @@ export const usePreferencesStore = defineStore('preferences', {
       }
     },
 
+    // START_BLOCK_WRITE_TRUTH_ROLLBACK
+    // C-PREFS-WRITE-TRUTH: the optimistic apply stays instant and the
+    // happy path byte-identical, but a rejected mt_prefs_set never
+    // becomes truth: the pre-write store value is restored, the language
+    // side effect is reverted, the boot-dirty mark is dropped (the honest
+    // hydration payload must be able to correct the key again), a loud
+    // rollback marker names the key, and exactly one localized notice is
+    // surfaced — the raw error stays console-only in the existing
+    // BLOCK_INVOKE_FAILED line. No retry and no further persistence
+    // attempt: the rollback is a direct state restore, and the watcher
+    // replay it triggers is a declarative, idempotent re-assertion of the
+    // restored value (a failed write broadcasts nothing cross-window).
     async SET_SINGLE_PREFERENCE({ type, value }) {
       if (type === 'defaultEncoding' && !getEncodingCapability(value)?.supported) {
         notice.notify({ source:'settings', severity:'error', title:t('fileFormat.title'),
@@ -805,6 +827,7 @@ export const usePreferencesStore = defineStore('preferences', {
         }
         return
       }
+      const previousValue = this[type]
       this[type] = value
       bootDirtyKeys.add(type)
 
@@ -816,9 +839,20 @@ export const usePreferencesStore = defineStore('preferences', {
         await invoke('mt_prefs_set', { key: type, value })
         console.log(`[ipc][prefs_set][BLOCK_INVOKE_OK key=${type}]`)
       } catch (e) {
+        this[type] = previousValue
+        if (type === 'language') {
+          setLanguage(previousValue)
+        }
+        bootDirtyKeys.delete(type)
+        console.error(`[PREFERENCES][BLOCK_PREFS_WRITE_ROLLED_BACK key=${type}]`)
         console.error(`[ipc][prefs_set][BLOCK_INVOKE_FAILED key=${type}]`, e)
+        notice.notify({ source: 'settings', severity: 'error',
+          title: t('preferences.writeFailure.title'),
+          message: t('preferences.writeFailure.body') })
+        return false
       }
     },
+    // END_BLOCK_WRITE_TRUTH_ROLLBACK
 
     async SET_USER_DATA({ type, value }) {
       try {
