@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved">
+<GraceChangeSpec graceVersion="4.0" status="applied">
   <C-SESSION-DURABILITY>
     <Name>Session durability: proven close-after-write commit, tri-state recently-closed checks, one-request one-stat-pass restore reads, a write-path position cap, and a regression net aimed at the shipped cold-start contract</Name>
     <Created>2026-11-23</Created>

@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved">
+<GraceChangePlan graceVersion="4.0" status="applied">
   <C-SEARCH-LIFECYCLE-DISCARD>
     <Name>Search lifecycle cancellation identity — implementation plan</Name>
     <ChangeRef>C-SEARCH-LIFECYCLE-DISCARD</ChangeRef>
