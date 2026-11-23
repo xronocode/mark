@@ -12,6 +12,10 @@
  *   - _handleWatchEvent — create + non-markdown file with open tab
  *   - ASK_FOR_OPEN_PROJECT — path chosen but project was already added (no walk)
  *   - CLOSE_PROJECT — no watcher disposer to call
+ *
+ * C-RECENTS-SERIALIZE (2026-11-23): parallel_folder_additions_all_persist
+ * (inside the _pushRecentFolder describe) pins the shared recentFolders
+ * queue — two racing ADD_PROJECT calls both persist.
  */
 
 import { setupTestPinia } from '../pinia'

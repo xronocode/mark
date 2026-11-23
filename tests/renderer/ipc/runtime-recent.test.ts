@@ -3,6 +3,11 @@
  *
  * Covers: ipcRecent.add, list, clear, remove, insert (C-46 welcome
  * screen remove + undo pair).
+ *
+ * C-RECENTS-SERIALIZE (2026-11-23): the "add serialization" describe
+ * pins the facade queue — parallel adds invoke one at a time and all
+ * resolve, and a rejecting add fails only its own caller (queue
+ * continuity).
  */
 
 import { invoke as tauriInvoke } from '@tauri-apps/api/core'
