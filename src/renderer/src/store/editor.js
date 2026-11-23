@@ -132,6 +132,7 @@ const notifyExportPinDiskChanged = (exportPin) => {
   // eslint-disable-next-line no-console
   console.debug('[export][pin][BLOCK_EXPORT_PIN_MISMATCH class=disk]')
 }
+// END_BLOCK_EXPORT_DOCUMENT_PIN
 
 // START_BLOCK_LAST_PRINT_OPTIONS
 // C-EXPORT-SETTINGS-SECTION: appearance keeps the existing C-61 schema.

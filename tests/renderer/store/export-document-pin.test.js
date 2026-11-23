@@ -9,14 +9,15 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   busEmitMock - the @/bus emit mock (store module import surface).
+//   ipcFsWriteMock - the ipcFs.write facade mock (styledHtml leg).
+//   readBinaryMock - the ipcFs.readBinary bridge mock (pin digest bytes).
+//   statMock - the ipcFs.stat mock (pin stat short-circuit).
+//   notifyMock - the notification facade spy (refusal + success contracts).
 //   saveMock - the save-dialog plugin mock.
 //   exportToDocxMock - the lazy Word converter mock.
 //   writeMock - the window.fileUtils binary write facade mock.
-//   fsWriteMock - the ipcFs.write facade mock (styledHtml leg).
-//   notifyMock - the notification facade spy (refusal + success contracts).
-//   debugSpy - the console.debug spy (count-only BLOCK_EXPORT_PIN_MISMATCH marker).
 //   digestHex - the test-side SHA-256 hex helper mirroring the store predicate.
-//   makePin - pin factory over the harness document identity.
 // END_MODULE_MAP
 
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
