@@ -1,5 +1,5 @@
 // FILE: src-tauri/src/m017_recent.rs
-// VERSION: 1.1.1
+// VERSION: 1.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: M-017 mt-recent-docs. List of recently-opened files +
 //            folders, persisted to prefs[KEY_RECENT_DOCS]. Renderer
@@ -35,6 +35,29 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 C-RECENTS-SERIALIZE T-002: recent_add_inner moves onto
+//     the encompassing PrefsState::update — ONE store-mutex acquisition
+//     spans the whole load→modify→save, so two overlapping adds can no
+//     longer erase each other's insert — through the shared
+//     skip/dedupe transform (recent_add_closure: dedupe-by-path,
+//     promote-to-head, MAX_RECENT_DOCS = 10 cap, exact element-sequence
+//     unchanged skip) with the console-only
+//     [Recent][add][BLOCK_RECENT_UNCHANGED count=N] skip marker; an
+//     unchanged add returns Ok with NO store write (no tmp, no rename,
+//     no new generation). The #[cfg(test)] recent_add_inner_with_rename
+//     variant delegates the persist to PrefsState::update_with_rename;
+//     the #[cfg(test)] gap seam call site is retired with the
+//     un-encompassed body (scaffolding stays inert — the concurrency
+//     pin dispatches on Done). The [Recent][add][BLOCK_RECENT_UPDATED
+//     count=] marker, the Ok/Err contract, every command signature and
+//     the m047_bookmarks::remember grant moment (outside the lock,
+//     ahead of the list write) are unchanged; mt_recent_clear keeps its
+//     unconditional store write; recent_remove_inner/recent_insert_inner
+//     keep byte-identical bodies. Pinned by
+//     recent_concurrent_adds_from_two_threads_both_persist,
+//     recent_unchanged_head_add_skips_the_persist,
+//     recent_changed_add_still_persists_through_the_seam and
+//     recent_add_performs_at_most_one_save_through_the_seam.
 //   - 2026-11-15 C-BOOKMARK-PERSISTENCE-DURABILITY: consume bookmark failures
 //     through the queued notice channel while preserving recent-add behavior.
 //   LAST_CHANGE: 2026-10-15 C-46 review: header normalized to the
@@ -77,32 +100,40 @@ fn store(prefs: &PrefsState, list: &[String]) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
-// ── C-RECENTS-SERIALIZE T-001: the #[cfg(test)] gap seam ───────────
+// ── C-RECENTS-SERIALIZE T-001/T-002: the #[cfg(test)] gap seam ─────
 // Test-only parked-interleaving seam for
 // recent_concurrent_adds_from_two_threads_both_persist: its SINGLE call
-// site sits between the loaded read and the persist inside the pre-fix
-// recent_add_inner, so the pin can hold thread A deterministically
-// (Ready) and release it only after thread B completed a full add —
-// no sleeps, no busy-waits, no timing. Armed exclusively by that pin
-// through the static channel pair below; inert while disarmed, and the
+// site sat between the loaded read and the persist inside the pre-fix
+// un-encompassed recent_add_inner, letting the pin hold thread A
+// deterministically (Ready) and release it only after thread B
+// completed a full add — no sleeps, no busy-waits, no timing. Armed
+// exclusively by that pin through the static channel pair below; the
 // armed-thread guard keeps the park pinned to the one spawned thread
 // the pin designates so parallel in-process tests running their own
-// adds are never intercepted. C-RECENTS-SERIALIZE T-002 retires the
-// call site together with the un-encompassed body; this scaffolding
-// stays behind inert because the pin then dispatches on Done.
+// adds are never intercepted. C-RECENTS-SERIALIZE T-002 retired the
+// call site together with the un-encompassed body (an encompassing
+// load→modify→save never leaves a gap to park in); this scaffolding
+// stays behind INERT because the pin dispatches on Done once the seam
+// is unreachable. allow(dead_code) — retired scaffolding, kept for the
+// pin's Ready/Done dispatch contract and the honest red-record trail.
 #[cfg(test)]
+#[allow(dead_code)]
 static GAP_SEAM_EVENTS: std::sync::Mutex<Option<std::sync::mpsc::Sender<&'static str>>> =
     std::sync::Mutex::new(None);
 #[cfg(test)]
+#[allow(dead_code)]
 static GAP_SEAM_RELEASE: std::sync::Mutex<Option<std::sync::mpsc::Receiver<()>>> =
     std::sync::Mutex::new(None);
 #[cfg(test)]
+#[allow(dead_code)]
 static GAP_SEAM_ARMED_THREAD: std::sync::OnceLock<std::thread::ThreadId> =
     std::sync::OnceLock::new();
 
 /// Fire Ready and block until the pin releases the park. Only the
 /// armed thread ever parks; unarmed callers return immediately.
+/// Retired scaffolding (see above) — no production or test call site.
 #[cfg(test)]
+#[allow(dead_code)]
 fn recent_test_gap_park() {
     let armed_for_me = GAP_SEAM_ARMED_THREAD
         .get()
@@ -129,18 +160,76 @@ fn recent_test_gap_park() {
     }
 }
 
-/// Pure-logic add — see m013b/fs.rs for the inner/outer split rationale.
-pub(crate) fn recent_add_inner(prefs: &PrefsState, path: &str) -> Result<(), String> {
-    let mut current = load(prefs);
-    #[cfg(test)]
-    recent_test_gap_park();
-    current.retain(|p| p != path);
-    current.insert(0, path.to_string());
-    if current.len() > MAX_RECENT_DOCS {
-        current.truncate(MAX_RECENT_DOCS);
+// ── C-RECENTS-SERIALIZE T-002: the shared add transform ────────────
+// Dedupe by exact path, promote to head, cap at MAX_RECENT_DOCS, plus
+// the unchanged-skip (exact element-sequence equality of the computed
+// vs the loaded list). `loaded` is the key's current value read under
+// the store guard; the returned Option drives PrefsState::update
+// (Some = persist the new generation, None = skip the persist
+// entirely). The console markers are count-only per module convention
+// (never paths).
+fn recent_add_closure(path: &str) -> impl Fn(Option<Value>) -> Option<Value> + '_ {
+    move |loaded: Option<Value>| {
+        let base: Vec<String> = match loaded {
+            Some(Value::Array(arr)) => arr
+                .into_iter()
+                .filter_map(|v| match v {
+                    Value::String(s) => Some(s),
+                    _ => None,
+                })
+                .collect(),
+            _ => Vec::new(),
+        };
+        let mut next = base.clone();
+        next.retain(|p| p != path);
+        next.insert(0, path.to_string());
+        if next.len() > MAX_RECENT_DOCS {
+            next.truncate(MAX_RECENT_DOCS);
+        }
+        if next == base {
+            safe_eprintln!(
+                "[Recent][add][BLOCK_RECENT_UNCHANGED count={}]",
+                next.len()
+            );
+            None
+        } else {
+            safe_eprintln!("[Recent][add][BLOCK_RECENT_UPDATED count={}]", next.len());
+            Some(Value::Array(
+                next.into_iter().map(Value::String).collect(),
+            ))
+        }
     }
-    safe_eprintln!("[Recent][add][BLOCK_RECENT_UPDATED count={}]", current.len());
-    store(prefs, &current)
+}
+
+/// Pure-logic add — see m013b/fs.rs for the inner/outer split rationale.
+/// C-RECENTS-SERIALIZE: runs on the encompassing PrefsState::update —
+/// ONE store-mutex acquisition spans the whole load→modify→save (a
+/// changed list performs at most one atomic save while the lock is
+/// still held, so two overlapping adds can no longer erase each other's
+/// insert); an unchanged list (exact element-sequence equality) returns
+/// Ok WITHOUT any store write — no tmp, no rename, no new on-disk
+/// generation. The bookmark grant moment stays in mt_recent_add,
+/// outside the lock, ahead of the list write.
+pub(crate) fn recent_add_inner(prefs: &PrefsState, path: &str) -> Result<(), String> {
+    prefs
+        .update(KEY_RECENT_DOCS, recent_add_closure(path))
+        .map_err(|e| e.to_string())
+}
+
+/// C-RECENTS-SERIALIZE: test-only variant of recent_add_inner that
+/// delegates the persist to PrefsState::update_with_rename so pins can
+/// fail or count the final rename while exercising the real list path
+/// (the shared skip/dedupe closure above) rather than a re-implemented
+/// one.
+#[cfg(test)]
+fn recent_add_inner_with_rename(
+    prefs: &PrefsState,
+    path: &str,
+    rename: &dyn Fn(&std::path::Path, &std::path::Path) -> std::io::Result<()>,
+) -> Result<(), String> {
+    prefs
+        .update_with_rename(KEY_RECENT_DOCS, recent_add_closure(path), rename)
+        .map_err(|e| e.to_string())
 }
 
 /// Add a path to the recent list. Dedupes by exact-string match;
@@ -527,6 +616,110 @@ mod tests {
             list.contains(&"/race-a.md".to_string())
                 && list.contains(&"/race-b.md".to_string()),
             "both concurrent adds must persist, got {list:?}"
+        );
+    }
+
+    // ── C-RECENTS-SERIALIZE T-001 step 2: the rename-seam pin trio ──
+    // Authored against the planned T-002 surface
+    // (#[cfg(test)] recent_add_inner_with_rename delegating the persist
+    // to PrefsState::update_with_rename); red-by-absence until T-002
+    // lands that surface — the compile failure is the recorded
+    // failing-first evidence (the C-SESSION-DURABILITY get_many
+    // precedent).
+
+    #[test]
+    fn recent_unchanged_head_add_skips_the_persist() {
+        // The skip detector: adding the head path computes an identical
+        // list, so the persist must NEVER run — proven by injecting a
+        // FAILING rename into the persist seam, which any rewrite (tmp,
+        // rename, new generation) would surface as Err.
+        let (_dir, prefs) = fresh_prefs();
+        add_sync(&prefs, "/a.md");
+        add_sync(&prefs, "/b.md"); // list is [b, a]
+        let fail_rename = |_from: &std::path::Path,
+                           _to: &std::path::Path|
+         -> std::io::Result<()> {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "injected rename failure",
+            ))
+        };
+        let result = recent_add_inner_with_rename(&prefs, "/b.md", &fail_rename);
+        assert!(
+            result.is_ok(),
+            "an unchanged add must skip the persist entirely, got {result:?}"
+        );
+        assert_eq!(
+            load(&prefs),
+            vec!["/b.md".to_string(), "/a.md".to_string()],
+            "the reloaded list is unchanged in content and order"
+        );
+    }
+
+    #[test]
+    fn recent_changed_add_still_persists_through_the_seam() {
+        // Negative control of the skip pin: the SAME failing seam must
+        // fire exactly when the list changes — a genuinely new path and
+        // a reorder-only add (existing path, not at head) both surface
+        // the injected failure. Recorded honestly as green the moment
+        // it compiles (against the always-persist pre-fix behavior it
+        // is not a defect detector).
+        let (_dir, prefs) = fresh_prefs();
+        add_sync(&prefs, "/a.md");
+        add_sync(&prefs, "/b.md"); // [b, a]
+        let fail_rename = |_from: &std::path::Path,
+                           _to: &std::path::Path|
+         -> std::io::Result<()> {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "injected rename failure",
+            ))
+        };
+        let err = recent_add_inner_with_rename(&prefs, "/new.md", &fail_rename)
+            .unwrap_err();
+        assert!(err.contains("injected rename failure"), "got {err}");
+        // A reorder-only add persists too — the injected rename fires.
+        let err = recent_add_inner_with_rename(&prefs, "/a.md", &fail_rename)
+            .unwrap_err();
+        assert!(err.contains("injected rename failure"), "got {err}");
+        // The reorder transform ran: the reloaded list shows the new
+        // order (a at head).
+        assert_eq!(
+            load(&prefs),
+            vec![
+                "/a.md".to_string(),
+                "/new.md".to_string(),
+                "/b.md".to_string()
+            ]
+        );
+    }
+
+    #[test]
+    fn recent_add_performs_at_most_one_save_through_the_seam() {
+        // Discipline pin (recorded honestly green both sides once it
+        // compiles): one changed add performs at most one save; one
+        // unchanged add performs zero saves.
+        let (_dir, prefs) = fresh_prefs();
+        add_sync(&prefs, "/a.md");
+        let renames = std::cell::RefCell::new(0usize);
+        let counting = |from: &std::path::Path, to: &std::path::Path| {
+            *renames.borrow_mut() += 1;
+            std::fs::rename(from, to)
+        };
+        // A changed add: at most one save (exactly one through the
+        // counting seam).
+        recent_add_inner_with_rename(&prefs, "/b.md", &counting).unwrap();
+        let after_changed = *renames.borrow();
+        assert!(
+            after_changed <= 1,
+            "at most one save per changed add, got {after_changed}"
+        );
+        // An unchanged add: zero saves.
+        recent_add_inner_with_rename(&prefs, "/b.md", &counting).unwrap();
+        assert_eq!(
+            *renames.borrow(),
+            after_changed,
+            "an unchanged add performs zero saves"
         );
     }
 }
