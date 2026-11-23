@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/store/project.js
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: The multi-root workspace store — the ordered projectTrees[] set
 //            of folder roots with per-root watchers, and the single
@@ -32,6 +32,18 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 C-RECENTS-SERIALIZE: every recentFolders read-modify-
+//     write the store runs composes onto ONE module-local chained
+//     queue (recentFoldersQueue, the filePositionStore
+//     serializedStoreMutation shape) at the action level —
+//     _pushRecentFolder's get→filter/unshift/cap→set,
+//     GET_RECENT_FOLDERS's read and SET_RECENT_FOLDERS's replace — so
+//     parallel folder additions and an ADD_PROJECT racing the welcome
+//     screen's removeRecentFolder/undoRemove all land on disk while
+//     recent/index.vue stays untouched. Per-action best-effort error
+//     swallowing, MAX_RECENT_FOLDERS = 5, the dedupe/cap transforms,
+//     ADD_PROJECT's dedup/nested-rejection and CLOSE_PROJECT are
+//     unchanged.
 //   - 2026-11-17 v2.1.0 C-SIDEBAR-MOVE-FILE: one async moveItem action owns
 //     sidebar moves — same-destination and destination-exists refusals
 //     before any native call, mt_fs_move, open-tab pathname/filename/DIRNAME
@@ -106,15 +118,37 @@ const watchTokens = new Map()
 const MAX_RECENT_FOLDERS = 5
 const RECENT_FOLDERS_KEY = 'recentFolders'
 
+// C-RECENTS-SERIALIZE (2026-11-23): ONE queue for every recentFolders
+// read-modify-write the store runs — _pushRecentFolder's
+// get→filter/unshift/cap→set, GET_RECENT_FOLDERS's read and
+// SET_RECENT_FOLDERS's replace all compose onto the same chained queue
+// (the filePositionStore serializedStoreMutation shape owned at the
+// action level), so parallel folder additions and an ADD_PROJECT
+// racing the welcome screen's removeRecentFolder/undoRemove all land
+// on disk while recent/index.vue stays untouched (its actions dispatch
+// into these actions). Per-action best-effort error swallowing is
+// preserved; the queue tail swallows rejections to keep serializing.
+let recentFoldersQueue = Promise.resolve()
+const serializedRecentFolders = (run) => {
+  const next = recentFoldersQueue.then(run, run)
+  recentFoldersQueue = next.then(
+    () => {},
+    () => {}
+  )
+  return next
+}
+
 async function _pushRecentFolder(pathname) {
-  try {
-    const raw = await ipcPrefs.get(RECENT_FOLDERS_KEY).catch(() => null)
-    let list = Array.isArray(raw) ? raw.filter(Boolean) : []
-    list = list.filter((p) => p !== pathname)
-    list.unshift(pathname)
-    if (list.length > MAX_RECENT_FOLDERS) list.length = MAX_RECENT_FOLDERS
-    await ipcPrefs.set(RECENT_FOLDERS_KEY, list)
-  } catch { /* best-effort */ }
+  return serializedRecentFolders(async () => {
+    try {
+      const raw = await ipcPrefs.get(RECENT_FOLDERS_KEY).catch(() => null)
+      let list = Array.isArray(raw) ? raw.filter(Boolean) : []
+      list = list.filter((p) => p !== pathname)
+      list.unshift(pathname)
+      if (list.length > MAX_RECENT_FOLDERS) list.length = MAX_RECENT_FOLDERS
+      await ipcPrefs.set(RECENT_FOLDERS_KEY, list)
+    } catch { /* best-effort */ }
+  })
 }
 
 // v1.1.0 Phase-A6: multi-root workspace.
@@ -648,28 +682,33 @@ export const useProjectStore = defineStore('project', {
     },
 
     async GET_RECENT_FOLDERS() {
-      try {
-        const raw = await ipcPrefs.get(RECENT_FOLDERS_KEY)
-        return Array.isArray(raw) ? raw.filter(Boolean).slice(0, MAX_RECENT_FOLDERS) : []
-      } catch {
-        return []
-      }
+      return serializedRecentFolders(async () => {
+        try {
+          const raw = await ipcPrefs.get(RECENT_FOLDERS_KEY)
+          return Array.isArray(raw) ? raw.filter(Boolean).slice(0, MAX_RECENT_FOLDERS) : []
+        } catch {
+          return []
+        }
+      })
     },
 
     // C-46 welcome screen: replace the stored recent-folders list in one
     // write (used by "Remove from list" with the filtered array and by the
     // 5s Undo toast with the pre-remove snapshot so exact order returns).
     // Returns the sanitized list that was persisted, or [] on failure.
+    // C-RECENTS-SERIALIZE: composes onto the shared recentFolders queue.
     async SET_RECENT_FOLDERS(list) {
-      const clean = Array.isArray(list)
-        ? list.filter((p) => typeof p === 'string' && p).slice(0, MAX_RECENT_FOLDERS)
-        : []
-      try {
-        await ipcPrefs.set(RECENT_FOLDERS_KEY, clean)
-        return clean
-      } catch {
-        return []
-      }
+      return serializedRecentFolders(async () => {
+        const clean = Array.isArray(list)
+          ? list.filter((p) => typeof p === 'string' && p).slice(0, MAX_RECENT_FOLDERS)
+          : []
+        try {
+          await ipcPrefs.set(RECENT_FOLDERS_KEY, clean)
+          return clean
+        } catch {
+          return []
+        }
+      })
     },
 
     // Add-semantics open used by session restore (the saved root set is
