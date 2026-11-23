@@ -1,10 +1,10 @@
 // FILE: src-tauri/src/m013b/search.rs
-// VERSION: 2.5.0-beta
+// VERSION: 2.6.0-beta
 // START_MODULE_CONTRACT
 //   PURPOSE: Run cancellable content searches and stream bounded result batches to the renderer.
-//   SCOPE: Tauri search commands, rg JSON-process transport (exit-status honesty, bounded stderr capture, cancel watcher), embedded ignore/regex fallback, shared exclusion-mask compilation, search-session coordination (session-wide seq, exactly one terminal), cancellation, and search-event payloads (additive optional partial flag; additive optional honest matchStart/matchEnd hit bounds).
+//   SCOPE: Tauri search commands, rg JSON-process transport (exit-status honesty, bounded stderr capture, cancel watcher), embedded ignore/regex fallback, the files-mode session (mode "files": path-only walker leg without body reads, `rg --files` listing transport, shared inclusion/exclusion glob compilation, FILES_RESULT_CAP delivered-hits honesty), shared exclusion-mask compilation, search-session coordination (session-wide seq, exactly one terminal), cancellation, and search-event payloads (additive optional partial flag; additive optional honest matchStart/matchEnd hit bounds).
 //   DEPENDS: ignore, regex, serde_json, tauri, m010_security, m013b::error, m013b::state.
-//   LINKS: M-004, V-M-004, Phase-B2 step-4, C-SEARCH-SESSION-COMPLETION, C-SEARCH-ERROR-VISIBILITY, C-SEARCH-RESULT-CONTRACT.
+//   LINKS: M-004, V-M-004, Phase-B2 step-4, C-SEARCH-SESSION-COMPLETION, C-SEARCH-ERROR-VISIBILITY, C-SEARCH-RESULT-CONTRACT, C-QUICKOPEN-FILES-MODE.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -14,7 +14,7 @@
 //   DEFAULT_BATCH_SIZE - Default renderer result-batch capacity.
 //   MAX_LINE_BYTES - Maximum line size admitted by the embedded fallback.
 //   SearchOptions - Search preferences accepted from the renderer.
-//   SearchHit - One normalized text-match result (additive optional matchStart/matchEnd first-submatch bounds within the delivered snippet, UTF-16 code units; wire-absent when unavailable).
+//   SearchHit - One normalized text-match result (additive optional matchStart/matchEnd first-submatch bounds within the delivered snippet, UTF-16 code units; wire-absent when unavailable; in files mode the path-only hit: line 0, column 0, empty snippet, bounds wire-absent).
 //   SearchEvent - Batched search-event wire payload (additive optional partial flag on terminals).
 //   SearchSink - Event-sink abstraction shared by Tauri and tests.
 //   SearchRegistry - Registry of cancellable in-flight searches.
@@ -22,13 +22,21 @@
 //   SearchSessionCoordinator - Session-wide owner of the seq counter and the single terminal.
 //   run_session - Execute one full search session across every validated root.
 //   run_search - Embedded walker adapter emitting match batches through the session coordinator.
+//   run_session_files - Execute one full files-mode session (path-only hits) across every validated root.
+//   run_session_files_with_program - Files-mode session with an injectable rg program for deterministic verification.
+//   run_files_walker - Embedded walker path leg: enumerate file paths without opening a single body.
+//   run_ripgrep_files - rg --files listing transport for one root.
+//   run_ripgrep_files_with_program - rg --files listing transport with an explicitly selected executable.
+//   compile_inclusion_masks - Shared whitelist-glob semantics for the files-mode name filter; invalid globs explicitly ignored.
+//   FILES_RESULT_CAP - Delivered path hits allowed per files-mode session.
 //   compile_exclusion_masks - Shared mask semantics for walker filtering and rg --glob=! args; invalid masks explicitly ignored.
-//   mt_search_spawn - Validate and start an asynchronous rg-backed search.
+//   mt_search_spawn - Validate and start an asynchronous rg-backed search (mode "files" dispatches to the files-mode session).
 //   mt_search_cancel - Cancel an in-flight search by id (flag flip; the terminal comes from the session coordinator).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2.5.0-beta - C-SEARCH-RESULT-CONTRACT T-001/T-002: SearchHit grows two additive optional match-bound fields (matchStart/matchEnd, wire-absent via skip_serializing_if) — the first submatch's span within the DELIVERED snippet text, in UTF-16 code-unit offsets (0-based start, exclusive end; the renderer substring index space) computed by one shared byte_offset_to_utf16_units conversion; filled by BOTH engines (rg --json first-submatch start/end replacing the reserved pattern_len placeholder, embedded walker match span), honest-or-absent when the match is not fully inside the delivered snippet (walker byte truncation; defensively for rg too); legacy column per-leg values untouched.
+//   LAST_CHANGE: 2.6.0-beta - C-QUICKOPEN-FILES-MODE T-002: real files mode — mt_search_spawn dispatches the discriminator (START_BLOCK_FILES_MODE_DISPATCH) instead of discarding it; mode "files" runs the mirrored run_session_files(_with_program) session over the same coordinator/warm-up/registry/engine selection with a path-only walker leg (START_BLOCK_WALKER_PATH_LEG — no File::open, no line reading, no matcher) and the `rg --files` listing transport (START_BLOCK_BUILD_RIPGREP_FILES_COMMAND) inheriting #303's honesty machinery (bounded stderr capture, cancel watcher, 0/1-vs-error exit gate, injection seam); path-only SearchHits (line 0, column 0, empty snippet, wire-absent bounds) ride the existing match envelope so the #320 contract keeps working unchanged.
+//   PREVIOUS: 2.5.0-beta - C-SEARCH-RESULT-CONTRACT T-001/T-002: SearchHit grows two additive optional match-bound fields (matchStart/matchEnd, wire-absent via skip_serializing_if) — the first submatch's span within the DELIVERED snippet text, in UTF-16 code-unit offsets (0-based start, exclusive end; the renderer substring index space) computed by one shared byte_offset_to_utf16_units conversion; filled by BOTH engines (rg --json first-submatch start/end replacing the reserved pattern_len placeholder, embedded walker match span), honest-or-absent when the match is not fully inside the delivered snippet (walker byte truncation; defensively for rg too); legacy column per-leg values untouched.
 //   PREVIOUS: 2.4.0-beta - C-SEARCH-ERROR-VISIBILITY T-001/T-003: rg honesty and prompt cancel settle — stderr piped with a bounded START_BLOCK_RIPGREP_STDERR_CAPTURE tail (BLOCK log only, never the wire error), child exit status reaped and checked (0/1 normal, >=2 the single "rg exited with code N" error class), START_BLOCK_CANCEL_WATCHER thread kills+waits a silent child without needing a stdout line, compile_exclusion_masks applied symmetrically (walker filter + rg --glob=! args; invalid masks explicitly ignored), additive optional SearchEvent.partial with finalize(terminal, error, partial) computed conservatively in run_session.
 //   PREVIOUS: 2.3.0-beta - C-SEARCH-SESSION-COMPLETION T-001: SearchSessionCoordinator owns the session-wide seq and the single terminal (complete/cancelled/error); run_search/run_ripgrep emit match batches only, run_session finalizes exactly once across all roots and both engines — no per-root terminals, no seq restart.
 //   PREVIOUS: 2.2.0-beta - C-15 T-W2: ripgrep_available probe — desktop builds without a system rg (typical Windows) degrade to the in-process walker with BLOCK_RIPGREP_FALLBACK marker.
@@ -398,6 +406,182 @@ fn terminal_kind_name(terminal: SearchTerminal) -> &'static str {
     }
 }
 
+// START_CONTRACT: run_session_files
+//   PURPOSE: Execute one full files-mode session across every validated root through the single coordinator (C-QUICKOPEN-FILES-MODE): one path-only SearchHit per traversed file, no body ever opened, no pattern applied — the mirrored content-mode session discipline over the same coordinator.
+//   INPUTS: { roots: &[PathBuf] - M-010-validated roots in traversal order, opts: &SearchOptions - filter options (the pattern and the content-matcher options are ignored), in_process: bool - embedded walker vs rg shellout, cancel: Arc<AtomicBool>, coordinator: &mut SearchSessionCoordinator }
+//   OUTPUTS: { (u32, &'static str) - total delivered path hits across all roots and the emitted terminal kind }
+//   SIDE_EFFECTS: Emits path-only match events for all roots and exactly one terminal event through the coordinator; a returned engine error stops the remaining roots.
+//   LINKS: mt_search_spawn, run_files_walker, run_ripgrep_files, SearchSessionCoordinator, V-M-004
+// END_CONTRACT: run_session_files
+fn run_session_files(
+    roots: &[PathBuf],
+    opts: &SearchOptions,
+    in_process: bool,
+    cancel: Arc<AtomicBool>,
+    coordinator: &mut SearchSessionCoordinator,
+) -> (u32, &'static str) {
+    run_session_files_with_program(
+        std::ffi::OsStr::new("rg"),
+        roots,
+        opts,
+        in_process,
+        cancel,
+        coordinator,
+    )
+}
+
+/// Deterministic rg-error injection seam mirroring run_session_with_program:
+/// a thin test indirection only; every production root still flows through
+/// the same coordinator and finalize path.
+fn run_session_files_with_program(
+    rg_program: &std::ffi::OsStr,
+    roots: &[PathBuf],
+    opts: &SearchOptions,
+    in_process: bool,
+    cancel: Arc<AtomicBool>,
+    coordinator: &mut SearchSessionCoordinator,
+) -> (u32, &'static str) {
+    let mut total_paths: u32 = 0;
+    // Honest partial accounting, mirroring run_session: a complete terminal
+    // must not silently claim completeness when a size limit or at least one
+    // exclusion mask (valid or explicitly-ignored invalid) was active;
+    // error/cancelled terminals are partial whenever hits were already
+    // streamed.
+    let masks = compile_exclusion_masks(opts.exclusions.as_ref());
+    let size_limit_active = opts.max_file_size.is_some();
+    for root in roots {
+        if cancel.load(Ordering::SeqCst) {
+            break;
+        }
+        let result = if in_process {
+            Ok(run_files_walker(
+                root,
+                opts,
+                &masks.valid,
+                cancel.clone(),
+                coordinator,
+            ))
+        } else {
+            run_ripgrep_files_with_program(
+                rg_program,
+                root,
+                opts,
+                &masks.valid,
+                cancel.clone(),
+                coordinator,
+            )
+        };
+        match result {
+            Ok(hits) => total_paths += hits,
+            Err((root_streamed, e)) => {
+                total_paths += root_streamed;
+                safe_eprintln!(
+                    "[Search][run][BLOCK_RIPGREP_FAILED search_id={} err={e}]",
+                    coordinator.search_id()
+                );
+                let partial = total_paths > 0;
+                coordinator.finalize(SearchTerminal::Error, Some(e), partial);
+                return (total_paths, "error");
+            }
+        }
+    }
+    let terminal = if cancel.load(Ordering::SeqCst) {
+        SearchTerminal::Cancelled
+    } else {
+        SearchTerminal::Complete
+    };
+    let partial = match terminal {
+        SearchTerminal::Complete => {
+            size_limit_active || masks.invalid_count > 0 || !masks.valid.is_empty()
+        }
+        _ => total_paths > 0,
+    };
+    coordinator.finalize(terminal, None, partial);
+    (total_paths, terminal_kind_name(terminal))
+}
+
+// START_BLOCK_WALKER_PATH_LEG
+// C-QUICKOPEN-FILES-MODE: the files-mode walker path leg — the identical
+// WalkBuilder filter setup of the content walker (standard filters, hidden,
+// ignore rules, require_git(false), symlink following, max_filesize metadata
+// skip) minus the body scan: no File::open, no BufReader lines, no matcher.
+// Each admitted file entry emits exactly one path-only SearchHit in ordinary
+// traversal order through the same coordinator batching.
+fn run_files_walker(
+    root: &Path,
+    opts: &SearchOptions,
+    exclusion_masks: &[String],
+    cancel: Arc<AtomicBool>,
+    coordinator: &mut SearchSessionCoordinator,
+) -> u32 {
+    let mut walker = WalkBuilder::new(root);
+    let respect_ignore = !opts.no_ignore.unwrap_or(false);
+    walker
+        .standard_filters(true)
+        .hidden(!opts.include_hidden.unwrap_or(false))
+        .ignore(respect_ignore)
+        .git_ignore(respect_ignore)
+        .git_global(respect_ignore)
+        .git_exclude(respect_ignore)
+        .require_git(false) // honor .gitignore outside git repos (matches ripgrep --no-require-git)
+        .follow_links(opts.follow_symlinks.unwrap_or(false));
+    if let Some(max_size) = opts.max_file_size {
+        walker.max_filesize(Some(max_size));
+    }
+    // Exclusion masks filter entries BEFORE any file is opened, through the
+    // same override globs the content walker builds (compile_exclusion_masks
+    // semantics); invalid masks were dropped at compile time and only force
+    // the session's partial flag.
+    if !exclusion_masks.is_empty() {
+        let mut builder = ignore::overrides::OverrideBuilder::new(root);
+        for mask in exclusion_masks {
+            let _ = builder.add(&format!("!{mask}"));
+        }
+        if let Ok(overrides) = builder.build() {
+            walker.overrides(overrides);
+        }
+    }
+
+    let mut batch: Vec<SearchHit> = Vec::with_capacity(DEFAULT_BATCH_SIZE);
+    let mut total: u32 = 0;
+    for entry in walker.build() {
+        if cancel.load(Ordering::SeqCst) {
+            // Drain the pending batch; the session terminal is owned by
+            // run_session_files's coordinator, not by this leg.
+            coordinator.emit_matches(std::mem::take(&mut batch));
+            return total;
+        }
+        let entry = match entry {
+            Ok(e) => e,
+            Err(_) => continue, // ignore-crate errors (perm denied etc.) — skip silently
+        };
+        if !entry.file_type().map(|t| t.is_file()).unwrap_or(false) {
+            continue;
+        }
+        // Path-only hit: the name-only decision. The body is never opened —
+        // line 0, column 0, empty snippet, truncated false, bounds wire-absent
+        // (the established skip_serializing_if style).
+        total += 1;
+        batch.push(SearchHit {
+            path: entry.path().display().to_string(),
+            line: 0,
+            column: 0,
+            snippet: String::new(),
+            truncated: false,
+            match_start: None,
+            match_end: None,
+        });
+        if batch.len() >= DEFAULT_BATCH_SIZE {
+            coordinator.emit_matches(std::mem::take(&mut batch));
+        }
+    }
+    if !batch.is_empty() {
+        coordinator.emit_matches(std::mem::take(&mut batch));
+    }
+    total
+}
+// END_BLOCK_WALKER_PATH_LEG
+
 /// Build a regex from user options. Literal mode escapes the pattern;
 /// whole-word wraps in `\b...\b`. Case-insensitive flips the i flag.
 fn build_matcher(pattern: &str, opts: &SearchOptions) -> Result<regex::Regex, regex::Error> {
@@ -647,7 +831,6 @@ pub async fn mt_search_spawn(
 ) -> Result<(), IpcError> {
     let cmd = "mt::search::spawn";
 
-    let _ = mode;
     let opts = options.unwrap_or_default();
     let sandbox = sec.sandbox();
 
@@ -697,14 +880,20 @@ pub async fn mt_search_spawn(
         // unchanged; run_session is the only finalization path).
         let mut coordinator =
             SearchSessionCoordinator::new(search_id_for_thread.clone(), sink.clone());
-        let (total_hits, kind) = run_session(
-            &validated_roots,
-            &pattern,
-            &opts,
-            in_process,
-            cancel,
-            &mut coordinator,
-        );
+        // START_BLOCK_FILES_MODE_DISPATCH
+        // C-QUICKOPEN-FILES-MODE: the discriminator is dispatched, not
+        // discarded. mode "files" runs the mirrored files-mode session —
+        // the same coordinator, 120 ms warm-up, registry insert/remove
+        // lifecycle, M-010 root validation and engine selection; the
+        // pattern and the content-matcher options are ignored there, so an
+        // invalid content pattern can never fail a files search. Every
+        // other mode value keeps the content run_session byte-for-byte.
+        let (total_hits, kind) = if mode == "files" {
+            run_session_files(&validated_roots, &opts, in_process, cancel, &mut coordinator)
+        } else {
+            run_session(&validated_roots, &pattern, &opts, in_process, cancel, &mut coordinator)
+        };
+        // END_BLOCK_FILES_MODE_DISPATCH
         safe_eprintln!(
             "[Search][run][BLOCK_RIPGREP_DONE search_id={search_id_for_thread} hits={total_hits} kind={kind}]"
         );
@@ -1017,6 +1206,231 @@ fn run_ripgrep_with_program(
     // single error terminal class. The message carries the exit code
     // only: captured stderr text, query text, match contents and user
     // paths never enter the wire error field.
+    if !cancel.load(Ordering::SeqCst) {
+        let abnormal = match status.code() {
+            Some(code) if code != 0 && code != 1 => Some(format!("rg exited with code {code}")),
+            Some(_) => None,
+            None => Some("rg exited with code signal".to_string()),
+        };
+        if let Some(message) = abnormal {
+            safe_eprintln!("[Search][rg][BLOCK_RIPGREP_EXIT class={message}]");
+            return Err((total, message));
+        }
+    }
+    Ok(total)
+}
+
+// START_CONTRACT: run_ripgrep_files
+//   PURPOSE: Execute the `rg --files` listing transport for one root and stream path-only hits through the session coordinator (C-QUICKOPEN-FILES-MODE) — the files-mode counterpart of run_ripgrep.
+//   INPUTS: { root: &Path, opts: &SearchOptions, exclusion_masks: &[String] - valid masks from compile_exclusion_masks, cancel: Arc<AtomicBool>, coordinator: &mut SearchSessionCoordinator }
+//   OUTPUTS: { Result<u32, (u32, String)> - per-root delivered path hits, or a stable spawn/stream error }
+//   SIDE_EFFECTS: Spawns and waits for an rg child process; emits path-only match batches through the coordinator (terminals are owned by run_session_files).
+//   LINKS: M-004, V-M-004, run_session_files
+// END_CONTRACT: run_ripgrep_files
+fn run_ripgrep_files(
+    root: &Path,
+    opts: &SearchOptions,
+    exclusion_masks: &[String],
+    cancel: Arc<AtomicBool>,
+    coordinator: &mut SearchSessionCoordinator,
+) -> Result<u32, (u32, String)> {
+    run_ripgrep_files_with_program(
+        std::ffi::OsStr::new("rg"),
+        root,
+        opts,
+        exclusion_masks,
+        cancel,
+        coordinator,
+    )
+}
+
+// START_CONTRACT: run_ripgrep_files_with_program
+//   PURPOSE: Run the `rg --files` listing transport with an explicitly selected executable for deterministic failure verification; the child's exit status decides normal completion (0/1) versus the single error terminal class, and its stderr feeds a bounded BLOCK-log-only capture — the #303 honesty machinery inherited in shape from the content transport.
+//   INPUTS: { rg_program: &OsStr - executable path/name, remaining inputs: same as run_ripgrep_files }
+//   OUTPUTS: { Result<u32, (u32, String)> - per-root delivered path hits, or the streamed-so-far total plus a stable spawn/stream/exit-status error class }
+//   SIDE_EFFECTS: Spawns the selected child process; a START_BLOCK_CANCEL_WATCHER thread kills+waits a silent child on the cancel flag and reaps it exactly once; a bounded stderr capture thread drains the pipe to the BLOCK log only; emits path-only match batches through the coordinator (terminals are owned by run_session_files).
+//   LINKS: run_ripgrep_files, run_session_files, compile_exclusion_masks, V-M-004, C-QUICKOPEN-FILES-MODE
+// END_CONTRACT: run_ripgrep_files_with_program
+fn run_ripgrep_files_with_program(
+    rg_program: &std::ffi::OsStr,
+    root: &Path,
+    opts: &SearchOptions,
+    exclusion_masks: &[String],
+    cancel: Arc<AtomicBool>,
+    coordinator: &mut SearchSessionCoordinator,
+) -> Result<u32, (u32, String)> {
+    use std::io::{BufRead, BufReader, Read};
+    use std::process::{Command, Stdio};
+
+    // START_BLOCK_BUILD_RIPGREP_FILES_COMMAND
+    // C-QUICKOPEN-FILES-MODE: the files-mode transport lists paths (`rg
+    // --files`) instead of running the pattern search — plain listing lines,
+    // no --json. The listing passes NO --max-filesize (a content-search-time
+    // filter; the walker leg's max_filesize metadata skip stays); this
+    // per-transport size divergence is documented in the plan and owned by
+    // C-SEARCH-ENGINE-PARITY — quickOpen never sends maxFileSize.
+    let mut cmd = Command::new(rg_program);
+    cmd.arg("--files");
+    if opts.include_hidden.unwrap_or(false) {
+        cmd.arg("--hidden");
+    }
+    if opts.no_ignore.unwrap_or(false) {
+        cmd.arg("--no-ignore");
+    }
+    if opts.follow_symlinks.unwrap_or(false) {
+        cmd.arg("--follow");
+    }
+    // Exclusion masks go to rg symmetrically with the walker leg — each
+    // VALID mask verbatim as a --glob=! argument (compile_exclusion_masks);
+    // invalid masks are explicitly ignored here and only force the
+    // session's partial flag.
+    for mask in exclusion_masks {
+        cmd.arg(format!("--glob=!{mask}"));
+    }
+    cmd.arg(root);
+    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+    // END_BLOCK_BUILD_RIPGREP_FILES_COMMAND
+
+    // START_BLOCK_SPAWN_RIPGREP_FILES_PROCESS
+    safe_eprintln!(
+        "[Search][rg][BLOCK_SPAWN_FILES search_id={} root={}]",
+        coordinator.search_id(),
+        root.display()
+    );
+    let mut child = cmd.spawn().map_err(|e| (0u32, format!("spawn rg: {e}")))?;
+    let stdout = child.stdout.take().ok_or((0u32, "no stdout".to_string()))?;
+    let mut stderr = child.stderr.take().ok_or((0u32, "no stderr".to_string()))?;
+    let reader = BufReader::new(stdout);
+    // END_BLOCK_SPAWN_RIPGREP_FILES_PROCESS
+
+    // START_BLOCK_RIPGREP_FILES_STDERR_CAPTURE
+    // Bounded stderr capture, the #303 shape inherited verbatim: a small
+    // fixed cap so a chatty child can neither deadlock on a full pipe nor
+    // allocate without bound; the drained tail reaches the BLOCK log only —
+    // captured stderr text never enters the wire error field.
+    const STDERR_CAPTURE_CAP_BYTES: usize = 8 * 1024;
+    let stderr_handle = std::thread::spawn(move || {
+        let mut captured: Vec<u8> = Vec::new();
+        let mut chunk = [0u8; 1024];
+        loop {
+            match stderr.read(&mut chunk) {
+                Ok(0) => break,
+                Ok(n) => {
+                    let room = STDERR_CAPTURE_CAP_BYTES.saturating_sub(captured.len());
+                    if room > 0 {
+                        let take = n.min(room);
+                        captured.extend_from_slice(&chunk[..take]);
+                    }
+                    // Cap reached: keep draining to EOF without retaining.
+                }
+                Err(_) => break,
+            }
+        }
+        captured
+    });
+    // END_BLOCK_RIPGREP_FILES_STDERR_CAPTURE
+
+    // START_BLOCK_CANCEL_WATCHER
+    // The #303 watcher shape inherited verbatim: a quiet rg child must not
+    // hold the session hostage until its next stdout line. The watcher
+    // observes the cancel flag, kills the child on the flag, waits for it
+    // and exits. It never removes registry entries and never emits a
+    // terminal — SearchSessionCoordinator (run_session_files) stays the
+    // single terminal owner. The watcher owns the child and reaps it
+    // exactly once; the main path observes the exit status through the
+    // channel below.
+    let watcher_stop = Arc::new(AtomicBool::new(false));
+    let (status_tx, status_rx) = std::sync::mpsc::channel();
+    let watcher = {
+        let cancel_for_watcher = Arc::clone(&cancel);
+        let stop_for_watcher = Arc::clone(&watcher_stop);
+        std::thread::spawn(move || {
+            let mut child = child;
+            if cancel_for_watcher.load(Ordering::SeqCst) {
+                let _ = child.kill();
+            } else {
+                loop {
+                    if cancel_for_watcher.load(Ordering::SeqCst) {
+                        let _ = child.kill();
+                        break;
+                    }
+                    if stop_for_watcher.load(Ordering::SeqCst) {
+                        break;
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(5));
+                }
+            }
+            // Reap exactly once here — the killed or naturally exited
+            // child cannot leak as a zombie.
+            let status = child.wait();
+            let _ = status_tx.send(status);
+        })
+    };
+    // END_BLOCK_CANCEL_WATCHER
+
+    let mut total: u32 = 0;
+    let mut batch: Vec<SearchHit> = Vec::with_capacity(DEFAULT_BATCH_SIZE);
+
+    // The listing transport reads plain path lines — one path-only hit per
+    // non-empty line, no JSON parsing, no body anywhere.
+    for line in reader.lines() {
+        if cancel.load(Ordering::SeqCst) {
+            // The watcher owns kill+wait; EOF from the kill unblocks this
+            // loop even when the child never produced another line.
+            break;
+        }
+        let line = match line {
+            Ok(l) => l,
+            Err(_) => break,
+        };
+        if line.is_empty() {
+            continue;
+        }
+        total += 1;
+        batch.push(SearchHit {
+            path: line,
+            line: 0,
+            column: 0,
+            snippet: String::new(),
+            truncated: false,
+            match_start: None,
+            match_end: None,
+        });
+        if batch.len() >= DEFAULT_BATCH_SIZE {
+            coordinator.emit_matches(std::mem::take(&mut batch));
+        }
+    }
+
+    coordinator.emit_matches(std::mem::take(&mut batch));
+
+    // Stop the watcher cleanly when no cancel raced in, then observe the
+    // reaped child's exit status through the watcher channel (the watcher
+    // reaps exactly once; this side never blocks on wait() itself).
+    watcher_stop.store(true, Ordering::SeqCst);
+    if watcher.join().is_err() {
+        return Err((0u32, "rg watcher thread failed".to_string()));
+    }
+    let status = match status_rx.recv() {
+        Ok(Ok(status)) => status,
+        Ok(Err(e)) => return Err((0u32, format!("wait rg: {e}"))),
+        Err(_) => return Err((0u32, "rg watcher dropped the exit status".to_string())),
+    };
+    let stderr_bytes = stderr_handle.join().unwrap_or_default();
+    let stderr_tail = String::from_utf8_lossy(&stderr_bytes);
+    if !stderr_tail.is_empty() {
+        // BLOCK log only — the captured tail never enters the wire error.
+        safe_eprintln!(
+            "[Search][rg][BLOCK_RIPGREP_STDERR_TAIL bytes={} tail={}]",
+            stderr_tail.len(),
+            stderr_tail
+        );
+    }
+
+    // Exit-status honesty, the #303 shape inherited verbatim: codes 0
+    // (listings) and 1 (no listings) keep completing normally; any other
+    // exit — when not cancelled — is the single error terminal class. The
+    // message carries the exit code only: captured stderr text, query text,
+    // match contents and user paths never enter the wire error field.
     if !cancel.load(Ordering::SeqCst) {
         let abnormal = match status.code() {
             Some(code) if code != 0 && code != 1 => Some(format!("rg exited with code {code}")),
