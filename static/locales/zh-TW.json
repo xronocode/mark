@@ -375,6 +375,10 @@
     "lockedTitle": "唯讀"
   },
   "preferences": {
+    "writeFailure": {
+      "title": "設定未儲存",
+      "body": "變更無法儲存——已還原為先前的值。"
+    },
     "title": "偏好設定",
     "editor": {
       "title": "編輯器",

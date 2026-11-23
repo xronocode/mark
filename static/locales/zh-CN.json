@@ -375,6 +375,10 @@
     "lockedTitle": "只读"
   },
   "preferences": {
+    "writeFailure": {
+      "title": "设置未保存",
+      "body": "更改无法保存——已恢复为之前的值。"
+    },
     "title": "偏好设置",
     "editor": {
       "title": "编辑器",

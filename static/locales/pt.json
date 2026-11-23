@@ -375,6 +375,10 @@
     "lockedTitle": "Somente leitura"
   },
   "preferences": {
+    "writeFailure": {
+      "title": "Definição não guardada",
+      "body": "Não foi possível guardar a alteração — o valor anterior foi restaurado."
+    },
     "title": "Preferências",
     "editor": {
       "title": "Editor",

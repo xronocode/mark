@@ -1,5 +1,5 @@
 // FILE: tests/renderer/i18n/locale-keys.test.js
-// VERSION: 1.5.0
+// VERSION: 1.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-TITLEBAR-MODE-CHIPS T-003 pin — the titleBar.modeChips
 //            namespace carries exactly fifteen families in all ten
@@ -29,6 +29,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 v1.6.0 C-PREFS-WRITE-TRUTH: the write-failure notice
+//     pin — preferences.writeFailure.title and
+//     preferences.writeFailure.body present and non-empty in all ten
+//     locale tables (the SET_SINGLE_PREFERENCE write-truth rollback
+//     voice: the notice never claims a save and carries no raw error
+//     text).
 //   - 2026-11-23 v1.5.0 C-SESSION-DURABILITY: the recently-closed
 //     transient-notice pin — recent.recentlyClosed.unverifiedNotice and
 //     recent.recentlyClosed.someUnverifiedNotice present and non-empty
@@ -223,6 +229,36 @@ describe('recent.recentlyClosed transient notices (C-SESSION-DURABILITY)', () =>
         .not.toBe(readKey(table, 'recent.recentlyClosed.missingNotice'))
       expect(readKey(table, 'recent.recentlyClosed.someUnverifiedNotice'), `${locale}.someUnverifiedNotice`)
         .not.toBe(readKey(table, 'recent.recentlyClosed.someMissingNotice'))
+    }
+  })
+})
+
+describe('preferences.writeFailure notice keys (C-PREFS-WRITE-TRUTH)', () => {
+  // The SET_SINGLE_PREFERENCE write-truth rollback voice: exactly one
+  // localized error notice per rejected write, never claiming a save and
+  // never carrying raw error text (console-only).
+  const WRITE_FAILURE_KEYS = [
+    'preferences.writeFailure.title',
+    'preferences.writeFailure.body'
+  ]
+
+  it('carries the write-failure keys in every locale', () => {
+    for (const locale of LOCALES) {
+      const table = readTable(locale)
+      for (const key of WRITE_FAILURE_KEYS) {
+        expect(readKey(table, key), `${locale}.${key}`).toBeTypeOf('string')
+      }
+    }
+  })
+
+  it('writes non-empty native copy everywhere, distinct from any other failure family', () => {
+    for (const locale of LOCALES) {
+      const table = readTable(locale)
+      for (const key of WRITE_FAILURE_KEYS) {
+        expect(readKey(table, key).trim().length, `${locale}.${key}`).toBeGreaterThan(0)
+      }
+      expect(readKey(table, 'preferences.writeFailure.body'), `${locale}.writeFailure.body`)
+        .not.toBe(readKey(table, 'rollback.prefsSkippedBody'))
     }
   })
 })

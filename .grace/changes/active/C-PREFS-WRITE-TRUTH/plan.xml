@@ -1,0 +1,348 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-PREFS-WRITE-TRUTH>
+    <IntentSummary>Make a failed preference write impossible to survive on both layers while keeping the optimistic UX and every predecessor contract byte-identical. Backend (M-005): PrefsState::set (m005_prefs.rs:320-324) and PrefsState::set_many (:332-338) stop being «memory first, disk later, no rollback» — the pre-call values are captured BEFORE the inserts (each key at its first batch occurrence, so a duplicate batch key rolls back to its true pre-call value, never an intermediate batch insert), the atomic temp+sync_all+rename save runs exactly as today, and on a save Err the captured values are restored under the SAME mutex acquisition — a key that was absent before the call is REMOVED from the map on rollback (never re-inserted as Value::Null), the restore touches only the already-held guard (the Mutex is non-reentrant — no re-locking PrefsState call anywhere in the failure path), a loud [Prefs][rollback][BLOCK_PREFS_WRITE_ROLLED_BACK] marker naming the key (or the batch size) and the std::io::ErrorKind class records the rollback, the original Err propagates unchanged (the mt_prefs_set/mt_prefs_set_many command bodies keep returning Err before any broadcast), and the batch rollback is all-or-nothing inside the one C-SESSION-WRITE-ATOMICITY transaction (one lock, one save, one broadcast — the get_many reader can never observe a rejected intermediate state). The proof seam is the deliberate mirror of set_many_with_rename (:360-371): a #[cfg(test)] set_with_rename(key, value, rename) so pins can fail the final promote of a SINGLE-key write without touching the production path; the failing-first pins prove the scout contract — after a failed set(key1) a successful set(key2) does NOT carry key1 to disk and a fresh PrefsState::from_path re-read has no key1 (the restart leg), a failed batch leaves no batch value in memory and none on re-read, and a duplicate-key batch rolls back to the pre-call value. Renderer (M-011): SET_SINGLE_PREFERENCE keeps the instant optimistic apply and every happy-path byte, but on a rejected mt_prefs_set it restores this[type] to the pre-write value, reverts the language side effect (setLanguage back to the previous language), drops the boot-dirty mark (the change never became truth), logs a loud [PREFERENCES][BLOCK_PREFS_WRITE_ROLLED_BACK] marker (the raw error stays console-only in the existing BLOCK_INVOKE_FAILED line) and surfaces exactly one localized error notice from the new preferences.writeFailure.* keys (severity error, source 'settings', no raw error text, no saved-claim); no retry, no write loop — the rollback is a direct state restore, and the watcher replay it triggers is enumerated and idempotent. Restart truth is pinned at both layers (a fresh from_path re-read and a fresh ASK_FOR_USER_PREFERENCE hydration carry only accepted values).</IntentSummary>
+    <Spec>C-PREFS-WRITE-TRUTH</Spec>
+    <ReferenceState>Authored 2026-11-23 against the read-only green-prefs1 worktree (branch spec/prefs-write-truth, base b702a7fe, carrying the merged #325 C-SESSION-DURABILITY implementation); the drafting session has no shell, so the worktree commit hash is not recorded here — every file, line and byte-level anchor below was verified directly against this tree. Backend: src-tauri/src/m005_prefs.rs — save_with_rename (:195-216, the injected-rename seam), save (:221-223 delegating the real fs::rename), PrefsStore::set (:229-231), PrefsState::boot/from_path (:245-256/:305-310), get (:312-318), set (:320-324, the mutate-then-save defect shape — lock, guard.set(key, value), guard.save()), set_many (:332-338, one lock, every insert, one save), get_many (:347-355, the read batch, strictly read-only), set_many_with_rename (:360-371 — UNIFIED ANCHOR per review minor 1: the #[cfg(test)] attribute at :360 and fn set_many_with_rename at :361-371 are ONE block; the spec's drifted :331-341 and :357-371 renderings all denote this same verified block, and every reference below uses :360-371), all (:373-379), replace_from_snapshot (:387-401 — a PrefsStore-level set caller whose shape stays untouched: the rollback lands at the PrefsState layer only, per the binding fix direction), the commands mt_prefs_get (:429-431), mt_prefs_set (:442-463, returning Err before any broadcast at :448), mt_prefs_set_many (:472-490, :477), mt_prefs_get_many (:499-509), mt_prefs_get_all (:513-517), ensure_migration_marker's ignored-result set call (:297 — behavior-neutral under rollback: a failed marker write now also leaves honest memory), and the pins set_many_writes_session_profile_in_one_transaction (:681), set_many_failure_keeps_previous_generation_and_never_promotes_tmp (:766), get_many_returns_requested_keys_without_persisting (:815), corrupt_store_file_is_quarantined_aside_not_overwritten (:882), save_is_atomic (:926). No fn set_with_rename exists yet (grep-verified); Cargo.toml:28 declares serde_json = "1" bare (no preserve_order feature), so serde_json::Map::remove is available and the rollback removal carries no ordering side effects. Renderer: src/renderer/src/store/preferences.js — imports notice (:137) and setLanguage/getCurrentLanguage/t (:138), the module-level bootDirtyKeys Set (:166), the boot-stomp guard consuming bootDirtyKeys inside ASK_FOR_USER_PREFERENCE (:739-741 — keys in the Set are deleted from the hydration payload, which is exactly why a rolled-back key must LEAVE the Set: the honest hydration payload must be able to correct it), SET_SINGLE_PREFERENCE (:795-821 — the defaultEncoding capability guard :796-800 with its own localized notice and `return false`, the unknown-key guard :802-807, the optimistic assignment this[type] = value :808, bootDirtyKeys.add(type) :809, the language side effect :811-813, the try/await invoke('mt_prefs_set')/catch whose catch is console.error alone :815-820 with the BLOCK_INVOKE_FAILED line at :819; VERSION 2.2.0; no named START_BLOCK on the action yet — the implementation wraps it in a new pair per the markup rules), SET_USER_DATA (:823-829) and the boot-only theme-migration catch (:773-776) stay untouched out-of-scope residues per the spec NonGoals. Watcher consumers (review minor 5, the replay surface a rollback triggers through Vue reactivity): pages/app.vue — watch(theme) :226 (addThemeStyle + syncMicaTheme), the Auto trio watch([followSystemTheme, lightModeTheme, darkModeTheme]) :254 (applyAutoTheme; its store write preferencesStore.theme = resolved at :248 is local state, never a persistence call), watch(customCss) :266 (addCustomStyle), watch(zoom) :270 (bus emit mt::window-zoom), watch(preferencesStore.fontSize) :415 (the --mark-zoom CSS property, immediate); components/editorWithTabs/editor.vue — watch(fontSize) :1056 (muya setFont), watch(lineHeight) :1062 (setFont), watch(preferLooseListItem) :1068 (setOptions), watch(theme) :1082 (mermaid/vega setOptions), watch(editorLineWidth) :1172 (setEditorWidth), watch(codeFontSize) :1255 / watch(codeFontFamily) :1276 / watch(hideScrollbar) :1286 (each addCommonStyle call re-asserts all three values). Every consumer is a declarative set-to-value re-assertion and none invokes mt_prefs_set — the replay is idempotent and write-loop-free. A failed write broadcasts nothing (backend Err before emit), so cross-window SET_USER_PREFERENCE echoes never fire for the rejected value. Test seams: tests/renderer/store/preferences-load-repair.test.js — the vi.hoisted invokeMock (:51-53), the i18n mock whose t returns the key and setLanguage is a vi.fn (:58-62), the notification mock notify vi.fn (:64), and the contract note scoping write semantics out (:17-18 — this suite is that suite's write-side twin); tests/renderer/i18n/locale-keys.test.js v1.5.0 — the dated CHANGE_SUMMARY pattern (:32-37), the ten-locale LOCALES array (:62); static/locales/en.json preferences namespace (:381); the consumer pins quick-settings.test.js:422 (the SET_SINGLE_PREFERENCE spy) and the split-view :107 stub shape. Graph/verification homes: M-005 at .grace/graph/runtime.xml :1272 (its trailing SummaryDeltas dated), M-011 at .grace/graph/runtime.xml :2636, V-M-005 at .grace/verification/runtime.xml :1547 (its dated scenarios at :1554/:1592-:1594), V-M-011 at .grace/verification/runtime.xml :3345 (its dated scenarios at :5988-:5995). Review-minor resolutions recorded: (1) the seam anchor is unified as :360-371 everywhere in this plan (the spec's :331-341/:357-371 drift noted above, one block, verified); (2) the rollback distinguishes «key was absent» explicitly — None captures REMOVE the key from the map (serde_json Map::remove), never insert Value::Null, pinned by failed_set_does_not_survive_the_next_successful_set asserting state.get(key1) == None; (3) duplicate keys in a set_many batch capture at the FIRST batch occurrence only, so the rollback restores the true pre-call value, pinned by set_many_duplicate_batch_key_rolls_back_to_the_precall_value; (4) the rollback works on the already-held guard directly — the Mutex is non-reentrant, so the failure path makes NO re-locking call (no self.get/self.set/self.all/self.save), it touches guard.data through the module-visible field exactly as replace_from_snapshot does at :395; (5) the watcher consumers are enumerated above and their replay idempotency is argued per consumer in T-005, with replay pinned where reachable (the in-action language revert). Deviation notes: (a) Rust failing-first is a RUNTIME red, not the get_many red-by-absence — T-001 adds the set_with_rename seam together with the pins, so the suite compiles and runs but the three pins fail their assertions on the pre-rollback tree (key1 stays in memory, batch values survive, the duplicate rolls back to nothing); (b) the rollback marker names the std::io::ErrorKind class (never a file path, per the honesty bar) — the injected failures carry the test message only in the propagated Err, not in the marker; (c) this plan carries no self-referential grace-lint commands and no SpecSha256 field — the orchestrator runs the current/target/final lint gates itself and stamps the spec hash; the drafting-lint requirement is that this plan introduces ZERO new lint errors of its own, and any remaining lint noise must belong exclusively to the foreign active bundles awaiting archive #327 (C-47, C-50, C-SESSION-DURABILITY, C-SEARCH-LIFECYCLE-DISCARD, C-EXT-TRUST-COHERENCE, C-EXT-EDIT-PROOF). Writing this draft approves neither implementation, apply/archive, commit/push, lane departure, release, signing, tag nor publication.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src-tauri/src/m005_prefs.rs</Value>
+        <Value>src/renderer/src/store/preferences.js</Value>
+        <Value>tests/renderer/store/preferences-load-repair.test.js</Value>
+        <Value>tests/renderer/i18n/locale-keys.test.js</Value>
+        <Value>static/locales/en.json</Value>
+        <Value>.grace/graph/runtime.xml</Value>
+        <Value>.grace/verification/runtime.xml</Value>
+      </MustExist>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>pub fn set(&amp;self, key: String, value: Value) -&gt; Result&lt;(), std::io::Error&gt; {
+        let mut guard = self.inner.lock().expect("PrefsState mutex poisoned");
+        guard.set(key, value);
+        guard.save()
+    }</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>pub fn set_many(&amp;self, entries: Vec&lt;PrefsEntry&gt;) -&gt; Result&lt;(), std::io::Error&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn set_many_with_rename(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn set_many_writes_session_profile_in_one_transaction(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn set_many_failure_keeps_previous_generation_and_never_promotes_tmp(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn get_many_returns_requested_keys_without_persisting(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn corrupt_store_file_is_quarantined_aside_not_overwritten(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn save_is_atomic(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>prefs.set(key.clone(), value).map_err(|e| e.to_string())?;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>prefs.set_many(entries).map_err(|e| e.to_string())?;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/preferences.js</File>
+        <Text>async SET_SINGLE_PREFERENCE({ type, value }) {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/preferences.js</File>
+        <Text>this[type] = value</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/preferences.js</File>
+        <Text>bootDirtyKeys.add(type)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/preferences.js</File>
+        <Text>await invoke('mt_prefs_set', { key: type, value })</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/preferences.js</File>
+        <Text>console.error(`[ipc][prefs_set][BLOCK_INVOKE_FAILED key=${type}]`, e)</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/preferences-load-repair.test.js</File>
+        <Text>Write semantics (SET_SINGLE_PREFERENCE)</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/preferences-load-repair.test.js</File>
+        <Text>vi.mock('@/services/notification', () =&gt; ({ default: { notify: vi.fn() } }))</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/i18n/locale-keys.test.js</File>
+        <Text>const LOCALES = ['de', 'en', 'es', 'fr', 'ja', 'ko', 'pt', 'ru', 'zh-CN', 'zh-TW']</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/en.json</File>
+        <Text>"preferences": {</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-005</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-011</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn set_with_rename(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn failed_set_does_not_survive_the_next_successful_set(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn set_many_failure_rolls_every_batch_key_back_out_of_memory(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn set_many_duplicate_batch_key_rolls_back_to_the_precall_value(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>BLOCK_PREFS_WRITE_ROLLED_BACK</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn set_many_writes_session_profile_in_one_transaction(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn set_many_failure_keeps_previous_generation_and_never_promotes_tmp(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>fn get_many_returns_requested_keys_without_persisting(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>prefs.set(key.clone(), value).map_err(|e| e.to_string())?;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>prefs.set_many(entries).map_err(|e| e.to_string())?;</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src-tauri/src/m005_prefs.rs</File>
+        <Text>let mut guard = self.inner.lock().expect("PrefsState mutex poisoned");
+        guard.set(key, value);
+        guard.save()
+    }</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/renderer/src/store/preferences.js</File>
+        <Text>BLOCK_PREFS_WRITE_ROLLED_BACK</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/preferences.js</File>
+        <Text>bootDirtyKeys.delete(type)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/preferences.js</File>
+        <Text>preferences.writeFailure.title</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/preferences.js</File>
+        <Text>preferences.writeFailure.body</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/preferences.js</File>
+        <Text>this[type] = value</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/preferences.js</File>
+        <Text>bootDirtyKeys.add(type)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/preferences.js</File>
+        <Text>console.log(`[ipc][prefs_set][BLOCK_INVOKE_OK key=${type}]`)</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/preferences-write-truth.test.js</File>
+        <Text>set_single_preference_rolls_back_the_store_value_when_the_write_is_rejected</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/preferences-write-truth.test.js</File>
+        <Text>set_single_preference_surfaces_a_localized_write_failure_notice</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/preferences-write-truth.test.js</File>
+        <Text>set_single_preference_rolls_back_the_language_side_effect</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/preferences-write-truth.test.js</File>
+        <Text>set_single_preference_drops_the_boot_dirty_mark_on_rollback</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/preferences-write-truth.test.js</File>
+        <Text>a_fresh_hydration_after_a_rejected_write_carries_only_the_persisted_value</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/store/preferences-write-truth.test.js</File>
+        <Text>preferences.writeFailure.title</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/i18n/locale-keys.test.js</File>
+        <Text>preferences.writeFailure.title</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/i18n/locale-keys.test.js</File>
+        <Text>preferences.writeFailure.body</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/en.json</File>
+        <Text>"writeFailure": {</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/en.json</File>
+        <Text>"title": "Setting not saved"</Text>
+      </MustContain>
+      <MustContain>
+        <File>static/locales/en.json</File>
+        <Text>"body": "Your change could not be saved — the previous value was restored."</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/runtime.xml</File>
+        <Text>C-PREFS-WRITE-TRUTH</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/runtime.xml</File>
+        <Text>C-PREFS-WRITE-TRUTH</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark prefs</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/store/preferences-load-repair.test.js tests/renderer/store/preferences-write-truth.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-005 />
+        <M-011 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-005 />
+        <V-M-011 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src-tauri/src/m005_prefs.rs</File>
+      <File>src/renderer/src/store/preferences.js</File>
+      <File>static/locales/en.json</File>
+      <File>static/locales/de.json</File>
+      <File>static/locales/es.json</File>
+      <File>static/locales/fr.json</File>
+      <File>static/locales/ja.json</File>
+      <File>static/locales/ko.json</File>
+      <File>static/locales/pt.json</File>
+      <File>static/locales/ru.json</File>
+      <File>static/locales/zh-CN.json</File>
+      <File>static/locales/zh-TW.json</File>
+      <File>tests/renderer/store/preferences-write-truth.test.js</File>
+      <File>tests/renderer/i18n/locale-keys.test.js</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Failing-first memory-rollback pins: the #[cfg(test)] set_with_rename seam (the mirror of set_many_with_rename :360-371) plus failed_set_does_not_survive_the_next_successful_set, set_many_failure_rolls_every_batch_key_back_out_of_memory and set_many_duplicate_batch_key_rolls_back_to_the_precall_value — red at runtime on the pre-rollback tree</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>Failing-first proof precedes T-002's implementation: src-tauri/src/m005_prefs.rs gains the #[cfg(test)] test seam set_with_rename(key, value, rename) beside set_many_with_rename (:360-371) — the exact single-key mirror: one mutex acquisition, guard.set(key, value), guard.save_with_rename(rename) — together with the three inline #[cfg(test)] pins below, in the existing prefs test module beside the :681/:766 set_many pins. The production set()/set_many() bodies stay untouched in this task. Because the seam ships with the pins, the red is a RUNTIME red (recorded per ReferenceState deviation a): the cargo prefs run fails the three new pins' ASSERTIONS on the pre-rollback tree — failed_set... fails because key1 survives the failed rename in memory (state.get(key1) is Some after the Err and the fresh from_path re-read carries key1 once the next successful set persists the whole map), set_many_failure... fails because every batch value survives in memory and rides the re-read, and the duplicate pin fails because no capture exists so nothing restores "before". The red run must demonstrate the survival, not merely an assertion-name mismatch; all predecessor pins (:681/:766/:815/:882/:926 and the rest of the module) stay green in the same run.</Criterion>
+          <Criterion>failed_set_does_not_survive_the_next_successful_set — the exact scout/R-1 contract with the restart leg: seed a previous generation through ordinary state.set (a non-batch key such as theme); call set_with_rename(key1, a value, an injected failing rename) and assert the Err reaches the caller with the injected message; assert state.get(key1) is None immediately after the failed call — the memory rollback (review minor 2's absent-key case: key1 was absent before, so it must be REMOVED, never left and never inserted as Value::Null); then a successful ordinary state.set(key2, a value) returns Ok; a fresh PrefsState::from_path re-read of the same path carries key2 and NO key1 («после неудачной set(key1) успешная set(key2) НЕ выносит key1; перечитанный store без key1» — the from_path re-read IS the restart leg, R-3 backend half).</Criterion>
+          <Criterion>set_many_failure_rolls_every_batch_key_back_out_of_memory — the batch twin with the same temp-dir discipline as the :766 pin: seed a previous generation (a non-batch key plus one key the batch will overwrite); call set_many_with_rename with a batch mixing fresh keys and one overwriting key through the EXISTING seam with an injected failing rename; assert the Err propagates; assert in memory that every fresh batch key is absent (state.get == None) and the overwritten key holds its exact pre-call value; a fresh PrefsState::from_path re-read carries none of the batch's new values; the raw store-file bytes stay at the previous generation (the :766 disk-side discipline retained, asserted unchanged).</Criterion>
+          <Criterion>set_many_duplicate_batch_key_rolls_back_to_the_precall_value — review minor 3's pin: seed dup = "before"; the failing batch carries dup twice with different values ("mid", then "after"); after the Err, state.get(dup) == Some(Value::String("before")) — the capture happened at the FIRST batch occurrence, so the rollback restores the true pre-call value, never an intermediate insert from the same batch.</Criterion>
+          <Criterion>The pins keep their exact names through the rest of the change (the TargetAssertions pin them); the red run's evidence (the three failing tests inside an otherwise green cargo prefs run) is recorded before T-002 lands any production rollback code.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark prefs</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>M-005 memory rollback in PrefsState::set/set_many — capture-before-insert, restore on the held guard, BLOCK_PREFS_WRITE_ROLLED_BACK, batch all-or-nothing under the one transaction</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>T-001's pins have been demonstrated failing-first on the baseline before any production code of this task lands.</Criterion>
+          <Criterion>PrefsState::set (:320-324) becomes transactional on the memory side: the pre-call value is captured as Option&lt;Value&gt; via the already-held guard BEFORE the insert; the insert and the atomic save run exactly as today (guard.set then guard.save() — the save machinery, PrefsStore::set (:229-231), save_with_rename (:195-216) and save (:221-223) are untouched, no PrefsStore signature change, no clone-and-swap of the whole map); on a save Err the pre-call value is restored under the SAME mutex acquisition and the original Err propagates. Review minor 2, explicit: a Some(previous) restores via the map insert; a None (the key was ABSENT before the call) REMOVES the key from the map (serde_json Map::remove — available, no preserve_order feature, Cargo.toml:28) — the rollback never inserts Value::Null for an absent-before key. Review minor 4, binding: the rollback body works on the already-held guard directly — module-visible guard.data inserts/removals exactly like replace_from_snapshot's guard.data access (:395) — and makes NO re-locking PrefsState call (no self.get/self.set/self.all/self.save anywhere in the failure path; the Mutex is non-reentrant). A rollback logs [Prefs][rollback][BLOCK_PREFS_WRITE_ROLLED_BACK key=&lt;key&gt; err_kind=&lt;ErrorKind&gt;] — the key and the std::io::ErrorKind class only, never a file path (the honesty bar; ReferenceState deviation b).</Criterion>
+          <Criterion>PrefsState::set_many (:332-338) keeps the C-SESSION-WRITE-ATOMICITY one-transaction shape exactly — one mutex acquisition, every insert under that lock, exactly one save — and gains the capture: a Map&lt;String, Option&lt;Value&gt;&gt; filled during the insert loop where each key is captured ONLY at its first batch occurrence (review minor 3 — an occupied-check or entry API so a duplicate batch key's capture is never overwritten by an intermediate insert of the same batch). On a save Err the WHOLE captured map restores atomically under the same guard (all-or-nothing: every fresh key removed, every overwritten key restored to its pre-call value), with the batch marker [Prefs][rollback][BLOCK_PREFS_WRITE_ROLLED_BACK batch=&lt;N&gt; err_kind=&lt;ErrorKind&gt;]; the rollback adds no second lock, no second save and no broadcast — the write still fails with exactly one Err before any broadcast, and the get_many reader (:347-355) can never observe a rejected intermediate state because the rollback completes before the guard drops.</Criterion>
+          <Criterion>Untouched surfaces, verified by diff: PrefsStore::set/save/save_with_rename, PrefsState::get/get_many/all, from_path, the quarantine-on-load path, the migration marker, the command bodies mt_prefs_get/mt_prefs_set/mt_prefs_set_many/mt_prefs_get_all (:429-517 — they keep returning Err before any broadcast; the exact map_err lines are pinned), main.rs (no new command), and the PrefsStore-level set callers replace_from_snapshot (:387-401) / replace_prefs_from_snapshot — the rollback lands at the PrefsState layer only, per the binding fix direction. Behavior note recorded: ensure_migration_marker's ignored-result set call (:297) now also leaves honest memory on a failed marker write — behavior-neutral, no contract change.</Criterion>
+          <Criterion>T-001's three pins turn green with their bodies unchanged; the predecessor pins set_many_writes_session_profile_in_one_transaction (:681), set_many_failure_keeps_previous_generation_and_never_promotes_tmp (:766), get_many_returns_requested_keys_without_persisting (:815), corrupt_store_file_is_quarantined_aside_not_overwritten (:882) and save_is_atomic (:926) stay green unchanged — the C-SESSION-WRITE-ATOMICITY disk-side contract and the C-SESSION-DURABILITY read-only contract are unweakened.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark prefs</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Failing-first renderer write-truth pins: the new preferences-write-truth.test.js (the load-repair suite's write-side twin) on the load-repair mock seams — red on the swallowed-rejection tree</Title>
+        <DependsOn />
+        <AcceptanceCriteria>
+          <Criterion>New suite tests/renderer/store/preferences-write-truth.test.js with house markup (VERSION + START_MODULE_CONTRACT/MODULE_MAP/CHANGE_SUMMARY), built on the preferences-load-repair.test.js mock seams verbatim: the vi.hoisted invokeMock mocked as @tauri-apps/api/core invoke (:51-53), the @tauri-apps/api/event mock, the @/i18n mock whose t returns the key and setLanguage is a vi.fn (:58-62), the @/services/notification mock with notify vi.fn (:64), console spies, setupTestPinia. No production file is touched in this task (preferences.js stays as-is; the red demonstration is the point).</Criterion>
+          <Criterion>The failing-first pins, each shown red on the baseline before T-004 lands — the red run demonstrates the swallowed rejection (the assigned value survives, no notice fires, no revert), not an assertion-name mismatch: set_single_preference_rolls_back_the_store_value_when_the_write_is_rejected (invoke('mt_prefs_set') rejects → this[type] must be restored to the pre-write value; exactly ONE mt_prefs_set invoke is issued and NO second write attempt follows the rollback); set_single_preference_surfaces_a_localized_write_failure_notice (exactly one notice.notify call with source 'settings', severity 'error', title t('preferences.writeFailure.title') and message t('preferences.writeFailure.body') — the t mock returns the keys, so the assertion is on the key strings; the raw error string appears ONLY on the console, never in the notice); set_single_preference_rolls_back_the_language_side_effect (a rejected language write reverts setLanguage to the previous language and restores store.language); set_single_preference_drops_the_boot_dirty_mark_on_rollback (after the rejected write and rollback, a fresh ASK_FOR_USER_PREFERENCE over an updated fixture applies the fixture value for the key — the boot-stomp guard :739-741 must no longer shield the rolled-back key, which is only true if bootDirtyKeys.delete happened).</Criterion>
+          <Criterion>Recorded honestly per the spec's R-3 convention: a_fresh_hydration_after_a_rejected_write_carries_only_the_persisted_value (the renderer restart leg — after the rejected write and rollback, a fresh store hydration through the real ASK_FOR_USER_PREFERENCE over the persisted profile fixture yields the previous value and never the rejected one) is authored in this task as a meaningful-proof pin and is expected GREEN on the baseline — the fixture never contained the rejected value even pre-fix — and is NOT claimed as a red-first defect detector; the red-first legs of the renderer layer are the four pins above.</Criterion>
+          <Criterion>The happy-path pins land green in this task (they pin the shape T-004 must keep byte-identical): synchronous apply (this[type] carries the new value before the invoke resolves), exactly one mt_prefs_set with the { key, value } argument shape, the BLOCK_INVOKE_OK console marker, and no notice.notify call on success.</Criterion>
+          <Criterion>The red evidence (the four failing pins inside the suite) is captured before T-004's implementation; the pins keep their exact names through the rest of the change (the TargetAssertions pin them).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/store/preferences-write-truth.test.js</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>M-011 optimistic apply + rollback in SET_SINGLE_PREFERENCE (a new named START_BLOCK_/END_BLOCK_ pair) and the two preferences.writeFailure.* keys in all ten locales gated by locale-keys</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>T-003's pins have been demonstrated failing-first on the baseline before any production code of this task lands.</Criterion>
+          <Criterion>src/renderer/src/store/preferences.js SET_SINGLE_PREFERENCE (:795-821) keeps the optimistic happy path byte-identical: the defaultEncoding capability guard with its own localized notice and copy (:796-800 — untouched; the new write-failure notice does NOT fire there), the unknown-key guard (:802-807), the synchronous this[type] = value (:808), bootDirtyKeys.add(type) (:809), the language side effect (:811-813), exactly one invoke('mt_prefs_set', { key: type, value }), and the BLOCK_INVOKE_OK console marker (:817). The action is wrapped in a new named START_BLOCK_/END_BLOCK_ pair per the markup rules (unique, balanced). On a rejected invoke the catch becomes the write-truth failure path: restore this[type] to the value captured before the write; for type === 'language' revert the side effect with setLanguage(previousLanguage); bootDirtyKeys.delete(type) — the change never became truth, so the honest hydration payload must be able to correct it; keep the existing console.error BLOCK_INVOKE_FAILED line (:819 — the raw error stays console-only) and add the loud [PREFERENCES][BLOCK_PREFS_WRITE_ROLLED_BACK key=&lt;type&gt;] marker naming the key; surface EXACTLY ONE localized notice via notice.notify({ source: 'settings', severity: 'error', title: t('preferences.writeFailure.title'), message: t('preferences.writeFailure.body') }) — the in-action defaultEncoding-guard precedent; the notice never claims the value was saved and carries no raw error text; the action resolves false (mirroring the capability guard's `return false`). No retry and no further persistence attempt: the rollback is a direct state restore — no SET_SINGLE_PREFERENCE recursion, no second invoke (no write loop); the watcher replay it triggers is expected and idempotent (T-005 records the enumeration).</Criterion>
+          <Criterion>static/locales/*.json — all ten locale files (en, de, es, fr, ja, ko, pt, ru, zh-CN, zh-TW) gain EXACTLY two keys inside the preferences namespace (the en.json :381 anchor): "writeFailure": { "title": ..., "body": ... }. English copy fixed at plan time — title «Setting not saved», body «Your change could not be saved — the previous value was restored.» — with native, non-empty translations in the other nine, no placeholder interpolation, and no borrowing of any other failure family's copy. No other locale content changes.</Criterion>
+          <Criterion>tests/renderer/i18n/locale-keys.test.js gains the C-PREFS-WRITE-TRUTH describe pinning preferences.writeFailure.title and preferences.writeFailure.body present and non-empty across all ten LOCALES (the C-SESSION-DURABILITY v1.5.0 :32-37 pattern); VERSION 1.5.0 → 1.6.0 plus a dated 2026-11-23 CHANGE_SUMMARY entry.</Criterion>
+          <Criterion>preferences.js markup: VERSION 2.2.0 → 2.3.0 plus a dated 2026-11-23 C-PREFS-WRITE-TRUTH CHANGE_SUMMARY entry naming the write-truth rollback boundary; SET_USER_PREFERENCE and the hydration/validation machinery (:612-648, :779-792), the zoom actions, the reset, the migrations and SET_USER_DATA (:823-829) carry ZERO diffs.</Criterion>
+          <Criterion>T-003's four red pins turn green with their bodies unchanged; the meaningful-proof hydration pin stays green; the happy-path pins stay green (the byte-identical contract); the predecessor preferences-load-repair.test.js suite passes byte-identically (no F-007 repair pin reworked — its contract note :17-18 keeps being true, this suite is the separate write-side twin); the consumer suites stay green unchanged (the quick-settings SET_SINGLE_PREFERENCE spies, split-view, the Settings-tab suites — the happy path they pin is byte-identical).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/store/preferences-load-repair.test.js tests/renderer/store/preferences-write-truth.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Watcher idempotency record (review minor 5) and governance: dated SummaryDeltas on M-005/M-011, dated scenarios on V-M-005/V-M-011, file-local markup, combined-diff audit</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Watcher idempotency (review minor 5) recorded in the V-M-011 scenario and here: a renderer rollback restores the store value, so every consumer re-runs with the restored previous value — expected per the spec constraint, and idempotent because each consumer is a declarative set-to-value re-assertion that persists nothing. Enumerated consumers: pages/app.vue — watch(theme) :226 (addThemeStyle + syncMicaTheme re-assert the restored theme), the Auto trio watch :254 (applyAutoTheme re-resolves; its store write at :248 is local state, never a persistence call), watch(customCss) :266 (addCustomStyle), watch(zoom) :270 (bus emit), watch(fontSize) :415 (the --mark-zoom property); components/editorWithTabs/editor.vue — watch(fontSize) :1056 and watch(lineHeight) :1062 (muya setFont, guarded by value !== oldValue), watch(preferLooseListItem) :1068 (setOptions), watch(theme) :1082 (mermaid/vega setOptions), watch(editorLineWidth) :1172 (setEditorWidth re-asserts the legacy tier), watch(codeFontSize) :1255 / watch(codeFontFamily) :1276 / watch(hideScrollbar) :1286 (each addCommonStyle call re-asserts all three values). Replay pinned where reachable: the in-action language revert is pinned by T-003's set_single_preference_rolls_back_the_language_side_effect; the component watchers sit outside a store-unit suite's reach and carry this per-consumer idempotency justification instead (honest recording — no new component-suite scope is invented). Cross-window: a failed write broadcasts nothing (backend Err before emit), so no SET_USER_PREFERENCE echo ever carries the rejected value; the Settings form, the quick-settings panel and other windows hold the previous value without any replay.</Criterion>
+          <Criterion>.grace/graph/runtime.xml: one dated C-PREFS-WRITE-TRUTH SummaryDelta appended adjacent to the trailing SummaryDelta inside M-005 (:1272) — the memory-side transactional write (capture-before-insert and same-lock rollback for set AND set_many, the absent-key removal distinction, the duplicate-batch-key first-occurrence capture, the BLOCK_PREFS_WRITE_ROLLED_BACK markers, the #[cfg(test)] set_with_rename seam beside set_many_with_rename :360-371, the one-transaction batch semantics preserved, the save machinery, get_many, the quarantine path and the command bodies untouched, no new command) — and one dated SummaryDelta inside M-011 (:2636) — the write-truth surface (optimistic apply kept byte-identical, rollback of this[type]/setLanguage/bootDirtyKeys on a rejected mt_prefs_set, the [PREFERENCES][BLOCK_PREFS_WRITE_ROLLED_BACK] marker, one localized preferences.writeFailure.* notice with source 'settings', raw error console-only, the watcher idempotency enumeration, the ten-locale keys). Strictly on these two entries, no other graph content, no new module nodes.</Criterion>
+          <Criterion>.grace/verification/runtime.xml: one dated C-PREFS-WRITE-TRUTH scenario appended inside V-M-005 (at the scenario-session-durability-m005 :1594 neighborhood) naming the three Rust pins with their contracts (failed_set_does_not_survive_the_next_successful_set with the None-after-Err assertion and the from_path restart leg, set_many_failure_rolls_every_batch_key_back_out_of_memory with the all-or-nothing and pre-call-value assertions, set_many_duplicate_batch_key_rolls_back_to_the_precall_value with the first-occurrence capture), the BLOCK_PREFS_WRITE_ROLLED_BACK marker family, and the cargo command; one dated scenario appended inside V-M-011 (at the scenario-session-durability-m011 :5992 neighborhood) naming the renderer pins (the four red-first write-truth pins, the meaningful-proof fresh-hydration restart leg, the happy-path pins), the watcher idempotency record of criterion 1, the two ten-locale keys, and the combined vitest command. No other verification content changes.</Criterion>
+          <Criterion>File-local markup synchronized per the modification checklist: m005_prefs.rs SCOPE sentence gains the write-truth rollback sentence and the CHANGE_SUMMARY header gains a dated 2026-11-23 C-PREFS-WRITE-TRUTH entry (the C-SESSION-DURABILITY :52-60 header-entry precedent — the Rust file carries no VERSION line); preferences.js and locale-keys.test.js carry their T-004 markup; the new test file carries its T-003 header; START_BLOCK_/END_BLOCK_ pairs unique and balanced everywhere they were touched.</Criterion>
+          <Criterion>Combined-diff audit: the whole change touches exactly the ObservedWriteScope files; the read-only anchors carry ZERO diffs — src-tauri/src/main.rs, PrefsStore::set/save/save_with_rename, get_many, the quarantine path, the command bodies, SET_USER_PREFERENCE and the hydration machinery, SET_USER_DATA, the theme-migration catch, and the existing suites preferences-load-repair.test.js, preference-defaults.test.js, quick-settings.test.js, split-view.test.js and the prefComponents tabs suites.</Criterion>
+          <Criterion>Final assertions green with no skips: the two plan-level MustPassCommands (the cargo prefs run and the three-suite vitest run); grace lint stays the orchestrator's gate — this plan introduces zero new lint errors of its own, and any remaining lint noise must belong exclusively to the foreign active bundles awaiting archive #327.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="60">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/runtime.xml'); ET.parse('.grace/verification/runtime.xml'); ET.parse('.grace/changes/active/C-PREFS-WRITE-TRUTH/plan.xml')"</Command>
+          <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark prefs</Command>
+          <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/store/preferences-load-repair.test.js tests/renderer/store/preferences-write-truth.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Environment>Baseline discipline: this plan was drafted against the read-only green-prefs1 worktree (branch spec/prefs-write-truth, base b702a7fe, carrying the merged #325 C-SESSION-DURABILITY implementation); at implementation start the executor revalidates every BaselineAssertions anchor on the actual delivery baseline (the mutate-then-save bodies of PrefsState::set :320-324 and set_many :332-338, the set_many_with_rename seam :360-371, the five predecessor pins, the SET_SINGLE_PREFERENCE optimistic shape :795-821, the load-repair mock seams :51-64 and its write-semantics-out-of-scope note :17-18, the locale gate LOCALES :62 and the en.json preferences namespace :381) and reruns the affected suites before landing anything. Tasks run T-001 → T-002 and T-003 → T-004 in strict failing-first order, then T-005 after both (ExecutionMode sequential: T-001, T-002, T-003, T-004, T-005 in this order). Every pin is demonstrated failing-first per its task before its implementation lands, with the recorded red-state conventions: the Rust red is a RUNTIME red inside an otherwise green cargo prefs run (the seam ships with the pins in T-001 — ReferenceState deviation a; the get_many red-by-absence precedent does not apply here because nothing is absent), and the renderer reds are assertion failures demonstrating the swallowed rejection. The meaningful-proof pins are honestly recorded as green-by-design new coverage, not defect detectors: a_fresh_hydration_after_a_rejected_write_carries_only_the_persisted_value (the fixture never held the rejected value even pre-fix) — the same convention the predecessor bundle used for its shim-level close-commit pins. CAUTION ledger, the five review minors with their resolutions: (1) the seam anchor is unified as :360-371 (attribute :360, fn :361-371; the spec's :331-341/:357-371 drift noted once in ReferenceState and used nowhere else); (2) the rollback distinguishes «key absent» (None capture → Map::remove, never a Value::Null insert) explicitly, in T-002 criterion 2 and pinned by the None-after-Err assertion; (3) duplicate batch keys capture at the first occurrence only, in T-002 criterion 3 and pinned by the duplicate pin; (4) the rollback works on the already-held guard directly — no re-locking PrefsState call anywhere in the failure path (non-reentrant Mutex), touching guard.data through the module-visible field as replace_from_snapshot :395 already does; (5) the watcher consumers are enumerated with per-consumer idempotency justification (app.vue :226/:254/:266/:270/:415, editor.vue :1056/:1062/:1068/:1082/:1172/:1255/:1276/:1286 — all declarative re-assertions, none persists), replay pinned where reachable (the language revert). Predecessor contracts stay green and unweakened: the C-SESSION-WRITE-ATOMICITY pins (:681 one-transaction batch, :766 failed rename keeps the previous on-disk generation) and the one-broadcast-per-batch semantics; the C-SESSION-DURABILITY read-only get_many pin (:815) and the read/write asymmetry law; the C-PREFS-TRUTH load-repair and preference-defaults pins byte-identical; the quarantine (:882) and save_is_atomic (:926) pins; the consumer spies. Residues recorded, NOT absorbed: SET_USER_DATA (:823-829) and the boot-only theme-migration catch (:773-776) keep today's swallowed-rejection shape per the spec NonGoals; the PrefsStore-level set callers (replace_from_snapshot, replace_prefs_from_snapshot) keep their non-transactional shape — the rollback lands at the PrefsState layer only, per the binding fix direction; write-amplification (one mt_prefs_set rewrites the whole store file) stays the recorded C-SESSION-WRITE-ATOMICITY residue. Marker discipline: markers name preference keys (or the batch size) and the std::io::ErrorKind class, never file paths; raw error text stays console-only; the notice never claims a save and never fires on the defaultEncoding capability guard. Locale discipline: exactly two new keys in each of the ten tables, English copy fixed at plan time, native non-empty translations, no interpolation, gated by the locale-keys suite. Lint discipline: this plan carries no self-referential grace-lint commands and no SpecSha256 field — the orchestrator runs grace lint --path . --assertions current before editing, --change C-PREFS-WRITE-TRUTH --assertions target during implementation, --assertions final --run-commands before handoff, and current after archiving; the drafting-lint requirement is zero new lint errors of this plan's own, with any remaining noise belonging exclusively to the foreign active bundles awaiting archive #327 (C-47, C-50, C-SESSION-DURABILITY, C-SEARCH-LIFECYCLE-DISCARD, C-EXT-TRUST-COHERENCE, C-EXT-EDIT-PROOF). No apply/archive, commit/push, lane departure, release, signing, version, tag or publication is authorized by this plan.</Environment>
+    </AcceptanceVerification>
+    <ExecutionMode>sequential</ExecutionMode>
+    <Lifecycle>Drafted 2026-11-23 from the approved spec C-PREFS-WRITE-TRUTH for orchestrator admission; the orchestrator owns status transitions and the durable/final/archive/publication boundaries. Writing this draft approves neither implementation nor apply/archive, commit/push, lane admission, release, signing, tag or publication.</Lifecycle>
+  </C-PREFS-WRITE-TRUTH>
+</GraceChangePlan>

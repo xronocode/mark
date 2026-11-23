@@ -375,6 +375,10 @@
     "lockedTitle": "読み取り専用"
   },
   "preferences": {
+    "writeFailure": {
+      "title": "設定を保存できませんでした",
+      "body": "変更を保存できなかったため、以前の値に戻しました。"
+    },
     "title": "環境設定",
     "editor": {
       "title": "エディター",

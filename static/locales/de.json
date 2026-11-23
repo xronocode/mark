@@ -375,6 +375,10 @@
     "lockedTitle": "Schreibgeschützt"
   },
   "preferences": {
+    "writeFailure": {
+      "title": "Einstellung nicht gespeichert",
+      "body": "Ihre Änderung konnte nicht gespeichert werden — der vorherige Wert wurde wiederhergestellt."
+    },
     "title": "Einstellungen",
     "editor": {
       "title": "Editor",

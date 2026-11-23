@@ -375,6 +375,10 @@
     "lockedTitle": "읽기 전용"
   },
   "preferences": {
+    "writeFailure": {
+      "title": "설정이 저장되지 않았습니다",
+      "body": "변경을 저장할 수 없어 이전 값으로 복원했습니다."
+    },
     "title": "환경설정",
     "editor": {
       "title": "편집기",
