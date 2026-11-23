@@ -26,6 +26,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 C-EXPORT-DOCUMENT-PIN: the consent-gate and pin-seam
+//   fixtures wait for the actual seams before deciding (the pin capture's
+//   awaited stat + readBinary + SHA-256 digest are real event-loop turns,
+//   so a single flushAsync raced the first consent raise on slow CI) and
+//   drain the un-awaited store EXPORT tail (pin re-verify + save dialog)
+//   before ending the happy-path tests — otherwise the abandoned tail
+//   finished inside the next test's window.
 //   - 2026-11-21 v1.1.0 C-EXPORT-BOUNDARIES T-004: the two consent-gate
 //   wiring pins (export-plantuml-consent before exportStyledHTML in both
 //   branches with the plantumlRemoteConsent decision; export-embed-consent
@@ -485,6 +492,25 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
     return call ? call[0] : null
   }
 
+  // C-EXPORT-DOCUMENT-PIN: captureExportPin's awaited stat + readBinary +
+  // SHA-256 digest are real event-loop turns (threadpool), so a single
+  // flushAsync raced the consent raise on slow CI — wait for the card seam
+  // to actually land before deciding on it.
+  const waitForCard = (dedupKey) =>
+    vi.waitFor(() => {
+      expect(findCard(dedupKey)).not.toBeNull()
+    })
+
+  // handleExport dispatches the store EXPORT without awaiting it; its tail
+  // (assertExportPinCurrent: stat + readBinary + digest, then the save
+  // dialog) outlives the handler promise. Drain it to quiescence before the
+  // test ends — an abandoned tail finishes inside the next test's window.
+  const drainExportTail = async () => {
+    const { save } = await import('@tauri-apps/plugin-dialog')
+    await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(1))
+    await flushAsync()
+  }
+
   let consoleDebugSpy
 
   beforeEach(async () => {
@@ -538,7 +564,7 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
     await mountEditor()
 
     const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
-    await flushAsync()
+    await waitForCard('export-plantuml-consent')
 
     const card = findCard('export-plantuml-consent')
     expect(card).not.toBeNull()
@@ -550,6 +576,7 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
 
     card.actions.find((a) => a.style === 'primary').handler()
     await done
+    await drainExportTail()
 
     expect(mockEditorInstance.exportStyledHTML).toHaveBeenCalledWith(
       expect.objectContaining({ plantumlRemoteConsent: true })
@@ -564,12 +591,13 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
     await mountEditor()
 
     const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
-    await flushAsync()
+    await waitForCard('export-plantuml-consent')
 
     const card = findCard('export-plantuml-consent')
     expect(card).not.toBeNull()
     card.actions.find((a) => a.style !== 'primary').handler()
     await done
+    await drainExportTail()
 
     expect(mockEditorInstance.exportStyledHTML).toHaveBeenCalledWith(
       expect.objectContaining({ plantumlRemoteConsent: false })
@@ -583,6 +611,7 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
     await mountEditor()
 
     await getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
+    await drainExportTail()
 
     expect(findCard('export-plantuml-consent')).toBeNull()
     expect(mockEditorInstance.exportStyledHTML).toHaveBeenCalledWith(
@@ -595,7 +624,7 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
     await mountEditor()
 
     const done = getBusHandler('export')({ type: 'docx', ...exportOptions })
-    await flushAsync()
+    await waitForCard('export-plantuml-consent')
 
     const card = findCard('export-plantuml-consent')
     expect(card).not.toBeNull()
@@ -603,6 +632,7 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
 
     card.actions.find((a) => a.style === 'primary').handler()
     await done
+    await drainExportTail()
 
     expect(mockEditorInstance.exportStyledHTML).toHaveBeenCalledWith(
       expect.objectContaining({ plantumlRemoteConsent: true })
@@ -620,7 +650,7 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
     await mountEditor()
 
     const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
-    await flushAsync()
+    await waitForCard('export-embed-consent')
 
     const card = findCard('export-embed-consent')
     expect(card).not.toBeNull()
@@ -631,6 +661,7 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
 
     card.actions.find((a) => a.style === 'primary').handler()
     await done
+    await drainExportTail()
 
     expect(embedMock).toHaveBeenCalledWith(
       '<html><body>doc</body></html>',
@@ -648,12 +679,13 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
     await mountEditor()
 
     const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
-    await flushAsync()
+    await waitForCard('export-embed-consent')
 
     const card = findCard('export-embed-consent')
     expect(card).not.toBeNull()
     card.actions.find((a) => a.style !== 'primary').handler()
     await done
+    await drainExportTail()
 
     expect(grantedList).toEqual([])
   })
@@ -663,7 +695,7 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
     await mountEditor()
 
     const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
-    await flushAsync()
+    await waitForCard('export-plantuml-consent')
 
     const card = findCard('export-plantuml-consent')
     expect(card.dedupKey).toBe('export-plantuml-consent')
@@ -678,6 +710,7 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
     // the card after the decision completes the export.
     card.actions[0].handler()
     await done
+    await drainExportTail()
     expect(mockEditorInstance.exportStyledHTML).toHaveBeenCalledTimes(1)
   })
 
@@ -686,10 +719,11 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
     await mountEditor()
 
     const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
-    await flushAsync()
+    await waitForCard('export-plantuml-consent')
     const card = findCard('export-plantuml-consent')
     card.actions.find((a) => a.style === 'primary').handler()
     await done
+    await drainExportTail()
 
     const logged = consoleDebugSpy.mock.calls.map((args) => args.map(String).join(' ')).join('\n')
     expect(logged).toContain('BLOCK_PLANTUML_EXPORT_CONSENT diagrams=1')
@@ -819,6 +853,31 @@ describe('editor.vue — C-EXPORT-DOCUMENT-PIN pin seams', () => {
     return call ? call[0] : null
   }
 
+  // C-EXPORT-DOCUMENT-PIN: captureExportPin's awaited stat + readBinary +
+  // SHA-256 digest are real event-loop turns (threadpool), so a single
+  // flushAsync raced the consent raise on slow CI — wait for the card seam
+  // to actually land before deciding on it.
+  const waitForCard = (dedupKey) =>
+    vi.waitFor(() => {
+      expect(findCard(dedupKey)).not.toBeNull()
+    })
+
+  // handleExport dispatches the store EXPORT without awaiting it; its tail
+  // (assertExportPinCurrent: stat + readBinary + digest) outlives the
+  // handler promise. In this describe the happy-path tests move the live
+  // pathname before confirming, so the tail refuses at the store's
+  // pathname match instead of reaching the save dialog — wait for that
+  // refusal (the tail's final observable action) to land and settle, or it
+  // finishes inside the next test's window.
+  const drainExportTail = async () => {
+    await vi.waitFor(() =>
+      expect(
+        noticeMock.notify.mock.calls.some((c) => c[0].title === 'Export stopped — the document changed')
+      ).toBe(true)
+    )
+    await flushAsync()
+  }
+
   const refusalCards = () =>
     noticeMock.notify.mock.calls.filter((c) => c[0].title === 'Export stopped — the document changed')
 
@@ -899,9 +958,11 @@ describe('editor.vue — C-EXPORT-DOCUMENT-PIN pin seams', () => {
     await mountEditor()
 
     const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
-    await flushAsync()
 
-    // The capture seam read the pinned document BEFORE the plantuml card.
+    // The capture seam read the pinned document BEFORE the plantuml card —
+    // wait for the card to actually land (the pin capture's awaited reads
+    // and digest are real event-loop turns) before asserting the order.
+    await vi.waitFor(() => expect(pinOrder).toContain('export-plantuml-consent'))
     expect(readCalls).toEqual(['/tmp/test.md'])
     expect(pinOrder.indexOf('pin:read')).toBeGreaterThanOrEqual(0)
     expect(pinOrder.indexOf('export-plantuml-consent')).toBeGreaterThan(pinOrder.indexOf('pin:read'))
@@ -914,6 +975,7 @@ describe('editor.vue — C-EXPORT-DOCUMENT-PIN pin seams', () => {
     const card = findCard('export-plantuml-consent')
     card.actions.find((a) => a.style === 'primary').handler()
     await done
+    await drainExportTail()
 
     // The pinned directory (captured at entry) survives the mutation.
     expect(embedMock).toHaveBeenCalledWith(
@@ -928,7 +990,7 @@ describe('editor.vue — C-EXPORT-DOCUMENT-PIN pin seams', () => {
     await mountEditor()
 
     const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
-    await flushAsync()
+    await waitForCard('export-plantuml-consent')
 
     // The live currentFile moves between consent raise and resolution.
     editorStore.currentFile.pathname = '/elsewhere/moved.md'
@@ -937,6 +999,7 @@ describe('editor.vue — C-EXPORT-DOCUMENT-PIN pin seams', () => {
     const card = findCard('export-plantuml-consent')
     card.actions.find((a) => a.style === 'primary').handler()
     await done
+    await drainExportTail()
 
     // Pre-fix the branch re-reads the live currentFile directory
     // ('/elsewhere'); the pin keeps the captured one.
@@ -953,7 +1016,7 @@ describe('editor.vue — C-EXPORT-DOCUMENT-PIN pin seams', () => {
 
     const exportSpy = vi.spyOn(editorStore, 'EXPORT')
     const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
-    await flushAsync()
+    await waitForCard('export-plantuml-consent')
 
     // The active document's identity moves between consent raise and confirm.
     editorStore.currentFile.documentToken = 'token-rotated-after-consent'
@@ -985,7 +1048,7 @@ describe('editor.vue — C-EXPORT-DOCUMENT-PIN pin seams', () => {
 
     const exportSpy = vi.spyOn(editorStore, 'EXPORT')
     const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
-    await flushAsync()
+    await waitForCard('export-plantuml-consent')
 
     // The pinned document's identity moves before its consent is confirmed:
     // the decision resolved for the pinned candidates must never feed a
