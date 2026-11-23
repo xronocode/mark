@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved">
+<GraceChangePlan graceVersion="4.0" status="applied">
   <C-EXPORT-DOCUMENT-PIN>
     <Name>Export document pin — identity capture at entry, stage guards, pre-write store verification — implementation plan</Name>
     <Created>2026-11-23</Created>
