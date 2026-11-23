@@ -19,7 +19,7 @@
 //   testingProtocol - Explicit actual evidence and unverified manual scope for an admission fixture.
 //   admissionFixture - Valid lifecycle fixture with pending owner acceptance and complete admission evidence.
 //   STRICT_CHECKS - Immutable strict check policy fixture.
-//   strictRepository - Build a previous-tag/bootstrap/payload/seal repository with an annotated tag; the seal span can be several bookkeeping commits, a merge commit, or carry a reverted product change.
+//   strictRepository - Build a previous-tag/bootstrap/payload/seal repository with an annotated tag; the seal span can be several bookkeeping commits, a merge commit, or carry a reverted product change; an opt-in default-off history-rewrite bootstrap records the tag-to-bootstrap delta after the release.
 //   strictOptions - Default strict identity options for one strict repository.
 //   rejectedWith - Assert one stable release-readiness failure code.
 //   SHA_D - Deterministic lane merge-commit fixture.
@@ -30,6 +30,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 C-RELEASE-REWRITE-BOUNDARY: rewritten previous-release fixtures — a matching non-product delta passes strict validation, extra/missing/reordered deltaPaths fails delta-drift, product prefix/file entries fail product-drift, missing/bad-date/non-list historyRewrite fails, a same-tree bootstrap stays valid without historyRewrite and rejects a present one, and the legacy tree/bootstrap negative controls keep failing.
 //   - 2026-11-09 C-STABILIZE-TRAIN-ADMISSION: protocol-backed early admission, missing evidence rejection, legacy acceptance compatibility and strict/Ready/Released negative-verdict gates.
 //   - 2026-10-31 v2.3.0: the empty-lane-discovery test moves from the live checkout to a temp workspace — after the first lane departure main legitimately carries td-N documents, so the live tree must not be asserted lane-free.
 //   - 2026-10-30 v2.2.0: lane trains — prove lane lifecycle, base/head accounting, premature departure, carrier admission of every lane commit, the always-complete lane ledger and the per-run validation of every td-N document.
@@ -168,7 +169,8 @@ const strictRepository = ({
   tagPayload = false,
   bookkeepingCommits = 0,
   mergeSeal = false,
-  revertedProduct = false
+  revertedProduct = false,
+  historyRewrite = false
 } = {}) => {
   const root = mkdtempSync(resolve(tmpdir(), 'mark-readiness-'))
   const git = (...args) =>
@@ -186,8 +188,33 @@ const strictRepository = ({
   const baseline = git('rev-parse', 'HEAD')
   const baselineTree = git('rev-parse', 'HEAD^{tree}')
   git('tag', '-a', 'v1.0.0', baseline, '-m', 'v1.0.0')
-  git('commit', '--allow-empty', '-m', 'fix(release): bootstrap equivalent previous tree')
-  const bootstrap = git('rev-parse', 'HEAD')
+  // Opt-in default-off history-rewrite bootstrap: after the annotated tag a
+  // rewritten main no longer carries the tagged tree, mirroring the real
+  // v2.8.2-to-main situation. The negative 'product-*' modes let a product
+  // prefix path or a product file ride the recorded delta itself.
+  const rewrittenPaths = historyRewrite === 'product-prefix'
+    ? ['site/index.html', 'src/product.js']
+    : historyRewrite === 'product-file'
+      ? ['package.json', 'site/index.html']
+      : historyRewrite
+        ? ['.github/workflows/site.yml', 'site/index.html', 'tests/release-boundary.md']
+        : null
+  let rewriteDeltaPaths = null
+  let bootstrap
+  if (rewrittenPaths) {
+    for (const rewrittenPath of rewrittenPaths) {
+      write(rewrittenPath, `rewritten ${rewrittenPath}\n`)
+    }
+    git('add', '.')
+    git('commit', '-m', 'chore(site): post-release territory rewrite')
+    bootstrap = git('rev-parse', 'HEAD')
+    rewriteDeltaPaths = git('diff', '--name-only', baseline, bootstrap)
+      .split('\n')
+      .filter(Boolean)
+  } else {
+    git('commit', '--allow-empty', '-m', 'fix(release): bootstrap equivalent previous tree')
+    bootstrap = git('rev-parse', 'HEAD')
+  }
   write('product.txt', 'accepted product bytes\n')
   git('add', 'product.txt')
   git('commit', '-m', 'feat: accepted behavior')
@@ -208,7 +235,10 @@ const strictRepository = ({
     tag: 'v1.0.0',
     commit: baseline,
     bootstrapSha: bootstrap,
-    tree: baselineTree
+    tree: baselineTree,
+    ...(rewriteDeltaPaths
+      ? { historyRewrite: { date: '2026-10-28', deltaPaths: rewriteDeltaPaths } }
+      : {})
   }
   manifest.payloadSha = payload
   manifest.items.userFacing[0].commits = [product]
@@ -269,7 +299,7 @@ const strictRepository = ({
     sha: payload,
     conclusion: 'success'
   }))
-  return { root, manifest, baseline, bootstrap, product, payload, seal, checks }
+  return { root, manifest, baseline, bootstrap, product, payload, seal, checks, rewriteDeltaPaths }
 }
 
 const strictOptions = (state) => ({
@@ -692,6 +722,120 @@ describe('strict release identity', () => {
         checks: state.checks
       })
     ).toThrow(expect.objectContaining({ code: 'MT_RELEASE_SCREENSHOT_NOT_FRESH' }))
+  }, 30000)
+
+  it('accepts a rewritten previous-release boundary whose recorded non-product delta matches the tag-to-bootstrap diff', () => {
+    const state = strictRepository({ historyRewrite: true })
+    expect(state.rewriteDeltaPaths).toEqual([
+      '.github/workflows/site.yml',
+      'site/index.html',
+      'tests/release-boundary.md'
+    ])
+    expect(
+      validateStrictRepositoryState(state.root, state.manifest, strictOptions(state))
+    ).toMatchObject({ payloadSha: state.payload, sealSha: state.seal })
+  }, 30000)
+
+  it.each([
+    ['extra', (deltaPaths) => deltaPaths.push('site/late-addition.html')],
+    ['missing', (deltaPaths) => deltaPaths.shift()],
+    ['reordered', (deltaPaths) => deltaPaths.reverse()]
+  ])('rejects a rewritten boundary with an %s deltaPaths entry', (_label, mutate) => {
+    const state = strictRepository({ historyRewrite: true })
+    mutate(state.manifest.previousRelease.historyRewrite.deltaPaths)
+    expect(() =>
+      validateStrictRepositoryState(state.root, state.manifest, strictOptions(state))
+    ).toThrow(expect.objectContaining({
+      code: 'MT_RELEASE_PREVIOUS_BOUNDARY_INVALID',
+      message: expect.stringContaining('rewrite=delta-drift')
+    }))
+  }, 30000)
+
+  it('rejects a product-prefix path riding a matching rewritten delta', () => {
+    const state = strictRepository({ historyRewrite: 'product-prefix' })
+    expect(state.rewriteDeltaPaths).toContain('src/product.js')
+    expect(() =>
+      validateStrictRepositoryState(state.root, state.manifest, strictOptions(state))
+    ).toThrow(expect.objectContaining({
+      code: 'MT_RELEASE_PREVIOUS_BOUNDARY_INVALID',
+      message: expect.stringContaining('rewrite=product-drift')
+    }))
+  }, 30000)
+
+  it('rejects a product file riding a matching rewritten delta', () => {
+    const state = strictRepository({ historyRewrite: 'product-file' })
+    expect(state.rewriteDeltaPaths).toContain('package.json')
+    expect(() =>
+      validateStrictRepositoryState(state.root, state.manifest, strictOptions(state))
+    ).toThrow(expect.objectContaining({
+      code: 'MT_RELEASE_PREVIOUS_BOUNDARY_INVALID',
+      message: expect.stringContaining('rewrite=product-drift')
+    }))
+  }, 30000)
+
+  it.each([
+    ['absent historyRewrite', (previousRelease) => { delete previousRelease.historyRewrite }, 'historyRewrite=missing'],
+    ['non-ISO date', (previousRelease) => { previousRelease.historyRewrite.date = '28 October 2026' }, 'historyRewrite=date'],
+    ['non-calendar date', (previousRelease) => { previousRelease.historyRewrite.date = '2026-02-30' }, 'historyRewrite=date'],
+    ['non-list deltaPaths', (previousRelease) => { previousRelease.historyRewrite.deltaPaths = 'site/index.html' }, 'historyRewrite=deltaPaths'],
+    ['empty deltaPaths', (previousRelease) => { previousRelease.historyRewrite.deltaPaths = [] }, 'historyRewrite=deltaPaths']
+  ])('rejects a differing bootstrap tree with %s', (_label, mutate, token) => {
+    const state = strictRepository({ historyRewrite: true })
+    mutate(state.manifest.previousRelease)
+    expect(() =>
+      validateStrictRepositoryState(state.root, state.manifest, strictOptions(state))
+    ).toThrow(expect.objectContaining({
+      code: 'MT_RELEASE_PREVIOUS_BOUNDARY_INVALID',
+      message: expect.stringContaining(token)
+    }))
+  }, 30000)
+
+  it('keeps the same-tree bootstrap boundary valid without any historyRewrite field', () => {
+    const state = strictRepository()
+    expect(state.manifest.previousRelease.bootstrapSha)
+      .not.toBe(state.manifest.previousRelease.commit)
+    expect(state.manifest.previousRelease.historyRewrite).toBeUndefined()
+    expect(
+      validateStrictRepositoryState(state.root, state.manifest, strictOptions(state))
+    ).toMatchObject({ payloadSha: state.payload, sealSha: state.seal })
+  }, 30000)
+
+  it('rejects a historyRewrite field on an unchanged same-tree boundary', () => {
+    const state = strictRepository()
+    state.manifest.previousRelease.historyRewrite = { date: '2026-10-28', deltaPaths: [] }
+    expect(() =>
+      validateStrictRepositoryState(state.root, state.manifest, strictOptions(state))
+    ).toThrow(expect.objectContaining({
+      code: 'MT_RELEASE_PREVIOUS_BOUNDARY_INVALID',
+      message: expect.stringContaining('historyRewrite=unexpected')
+    }))
+  }, 30000)
+
+  it('keeps rejecting a recorded tree that drifts from the previous tag tree', () => {
+    const state = strictRepository({ historyRewrite: true })
+    state.manifest.previousRelease.tree = 'f'.repeat(40)
+    expect(() =>
+      validateStrictRepositoryState(state.root, state.manifest, strictOptions(state))
+    ).toThrow(expect.objectContaining({
+      code: 'MT_RELEASE_PREVIOUS_BOUNDARY_INVALID',
+      message: 'tree=drift'
+    }))
+  }, 30000)
+
+  it('keeps rejecting a bootstrap commit outside the payload ancestry', () => {
+    const state = strictRepository()
+    const orphan = execFileSync(
+      'git',
+      ['commit-tree', state.manifest.previousRelease.tree],
+      { cwd: state.root, encoding: 'utf8', input: 'unrelated root commit\n' }
+    ).trim()
+    state.manifest.previousRelease.bootstrapSha = orphan
+    expect(() =>
+      validateStrictRepositoryState(state.root, state.manifest, strictOptions(state))
+    ).toThrow(expect.objectContaining({
+      code: 'MT_RELEASE_PREVIOUS_BOUNDARY_INVALID',
+      message: expect.stringContaining('bootstrap=not-ancestor')
+    }))
   }, 30000)
 })
 // END_BLOCK_STRICT_RELEASE_IDENTITY_TESTS
