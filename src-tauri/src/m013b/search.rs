@@ -4104,4 +4104,134 @@ mod tests {
         }
     }
 
+    #[test]
+    fn files_mode_rg_parity_with_walker_on_one_fixture() {
+        // T-006: both supported engines pinned individually on the SAME
+        // instrumented fixture — the walker leg always (run_session_files
+        // with in_process = true, no guard — the App Store and missing-rg
+        // fallback paths), the rg leg under the existing availability guard
+        // with the canon skip marker — yielding identical expected path
+        // sets under the same inclusions, exclusions and cap.
+        let dir = TempDir::new().unwrap();
+        write(dir.path().join("keep.md"), "x\n").unwrap();
+        write(dir.path().join("masked.md"), "x\n").unwrap();
+        write(dir.path().join("plain.txt"), "x\n").unwrap();
+        std::fs::create_dir_all(dir.path().join("nested")).unwrap();
+        write(dir.path().join("nested/deep.md"), "x\n").unwrap();
+        let opts = SearchOptions {
+            inclusions: Some(vec!["*.md".to_string()]),
+            exclusions: Some(vec!["masked.md".to_string()]),
+            ..Default::default()
+        };
+
+        // Walker leg: always runs.
+        let (total_w, kind_w, rx_w) = run_session_files_one_root(
+            "s-files-parity-walker",
+            dir.path(),
+            &opts,
+            Arc::new(AtomicBool::new(false)),
+        );
+        assert_eq!(kind_w, "complete");
+        let events_w = collect_all(&rx_w, Duration::from_millis(400), Duration::from_millis(1500));
+        let mut walker_paths = delivered_paths(&events_w);
+        walker_paths.sort();
+        assert_eq!(total_w as usize, walker_paths.len());
+
+        if !rg_available() {
+            safe_eprintln!("[test][skip] rg binary not on PATH");
+            return;
+        }
+        // rg leg: availability-guarded, same fixture, same options.
+        let (tx, rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let mut coordinator = SearchSessionCoordinator::new("s-files-parity-rg".to_string(), sink);
+        let roots = vec![dir.path().to_path_buf()];
+        let cancel = Arc::new(AtomicBool::new(false));
+        let (total_r, kind_r) =
+            run_session_files(&roots, &opts, false, cancel, &mut coordinator);
+        assert_eq!(kind_r, "complete");
+        let events_r = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+        let mut rg_paths = delivered_paths(&events_r);
+        rg_paths.sort();
+        assert_eq!(total_r as usize, rg_paths.len());
+        // Identical expected path sets under the same inclusions, exclusions
+        // and cap.
+        assert_eq!(
+            walker_paths, rg_paths,
+            "walker and rg legs must deliver identical path sets on one fixture"
+        );
+        // The expected set itself: the included unmasked files at any depth,
+        // the masked file absent, the non-included name absent.
+        assert_eq!(walker_paths.len(), 2, "got {walker_paths:?}");
+        assert!(
+            walker_paths.iter().any(|p| p.ends_with("keep.md")),
+            "the included unmasked file is delivered; got {walker_paths:?}"
+        );
+        assert!(
+            walker_paths.iter().any(|p| p.ends_with("deep.md")),
+            "the bare inclusion glob matches the nested basename on both legs; got {walker_paths:?}"
+        );
+        assert!(
+            !walker_paths.iter().any(|p| p.ends_with("masked.md")),
+            "the exclusion sits on top of the inclusion on both legs; got {walker_paths:?}"
+        );
+        assert!(
+            !walker_paths.iter().any(|p| p.ends_with("plain.txt")),
+            "the inclusion whitelists the name domain on both legs; got {walker_paths:?}"
+        );
+        // The parity fixture stays below FILES_RESULT_CAP, so neither leg
+        // truncates and the terminals stay honestly non-partial.
+        assert!(walker_paths.len() < FILES_RESULT_CAP);
+    }
+
+    #[test]
+    fn files_mode_mid_walk_cancel_drains_pending_batch_then_single_terminal() {
+        // T-006: the walker path leg keeps the between-entry cancel
+        // discipline, mirroring cancellation_drains_partial_batch_before_
+        // emit_cancelled — a mid-walk cancel drains the pending batch, then
+        // the single terminal lands; zero post-terminal events. Tolerant to
+        // fast hosts where the (cap-bounded) walk finishes before the flag.
+        let dir = TempDir::new().unwrap();
+        for i in 0..500 {
+            write(dir.path().join(format!("file-{i:04}.md")), "x\n").unwrap();
+        }
+        let (tx, rx) = mpsc::channel();
+        let cancel = Arc::new(AtomicBool::new(false));
+        let cancel_for_thread = cancel.clone();
+        let opts = SearchOptions::default();
+        let dir_path = dir.path().to_path_buf();
+        let handle = std::thread::spawn(move || {
+            let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+            let mut coordinator =
+                SearchSessionCoordinator::new("s-files-mid-cancel".to_string(), sink);
+            let roots = vec![dir_path];
+            run_session_files(&roots, &opts, true, cancel_for_thread, &mut coordinator)
+        });
+        std::thread::sleep(Duration::from_millis(2));
+        cancel.store(true, Ordering::SeqCst);
+        let (_total, kind) = handle.join().unwrap();
+        let events = collect_all(&rx, Duration::from_millis(400), Duration::from_millis(1500));
+        assert!(
+            kind == "cancelled" || kind == "complete",
+            "terminal kind is well-formed; got {kind}"
+        );
+        // Exactly ONE terminal and it is the LAST event — zero post-terminal
+        // events; every match batch (including any drained partial batch)
+        // precedes it.
+        assert_eq!(count_terminals(&events), 1, "exactly one terminal; got {events:?}");
+        assert_eq!(
+            events.last().unwrap().kind,
+            kind,
+            "terminal must be the final event; got {events:?}"
+        );
+        let terminal_pos = events
+            .iter()
+            .position(|e| matches!(e.kind.as_str(), "complete" | "cancelled" | "error"))
+            .unwrap();
+        assert!(
+            events[..terminal_pos].iter().all(|e| e.kind == "match"),
+            "only match events may precede the terminal; got {events:?}"
+        );
+        assert_seq_strictly_increasing(&events);
+    }
 }
