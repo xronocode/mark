@@ -91,7 +91,11 @@
       "plantumlConsentTitle": "PlantUML 图表由 plantuml.com 渲染",
       "plantumlConsentMessage": "{count} 个 PlantUML 图表将被发送到 {address} 进行渲染——图表源文本会离开本机",
       "plantumlConsentConfirm": "发送到 plantuml.com",
-      "plantumlConsentCancel": "在本地保留源码"
+      "plantumlConsentCancel": "在本地保留源码",
+      "pinMismatchTitle": "导出已停止 — 文档已更改",
+      "pinMismatchMessage": "在导出等待期间，正在导出的文档发生了更改（切换标签页或编辑）— 未导出任何内容。请重新开始导出。",
+      "pinDiskChangedTitle": "导出已停止 — 磁盘上的文件已更改",
+      "pinDiskChangedMessage": "在您确认导出后，文件 {name} 在磁盘上发生了更改 — 未导出任何内容。"
     },
     "resizeTable": "调整表格大小",
     "vega-lite-start": "vega-lite 开始",

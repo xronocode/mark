@@ -26,6 +26,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 C-EXPORT-DOCUMENT-PIN: the consent-gate and pin-seam
+//   fixtures wait for the actual seams before deciding (the pin capture's
+//   awaited stat + readBinary + SHA-256 digest are real event-loop turns,
+//   so a single flushAsync raced the first consent raise on slow CI) and
+//   drain the un-awaited store EXPORT tail (pin re-verify + save dialog)
+//   before ending the happy-path tests — otherwise the abandoned tail
+//   finished inside the next test's window.
 //   - 2026-11-21 v1.1.0 C-EXPORT-BOUNDARIES T-004: the two consent-gate
 //   wiring pins (export-plantuml-consent before exportStyledHTML in both
 //   branches with the plantumlRemoteConsent decision; export-embed-consent
@@ -239,7 +246,11 @@ const i18n = createI18n({
           plantumlConsentTitle: 'PlantUML diagrams are rendered by plantuml.com',
           plantumlConsentMessage: '{count} PlantUML diagram(s) would be sent to {address} for rendering — the diagram source text leaves this machine',
           plantumlConsentConfirm: 'Send to plantuml.com',
-          plantumlConsentCancel: 'Keep source local'
+          plantumlConsentCancel: 'Keep source local',
+          pinMismatchTitle: 'Export stopped — the document changed',
+          pinMismatchMessage: 'The document being exported changed (a tab switch or an edit) while the export was waiting — nothing was exported. Start the export again.',
+          pinDiskChangedTitle: 'Export stopped — the file changed on disk',
+          pinDiskChangedMessage: 'The file {name} changed on disk after you approved the export — nothing was exported.'
         }
       }
     }
@@ -481,6 +492,25 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
     return call ? call[0] : null
   }
 
+  // C-EXPORT-DOCUMENT-PIN: captureExportPin's awaited stat + readBinary +
+  // SHA-256 digest are real event-loop turns (threadpool), so a single
+  // flushAsync raced the consent raise on slow CI — wait for the card seam
+  // to actually land before deciding on it.
+  const waitForCard = (dedupKey) =>
+    vi.waitFor(() => {
+      expect(findCard(dedupKey)).not.toBeNull()
+    })
+
+  // handleExport dispatches the store EXPORT without awaiting it; its tail
+  // (assertExportPinCurrent: stat + readBinary + digest, then the save
+  // dialog) outlives the handler promise. Drain it to quiescence before the
+  // test ends — an abandoned tail finishes inside the next test's window.
+  const drainExportTail = async () => {
+    const { save } = await import('@tauri-apps/plugin-dialog')
+    await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(1))
+    await flushAsync()
+  }
+
   let consoleDebugSpy
 
   beforeEach(async () => {
@@ -534,7 +564,7 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
     await mountEditor()
 
     const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
-    await flushAsync()
+    await waitForCard('export-plantuml-consent')
 
     const card = findCard('export-plantuml-consent')
     expect(card).not.toBeNull()
@@ -546,6 +576,7 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
 
     card.actions.find((a) => a.style === 'primary').handler()
     await done
+    await drainExportTail()
 
     expect(mockEditorInstance.exportStyledHTML).toHaveBeenCalledWith(
       expect.objectContaining({ plantumlRemoteConsent: true })
@@ -560,12 +591,13 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
     await mountEditor()
 
     const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
-    await flushAsync()
+    await waitForCard('export-plantuml-consent')
 
     const card = findCard('export-plantuml-consent')
     expect(card).not.toBeNull()
     card.actions.find((a) => a.style !== 'primary').handler()
     await done
+    await drainExportTail()
 
     expect(mockEditorInstance.exportStyledHTML).toHaveBeenCalledWith(
       expect.objectContaining({ plantumlRemoteConsent: false })
@@ -579,6 +611,7 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
     await mountEditor()
 
     await getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
+    await drainExportTail()
 
     expect(findCard('export-plantuml-consent')).toBeNull()
     expect(mockEditorInstance.exportStyledHTML).toHaveBeenCalledWith(
@@ -591,7 +624,7 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
     await mountEditor()
 
     const done = getBusHandler('export')({ type: 'docx', ...exportOptions })
-    await flushAsync()
+    await waitForCard('export-plantuml-consent')
 
     const card = findCard('export-plantuml-consent')
     expect(card).not.toBeNull()
@@ -599,6 +632,7 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
 
     card.actions.find((a) => a.style === 'primary').handler()
     await done
+    await drainExportTail()
 
     expect(mockEditorInstance.exportStyledHTML).toHaveBeenCalledWith(
       expect.objectContaining({ plantumlRemoteConsent: true })
@@ -616,7 +650,7 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
     await mountEditor()
 
     const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
-    await flushAsync()
+    await waitForCard('export-embed-consent')
 
     const card = findCard('export-embed-consent')
     expect(card).not.toBeNull()
@@ -627,6 +661,7 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
 
     card.actions.find((a) => a.style === 'primary').handler()
     await done
+    await drainExportTail()
 
     expect(embedMock).toHaveBeenCalledWith(
       '<html><body>doc</body></html>',
@@ -644,12 +679,13 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
     await mountEditor()
 
     const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
-    await flushAsync()
+    await waitForCard('export-embed-consent')
 
     const card = findCard('export-embed-consent')
     expect(card).not.toBeNull()
     card.actions.find((a) => a.style !== 'primary').handler()
     await done
+    await drainExportTail()
 
     expect(grantedList).toEqual([])
   })
@@ -659,7 +695,7 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
     await mountEditor()
 
     const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
-    await flushAsync()
+    await waitForCard('export-plantuml-consent')
 
     const card = findCard('export-plantuml-consent')
     expect(card.dedupKey).toBe('export-plantuml-consent')
@@ -674,6 +710,7 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
     // the card after the decision completes the export.
     card.actions[0].handler()
     await done
+    await drainExportTail()
     expect(mockEditorInstance.exportStyledHTML).toHaveBeenCalledTimes(1)
   })
 
@@ -682,10 +719,11 @@ describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () => {
     await mountEditor()
 
     const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
-    await flushAsync()
+    await waitForCard('export-plantuml-consent')
     const card = findCard('export-plantuml-consent')
     card.actions.find((a) => a.style === 'primary').handler()
     await done
+    await drainExportTail()
 
     const logged = consoleDebugSpy.mock.calls.map((args) => args.map(String).join(' ')).join('\n')
     expect(logged).toContain('BLOCK_PLANTUML_EXPORT_CONSENT diagrams=1')
@@ -752,3 +790,325 @@ describe('editor.export consent keys — ten-locale completeness (C-EXPORT-BOUND
   })
 })
 // END_BLOCK_LOCALE_CONSENT_PINS
+
+// ──────────────────────────────────────────────────────────────────────
+// START_BLOCK_EXPORT_DOCUMENT_PIN
+// C-EXPORT-DOCUMENT-PIN T-001: the failing-first pin-seam pins — the
+// export pin is captured at handleExport entry (before the first
+// consent raise) with the owner identity, the content revision, the
+// pathname/directory and the baseline digest through the file-read
+// facade; the embed directory is sourced from the pin, not a live
+// currentFile re-read; an identity mismatch after consent aborts with
+// the localized editor.export.pinMismatch refusal, no EXPORT dispatch
+// and no embed pass; a consent decision is never applied to another
+// document; and the four new editor.export refusal keys are complete
+// across the ten locales with the en placeholder sets.
+// ──────────────────────────────────────────────────────────────────────
+describe('editor.vue — C-EXPORT-DOCUMENT-PIN pin seams', () => {
+  let pinia, editorStore
+
+  const mountEditor = async () => {
+    const Editor = (await import('@/components/editorWithTabs/editor.vue')).default
+    return shallowMount(Editor, {
+      props: {
+        markdown: '# Hello',
+        cursor: null,
+        textDirection: 'ltr',
+        platform: 'darwin'
+      },
+      global: {
+        plugins: [pinia, i18n],
+        stubs: {
+          ElDialog: true,
+          ElForm: true,
+          ElFormItem: true,
+          ElInputNumber: true,
+          ElButton: true,
+          EditorSearch: true,
+          CloseIcon: true
+        }
+      }
+    })
+  }
+
+  const getBusHandler = (eventName) => {
+    const call = busMock.on.mock.calls.find((c) => c[0] === eventName)
+    if (!call) throw new Error(`no bus.on handler for ${eventName}`)
+    return call[1]
+  }
+
+  const exportOptions = {
+    header: '',
+    footer: '',
+    headerFooterStyled: false,
+    htmlTitle: '',
+    theme: null
+  }
+
+  const PLANTUML_DOC = ['# Doc', '', '```plantuml', '@startuml', 'A -> B', '@enduml', '```', ''].join('\n')
+  const flushAsync = () => new Promise((resolve) => setTimeout(resolve, 0))
+
+  const findCard = (dedupKey) => {
+    const call = noticeMock.notify.mock.calls.find((c) => c[0].dedupKey === dedupKey)
+    return call ? call[0] : null
+  }
+
+  // C-EXPORT-DOCUMENT-PIN: captureExportPin's awaited stat + readBinary +
+  // SHA-256 digest are real event-loop turns (threadpool), so a single
+  // flushAsync raced the consent raise on slow CI — wait for the card seam
+  // to actually land before deciding on it.
+  const waitForCard = (dedupKey) =>
+    vi.waitFor(() => {
+      expect(findCard(dedupKey)).not.toBeNull()
+    })
+
+  // handleExport dispatches the store EXPORT without awaiting it; its tail
+  // (assertExportPinCurrent: stat + readBinary + digest) outlives the
+  // handler promise. In this describe the happy-path tests move the live
+  // pathname before confirming, so the tail refuses at the store's
+  // pathname match instead of reaching the save dialog — wait for that
+  // refusal (the tail's final observable action) to land and settle, or it
+  // finishes inside the next test's window.
+  const drainExportTail = async () => {
+    await vi.waitFor(() =>
+      expect(
+        noticeMock.notify.mock.calls.some((c) => c[0].title === 'Export stopped — the document changed')
+      ).toBe(true)
+    )
+    await flushAsync()
+  }
+
+  const refusalCards = () =>
+    noticeMock.notify.mock.calls.filter((c) => c[0].title === 'Export stopped — the document changed')
+
+  let consoleDebugSpy
+  let pinOrder
+  let readCalls
+
+  beforeEach(async () => {
+    pinia = setupTestPinia()
+    const { useEditorStore } = await import('@/store/editor')
+    const { usePreferencesStore } = await import('@/store/preferences')
+    const { useLayoutStore } = await import('@/store/layout')
+    const { useProjectStore } = await import('@/store/project')
+    editorStore = useEditorStore()
+    usePreferencesStore()
+    useLayoutStore()
+    useProjectStore()
+
+    editorStore.currentFile = {
+      id: 'tab-1',
+      filename: 'test.md',
+      pathname: '/tmp/test.md',
+      markdown: '# Hello',
+      isSaved: true,
+      cursor: null,
+      wordCount: { word: 1, character: 5, paragraph: 1, all: 7 },
+      notifications: [],
+      searchMatches: null,
+      scrollTop: 0,
+      previewMode: false
+    }
+    editorStore.tabs = [editorStore.currentFile]
+
+    busMock.on.mockClear()
+    mockPrinter.renderMarkdown.mockClear()
+    mockPrinter.clearup.mockClear()
+    noticeMock.notify.mockClear()
+    embedMock.mockClear()
+    embedMock.mockResolvedValue({ html: '<html>embedded</html>', embedded: 2, total: 2, skipped: 0 })
+    mockEditorInstance.getMarkdown.mockReturnValue('')
+    mockEditorInstance.exportStyledHTML.mockClear()
+    mockEditorInstance.exportStyledHTML.mockResolvedValue('<html><body>doc</body></html>')
+    consoleDebugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {})
+
+    // C-EXPORT-DOCUMENT-PIN: the capture seam rides the binary-bridge read
+    // (ipc.fs.read_binary) — record every read and the pin-vs-card ordering
+    // through one sequence. (The notify double stays a vi.fn; only its
+    // implementation records.)
+    pinOrder = []
+    readCalls = []
+    const { invoke } = await import('@tauri-apps/api/core')
+    invoke.mockImplementation(async (cmd, args) => {
+      // ipcInvoke translates mt::fs::read_binary to the Rust-side
+      // mt_fs_read_binary before dispatch — record the translated name.
+      if (cmd === 'mt_fs_read_binary' || cmd === 'mt::fs::read_binary') {
+        readCalls.push(args?.path)
+        pinOrder.push('pin:read')
+        return new TextEncoder().encode('# Hello')
+      }
+      return undefined
+    })
+    noticeMock.notify.mockImplementation(async (entry) => {
+      if (entry.dedupKey) pinOrder.push(entry.dedupKey)
+      return undefined
+    })
+
+    const { save } = await import('@tauri-apps/plugin-dialog')
+    save.mockReset()
+    save.mockResolvedValue(null)
+  })
+
+  afterEach(() => {
+    consoleDebugSpy.mockRestore()
+  })
+
+  it('captures the export pin before the first consent raise', async () => {
+    mockEditorInstance.getMarkdown.mockReturnValue(PLANTUML_DOC)
+    await mountEditor()
+
+    const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
+
+    // The capture seam read the pinned document BEFORE the plantuml card —
+    // wait for the card to actually land (the pin capture's awaited reads
+    // and digest are real event-loop turns) before asserting the order.
+    await vi.waitFor(() => expect(pinOrder).toContain('export-plantuml-consent'))
+    expect(readCalls).toEqual(['/tmp/test.md'])
+    expect(pinOrder.indexOf('pin:read')).toBeGreaterThanOrEqual(0)
+    expect(pinOrder.indexOf('export-plantuml-consent')).toBeGreaterThan(pinOrder.indexOf('pin:read'))
+
+    // Mutating the store after capture does not alter the pinned values.
+    editorStore.currentFile.pathname = '/elsewhere/moved.md'
+    editorStore.currentFile.filename = 'moved.md'
+    await flushAsync()
+
+    const card = findCard('export-plantuml-consent')
+    card.actions.find((a) => a.style === 'primary').handler()
+    await done
+    await drainExportTail()
+
+    // The pinned directory (captured at entry) survives the mutation.
+    expect(embedMock).toHaveBeenCalledWith(
+      '<html><body>doc</body></html>',
+      '/tmp',
+      expect.objectContaining({ requestScopeConsent: expect.any(Function) })
+    )
+  })
+
+  it('sources the embed directory from the pin, not a live currentFile re-read', async () => {
+    mockEditorInstance.getMarkdown.mockReturnValue(PLANTUML_DOC)
+    await mountEditor()
+
+    const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
+    await waitForCard('export-plantuml-consent')
+
+    // The live currentFile moves between consent raise and resolution.
+    editorStore.currentFile.pathname = '/elsewhere/moved.md'
+    await flushAsync()
+
+    const card = findCard('export-plantuml-consent')
+    card.actions.find((a) => a.style === 'primary').handler()
+    await done
+    await drainExportTail()
+
+    // Pre-fix the branch re-reads the live currentFile directory
+    // ('/elsewhere'); the pin keeps the captured one.
+    expect(embedMock).toHaveBeenCalledWith(
+      '<html><body>doc</body></html>',
+      '/tmp',
+      { requestScopeConsent: expect.any(Function) }
+    )
+  })
+
+  it('aborts on identity mismatch after consent without EXPORT or embed', async () => {
+    mockEditorInstance.getMarkdown.mockReturnValue(PLANTUML_DOC)
+    await mountEditor()
+
+    const exportSpy = vi.spyOn(editorStore, 'EXPORT')
+    const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
+    await waitForCard('export-plantuml-consent')
+
+    // The active document's identity moves between consent raise and confirm.
+    editorStore.currentFile.documentToken = 'token-rotated-after-consent'
+    await flushAsync()
+
+    const card = findCard('export-plantuml-consent')
+    card.actions.find((a) => a.style === 'primary').handler()
+    await done
+
+    expect(embedMock).not.toHaveBeenCalled()
+    expect(exportSpy).not.toHaveBeenCalled()
+    expect(mockEditorInstance.exportStyledHTML).not.toHaveBeenCalled()
+    expect(refusalCards()).toHaveLength(1)
+    const refusal = refusalCards()[0][0]
+    expect(refusal.type).toBe('error')
+    expect(refusal.message).toContain('nothing was exported')
+    const logged = consoleDebugSpy.mock.calls.map((args) => args.map(String).join(' ')).join('\n')
+    expect(logged).toContain('[export][pin][BLOCK_EXPORT_PIN_MISMATCH class=identity]')
+  })
+
+  it('never applies a consent decision to another document', async () => {
+    mockEditorInstance.getMarkdown.mockReturnValue(PLANTUML_DOC)
+    let granted = null
+    embedMock.mockImplementation(async (html, dir, { requestScopeConsent }) => {
+      granted = await requestScopeConsent(['/vault/pics/outside.png'])
+      return { html, embedded: granted.length, total: 1, skipped: 0 }
+    })
+    await mountEditor()
+
+    const exportSpy = vi.spyOn(editorStore, 'EXPORT')
+    const done = getBusHandler('export')({ type: 'styledHtml', ...exportOptions })
+    await waitForCard('export-plantuml-consent')
+
+    // The pinned document's identity moves before its consent is confirmed:
+    // the decision resolved for the pinned candidates must never feed a
+    // pass rendered against another document — post-mismatch no pass runs.
+    editorStore.currentFile.documentToken = 'token-rotated-before-confirm'
+    await flushAsync()
+
+    const card = findCard('export-plantuml-consent')
+    card.actions.find((a) => a.style === 'primary').handler()
+    await done
+
+    expect(embedMock).not.toHaveBeenCalled()
+    expect(exportSpy).not.toHaveBeenCalled()
+    expect(findCard('export-embed-consent')).toBeNull()
+    expect(granted).toBeNull()
+    expect(refusalCards()).toHaveLength(1)
+  })
+})
+
+// ──────────────────────────────────────────────────────────────────────
+// START_BLOCK_EXPORT_PIN_LOCALE_PINS
+// C-EXPORT-DOCUMENT-PIN T-001: the ten-locale completeness pin for the
+// four new editor.export refusal keys (existing V-M-065 locale
+// convention) with the en placeholder sets.
+// ──────────────────────────────────────────────────────────────────────
+describe('editor.export pin refusal keys — ten-locale completeness (C-EXPORT-DOCUMENT-PIN)', () => {
+  const ROOT = process.cwd()
+  const LOCALES = ['de', 'en', 'es', 'fr', 'ja', 'ko', 'pt', 'ru', 'zh-CN', 'zh-TW']
+  const PIN_KEYS = [
+    'pinMismatchTitle',
+    'pinMismatchMessage',
+    'pinDiskChangedTitle',
+    'pinDiskChangedMessage'
+  ]
+
+  const readTable = (locale) =>
+    JSON.parse(readFileSync(join(ROOT, 'static/locales', `${locale}.json`), 'utf8'))
+
+  it('every locale carries all four pin refusal keys with non-empty copy', () => {
+    for (const locale of LOCALES) {
+      const table = readTable(locale).editor?.export
+      for (const key of PIN_KEYS) {
+        expect(typeof table?.[key], `${locale}.${key}`).toBe('string')
+        expect(table[key].trim().length, `${locale}.${key}`).toBeGreaterThan(0)
+      }
+    }
+  })
+
+  it('en pins the pin-refusal placeholder sets', () => {
+    const table = readTable('en').editor.export
+    expect(table.pinMismatchMessage.match(/\{\w+\}/)).toBeNull()
+    expect(table.pinDiskChangedMessage).toContain('{name}')
+  })
+
+  it('every locale keeps the {name} placeholder in pinDiskChangedMessage', () => {
+    for (const locale of LOCALES) {
+      const table = readTable(locale).editor.export
+      expect(table.pinDiskChangedMessage.includes('{name}'), `${locale} {name}`).toBe(true)
+    }
+  })
+})
+// END_BLOCK_EXPORT_PIN_LOCALE_PINS
+// END_BLOCK_EXPORT_DOCUMENT_PIN

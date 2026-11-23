@@ -24,6 +24,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 C-EXPORT-DOCUMENT-PIN: the pdf captured-options case waits for the export to reach its CSS load before releasing the deferred getCssForOptions promise (the pin capture's awaited reads moved that load later; releasing earlier abandoned the operation into the next test's window).
 //   - 2026-11-12 C-EXPORT-SETTINGS-SECTION-RECOVERY: an in-flight PDF cannot overwrite newer remembered settings.
 //   LAST_CHANGE: 2026-10-18 v1.0.0 - C-61 T-002: initial file — macOS print
 //   container clearing (panel closed → clearup) plus the pdf save-cancel
@@ -304,6 +305,14 @@ describe('editor.vue — C-61 print/pdf container lifecycle (macOS)', () => {
       pageSizeWidth: 210, pageSizeHeight: 297,
       pageMarginTop: 20, pageMarginRight: 15, pageMarginBottom: 20, pageMarginLeft: 15
     })
+    // C-EXPORT-DOCUMENT-PIN: captureExportPin (two awaited IPC reads) now
+    // runs before the CSS load, so the deferred getCssForOptions executor
+    // has not run yet when this test resumes — wait until the export
+    // actually reached the CSS load, then land the settings change while
+    // the CSS promise is still pending. Letting the test proceed earlier
+    // abandons the operation pending and its continuation finishes inside
+    // the next test's window (leaked clearup).
+    await vi.waitFor(() => expect(typeof releaseCss).toBe('function'))
     editorStore.REMEMBER_EXPORT_OPTIONS({ theme: 'new.css', pageMarginLeft: 31 })
     releaseCss('')
     await operation

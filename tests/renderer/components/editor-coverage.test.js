@@ -2252,19 +2252,25 @@ describe('editor.vue — coverage', () => {
       pageMarginLeft: 15
     })
     expect(mockPrinter.renderMarkdown).toHaveBeenCalled()
-    expect(editorStore.EXPORT).toHaveBeenCalledWith({
-      type: 'pdf',
-      pageOptions: {
-        pageSize: 'A4',
-        pageSizeWidth: 210,
-        pageSizeHeight: 297,
-        isLandscape: true,
-        pageMarginTop: 20,
-        pageMarginRight: 15,
-        pageMarginBottom: 20,
-        pageMarginLeft: 15
-      }
-    })
+    // C-EXPORT-DOCUMENT-PIN: the dispatch carries the additive optional
+    // exportPin beside the pinned full pageOptions — matched with
+    // objectContaining (the file's style for export payloads; the nested
+    // pageOptions object itself still has to match in full).
+    expect(editorStore.EXPORT).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'pdf',
+        pageOptions: {
+          pageSize: 'A4',
+          pageSizeWidth: 210,
+          pageSizeHeight: 297,
+          isLandscape: true,
+          pageMarginTop: 20,
+          pageMarginRight: 15,
+          pageMarginBottom: 20,
+          pageMarginLeft: 15
+        }
+      })
+    )
     // C-61: the flow is over once EXPORT resolves — the container goes.
     expect(mockPrinter.clearup).toHaveBeenCalled()
   })

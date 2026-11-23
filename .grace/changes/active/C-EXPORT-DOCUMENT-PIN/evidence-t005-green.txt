@@ -1,0 +1,35 @@
+C-EXPORT-DOCUMENT-PIN final matrix evidence (post-fix tree, T-001..T-005 applied)
+
+1. npx --no-install vitest run tests/renderer/components/editor-export-images.test.js
+   tests/renderer/store/export-docx-dispatch.test.js
+   tests/renderer/store/export-defaults-dispatch.test.js
+   tests/renderer/i18n/locale-keys.test.js
+   -> Test Files 4 passed (4); Tests 57 passed (57)
+
+2. npm run build && npx --no-install playwright test --project=chromium
+   tests/e2e/export-document-pin.spec.ts tests/e2e/export-html-images.spec.ts
+   tests/e2e/export-office.spec.ts
+   -> 11 passed (13.6s): the three export-document-pin scenarios green
+   (tab-switch refusal, disk-change refusal, happy-path control) plus the
+   untouched export-html-images and export-office regressions.
+
+3. python3 -c "import xml.etree.ElementTree as ET;
+   ET.parse('.grace/graph/runtime.xml');
+   ET.parse('.grace/verification/runtime.xml')" -> XML OK
+
+4. Bonus pre-change regression evidence (untouched specs over the touched
+   pdf/print branches):
+   npx --no-install playwright test --project=chromium
+   tests/e2e/print-export.spec.ts tests/e2e/diagram-export.spec.ts
+   -> 22 passed (13.8s)
+
+Red-to-green summary:
+- T-001 red baseline (bundle evidence-t001-unit-red.txt): 12 failed / 20 passed —
+  the four component pin seams, the three pin-refusal locale pins, the store
+  owner-swap / revision-move / disk-change refusals and the pdf/docx
+  pin-sourced default-name pins red on pre-fix code; all 14 pre-existing pins
+  and the compatibility guards green.
+- T-004 pre-fix red (bundle evidence-t004-e2e-red.txt): the tab-switch and
+  disk-change e2e scenarios wrote at mt_fs_write (wrong-content signature:
+  hasA=false hasB=true — the switched tab's document), the happy path
+  control green. Post-fix: refusals with an empty write record.

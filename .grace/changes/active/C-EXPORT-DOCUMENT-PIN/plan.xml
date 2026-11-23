@@ -1,0 +1,256 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-EXPORT-DOCUMENT-PIN>
+    <Name>Export document pin — identity capture at entry, stage guards, pre-write store verification — implementation plan</Name>
+    <Created>2026-11-23</Created>
+    <Spec>C-EXPORT-DOCUMENT-PIN</Spec>
+    <IntentSummary>The active-tab export flow reads time-separated live state across up to three user-time windows and writes the mixture silently; this plan pins one immutable document identity per export run. Defect anchors verified in this tree (green-edit1, branch spec/export-document-pin, base 486275c7): handleExport (editor.vue:2382) flushes (flushSplit :2383), awaits CSS/TOC, raises the PlantUML consent card (:2402/:2456), renders editor.value.exportStyledHTML (:2406/:2460), re-reads editorStore.currentFile for the embed directory (:2420-2421/:2466-2467), runs embedLocalImages with the requestScopeConsent card (:2423/:2469), then dispatches editorStore.EXPORT (:2435/:2480); the pdf/print branches render and dispatch unpinned (:2519-2531/:2552-2565); the store re-reads live state after all of it: EXPORT reads this.currentFile.filename for the default name (:2076) and awaits the save dialog (:2081-2087) before ipcFs.write (:2090); _EXPORT_DOCX repeats the shape (filename :2114; dialog :2123-2128 — the anchor corrected per review minor 5 to include the plugin-dialog import line the review's :2124-2128 missed; write = the window.fileUtils.writeFile binary call :2134); _EXPORT_PDF awaits its dialog (:2154-2160) before invoke('mt_export_pdf', …) (:2163) and _pdfDefaultName (:2176-2179) reads live currentFile/listToc. The pin: at handleExport entry — after flushSplit, before the first consent raise — one immutable capture { owner: documentOwner(tab), contentRevision, pathname, documentDir, default-name pieces, baseline digest }, reusing the save-side identity owners (util/documentSnapshot.js documentOwner :26; editor.vue already imports it :369; store/editor.js :14); every later stage consumes only the pin: verifyExportPin(exportPin) re-checks rendered surface identity (the renderedTabId/renderedDocumentOwner vocabulary, editor.vue:540-541) plus the pinned contentRevision after every await that can observe a document change (PlantUML consent resolution, exportStyledHTML return, embed pass return) in all four branches, the document directory and the default names are read once from the pin — the three live reads die, and the requestScopeConsent card is re-sourced per export from pin.documentDir so the consent copy keeps describing exactly the pinned document (card copy, dedupKeys, ten-locale consent keys and decline behavior untouched) — and pdf/print pin identity before their single render and verify before mt_export_pdf/mt_print_webview while still never running either consent gate (C-EXPORT-BOUNDARIES corner C-12 unchanged); their stricter behavior — an edit landing inside their narrower windows refuses an export whose artifact might have been fine — is an accepted trade-off (Goal 4), recorded in the contracts. Dispatches carry the additive optional exportPin: editorStore.EXPORT({ type, content, pageOptions, exportPin }) — the bus 'export' payload is unchanged and a pin-absent caller takes exactly today's path with today's re-reads. Store-side pre-write verification (assertExportPinCurrent) runs after each save dialog resolves and before any write or print invocation — EXPORT's styledHtml leg between :2087 and :2090, _EXPORT_DOCX between :2129 and :2134, _EXPORT_PDF between :2160 and :2163: the pinned owner must still own the active surface (documentOwner match plus currentFile.id equality), the pinned contentRevision must be current, and the pinned pathname must equal the active pathname — closing the rename window for free, since RENAME keeps id/token/revision but moves the path (review minor 4); when the pin carries a pathname the disk predicate re-proves the file — one decision pinned here with rationale (review minor 1): HASH-OVER-BYTES with a stat short-circuit. The baseline SHA-256 digest is computed at pin capture (window.fileUtils.readFile + crypto.subtle.digest('SHA-256') — both existing renderer surfaces, no new dependency, no new IPC; the stat surface precedent is runLinkCheck's statFn, editor.vue:3531-3540) and re-computed pre-write; a changed stat signature (window.fileUtils.stat) may refuse early, but an unchanged stat NEVER waives the digest compare, so a same-size same-mtime rewrite cannot pass. A mismatch refuses with exactly one localized notice under the existing editor.export namespace — four new keys (pinMismatchTitle/pinMismatchMessage for identity moves, pinDiskChangedTitle/pinDiskChangedMessage with the {name} placeholder for disk changes) landing in all ten locales (de, en, es, fr, ja, ko, pt, ru, zh-CN, zh-TW; en source-of-truth, gated by the ten-locale completeness pin in editor-export-images.test.js per the V-M-065 convention — locale-keys.test.js itself stays untouched and green as regression evidence) — plus one count-only console marker [export][pin][BLOCK_EXPORT_PIN_MISMATCH class=identity|disk] keeping the V-M-065 privacy convention; cancel in the save dialog returns before verification and stays silent exactly as today (corner-2). Known residual, documented in the module contracts rather than claimed closed (review minor 2 / spec Assumptions): content committed to the muya model but not yet synced into tab.markdown can render into the artifact without moving contentRevision — flushSplit covers only the entry moment; the pin detects identity/revision/pathname/disk moves, not this sub-revision window. Tests are failing-first where the defect is pinned: the editor-export-images.test.js pin-seam pins (capture before the first consent raise, pin-sourced directory surviving a currentFile mutation, mismatch abort without EXPORT or embed, no cross-document consent application, four-key ten-locale completeness) fail on pre-fix code; the new tests/renderer/store/export-document-pin.test.js pins fail where they pin refusals (stale-identity refusal before the dialog, disk-change refusal) and pass where they guard compatibility (matching-pin writes as today, pin-absent path unchanged, corner-2 silence); tests/e2e/export-document-pin.spec.ts pins the tab-switch-between-consent-and-write refusal with the artifact captured at the mt_fs_write double — its pre-fix red is recorded as the wrong-content signature (the pre-fix run writes the switched tab's document, a state the fix removes; the shipped assertion is the post-fix refusal) — plus the disk-change refusal and a happy-path over-blocking control. Execution mode: T-001..T-005 strictly sequential (single-writer discipline); no grace-lint command appears inside this plan — lint runs only in the external target/final phases; no new IPC command, no src-tauri change, no muya change (exportStyledHTML keeps its current-model snapshot semantics; every guard is caller-side or store-side), no release actions.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src/renderer/src/components/editorWithTabs/editor.vue</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/renderer/src/store/editor.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/renderer/src/util/documentSnapshot.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/renderer/src/util/documentOperations.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/renderer/src/util/exportImages.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/renderer/src/util/exportDocx.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/renderer/src/util/externalReload.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/renderer/components/editor-export-images.test.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/renderer/store/export-docx-dispatch.test.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/renderer/store/export-defaults-dispatch.test.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/renderer/i18n/locale-keys.test.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/e2e/fixtures/tauri-shim.ts</Value>
+      </MustExist>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>const handleExport = async (options) =&gt; {</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>const plantumlRemoteConsent = await requestPlantUMLExportConsent(</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>const { pathname } = editorStore.currentFile || {}</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>const documentDir = pathname ? window.path.dirname(pathname) : null</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>editorStore.EXPORT({ type, content: html })</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>editorStore.EXPORT({ type, content: html, pageOptions: options })</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>editorStore.EXPORT({ type, pageOptions })</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>dedupKey: 'export-embed-consent'</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>dedupKey: 'export-plantuml-consent'</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>import { documentOwner, registerDocumentSurface } from '@/util/documentSnapshot'</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>let renderedTabId = null</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>const statFn = pathname</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>await invoke('mt_print_webview')</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>async EXPORT({ type, content, pageOptions }) {</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>if (!hasKeys(this.currentFile)) return</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>const { filename } = this.currentFile</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>const { save } = await import('@tauri-apps/plugin-dialog')</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>await ipcFs.write(filePath, content)</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>async _EXPORT_DOCX(content, pageOptions) {</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>await window.fileUtils.writeFile(filePath, bytes, 'binary')</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>async _EXPORT_PDF(pageOptions) {</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>defaultPath: this._pdfDefaultName(),</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>await invoke('mt_export_pdf', { path: filePath, pageOptions })</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>import { documentOwner, captureDocumentSnapshot, inspectDocumentComposition } from '../util/documentSnapshot'</Text></MustContain>
+      <MustContain><File>src/renderer/src/util/documentSnapshot.js</File><Text>export const documentOwner = tab =&gt; ({ id: tab.id, documentToken: tab.documentToken ||= createDocumentToken() })</Text></MustContain>
+      <MustContain><File>tests/e2e/fixtures/tauri-shim.ts</File><Text>mt_fs_stat: () =&gt; ({ isFile: false, isDirectory: false }),</Text></MustContain>
+      <MustContain><File>tests/e2e/fixtures/tauri-shim.ts</File><Text>mt_fs_write: () =&gt; null,</Text></MustContain>
+      <MustContain><File>tests/e2e/fixtures/tauri-shim.ts</File><Text>'plugin:dialog|save': () =&gt; null,</Text></MustContain>
+      <MustNotContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>START_BLOCK_EXPORT_DOCUMENT_PIN</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>BLOCK_EXPORT_PIN_MISMATCH</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/store/editor.js</File><Text>assertExportPinCurrent</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/store/editor.js</File><Text>BLOCK_EXPORT_PIN_MISMATCH</Text></MustNotContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-011</Module>
+      </MustVerify>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>START_BLOCK_EXPORT_DOCUMENT_PIN</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>captureExportPin</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>verifyExportPin</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>exportPin.documentDir</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>editorStore.EXPORT({ type, content: html, exportPin })</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>editorStore.EXPORT({ type, content: html, pageOptions: options, exportPin })</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>editorStore.EXPORT({ type, pageOptions, exportPin })</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>BLOCK_EXPORT_PIN_MISMATCH</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>crypto.subtle.digest('SHA-256'</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>C-EXPORT-DOCUMENT-PIN</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>async EXPORT({ type, content, pageOptions, exportPin }) {</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>async _EXPORT_DOCX(content, pageOptions, exportPin) {</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>async _EXPORT_PDF(pageOptions, exportPin) {</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>assertExportPinCurrent(exportPin)</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>BLOCK_EXPORT_PIN_MISMATCH</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>crypto.subtle.digest('SHA-256'</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>editor.export.pinMismatchTitle</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>editor.export.pinDiskChangedTitle</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>C-EXPORT-DOCUMENT-PIN</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>"pinMismatchTitle"</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>"pinMismatchMessage"</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>"pinDiskChangedTitle"</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>"pinDiskChangedMessage"</Text></MustContain>
+      <MustContain><File>static/locales/de.json</File><Text>"pinMismatchTitle"</Text></MustContain>
+      <MustContain><File>static/locales/es.json</File><Text>"pinMismatchTitle"</Text></MustContain>
+      <MustContain><File>static/locales/fr.json</File><Text>"pinMismatchTitle"</Text></MustContain>
+      <MustContain><File>static/locales/ja.json</File><Text>"pinMismatchTitle"</Text></MustContain>
+      <MustContain><File>static/locales/ko.json</File><Text>"pinMismatchTitle"</Text></MustContain>
+      <MustContain><File>static/locales/pt.json</File><Text>"pinMismatchTitle"</Text></MustContain>
+      <MustContain><File>static/locales/ru.json</File><Text>"pinMismatchTitle"</Text></MustContain>
+      <MustContain><File>static/locales/zh-CN.json</File><Text>"pinMismatchTitle"</Text></MustContain>
+      <MustContain><File>static/locales/zh-TW.json</File><Text>"pinMismatchTitle"</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-export-images.test.js</File><Text>START_BLOCK_EXPORT_DOCUMENT_PIN</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-export-images.test.js</File><Text>captures the export pin before the first consent raise</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-export-images.test.js</File><Text>sources the embed directory from the pin, not a live currentFile re-read</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-export-images.test.js</File><Text>aborts on identity mismatch after consent without EXPORT or embed</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-export-images.test.js</File><Text>never applies a consent decision to another document</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-export-images.test.js</File><Text>pinMismatchTitle</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-export-images.test.js</File><Text>pinDiskChangedTitle</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-export-images.test.js</File><Text>C-EXPORT-DOCUMENT-PIN</Text></MustContain>
+      <MustContain><File>tests/renderer/store/export-document-pin.test.js</File><Text>START_BLOCK_EXPORT_DOCUMENT_PIN</Text></MustContain>
+      <MustContain><File>tests/renderer/store/export-document-pin.test.js</File><Text>refuses before the save dialog when the pinned document no longer owns the active surface</Text></MustContain>
+      <MustContain><File>tests/renderer/store/export-document-pin.test.js</File><Text>refuses when the on-disk file changed after consent</Text></MustContain>
+      <MustContain><File>tests/renderer/store/export-document-pin.test.js</File><Text>writes exactly as today when the pin still matches</Text></MustContain>
+      <MustContain><File>tests/renderer/store/export-document-pin.test.js</File><Text>keeps today's path for a pin-absent EXPORT call</Text></MustContain>
+      <MustContain><File>tests/renderer/store/export-document-pin.test.js</File><Text>cancel in the save dialog stays silent (corner-2)</Text></MustContain>
+      <MustContain><File>tests/e2e/export-document-pin.spec.ts</File><Text>START_BLOCK_EXPORT_DOCUMENT_PIN</Text></MustContain>
+      <MustContain><File>tests/e2e/export-document-pin.spec.ts</File><Text>tab switch between consent and final write refuses with nothing written</Text></MustContain>
+      <MustContain><File>tests/e2e/export-document-pin.spec.ts</File><Text>disk change after consent refuses honestly with nothing written</Text></MustContain>
+      <MustContain><File>tests/e2e/export-document-pin.spec.ts</File><Text>happy path: consented export still writes the consented document</Text></MustContain>
+      <MustContain><File>tests/e2e/export-document-pin.spec.ts</File><Text>installTauriShim</Text></MustContain>
+      <MustContain><File>tests/e2e/export-document-pin.spec.ts</File><Text>mt_fs_write</Text></MustContain>
+      <MustContain><File>tests/e2e/export-document-pin.spec.ts</File><Text>plugin:dialog|save</Text></MustContain>
+      <MustContain><File>.grace/graph/runtime.xml</File><Text>C-EXPORT-DOCUMENT-PIN</Text></MustContain>
+      <MustContain><File>.grace/verification/runtime.xml</File><Text>C-EXPORT-DOCUMENT-PIN</Text></MustContain>
+      <MustContain><File>.grace/verification/runtime.xml</File><Text>scenario-export-document-pin</Text></MustContain>
+      <MustContain><File>.grace/verification/runtime.xml</File><Text>export-document-pin.test.js</Text></MustContain>
+      <MustNotContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>const documentDir = pathname ? window.path.dirname(pathname) : null</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>editorStore.EXPORT({ type, content: html })</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>editorStore.EXPORT({ type, content: html, pageOptions: options })</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>editorStore.EXPORT({ type, pageOptions })</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/store/editor.js</File><Text>async EXPORT({ type, content, pageOptions }) {</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/store/editor.js</File><Text>async _EXPORT_DOCX(content, pageOptions) {</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/store/editor.js</File><Text>async _EXPORT_PDF(pageOptions) {</Text></MustNotContain>
+      <MustPassCommand>
+        <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/components/editor-export-images.test.js tests/renderer/store/export-docx-dispatch.test.js tests/renderer/store/export-defaults-dispatch.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="900">npx --no-install playwright test --project=chromium tests/e2e/export-document-pin.spec.ts tests/e2e/export-html-images.spec.ts tests/e2e/export-office.spec.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-011 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-011 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/renderer/src/components/editorWithTabs/editor.vue</File>
+      <File>src/renderer/src/store/editor.js</File>
+      <File>static/locales/de.json</File>
+      <File>static/locales/en.json</File>
+      <File>static/locales/es.json</File>
+      <File>static/locales/fr.json</File>
+      <File>static/locales/ja.json</File>
+      <File>static/locales/ko.json</File>
+      <File>static/locales/pt.json</File>
+      <File>static/locales/ru.json</File>
+      <File>static/locales/zh-CN.json</File>
+      <File>static/locales/zh-TW.json</File>
+      <File>tests/renderer/components/editor-export-images.test.js</File>
+      <File>tests/renderer/store/export-document-pin.test.js</File>
+      <File>tests/e2e/export-document-pin.spec.ts</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Failing-first unit pins: the editor-export-images pin-seam block and the new store export-document-pin suite, red evidence recorded before any implementation edit</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/renderer/components/editor-export-images.test.js (the existing editor-print-clearup harness, mocked Muya/Printer/Tauri surfaces and the embedMock double reused as-is) gains its pins inside a paired START_BLOCK_EXPORT_DOCUMENT_PIN / END_BLOCK_EXPORT_DOCUMENT_PIN block, red-first against pre-fix code: 'captures the export pin before the first consent raise' — a one-fence PlantUML document starts a styledHtml export and the pin capture seam (owner identity, contentRevision, pathname/documentDir, baseline digest through the file-read facade) is observed BEFORE notice.notify raises dedupKey 'export-plantuml-consent', and mutating the store's currentFile/tabs after capture does not alter the captured pin values (fails pre-fix: no seam exists); 'sources the embed directory from the pin, not a live currentFile re-read' — after consent resolves, the test mutates editorStore.currentFile.pathname and embedMock must still receive the pinned directory as its second argument (fails pre-fix: pre-fix reads live); 'aborts on identity mismatch after consent without EXPORT or embed' — the active identity (owner/revision) is switched between consent raise and confirm; confirming the card runs no embed pass, dispatches no editorStore.EXPORT, raises the localized editor.export.pinMismatch refusal notice and logs the count-only marker (fails pre-fix: pre-fix proceeds to write); 'never applies a consent decision to another document' — an embed consent granted for the pinned document's candidate list never feeds a pass rendered against another document (post-mismatch the pass never runs at all).</Criterion>
+          <Criterion>The same block adds the ten-locale completeness pin for the four new editor.export refusal keys following the existing consent-key pin convention: every locale table static/locales/{de,en,es,fr,ja,ko,pt,ru,zh-CN,zh-TW}.json read from disk carries editor.export.pinMismatchTitle, pinMismatchMessage, pinDiskChangedTitle, pinDiskChangedMessage present and non-empty; en additionally pins the placeholder sets — pinMismatchMessage contains no placeholder and pinDiskChangedMessage contains {name} (fails pre-fix: the keys do not exist). Every pre-existing pin in the file keeps its assertions unchanged and green: the branch-wiring call shapes, the corner C-12 pdf/print non-invocation pins, the eight consent-key ten-locale pin, the rollbackConfirm-pattern card shape pin and the count-only console-privacy pin.</Criterion>
+          <Criterion>tests/renderer/store/export-document-pin.test.js is created new on the export-docx-dispatch harness pattern (setupTestPinia; mocked @/bus, @/services/notification, @/i18n, @/util/exportDocx, @tauri-apps/plugin-dialog, ipc runtime and window.fileUtils facades) inside a paired START_BLOCK_EXPORT_DOCUMENT_PIN / END_BLOCK_EXPORT_DOCUMENT_PIN block: 'refuses before the save dialog when the pinned document no longer owns the active surface' — EXPORT dispatched with a pin whose owner no longer matches the active surface or whose revision moved refuses with the localized pinMismatch notice before saveMock is ever called and writes nothing (both variants: owner swap, revision move; fails pre-fix); 'refuses when the on-disk file changed after consent' — the injected file-read/stat facade returns bytes diverging from the pin's baseline digest and the export refuses with the localized pinDiskChanged notice and writes nothing (fails pre-fix); 'writes exactly as today when the pin still matches' — a matching pin with an unchanged disk file writes exactly once and applies the success outcome (compatibility guard); 'keeps today's path for a pin-absent EXPORT call' — a payload without exportPin takes today's dialog-then-write path with today's re-reads and no refusal (guard pin; may already pass pre-fix — it is not a red pin); 'cancel in the save dialog stays silent (corner-2)' — a cancelled dialog returns before any verification, writes nothing and raises no notice.</Criterion>
+          <Criterion>The red evidence is recorded in the bundle before T-002 starts: the vitest run over both files on pre-fix code, showing exactly the failing set above and the passing guard pins, is captured as the failing-first baseline; no implementation file is edited inside T-001.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/components/editor-export-images.test.js tests/renderer/store/export-document-pin.test.js</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>editor.vue: pin capture at handleExport entry, post-await identity guards in all four branches, pin-sourced directory and default-name plumbing with the consent cards re-sourced from the pin</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The pin code lands in editor.vue inside a paired START_BLOCK_EXPORT_DOCUMENT_PIN / END_BLOCK_EXPORT_DOCUMENT_PIN block. captureExportPin runs at handleExport entry after flushSplit (:2383) and before getCssForOptions and before the first consent raise, capturing one immutable pin for the active document: owner = documentOwner(tab) (the existing :369 import — documentSnapshot.js stays read-only), contentRevision = the tab's current revision, pathname (null for untitled), documentDir (dirname of the pathname, null untitled), the default-name pieces (filename and the first-heading fallback), and — when the pin carries a pathname — baselineDigest = SHA-256 over window.fileUtils.readFile bytes via crypto.subtle.digest('SHA-256') (untitled pins carry a null digest and no disk predicate). The pin is never re-derived from live state during the run; no new dependency, no new IPC command.</Criterion>
+          <Criterion>verifyExportPin(exportPin) runs after every await that can observe a document change: in styledHtml and docx after the PlantUML consent resolution, after editor.value.exportStyledHTML returns and after the embedLocalImages pass returns; in pdf and print after the single exportStyledHTML render returns and before the dispatch/invoke step — identity is pinned before their single render (Goal 4) and they still never run either consent gate (corner C-12 unchanged). Verification compares the rendered surface identity (the renderedTabId/renderedDocumentOwner vocabulary, editor.vue:540-541) and the live tab's contentRevision against the pin. On mismatch the branch aborts with exactly one honest localized refusal notice (the editor.export.pinMismatch keys) and one count-only console.debug [export][pin][BLOCK_EXPORT_PIN_MISMATCH class=identity] — no EXPORT dispatch, no embed pass, no gate re-run against another document; editing the document mid-export (revision moved) is refused the same way as a tab switch. The consent cards themselves are untouched: copy, dedupKeys, Confirm/Cancel semantics, count-only markers and non-persisted decisions stay exactly as C-EXPORT-BOUNDARIES shipped, and the pin never suppresses, re-raises or re-targets a gate.</Criterion>
+          <Criterion>Pin-sourced plumbing: the two branch re-reads of editorStore.currentFile for the embed directory (:2420-2421, :2466-2467) are deleted and documentDir comes from exportPin.documentDir; the module-level consent raiser takes the document directory as a parameter and requestScopeConsent is re-sourced per export from the pin, so the embed card's {dir} describes exactly the pinned document (the embedLocalImages options interface — a callback argument — is unchanged); the dispatches carry the additive optional pin in all four branches: styledHtml dispatches editorStore.EXPORT({ type, content: html, exportPin }), docx dispatches editorStore.EXPORT({ type, content: html, pageOptions: options, exportPin }), pdf dispatches editorStore.EXPORT({ type, pageOptions, exportPin }), and print verifies before invoke('mt_print_webview') — the bus 'export' payload shape is unchanged and no caller outside these four branches changes.</Criterion>
+          <Criterion>T-001's four component pins turn green with every pre-existing pin unchanged-green; the store refusal pins remain red (T-003 turns them green).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/components/editor-export-images.test.js</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>store layers: additive optional exportPin through EXPORT/_EXPORT_DOCX/_EXPORT_PDF, pre-write surface+pathname+disk verification, four refusal keys in all ten locales</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>store/editor.js EXPORT becomes async EXPORT({ type, content, pageOptions, exportPin }) — the signature is additive and the bus 'export' payload shape is unchanged; the docx and pdf legs become async _EXPORT_DOCX(content, pageOptions, exportPin) and async _EXPORT_PDF(pageOptions, exportPin). A pin-absent invocation (any current or future caller) takes exactly today's path with today's re-reads: this.currentFile.filename (:2076/:2114), this.listToc (:2115), _pdfDefaultName (:2176-2179) and the unchanged write steps.</Criterion>
+          <Criterion>assertExportPinCurrent(exportPin) runs after each save dialog resolves and before any write or print invocation — in the styledHtml leg between the dialog return (:2087) and ipcFs.write (:2090), in _EXPORT_DOCX between the dialog return (:2129) and the window.fileUtils.writeFile call (:2134), in _EXPORT_PDF between the dialog return (:2160) and invoke('mt_export_pdf', …) (:2163). Surface identity: documentOwner(currentTab) matches pin.owner, this.currentFile.id equals pin.owner.id, the active tab's contentRevision equals pin.contentRevision, and pin.pathname equals this.currentFile.pathname — the pathname compare closes the rename window for free (RENAME keeps id/token/revision but moves the path; review minor 4). Disk predicate, one decision pinned with rationale (review minor 1): when the pin carries a pathname, the store re-computes SHA-256 over window.fileUtils.readFile bytes via crypto.subtle.digest('SHA-256') and compares against pin.baselineDigest; a window.fileUtils.stat signature divergence may refuse early as a cheap short-circuit, but an unchanged stat NEVER waives the digest compare — a same-size same-mtime rewrite cannot pass (no stat-only acceptance). Default names when a pin is present are derived from the pinned filename and the pinned first-heading fallback (the pdf default name likewise from the pin, not _pdfDefaultName's live reads).</Criterion>
+          <Criterion>Refusal voice: a failed verification raises exactly one localized notice per refused export — i18n.global.t('editor.export.pinMismatchTitle')/'editor.export.pinMismatchMessage' for identity moves (owner, revision or pathname) and 'editor.export.pinDiskChangedTitle'/'editor.export.pinDiskChangedMessage' for disk changes, type error, aborting before any write — plus one count-only console.debug [export][pin][BLOCK_EXPORT_PIN_MISMATCH class=identity|disk] (no path list beyond what the existing consent cards already show; the V-M-065 privacy convention). Cancel in the save dialog returns before verification: corner-2 silence preserved byte-for-byte. The ten locale files gain exactly the four keys inside the existing editor.export object as line surgery — en is the source-of-truth copy ('Export stopped — the document changed' / 'The document being exported changed (a tab switch or an edit) while the export was waiting — nothing was exported. Start the export again.' / 'Export stopped — the file changed on disk' / 'The file {name} changed on disk after you approved the export — nothing was exported.'), the other nine carry honest translated copy around the same shape with {name} preserved in pinDiskChangedMessage; no existing key is removed or reworded. muya, src-tauri, exportImages.js, exportDocx.js, documentSnapshot.js, documentOperations.js and externalReload.js are untouched.</Criterion>
+          <Criterion>T-001's store refusal pins turn green with the guard pins staying green; export-docx-dispatch and export-defaults-dispatch regressions stay green unchanged.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/store/export-document-pin.test.js tests/renderer/store/export-docx-dispatch.test.js tests/renderer/store/export-defaults-dispatch.test.js</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>e2e artifact pin over the tauri shim: tab-switch refusal with nothing written at mt_fs_write, disk-change refusal, happy-path control; export-html-images and export-office regressions stay green</Title>
+        <DependsOn>T-002, T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>tests/e2e/export-document-pin.spec.ts is created new over installTauriShim (chromium project), inside a paired START_BLOCK_EXPORT_DOCUMENT_PIN / END_BLOCK_EXPORT_DOCUMENT_PIN block, with the write double capturing payloads by overriding window.__mockInvoke.mt_fs_write and the save double via window.__mockInvoke['plugin:dialog|save'] resolving a path: scenario 'tab switch between consent and final write refuses with nothing written' (spec AC-1) — two tabs, A carrying a PlantUML fence and B a different document; the styledHtml export of A starts and the sticky consent card is left unanswered, the active tab switches to B, then the card is confirmed; the test asserts the honest localized refusal notice appears and the mt_fs_write double recorded NOTHING. The pre-fix red for this pin is recorded as the wrong-content signature: the same flow on pre-fix code records an mt_fs_write payload carrying B's content — a state the fix removes; the shipped assertion is the post-fix refusal with an empty write record, and the pre-fix observation is preserved in the bundle evidence.</Criterion>
+          <Criterion>Scenario 'disk change after consent refuses honestly with nothing written' — the shim's file-read/stat surface is flipped after consent (bytes diverging from the pin baseline) and the export ends in the editor.export.pinDiskChanged refusal notice with nothing recorded at mt_fs_write. Scenario 'happy path: consented export still writes the consented document' — consent confirmed without interference writes exactly once with the consented document's content, guarding the pin against over-blocking (the mismatch direction and the disk sibling share one refusal contract; the healthy flow is unchanged).</Criterion>
+          <Criterion>No regression drift: tests/e2e/export-html-images.spec.ts and tests/e2e/export-office.spec.ts stay green unchanged in the same playwright filter; print-export.spec.ts, diagram-export.spec.ts and dead-link-validation.spec.ts remain untouched pre-change regression evidence and are not relabeled.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">npx --no-install playwright test --project=chromium tests/e2e/export-document-pin.spec.ts tests/e2e/export-html-images.spec.ts tests/e2e/export-office.spec.ts</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Module contract and CHANGE_SUMMARY synchronization (pin contract, muya-residual, accepted trade-off, disk predicate), graph M-011 SummaryDelta, verification V-M-011 scenario delta, and the full command matrix</Title>
+        <DependsOn>T-001, T-002, T-003, T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Every touched source file's semantic markup is synchronized with exactly one new CHANGE_SUMMARY line each and all pre-existing lines byte-identical: editor.vue (the pin capture at entry, the post-await guards, pin-sourced directory/default names, the count-only BLOCK_EXPORT_PIN_MISMATCH marker, the consent cards re-sourced from the pin) and store/editor.js (the additive pin, pre-write surface/pathname/disk verification, the refusal keys). The contracts state THREE recorded decisions explicitly: (a) the muya-residual (review minor 2) — content committed to the muya model but not yet synced into tab.markdown can render into the artifact without moving contentRevision, flushSplit covering only the entry moment — documented as a known residual, not claimed closed; (b) the pdf/print accepted trade-off (review minor 3) — the stricter refusal when an edit lands inside their narrower windows is accepted (Goal 4); (c) the pinned disk predicate (review minor 1) — SHA-256 over bytes with a stat short-circuit that never waives the digest compare — recorded with its rationale. No version bumps, no release actions.</Criterion>
+          <Criterion>Graph delta: .grace/graph/runtime.xml gains one SummaryDelta prepended inside M-011 naming C-EXPORT-DOCUMENT-PIN and stating the pin contract — identity capture at export entry, stage guards after every await that can observe a document change, pin-sourced directory/default names, additive store verification (owner + revision + pathname + disk digest) before any write, the four localized refusal keys across ten locales, the named muya-residual and the accepted pdf/print trade-off; no other module's entry is edited. Verification delta: .grace/verification/runtime.xml V-M-011 gains one scenario named scenario-export-document-pin describing the new evidence (the failing-first component and store pins, the e2e artifact capture at the mt_fs_write double including the wrong-content pre-fix red, the disk-change refusal, the pin-absent compatibility and corner-2 pins) and its Commands gains the two plan filter commands; both XML files must parse after the edits.</Criterion>
+          <Criterion>The full matrix is green in one pass: both MustPassCommand filters (the vitest quartet including the untouched locale-keys suite, and the three-spec chromium playwright filter); any pre-existing unrelated failure inside these filters is recorded in the bundle evidence rather than silently skipped. No Rust command is required (no src-tauri change).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/components/editor-export-images.test.js tests/renderer/store/export-docx-dispatch.test.js tests/renderer/store/export-defaults-dispatch.test.js tests/renderer/i18n/locale-keys.test.js</Command>
+          <Command budgetSeconds="900">npx --no-install playwright test --project=chromium tests/e2e/export-document-pin.spec.ts tests/e2e/export-html-images.spec.ts tests/e2e/export-office.spec.ts</Command>
+          <Command budgetSeconds="30">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/runtime.xml'); ET.parse('.grace/verification/runtime.xml')"</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Criterion>Tab-switch refusal and the wrong-content pre-fix red (spec AC-1): the e2e scenario 'tab switch between consent and final write refuses with nothing written' fails on pre-fix code — the pre-fix run's mt_fs_write double records a write whose payload carries the switched tab's document (the wrong-content signature, recorded in bundle evidence) — and passes post-fix with the localized pinMismatch refusal notice and an empty write record; the disk-change sibling ends in the pinDiskChanged refusal with nothing written; the happy-path control writes the consented document exactly once with its consented content.</Criterion>
+      <Criterion>Component pins (spec AC-2): 'captures the export pin before the first consent raise' proves the identity triple plus baseline digest is immutable from before the first card; 'sources the embed directory from the pin, not a live currentFile re-read' proves a store mutation between consent and embed cannot move the directory; 'aborts on identity mismatch after consent without EXPORT or embed' proves the honest refusal with no dispatch and no embed pass; 'never applies a consent decision to another document' proves a decision is bounded to the pinned document; every pre-existing branch-wiring pin (call shapes, corner C-12, consent keys, card shape, console privacy) stays green with unchanged assertions.</Criterion>
+      <Criterion>Store pins (spec AC-3): 'refuses before the save dialog when the pinned document no longer owns the active surface' covers the owner-swap and revision-move variants with saveMock never called; 'refuses when the on-disk file changed after consent' proves the disk predicate with the injected divergence; 'writes exactly as today when the pin still matches' proves no over-blocking; 'keeps today's path for a pin-absent EXPORT call' proves the additive signature; 'cancel in the save dialog stays silent (corner-2)' proves the cancelled dialog returns before verification with no notice and no write.</Criterion>
+      <Criterion>pdf/print uniformity (spec AC-4): identity is pinned before the single render and verified before mt_export_pdf/mt_print_webview in both branches; neither branch raises either consent gate (corner C-12); the stricter refusal when an edit lands inside their narrower windows is the accepted trade-off recorded in the contracts (Goal 4); export-office and export-html-images stay green in the plan filter, and print-export.spec.ts, diagram-export.spec.ts and dead-link-validation.spec.ts remain untouched pre-change regression evidence per the spec's VerificationIntent.</Criterion>
+      <Criterion>Locale completeness (spec AC-5): the four editor.export refusal keys exist, non-empty, in all ten locale files, gated by the ten-locale completeness pin in editor-export-images.test.js with the en placeholder sets pinned (pinMismatchMessage placeholder-free, pinDiskChangedMessage carries {name}); no existing key is removed or reworded; the untouched locale-keys suite stays green in the MustPassCommand filter.</Criterion>
+      <Criterion>Governance and gates (spec AC-6): the touched file-local contracts and CHANGE_SUMMARY blocks state the pin contract honestly with all pre-existing lines byte-identical; the M-011 SummaryDelta names C-EXPORT-DOCUMENT-PIN, the V-M-011 scenario and Commands deltas land and both XML files parse; the two MustPassCommand filters are green; the red-first evidence (component pins, store refusal pins, the e2e wrong-content signature) is recorded against the baseline tree before the green runs; grace lint runs only in the external target/final phases — this plan contains no self-referential grace-lint command; no version bump, no release publication.</Criterion>
+      <Criterion>Plan-level review decisions recorded: (1) the disk predicate is HASH-OVER-BYTES — SHA-256 digest compare with an optional stat short-circuit that can only refuse early, never waive the digest, so a same-size same-mtime rewrite cannot pass; (2) the muya-residual (committed-but-unsynced model content rendering without a revision move) is documented in the module contracts as known and open; (3) the pdf/print stricter refusal is an accepted trade-off; (4) the store-side surface verify compares the pinned pathname against the active pathname, closing the rename window without new machinery; (5) the _EXPORT_DOCX dialog anchor is corrected to :2123-2128 (including the plugin-dialog import line) with the write pinned at the window.fileUtils.writeFile call :2134.</Criterion>
+    </AcceptanceVerification>
+  </C-EXPORT-DOCUMENT-PIN>
+</GraceChangePlan>

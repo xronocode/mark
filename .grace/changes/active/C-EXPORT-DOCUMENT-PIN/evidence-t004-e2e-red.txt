@@ -1,0 +1,19 @@
+C-EXPORT-DOCUMENT-PIN T-004 failing-first e2e evidence (pre-fix tree, base 486275c7 + T-001 tests)
+Build: npm run build on the pre-fix tree (no pin implementation).
+Command: npx --no-install playwright test --project=chromium tests/e2e/export-document-pin.spec.ts
+
+Outcome: 2 failed / 1 passed.
+- "tab switch between consent and final write refuses with nothing written" FAILED at
+  expect(writtenEntries).toHaveLength(0): Received length: 1 — the pre-fix flow recorded a
+  write at the mt_fs_write double after the tab switch (refusal card never appears).
+- "disk change after consent refuses honestly with nothing written" FAILED the same way —
+  the pre-fix flow ignores the flipped disk and writes.
+- "happy path: consented export still writes the consented document" PASSED (control).
+
+Wrong-content signature (one-off probe over the same flow, pre-fix):
+  WRONG_CONTENT_SIGNATURE path=/tmp/pin-flow/out.html
+  WRONG_CONTENT_SIGNATURE hasA=false
+  WRONG_CONTENT_SIGNATURE hasB=true
+i.e. the mt_fs_write payload carries the SWITCHED tab's document (B), not the consented
+document (A) — the silent mixture the pin removes. The shipped post-fix assertion is the
+refusal with an empty write record.

@@ -91,7 +91,11 @@
       "plantumlConsentTitle": "Los diagramas PlantUML se renderizan en plantuml.com",
       "plantumlConsentMessage": "{count} diagrama(s) PlantUML se enviarían a {address} para su renderizado — el texto fuente del diagrama sale de esta máquina",
       "plantumlConsentConfirm": "Enviar a plantuml.com",
-      "plantumlConsentCancel": "Conservar el origen localmente"
+      "plantumlConsentCancel": "Conservar el origen localmente",
+      "pinMismatchTitle": "Exportación detenida — el documento cambió",
+      "pinMismatchMessage": "El documento que se exportaba cambió (un cambio de pestaña o una edición) mientras la exportación esperaba — no se exportó nada. Inicia la exportación de nuevo.",
+      "pinDiskChangedTitle": "Exportación detenida — el archivo cambió en el disco",
+      "pinDiskChangedMessage": "El archivo {name} cambió en el disco después de que aprobaras la exportación — no se exportó nada."
     },
     "resizeTable": "Redimensionar tabla",
     "vega-lite-start": "inicio de vega-lite",

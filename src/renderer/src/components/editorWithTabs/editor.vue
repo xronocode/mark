@@ -111,6 +111,8 @@
 //   handleExport - Routes supported export formats to renderer services; C-61 splits print (direct native panel, remembered options) from pdf (settings → save dialog → mt_export_pdf, container cleared on every outcome); C-SELF-CONTAINED-HTML-EXPORT runs the M-065 embedLocalImages pass (local images → data-URLs, skipped-count warning) on the styledHtml branch only.
 //   requestScopeConsent - C-EXPORT-BOUNDARIES embed consent card (dedupKey 'export-embed-consent'): sticky dedupKey singleton through notice.notify listing the deduplicated resolved out-of-scope image paths with their count and the document directory; Confirm grants exactly the listed files, Cancel/dismiss grants none; never persisted.
 //   requestPlantUMLExportConsent - C-EXPORT-BOUNDARIES PlantUML consent card (dedupKey 'export-plantuml-consent'): names https://www.plantuml.com/plantuml and the per-diagram count (what leaves: the diagram source text); Confirm/Cancel resolve the decision into plantumlRemoteConsent for exportStyledHTML in the styledHtml and docx branches; BLOCK_PLANTUML_EXPORT_CONSENT/_DECLINED markers carry counts only.
+//   captureExportPin - C-EXPORT-DOCUMENT-PIN: one immutable per-run pin captured at handleExport entry (owner, contentRevision, pathname, documentDir, filename, firstHeading, baselineDigest, baselineStat) and never re-derived from live state.
+//   verifyExportPin - C-EXPORT-DOCUMENT-PIN: post-await identity guard compared against the pin (rendered surface once established plus live tab token/revision); refusal = exactly one localized notice plus the count-only BLOCK_EXPORT_PIN_MISMATCH marker, no dispatch and no embed pass.
 //   handleCopyAsHtml - Copies selection (or whole document) to the clipboard as rich text/html (C-3).
 //   copyRenderedAsPlainText - Shared C-12/C-32 render → convert → single text/plain write pipeline.
 //   diffGuarded - M-031: document-mutating bus handlers become no-ops while the diff view replaces the editing surface.
@@ -148,6 +150,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   2026-11-23 C-EXPORT-DOCUMENT-PIN: handleExport captures one immutable export pin at entry (after flushSplit, before the first consent card) — documentOwner identity, contentRevision, pathname/documentDir, pinned filename plus first-heading fallback, and for a titled document a baseline SHA-256 over the on-disk bytes (crypto.subtle.digest over the ipcFs.readBinary binary bridge — keeping the C-SELF-CONTAINED-HTML-EXPORT no-UTF-8-read invoke-log pin intact; no new dependency, no new IPC); verifyExportPin re-checks the rendered surface identity plus the live tab token/revision after every await that can observe a document change in all four branches (pdf/print pin before their single render and verify before mt_export_pdf/mt_print_webview while still never running either consent gate — the stricter refusal inside their narrower windows is the accepted Goal-4 trade-off); the embed directory and the requestScopeConsent card's {dir} are re-sourced per export from exportPin.documentDir (the two live currentFile re-reads are gone); the dispatches carry the additive optional exportPin; a mismatch raises exactly one localized editor.export.pinMismatch notice plus the count-only [export][pin][BLOCK_EXPORT_PIN_MISMATCH class=identity] marker with no EXPORT dispatch, no embed pass and no gate re-run against another document. Known residual (documented, not closed): content committed to the muya model but not yet synced into tab.markdown can render into the artifact without moving contentRevision — flushSplit covers only the entry moment.
 //   2026-11-22 C-EXT-EDIT-PROOF: every request-tagged ext mutation answers
 //   one ack/nack verdict through the additive renderer-to-backend Tauri
 //   event mt::ext::text_op_ack ({request_id, op_index, applied, reason},
@@ -418,6 +421,11 @@ import { getCssForOptions, getHtmlToc } from '@/util/pdf'
 // fence counter that decides whether the export-plantuml-consent card
 // is raised. The consent decision rides exportStyledHTML's options bag.
 import { embedLocalImages } from '@/util/exportImages'
+// C-EXPORT-DOCUMENT-PIN: the pin's baseline digest reads the document
+// bytes through the binary bridge. Static import (the module is already
+// in this file's graph via the stores) so the entry capture never
+// delays the consent cards behind a first-eval dynamic import.
+import { ipcFs } from '@/ipc/runtime'
 import { countPlantUMLFences } from 'muya/lib/utils/exportHtml'
 import { loadTableLayoutsFor, saveTableLayoutsFor } from '@/util/tableLayoutStore'
 import { addCommonStyle, addThemeStyle, addDocumentThemeStyle, removeDocumentThemeStyle, setEditorWidth, setWrapCodeBlocks } from '@/util/theme'
@@ -2313,10 +2321,11 @@ const dismissConsentCard = (dedupKey) => {
 // Image embed scope (M-065 T-001 seam): the callback receives the
 // deduplicated resolved out-of-scope paths and resolves with the granted
 // subset — Confirm grants exactly the listed files, Cancel/dismiss none.
-const requestScopeConsent = (candidatePaths) => {
+// C-EXPORT-DOCUMENT-PIN: the document directory arrives as a parameter
+// (re-sourced per export from the pin), so the card's {dir} always
+// describes exactly the pinned document.
+const requestScopeConsent = (candidatePaths, documentDir) => {
   return new Promise((resolve) => {
-    const { pathname } = editorStore.currentFile || {}
-    const documentDir = pathname ? window.path.dirname(pathname) : null
     notice.notify({
       title: t('editor.export.embedConsentTitle'),
       message: t('editor.export.embedConsentMessage', {
@@ -2392,6 +2401,116 @@ const requestPlantUMLExportConsent = async (diagramCount) => {
 }
 // END_BLOCK_EXPORT_CONSENT_GATES
 
+// ──────────────────────────────────────────────────────────────────────
+// START_BLOCK_EXPORT_DOCUMENT_PIN
+// C-EXPORT-DOCUMENT-PIN: one exported artifact comes from one document.
+// captureExportPin runs once at handleExport entry (after flushSplit,
+// before the first consent raise) and freezes one immutable pin for the
+// active document: the save-side document owner identity, the tab's
+// content revision, the pathname/document directory, the default-name
+// pieces (filename plus the first-heading fallback) and — for a titled
+// document — the baseline SHA-256 digest over the on-disk bytes via
+// window.fileUtils.readFile + crypto.subtle.digest('SHA-256') (no new
+// dependency, no new IPC). Every later export stage consumes only the
+// pin; the pin is never re-derived from live state. verifyExportPin
+// re-checks the rendered surface identity (renderedTabId /
+// renderedDocumentOwner vocabulary) plus the live tab's revision after
+// every await that can observe a document change and refuses with
+// exactly one localized notice plus the count-only
+// BLOCK_EXPORT_PIN_MISMATCH marker — no dispatch, no embed pass, no gate
+// re-run against another document.
+// Known residual (documented, not closed): content committed to the muya
+// model but not yet synced into tab.markdown can render into the
+// artifact without moving contentRevision — flushSplit covers only the
+// entry moment.
+// ──────────────────────────────────────────────────────────────────────
+const exportPinDigest = async (pathname) => {
+  // Decision (recorded in the contract): the baseline bytes ride the
+  // binary bridge (ipc.fs.read_binary), not the UTF-8 readFile surface —
+  // the digest needs raw bytes anyway, and the C-SELF-CONTAINED-HTML-EXPORT
+  // flow pins "no UTF-8 read" in its invoke log.
+  const raw = await ipcFs.readBinary(pathname)
+  const bytes = raw instanceof Uint8Array ? raw : new Uint8Array(raw)
+  const digest = await crypto.subtle.digest('SHA-256', bytes)
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+const captureExportPin = async () => {
+  const tab = editorStore.currentFile
+  if (!tab || !tab.id) return null
+  const pathname = tab.pathname || null
+  // Derived once from the pinned pathname — never re-read from live state.
+  const pinnedDir = pathname ? window.path.dirname(pathname) : null
+  // Default-name pieces: the document's own name plus the same
+  // first-heading fallback walk the store's styledHtml leg uses.
+  const toc = editor.value?.getTOC?.() || []
+  let firstHeading = ''
+  if (toc.length > 0) {
+    let headerRef = toc[0]
+    const len = Math.min(toc.length, 6)
+    for (let i = 1; i < len; ++i) {
+      if (headerRef.lvl === 1) break
+      const header = toc[i]
+      if (headerRef.lvl > header.lvl) headerRef = header
+    }
+    firstHeading = headerRef.content || ''
+  }
+  let baselineDigest = null
+  let baselineStat = null
+  if (pathname) {
+    try {
+      const stat = await window.fileUtils.stat(pathname)
+      baselineStat = `${stat?.size ?? ''}:${stat?.mtimeMs ?? stat?.mtime_ms ?? ''}`
+    } catch {
+      baselineStat = null
+    }
+    try {
+      baselineDigest = await exportPinDigest(pathname)
+    } catch {
+      // Unreadable at capture: the disk predicate stays off for this run;
+      // identity, revision and pathname stay pinned.
+      baselineDigest = null
+    }
+  }
+  return Object.freeze({
+    owner: documentOwner(tab),
+    contentRevision: tab.contentRevision || 0,
+    pathname,
+    documentDir: pinnedDir,
+    filename: tab.filename || '',
+    firstHeading,
+    baselineDigest,
+    baselineStat
+  })
+}
+
+const verifyExportPin = (exportPin) => {
+  if (!exportPin) return true
+  const tab = editorStore.tabs.find((t) => t.id === exportPin.owner.id) || null
+  const liveOwner = tab ? documentOwner(tab) : null
+  // The rendered-surface check applies only once a rendered identity is
+  // established; before that the live tab token/revision carry the guard
+  // and the store's pre-write surface check (currentFile.id equality)
+  // closes the remainder of the window.
+  const renderedMatch =
+    renderedTabId === null ||
+    (renderedTabId === exportPin.owner.id &&
+      renderedDocumentOwner?.documentToken === exportPin.owner.documentToken)
+  const tokenMatch = !!liveOwner && liveOwner.documentToken === exportPin.owner.documentToken
+  const revisionMatch = !!tab && (tab.contentRevision || 0) === exportPin.contentRevision
+  if (renderedMatch && tokenMatch && revisionMatch) return true
+  notice.notify({
+    title: t('editor.export.pinMismatchTitle'),
+    message: t('editor.export.pinMismatchMessage'),
+    type: 'error'
+  })
+  // Count-only marker — never document or path text (console-privacy).
+  // eslint-disable-next-line no-console
+  console.debug('[export][pin][BLOCK_EXPORT_PIN_MISMATCH class=identity]')
+  return false
+}
+// END_BLOCK_EXPORT_DOCUMENT_PIN
+
 const handleExport = async (options) => {
   flushSplit()
   const { type, header, footer, headerFooterStyled, htmlTitle } = options
@@ -2399,6 +2518,11 @@ const handleExport = async (options) => {
   if (!/^pdf|print|styledHtml|docx$/.test(type)) {
     throw new Error(`Invalid type to export: "${type}".`)
   }
+
+  // C-EXPORT-DOCUMENT-PIN: one immutable pin for the active document,
+  // captured before the first consent raise; every later stage consumes
+  // only this pin.
+  const exportPin = await captureExportPin()
 
   const extraCss = await getCssForOptions(options)
   const htmlToc = getHtmlToc(editor.value.getTOC(), options)
@@ -2415,6 +2539,7 @@ const handleExport = async (options) => {
         const plantumlRemoteConsent = await requestPlantUMLExportConsent(
           countPlantUMLFences(editor.value.getMarkdown())
         )
+        if (!verifyExportPin(exportPin)) return
 
         const rawHtml = await editor.value.exportStyledHTML({
           title: htmlTitle || '',
@@ -2423,6 +2548,8 @@ const handleExport = async (options) => {
           toc: htmlToc,
           plantumlRemoteConsent
         })
+        if (!verifyExportPin(exportPin)) return
+
         // C-SELF-CONTAINED-HTML-EXPORT R-1..R-5: embed locally readable
         // images as data-URLs so the single .html carries them; remote
         // and already-embedded sources stay untouched. C-EXPORT-BOUNDARIES:
@@ -2430,10 +2557,13 @@ const handleExport = async (options) => {
         // requestScopeConsent (declined refs keep their src and count
         // skipped). Only this branch and docx run the pass — pdf/print
         // containers resolve src at print time (corner C-12).
-        const { pathname } = editorStore.currentFile || {}
-        const documentDir = pathname ? window.path.dirname(pathname) : null
+        // C-EXPORT-DOCUMENT-PIN: the directory and the consent callback
+        // are re-sourced from the pin, never from a live currentFile read.
+        const { html, embedded, total, skipped } = await embedLocalImages(rawHtml, exportPin.documentDir, {
+          requestScopeConsent: (candidatePaths) => requestScopeConsent(candidatePaths, exportPin.documentDir)
+        })
 
-        const { html, embedded, total, skipped } = await embedLocalImages(rawHtml, documentDir, { requestScopeConsent })
+        if (!verifyExportPin(exportPin)) return
 
         // Counts only, never paths (console-privacy convention).
         // eslint-disable-next-line no-console
@@ -2445,7 +2575,7 @@ const handleExport = async (options) => {
             type: 'warning'
           })
         }
-        editorStore.EXPORT({ type, content: html })
+        editorStore.EXPORT({ type, content: html, exportPin })
       } catch (err) {
         log.error('Failed to export document:', err)
         notice.notify({
@@ -2469,6 +2599,7 @@ const handleExport = async (options) => {
         const plantumlRemoteConsent = await requestPlantUMLExportConsent(
           countPlantUMLFences(editor.value.getMarkdown())
         )
+        if (!verifyExportPin(exportPin)) return
 
         const rawHtml = await editor.value.exportStyledHTML({
           title: htmlTitle || '',
@@ -2476,10 +2607,15 @@ const handleExport = async (options) => {
           extraCss,
           plantumlRemoteConsent
         })
-        const { pathname } = editorStore.currentFile || {}
-        const documentDir = pathname ? window.path.dirname(pathname) : null
+        if (!verifyExportPin(exportPin)) return
 
-        const { html, embedded, total, skipped } = await embedLocalImages(rawHtml, documentDir, { requestScopeConsent })
+        // C-EXPORT-DOCUMENT-PIN: the directory and the consent callback are
+        // re-sourced from the pin, never from a live currentFile read.
+        const { html, embedded, total, skipped } = await embedLocalImages(rawHtml, exportPin.documentDir, {
+          requestScopeConsent: (candidatePaths) => requestScopeConsent(candidatePaths, exportPin.documentDir)
+        })
+
+        if (!verifyExportPin(exportPin)) return
 
         // eslint-disable-next-line no-console
         console.debug(`[export][embed-images][BLOCK_EMBED_IMAGES] embedded=${embedded} total=${total} skipped=${skipped}`)
@@ -2490,7 +2626,7 @@ const handleExport = async (options) => {
             type: 'warning'
           })
         }
-        editorStore.EXPORT({ type, content: html, pageOptions: options })
+        editorStore.EXPORT({ type, content: html, pageOptions: options, exportPin })
       } catch (err) {
         log.error('Failed to export document:', err)
         notice.notify({
@@ -2529,6 +2665,11 @@ const handleExport = async (options) => {
           pageMarginLeft
         }
 
+        // C-EXPORT-DOCUMENT-PIN: identity is pinned at entry (before this
+        // single render) and verified before the dispatch; neither consent
+        // gate runs here (corner C-12 unchanged). An edit landing inside
+        // this narrower window refuses an export whose artifact might have
+        // been fine — accepted trade-off (Goal 4).
         const html = await editor.value.exportStyledHTML({
           title: '',
           printOptimization: true,
@@ -2538,10 +2679,11 @@ const handleExport = async (options) => {
           footer,
           headerFooterStyled
         })
+        if (!verifyExportPin(exportPin)) return
         printer.renderMarkdown(html, true)
         // Settings owns persistence. Rendering an older operation must not
         // overwrite defaults changed in another window while CSS was loading.
-        await editorStore.EXPORT({ type, pageOptions })
+        await editorStore.EXPORT({ type, pageOptions, exportPin })
         // The flow is over — saved, cancelled in the save dialog (corner-2:
         // nothing written, no notice), or a notified failure. The container
         // goes in every case.
@@ -2562,6 +2704,10 @@ const handleExport = async (options) => {
       // (remembered options; no export-settings dialog). Page size and
       // orientation belong to the native panel.
       try {
+        // C-EXPORT-DOCUMENT-PIN: identity is pinned at entry (before this
+        // single render) and verified before the invoke; no consent gate
+        // runs here (corner C-12 unchanged); accepted stricter trade-off
+        // (Goal 4) as in the pdf branch.
         const html = await editor.value.exportStyledHTML({
           title: '',
           printOptimization: true,
@@ -2571,6 +2717,7 @@ const handleExport = async (options) => {
           footer,
           headerFooterStyled
         })
+        if (!verifyExportPin(exportPin)) return
         printer.renderMarkdown(html, true)
         // window.print() is silently ignored by WKWebView — drive the
         // native print panel from the backend instead.
