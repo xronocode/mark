@@ -93,7 +93,7 @@ const keydownLayerChords = () => {
       heading: block.includes('bus.emit(\'paragraph\', `heading ${headingLevel[1]}`)')
     },
     compositionGuard: block.includes('event.isComposing'),
-    readOnlyGuard: block.includes('isReadOnlySurface.value || currentFile.value?.locked'),
+    readOnlyGuard: block.includes('if (isReadOnlySurface.value) return'),
     viewerGuard: block.includes("closest('.ag-block-viewer')"),
     surfaceGuard: block.includes("closest('.editor-component')")
   }

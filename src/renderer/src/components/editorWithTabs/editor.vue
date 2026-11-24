@@ -83,10 +83,10 @@
 
 <script setup>
 // FILE: src/renderer/src/components/editorWithTabs/editor.vue
-// VERSION: 1.36.0
+// VERSION: 1.37.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Host the Muya WYSIWYG surface and coordinate document rendering, selection, scroll, preview, editor tools, and store/bus integration; the insert-table dialog's initial row-input focus is owned by handleDialogTableOpened — claimed immediately after the Element Plus focus trap's own container focus (the dialog's open-auto-focus → double-nextTick chain, with @opened as the guarded fallback) (C-TABLE-DIALOG-CREATION-VERIFICATION); with the C-LARGE-DOC-WAVE-A T-004 experimental toggle ON, plain document opens mount progressively (visible region first, tail in bounded slices).
-//   SCOPE: C-SPLIT-SAVE-AUTHORITY: committed rich Split snapshots remain eligible with a retained Source preference, subject to pane focus, mirror, owner and IME guards. Unified split document history, focused-pane commands, per-surface caret/IME coordination and render-only synchronization; renderer-side Muya lifecycle and UI orchestration, including active/rendered document ownership, missed-activation recovery and invalidating tab block caches after a footnote grammar change; the C-LARGE-DOC-WAVE-A T-004 orchestration (progressive open-path branch for plain content loads only, scroll-driven prefetch ~3 viewports ahead, the reserved-space ag-tail-pending indication, marker-fed session counters, explicit-scroll gating while a tail is pending); does not own Markdown parsing rules or backend file persistence.
+//   SCOPE: C-SURFACE-OWNERSHIP: the four surface answers — the read-only axis (preview || locked || mirror), the mirror axis, the split/source axis (followsStore/unified/sourceFocused) and the rendered-identity axis (renderedTabId/renderedDocumentOwner with the mismatch rule) — are owned in one place (START_BLOCK_SURFACE_OWNERSHIP; the save-authority axis stays in the OWNED_SAVE_SNAPSHOT registration), and every guard site consumes these owned answers instead of re-deriving them. C-SPLIT-SAVE-AUTHORITY: committed rich Split snapshots remain eligible with a retained Source preference, subject to pane focus, mirror, owner and IME guards. Unified split document history, focused-pane commands, per-surface caret/IME coordination and render-only synchronization; renderer-side Muya lifecycle and UI orchestration, including active/rendered document ownership, missed-activation recovery and invalidating tab block caches after a footnote grammar change; the C-LARGE-DOC-WAVE-A T-004 orchestration (progressive open-path branch for plain content loads only, scroll-driven prefetch ~3 viewports ahead, the reserved-space ag-tail-pending indication, marker-fed session counters, explicit-scroll gating while a tail is pending); does not own Markdown parsing rules or backend file persistence.
 //   DEPENDS: Muya, muya/lib BLOCK_MOUNT_SERVED/BLOCK_SYNC_REGION_DONE/BLOCK_TAIL_MOUNT_DONE markers (C-LARGE-DOC-WAVE-A T-003), Pinia preferences/editor/project/layout stores, bus, renderer services/utilities, window.electron compatibility facade, @tauri-apps/plugin-clipboard-manager (writeHtml + writeImage), @tauri-apps/plugin-dialog (save), muya/lib/utils/diagramExport (C-56 picture export + image-copy helpers), muya/lib/utils/getImageInfo (C-56 T-006 DOM image info), window.__markImageLoader (the existing read-binary bridge, C-56 T-006), util/tableLayoutStore (C-65 per-file table layout persistence), util/pageWidth + util/pageWidthStore (C-PAGE-WIDTH-TABLES — the width resolution pipeline and the per-document store this host applies), util/autoTheme (the Auto-aware global theme restore behind a pinned surface theme).
 //   LINKS: .grace/changes/archive/C-STABILIZE-PRODUCT-REPAIRS; .grace/graph/runtime.xml M-011.fn-reconcileActiveDocument and M-012/M-063; .grace/verification/runtime.xml V-M-011 scenario-68 and V-M-012; .grace/changes/archive/C-56 (diagram export, embedded-image copy); .grace/changes/archive/C-65 T-001 (the table layout prefs host wiring); .grace/changes/archive/C-LARGE-DOC-WAVE-A (T-004); .grace/changes/archive/C-PAGE-WIDTH-TABLES (the page-width host wiring).
 //   ROLE: RUNTIME
@@ -94,6 +94,7 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   START_BLOCK_SURFACE_OWNERSHIP - the single definition owner of the four surface answers (read-only, mirror, split/source, rendered identity); every guard site consumes these owned answers, the save-authority axis staying consumed verbatim from the OWNED_SAVE_SNAPSHOT registration.
 //   setMarkdownToEditor - Loads only the selected document; equal store text may skip rendering only when Muya already belongs to that tab; with the experimental toggle ON a plain load (no cursor) routes through muya.progressiveMount.
 //   renderedTabId - Identity of the successfully rendered Muya buffer, independent of active-tab selection.
 //   handleFileChange - Restores only the active tab's document, cursor, history and scroll; tracks the owner of successfully rendered content; plain content loads (no cursor/blocks/muyaIndexCursor — T-003's marker-counted set) route through muya.progressiveMount when the experimental toggle is ON; all restores stay byte-identical legacy.
@@ -150,6 +151,25 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   2026-11-24 C-SURFACE-OWNERSHIP (v1.37.0): the four surface answers are
+//   owned in one place — the START_BLOCK_SURFACE_OWNERSHIP block defines
+//   the read-only computed, the mirror answer (isMirrorSurface), the
+//   split/source trio (followsStore/unified/sourceFocused) and the
+//   rendered-identity pair with its writeRenderedIdentity writer, and
+//   every guard site consumes the owned answers instead of re-deriving
+//   them (isAuthoritative keeps its exact arrow inside the
+//   OWNED_SAVE_SNAPSHOT registration, consumed verbatim). Four provably
+//   redundant disjuncts are absorbed by inclusion: the inline-format and
+//   paragraph shortcut guards drop their locked disjunct and the undo/redo
+//   guards drop their mirror disjunct — each already a member of the
+//   read-only predicate they sit beside; every site with a non-member term
+//   (id-equality, checkbox-target, imagePath/editor, isDiffMode,
+//   isRenderingFromStore, the jumpClick conjuncts) keeps its extra terms
+//   and only re-sources the shared answers. Behavior-preserving by
+//   inclusion — no guard semantics, marker or answer channel changes; the
+//   ext targeting zone START_BLOCK_EXT_TEXT_OPS stays byte-identical. The
+//   one live-document closure delta of this change lives in the store
+//   file's own CHANGE_SUMMARY entry (editor.js).
 //   2026-11-23 C-EXPORT-DOCUMENT-PIN: handleExport captures one immutable export pin at entry (after flushSplit, before the first consent card) — documentOwner identity, contentRevision, pathname/documentDir, pinned filename plus first-heading fallback, and for a titled document a baseline SHA-256 over the on-disk bytes (crypto.subtle.digest over the ipcFs.readBinary binary bridge — keeping the C-SELF-CONTAINED-HTML-EXPORT no-UTF-8-read invoke-log pin intact; no new dependency, no new IPC); verifyExportPin re-checks the rendered surface identity plus the live tab token/revision after every await that can observe a document change in all four branches (pdf/print pin before their single render and verify before mt_export_pdf/mt_print_webview while still never running either consent gate — the stricter refusal inside their narrower windows is the accepted Goal-4 trade-off); the embed directory and the requestScopeConsent card's {dir} are re-sourced per export from exportPin.documentDir (the two live currentFile re-reads are gone); the dispatches carry the additive optional exportPin; a mismatch raises exactly one localized editor.export.pinMismatch notice plus the count-only [export][pin][BLOCK_EXPORT_PIN_MISMATCH class=identity] marker with no EXPORT dispatch, no embed pass and no gate re-run against another document. Known residual (documented, not closed): content committed to the muya model but not yet synced into tab.markdown can render into the artifact without moving contentRevision — flushSplit covers only the entry moment.
 //   2026-11-22 C-EXT-EDIT-PROOF: every request-tagged ext mutation answers
 //   one ack/nack verdict through the additive renderer-to-backend Tauri
@@ -556,10 +576,6 @@ const { showSideBar, sideBarWidth } = storeToRefs(layoutStore)
 const defaultFontFamily = DEFAULT_EDITOR_FONT_FAMILY
 const selectionChange = ref(null)
 const editor = ref(null)
-// This identity belongs to the Muya buffer, independently of the selected tab.
-// It changes only after a document render succeeds.
-let renderedTabId = null
-let renderedDocumentOwner = null
 const isShowClose = ref(false)
 const dialogTableVisible = ref(false)
 const imageViewerVisible = ref(null)
@@ -583,7 +599,35 @@ let imageViewer = null
 // the .is-preview class flips reactively when APPLY_PREVIEW_MODE /
 // EXIT_PREVIEW_MODE mutate currentFile.previewMode.
 const isPreviewMode = computed(() => !!currentFile.value?.previewMode)
+
+// START_BLOCK_SURFACE_OWNERSHIP
+// C-SURFACE-OWNERSHIP: the single definition owner of the four surface
+// answers. Every guard site in this file consumes these owned answers
+// instead of re-deriving them:
+//   - read-only axis: isReadOnlySurface (preview || locked || mirror);
+//   - mirror axis: isMirrorSurface (the props.mirror surface decisions);
+//   - split/source axis: followsStore / unified / sourceFocused;
+//   - rendered-identity axis: renderedTabId + renderedDocumentOwner with
+//     the writeRenderedIdentity writer (the mismatch rule stays owned by
+//     START_BLOCK_RENDER_OWNER_MISMATCH in handleFileChange).
+// The save-authority axis (isAuthoritative) keeps its exact arrow inside
+// the START_BLOCK_OWNED_SAVE_SNAPSHOT registerDocumentSurface registration
+// — C-SPLIT-SAVE-AUTHORITY's answer is owned there, consumed verbatim,
+// never redefined.
 const isReadOnlySurface = computed(() => isPreviewMode.value || !!currentFile.value?.locked || props.mirror)
+const isMirrorSurface = computed(() => props.mirror)
+const followsStore = () => props.mirror || props.splitActive || !!sourceCode.value
+const unified = () => !!splitSession()?.unified
+const sourceFocused = () => unified() && splitSession().focused === 'source'
+// This identity belongs to the Muya buffer, independently of the selected tab.
+// It changes only after a document render succeeds.
+let renderedTabId = null
+let renderedDocumentOwner = null
+const writeRenderedIdentity = (tab) => {
+  renderedTabId = tab?.id || null
+  renderedDocumentOwner = tab?.id ? documentOwner(tab) : null
+}
+// END_BLOCK_SURFACE_OWNERSHIP
 
 // START_CONTRACT: syncPreviewSurface
 //   PURPOSE: Keep previewMode synchronized with Muya's actual replacement container and restore an editable caret immediately on preview exit.
@@ -709,7 +753,7 @@ const handleInlineFormatShortcutKeys = (event) => {
   const target = event.target
   if (!target || !target.closest || !target.closest('.editor-component')) return
   if (target.closest('.ag-block-viewer')) return
-  if (isReadOnlySurface.value || currentFile.value?.locked) return
+  if (isReadOnlySurface.value) return
   if (event.code === 'KeyB') {
     event.preventDefault()
     const muya = editor.value
@@ -740,7 +784,7 @@ const handleParagraphShortcutKeys = (event) => {
   if (target.closest('.ag-block-viewer')) return
   // Read-only surfaces (preview / Split View mirror / locked tab) must
   // not transform the document underneath.
-  if (isReadOnlySurface.value || currentFile.value?.locked) return
+  if (isReadOnlySurface.value) return
   if (event.shiftKey) {
     if (event.code === 'KeyD') {
       event.preventDefault()
@@ -789,14 +833,10 @@ let isRenderingFromStore = false
 const followSyncDelay = () =>
   Math.min(FOLLOW_SYNC_MAX_DELAY_MS, Math.max(FOLLOW_SYNC_DELAY_MS, lastFollowRenderMs * 2))
 
-const followsStore = () => props.mirror || props.splitActive || !!sourceCode.value
-
 // START_BLOCK_SPLIT_DOCUMENT_HISTORY
 const richComposition = createCompositionFence()
 let richSerialization = null
 const splitSession = () => currentFile.value?.splitSession
-const unified = () => !!splitSession()?.unified
-const sourceFocused = () => unified() && splitSession().focused === 'source'
 const ensureUnified = () => {
   const file = currentFile.value
   const muya = editor.value
@@ -870,7 +910,7 @@ const renderFromStore = () => {
   followSyncTimer = null
   const muya = editor.value
   if (!muya || (!followsStore() && !unified())) return
-  const markdown = props.mirror ? props.markdown : currentFile.value?.markdown
+  const markdown = isMirrorSurface.value ? props.markdown : currentFile.value?.markdown
   if (typeof markdown !== 'string' || markdown === followedMarkdown) return
   if (richComposition.markDeferred()) return
   const surface = muya.container
@@ -883,14 +923,13 @@ const renderFromStore = () => {
     caret = { anchor: translateAndClamp(caret.anchor, followedMarkdown, markdown), focus: translateAndClamp(caret.focus, followedMarkdown, markdown) }
     session.rich = caret
   }
-  if (props.mirror) muya.setMarkdown(markdown, null, false)
+  if (isMirrorSurface.value) muya.setMarkdown(markdown, null, false)
   else muya.setMarkdown(markdown, null, false, caret, undefined, { renderOnly: true })
   if (unified()) {
     richSerialization = muya.getMarkdown()
     editorStore.UPDATE_SPLIT_OUTLINE({ id: currentFile.value.id, toc: muya.getTOC() })
   }
-  renderedTabId = currentFile.value?.id || null
-  renderedDocumentOwner = currentFile.value?.id ? documentOwner(currentFile.value) : null
+  writeRenderedIdentity(currentFile.value)
   richSerialization = editor.value.getMarkdown()
   followedMarkdown = markdown
   if (surface) surface.scrollTop = scrollTop
@@ -1006,7 +1045,7 @@ const caretContentOffset = (surface) => {
 const reanchorSplit = (fallbackFraction = null) => {
   const surface = editor.value?.container
   if (!surface) return
-  if (props.mirror) {
+  if (isMirrorSurface.value) {
     // Source-mode split: the editable CodeMirror pane owns the anchor; this
     // mirror surface only follows its reading fraction.
     splitScrollSync.align('rich', splitScrollSync.fractionOf('source') ?? 0)
@@ -1367,7 +1406,7 @@ const photoCreatorClick = (url) => {
 const jumpClick = (linkInfo, epoch, sourceMuya) => {
   const file = currentFile.value
   if (!linkInfo?.href || !sourceMuya || sourceMuya !== editor.value ||
-      epoch !== sourceMuya.linkInteraction?.epoch || props.mirror || isDiffMode.value ||
+      epoch !== sourceMuya.linkInteraction?.epoch || isMirrorSurface.value || isDiffMode.value ||
       (!props.splitActive && sourceCode.value) || sourceFocused() || !file?.id ||
       renderedTabId !== file.id || renderedDocumentOwner?.documentToken !== documentOwner(file).documentToken ||
       editorStore.documentWindowClosing || richComposition.isArmed()) return false
@@ -1546,7 +1585,7 @@ const replaceMisspelling = ({ word, replacement }) => {
 }
 
 const handleUndo = () => {
-  if (props.mirror || isReadOnlySurface.value) return
+  if (isReadOnlySurface.value) return
   flushSplit()
   if (editor.value) {
     editor.value.undo()
@@ -1560,7 +1599,7 @@ const handleUndo = () => {
 }
 
 const handleRedo = () => {
-  if (props.mirror || isReadOnlySurface.value) return
+  if (isReadOnlySurface.value) return
   flushSplit()
   if (editor.value) {
     editor.value.redo()
@@ -2750,7 +2789,7 @@ const handlePrintServiceClearup = () => {
 
 const handleEditParagraph = (type) => {
   if (type !== 'table' && routeSource('paragraph', type)) return
-  if (props.mirror) return
+  if (isMirrorSurface.value) return
   if (type === 'table') {
     tableChecker.rows = 4
     tableChecker.columns = 3
@@ -2820,7 +2859,7 @@ const handleParagraph = (type) => {
 
 const handleInlineFormat = (type) => {
   if (routeSource('format', type)) return
-  if (props.mirror) return
+  if (isMirrorSurface.value) return
   editor.value && editor.value.format(type)
 }
 
@@ -2842,7 +2881,7 @@ const tableLayoutsSeq = { tabId: null, seq: 0 }
 
 const applyStoredTableLayouts = async () => {
   const muya = editor.value
-  if (!muya || !muya.tableResize || props.mirror) return
+  if (!muya || !muya.tableResize || isMirrorSurface.value) return
   const file = currentFile.value
   const tabId = file && file.id
   const pathname = file && file.pathname
@@ -2868,7 +2907,7 @@ const applyStoredTableLayouts = async () => {
 }
 
 const handleTableLayoutsChange = async ({ entries } = {}) => {
-  if (props.mirror) return
+  if (isMirrorSurface.value) return
   const pathname = currentFile.value && currentFile.value.pathname
   if (!pathname || !entries || typeof entries !== 'object') return
   const saved = await saveTableLayoutsFor(pathname, entries)
@@ -2994,7 +3033,7 @@ const applyDocumentSurfaceTheme = (entry) => {
 }
 
 const applyHostPageState = async () => {
-  if (props.mirror) return
+  if (isMirrorSurface.value) return
   const file = currentFile.value
   const tabId = file && file.id
   const pathname = file && file.pathname
@@ -3055,7 +3094,7 @@ const scheduleHostWidthFreshen = () => {
 }
 
 const handleDocumentPageStateChanged = ({ pathname } = {}) => {
-  if (props.mirror) return
+  if (isMirrorSurface.value) return
   if (pathname && pathname !== currentFile.value?.pathname) return
   void applyHostPageState()
 }
@@ -3088,7 +3127,7 @@ watch(
 // Canvas changes (window resize, sidebar show/hide/drag commit): re-apply
 // the cached pipeline value live, then re-read once at the burst's end.
 watch([hostWindowWidth, showSideBar, sideBarWidth], () => {
-  if (props.mirror) return
+  if (isMirrorSurface.value) return
   reapplyHostWidthFromCache()
   scheduleHostWidthFreshen()
 })
@@ -3096,7 +3135,7 @@ watch([hostWindowWidth, showSideBar, sideBarWidth], () => {
 // The global setting moved (Settings window, or the panel's global write —
 // which also rewrote the document entry): re-read the document tier.
 watch(editorLineWidth, () => {
-  if (props.mirror) return
+  if (isMirrorSurface.value) return
   scheduleHostWidthFreshen()
 })
 
@@ -3117,7 +3156,7 @@ window.addEventListener('resize', onHostWindowResize)
 // undefined so the store falls back to the stored value.
 let positionFlushTimer = null
 const schedulePositionFlush = () => {
-  if (props.mirror) return
+  if (isMirrorSurface.value) return
   if (positionFlushTimer) clearTimeout(positionFlushTimer)
   positionFlushTimer = setTimeout(() => {
     positionFlushTimer = null
@@ -3322,8 +3361,7 @@ const setMarkdownToEditor = ({ id, markdown: newMarkdown, cursor: newCursor }) =
       refreshProgressiveTailPending()
     }
     // C-29: the mirror already shows this document; skip the debounced re-render.
-    renderedTabId = currentFile.value?.id || null
-    renderedDocumentOwner = currentFile.value?.id ? documentOwner(currentFile.value) : null
+    writeRenderedIdentity(currentFile.value)
     richSerialization = editor.value.getMarkdown()
     followedMarkdown = newMarkdown
     // C-65: adopt the stored table layouts of the newly opened document.
@@ -3404,8 +3442,7 @@ const handleFileChange = ({
         // (T-003 setMarkdown wiring) — drop the indication right away.
         refreshProgressiveTailPending()
       }
-      renderedTabId = activeFile?.id || null
-      renderedDocumentOwner = activeFile?.id ? documentOwner(activeFile) : null
+      writeRenderedIdentity(activeFile)
       followedMarkdown = newMarkdown
       richSerialization = editor.value.getMarkdown()
       ensureUnified()
@@ -3829,7 +3866,7 @@ const blurEditor = () => {
 
 const focusEditor = () => {
   if (routeSource('focus')) return
-  if (props.mirror) return
+  if (isMirrorSurface.value) return
   flushSplit()
   editor.value.focus()
 }
@@ -3970,7 +4007,7 @@ onMounted(() => {
     // resize handles (props.mirror is fixed per instance); every other
     // surface — including reading/locked tabs — keeps them, because
     // resizing is view-only and never dirties the document.
-    disableTableColumnResize: props.mirror,
+    disableTableColumnResize: isMirrorSurface.value,
     // C-PAGE-WIDTH-TABLES T-007: the Tables-tab preferences reach muya
     // under the option names its table model consumes — the tri-state
     // default mode ('auto' | 'fit' | 'full'; the fake-fit boolean default
@@ -4099,7 +4136,7 @@ onMounted(() => {
   editor.value.on('change', (changes) => {
     // C-SPLIT-DUAL-EDIT: store-driven renders are inert (muya normalizes
     // markdown and an echo would rewrite the source pane); own edits flow.
-    if (props.mirror || isRenderingFromStore) return
+    if (isMirrorSurface.value || isRenderingFromStore) return
     // A selected tab may not have reached the Muya buffer yet. Never attach
     // the previous surface's text/blocks/history to that new document.
     const id = renderedTabId
@@ -4148,12 +4185,12 @@ onMounted(() => {
     // C-SPLIT-SCROLL-SYNC: stash the reading fraction for the no-caret
     // re-anchor fallback (captured from real scrolls only, so it always
     // reflects the pre-transition layout; the mirror never contributes).
-    if (!props.mirror) {
+    if (!isMirrorSurface.value) {
       const anchorSurface = editor.value?.container
       if (anchorSurface) lastSurfaceFraction = scrollFraction(anchorSurface)
     }
     // C-29: the source pane owns the tab's scroll offset while muya mirrors it.
-    if (props.mirror || !renderedTabId || renderedTabId !== currentFile.value?.id) return
+    if (isMirrorSurface.value || !renderedTabId || renderedTabId !== currentFile.value?.id) return
     editorStore.updateScrollPosition(renderedTabId, scrollEvent.scrollTop)
     // C-FILE-POSITION-MEMORY: scrolling arms the debounced position flush.
     schedulePositionFlush()
@@ -4207,7 +4244,7 @@ onMounted(() => {
   // })
 
   editor.value.on('selectionChange', (changes) => {
-    if (props.mirror) return
+    if (isMirrorSurface.value) return
     const { y } = changes.cursorCoords
     if (typewriter.value) {
       const startPosition = container.scrollTop
@@ -4242,7 +4279,7 @@ onMounted(() => {
   })
 
   editor.value.on('selectionFormats', (formats) => {
-    if (props.mirror) return
+    if (isMirrorSurface.value) return
     editorStore.SELECTION_FORMATS(formats)
   })
 
@@ -4348,7 +4385,7 @@ onBeforeUnmount(() => {
   bus.off('mt::document-page-state-changed', handleDocumentPageStateChanged)
   if (hostWidthFreshenTimer) clearTimeout(hostWidthFreshenTimer)
   window.removeEventListener('resize', onHostWindowResize)
-  if (!props.mirror) {
+  if (!isMirrorSurface.value) {
     if (hostSurfaceThemeId) restoreGlobalSurfaceTheme()
     clearAppliedEditorWidth()
   }

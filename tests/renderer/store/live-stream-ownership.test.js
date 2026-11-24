@@ -110,4 +110,45 @@ describe('live document ownership', () => {
     expect(b.currentFile).toBe(local)
     expect(a.PATCH_LIVE_DOCUMENT(patch())).toBe(true)
   })
+
+  it('force_close_tab_deactivates_a_live_binding_eagerly', async () => {
+    const store = await fixture()
+    const id = store.OPEN_LIVE_DOCUMENT(open())
+    const stream = store.tabs.find(tab => tab.id === id)
+    const patchSpy = vi.spyOn(store, 'PATCH_LIVE_DOCUMENT')
+    store.FORCE_CLOSE_TAB(stream)
+    // Asserted immediately after the close returns — no PATCH in between.
+    expect(patchSpy).not.toHaveBeenCalled()
+    expect(store.liveDocument.active).toBe(false)
+  })
+
+  it('commit_document_window_deactivates_the_live_binding', async () => {
+    const store = await fixture()
+    store.OPEN_LIVE_DOCUMENT(open())
+    await store._commitDocumentWindow('mt_app_quit')
+    expect(store.liveDocument.active).toBe(false)
+  })
+
+  it('force_close_tab_of_an_unrelated_tab_keeps_the_live_binding', async () => {
+    const store = await fixture()
+    const local = store.currentFile
+    const id = store.OPEN_LIVE_DOCUMENT(open())
+    store.UPDATE_CURRENT_FILE(local)
+    store.FORCE_CLOSE_TAB(local)
+    expect(store.liveDocument.active).toBe(true)
+    expect(store.liveDocument.tabId).toBe(id)
+    expect(store.tabs.find(tab => tab.id === id)).toBeTruthy()
+    expect(store.PATCH_LIVE_DOCUMENT(patch())).toBe(true)
+  })
+
+  it('close_live_document_keeps_its_documented_shape', async () => {
+    const store = await fixture()
+    const id = store.OPEN_LIVE_DOCUMENT(open())
+    expect(store.CLOSE_LIVE_DOCUMENT({ sessionId: 'stream-a', sessionEpoch: 1 })).toBe(true)
+    expect(store.liveDocument.active).toBe(false)
+    const stream = store.tabs.find(tab => tab.id === id)
+    expect(stream).toBeTruthy()
+    expect(stream.requiresExplicitSave).toBe(true)
+    expect(store.PATCH_LIVE_DOCUMENT(patch())).toBe(false)
+  })
 })

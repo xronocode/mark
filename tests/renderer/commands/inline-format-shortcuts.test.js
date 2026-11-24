@@ -75,7 +75,7 @@ describe('FIX-SIDEBAR-BOLD-CONFLICT binding split', () => {
     expect(block).toContain(".closest('.editor-component')")
     expect(block).toContain(".closest('.ag-block-viewer')")
     expect(block).toContain('isReadOnlySurface.value')
-    expect(block).toContain('currentFile.value?.locked')
+    expect(block).toContain('if (isReadOnlySurface.value) return')
     expect(block).toContain('event.isComposing')
     // Shift and Alt must not trigger the bold chord (shift belongs to the
     // sidebar's new ⇧⌘B).
