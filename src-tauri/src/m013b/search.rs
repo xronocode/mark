@@ -619,14 +619,45 @@ fn run_session_files_with_program(
 //   there; that delivery shape is rg-inherent and documented here, not
 //   equated. The files-mode path-only legs stay body-read-free
 //   (START_BLOCK_WALKER_PATH_LEG) — truncation does not apply to them.
+//
+// FILES-MODE SIZE ROW — the documented per-transport divergence:
+//   semantic: the walker leg applies max_file_size as a metadata skip
+//   (the canon); the rg --files listing transport passes NO --max-filesize
+//   and stays not size-filtered. No flag is added to the listing
+//   transport on this change's authority.
+//   walker anchor: the max_filesize metadata skips in both walker legs
+//   (run_files_walker, run_search).
+//   rg anchor: START_BLOCK_BUILD_RIPGREP_FILES_COMMAND — the updated size
+//   note points at this row. Safety argument (inherited from the
+//   C-QUICKOPEN-FILES-MODE record): quickOpen never sends maxFileSize in
+//   files mode. The content-mode rg transport keeps --max-filesize (an
+//   agreeing row, pinned by maxfilesize-content-row below).
+//
+// ROWS THAT ALREADY AGREE (pinned green before and after by
+// engine_parity_hidden_and_excludes_across_legs and the #320/#333
+// families; the owning anchor per leg):
+//   hidden — walker .hidden(!include_hidden) in both walker legs; rg
+//   --hidden only on include_hidden in both rg transports.
+//   exclusion masks — one compile_exclusion_masks feeding the walker
+//   override globs and the rg --glob=! arguments; invalid masks are
+//   ignored by BOTH engines and only force the honest partial flag.
+//   inclusion globs (files mode) — one compile_inclusion_masks feeding
+//   the walker whitelist overrides and the rg --glob= arguments.
+//   maxFileSize content row — walker metadata skip versus rg
+//   --max-filesize: identical filtering.
+//   follow_symlinks — walker follow_links versus rg --follow.
+//   whole-word — walker \b...\b wrapping (build_matcher) versus rg
+//   --word-regexp.
+//   literal/regex — walker regex::escape (build_matcher) versus rg
+//   --fixed-strings.
 // END_BLOCK_ENGINE_PARITY_TABLE
 
 // START_CONTRACT: resolve_engine_flags
-//   PURPOSE: The one shared flag-resolution artifact (C-SEARCH-ENGINE-PARITY): resolve the engine-parity table's shared semantics from SearchOptions exactly once so both WalkBuilder chains and both rg command builders draw from one source — no per-leg hardcoded flag may decide an aligned row outside this function (the gitignore-outside row completes here with T-003's --no-require-git delivery).
+//   PURPOSE: The single flag authority for the aligned rows of the engine-parity table (C-SEARCH-ENGINE-PARITY): resolve the shared semantics from SearchOptions exactly once so both WalkBuilder chains and both rg command builders draw from one source — after the T-002..T-004 delivery no per-leg hardcoded case or gitignore flag remains outside this function in any of the four build sites; per-leg leftovers are only the legs' inherent shape and the documented files-mode size row.
 //   INPUTS: { opts: &SearchOptions - renderer search preferences }
 //   OUTPUTS: { EngineFlags - the resolved shared semantics consumed by all four transport legs }
 //   SIDE_EFFECTS: None.
-//   LINKS: START_BLOCK_ENGINE_PARITY_TABLE, run_files_walker, run_search, run_ripgrep_with_program, run_ripgrep_files_with_program, engine_parity_case_modes_across_legs, V-M-004.
+//   LINKS: START_BLOCK_ENGINE_PARITY_TABLE, run_files_walker, run_search, run_ripgrep_with_program, run_ripgrep_files_with_program, engine_parity_case_modes_across_legs, engine_parity_gitignore_outside_git_across_legs, engine_parity_hidden_and_excludes_across_legs, V-M-004.
 // END_CONTRACT: resolve_engine_flags
 /// Resolved shared engine semantics — the engine-parity table's flag
 /// source. One construction per transport leg; every field is the table's
@@ -1585,10 +1616,14 @@ fn run_ripgrep_files_with_program(
     // START_BLOCK_BUILD_RIPGREP_FILES_COMMAND
     // C-QUICKOPEN-FILES-MODE: the files-mode transport lists paths (`rg
     // --files`) instead of running the pattern search — plain listing lines,
-    // no --json. The listing passes NO --max-filesize (a content-search-time
-    // filter; the walker leg's max_filesize metadata skip stays); this
-    // per-transport size divergence is documented in the plan and owned by
-    // C-SEARCH-ENGINE-PARITY — quickOpen never sends maxFileSize.
+    // no --json. The listing passes NO --max-filesize: the files-mode size
+    // row of the START_BLOCK_ENGINE_PARITY_TABLE resolves this
+    // per-transport divergence as documented — the walker leg's
+    // max_filesize metadata skip stays the canon, this listing transport
+    // is recorded as not size-filtered (a content-search-time filter
+    // would belong to content mode), and the safety argument is inherited
+    // from the C-QUICKOPEN-FILES-MODE record: quickOpen never sends
+    // maxFileSize in files mode.
     let mut cmd = Command::new(rg_program);
     // The listing's shared rows resolve through resolve_engine_flags too
     // (C-SEARCH-ENGINE-PARITY); the size row stays a documented leftover —
@@ -4440,6 +4475,16 @@ mod tests {
     // rg legs sit under the existing availability guard with the canon
     // skip marker; the git-repository companion fixture uses a bare .git
     // entry — the same presence heuristic the ignore crate and rg consult.
+    //
+    // T-005 consolidated the named pins into the parameterized parity
+    // suite (ParityRow::run_both_engines — one shared fixture-builder per
+    // table row, both engines, identical expectations per row, shaped
+    // after files_mode_rg_parity_with_walker_on_one_fixture); the receipts
+    // above stay the pre-change evidence and the named tests keep their
+    // spec names and assertions. The UTF-8 truncation row remains the
+    // walker-leg regression pin (the 1 MB cap is walker-inherent; the rg
+    // leg's delivery shape is documented in the parity table, not
+    // equated).
 
     /// Sorted delivered snippet set (content mode) — the parity unit for
     /// result-set comparisons across engines.
@@ -4486,10 +4531,106 @@ mod tests {
         (total, kind, rx)
     }
 
+    /// One content-mode table row of the parameterized parity suite
+    /// (C-SEARCH-ENGINE-PARITY T-005): the query shape plus the identical
+    /// expectation BOTH engines must deliver from one fixture.
+    /// `expected_snippets` is the exact sorted snippet set (None = not
+    /// asserted); `expected_absent`/`expected_present` are path suffixes;
+    /// `expected_partial` pins the terminal's honest partial flag (None =
+    /// not asserted).
+    struct ParityRow {
+        name: &'static str,
+        pattern: &'static str,
+        opts: SearchOptions,
+        expected_total: usize,
+        expected_snippets: Option<Vec<String>>,
+        expected_absent: Vec<&'static str>,
+        expected_present: Vec<&'static str>,
+        expected_partial: Option<bool>,
+    }
+
+    impl ParityRow {
+        fn assert_leg(&self, total: u32, kind: &str, events: &[SearchEvent], engine: &str) {
+            assert_eq!(kind, "complete", "[{engine}] row {} must complete", self.name);
+            assert_eq!(
+                total as usize, self.expected_total,
+                "[{engine}] row {} must deliver the expected total",
+                self.name
+            );
+            for absent in &self.expected_absent {
+                assert!(
+                    !events
+                        .iter()
+                        .any(|e| e.hits.iter().any(|h| h.path.ends_with(absent))),
+                    "[{engine}] row {}: {absent} must be absent",
+                    self.name
+                );
+            }
+            for present in &self.expected_present {
+                assert!(
+                    events
+                        .iter()
+                        .any(|e| e.hits.iter().any(|h| h.path.ends_with(present))),
+                    "[{engine}] row {}: {present} must be present",
+                    self.name
+                );
+            }
+            if let Some(expected) = &self.expected_snippets {
+                assert_eq!(
+                    delivered_snippets(events),
+                    *expected,
+                    "[{engine}] row {} must deliver the identical expected set",
+                    self.name
+                );
+            }
+            if let Some(partial) = self.expected_partial {
+                assert_eq!(
+                    events.last().and_then(|e| e.partial),
+                    Some(partial),
+                    "[{engine}] row {}: terminal partial flag",
+                    self.name
+                );
+            }
+        }
+
+        /// Run the row through BOTH engines with identical expectations
+        /// (T-005, shaped after files_mode_rg_parity_with_walker_on_one_
+        /// fixture): the walker leg always (in_process = true — the App
+        /// Store and missing-rg paths), the rg leg under the existing
+        /// availability guard (with_rg = false skips it after the canon
+        /// marker). Editing one leg's aligned row without the other fails
+        /// loudly here — that is the suite's construction.
+        fn run_both_engines(&self, root: &Path, with_rg: bool) {
+            {
+                let (total, kind, rx) = run_session_one_root(
+                    &format!("s-parity-{}-w", self.name),
+                    root,
+                    self.pattern,
+                    &self.opts,
+                    Arc::new(AtomicBool::new(false)),
+                );
+                let events = collect_until_terminal(&rx, Duration::from_secs(2));
+                self.assert_leg(total, kind, &events, "walker");
+            }
+            if !with_rg {
+                return;
+            }
+            let (total, kind, rx) = run_session_one_root_rg(
+                &format!("s-parity-{}-r", self.name),
+                root,
+                self.pattern,
+                &self.opts,
+                Arc::new(AtomicBool::new(false)),
+            );
+            let events = collect_until_terminal(&rx, Duration::from_secs(2));
+            self.assert_leg(total, kind, &events, "rg");
+        }
+    }
+
     #[test]
     fn engine_parity_case_modes_across_legs() {
         // One fixture whose lines carry "needle", "NEEDLE" and "Needle";
-        // three case rows must agree across engines.
+        // three case rows, identical expectations per row on both engines.
         let dir = TempDir::new().unwrap();
         write(dir.path().join("cases.md"), "needle\nNEEDLE\nNeedle\n").unwrap();
         let all_three: Vec<String> = vec![
@@ -4498,175 +4639,141 @@ mod tests {
             "needle".to_string(),
         ];
         let exact_only: Vec<String> = vec!["Needle".to_string()];
-
-        // Walker legs (always run — the App Store / missing-rg engine).
-        let walker_default_set: Vec<String>;
-        {
-            let opts = SearchOptions::default();
-            let (total, kind, rx) = run_session_one_root(
-                "s-case-walker-default",
-                dir.path(),
-                "Needle",
-                &opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind, "complete");
-            assert_eq!(total, 3, "walker default matches all three case variants");
-            let events = collect_until_terminal(&rx, Duration::from_secs(2));
-            let set = delivered_snippets(&events);
-            assert_eq!(set, all_three, "walker default must cover every case variant");
-            walker_default_set = set;
-        }
-        {
-            // The explicit toggle is the only case control: sensitive mode
-            // yields only the exact line on the walker.
-            let opts = SearchOptions {
-                is_case_sensitive: Some(true),
-                ..Default::default()
-            };
-            let (total, kind, rx) = run_session_one_root(
-                "s-case-walker-sensitive",
-                dir.path(),
-                "Needle",
-                &opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind, "complete");
-            assert_eq!(total, 1, "walker sensitive mode matches only the exact case");
-            let events = collect_until_terminal(&rx, Duration::from_secs(2));
-            assert_eq!(delivered_snippets(&events), exact_only);
-        }
-        {
-            // Lowercase pattern: insensitive everywhere (#320 parity shape).
-            let opts = SearchOptions::default();
-            let (total, kind, rx) = run_session_one_root(
-                "s-case-walker-lower",
-                dir.path(),
-                "needle",
-                &opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind, "complete");
-            assert_eq!(total, 3);
-            let events = collect_until_terminal(&rx, Duration::from_secs(2));
-            assert_eq!(delivered_snippets(&events), all_three);
-        }
-
-        // rg legs (availability-guarded, canon skip marker).
-        if !rg_available() {
+        let rows = vec![
+            // Row 1 — default options, Mixed-case pattern "Needle": BOTH
+            // engines must return the identical all-three-variants set
+            // (the failing-first receipt: rg's --smart-case matched only
+            // the exact-case line on the pre-change tree).
+            ParityRow {
+                name: "case-default-mixed",
+                pattern: "Needle",
+                opts: SearchOptions::default(),
+                expected_total: 3,
+                expected_snippets: Some(all_three.clone()),
+                expected_absent: vec![],
+                expected_present: vec![],
+                expected_partial: Some(false),
+            },
+            // Row 2 — the explicit toggle is the only case control:
+            // sensitive mode yields only the exact line on both legs.
+            ParityRow {
+                name: "case-toggle-sensitive",
+                pattern: "Needle",
+                opts: SearchOptions {
+                    is_case_sensitive: Some(true),
+                    ..Default::default()
+                },
+                expected_total: 1,
+                expected_snippets: Some(exact_only.clone()),
+                expected_absent: vec![],
+                expected_present: vec![],
+                expected_partial: Some(false),
+            },
+            // Row 3 — lowercase pattern: insensitive everywhere (the #320
+            // parity shape).
+            ParityRow {
+                name: "case-lowercase-default",
+                pattern: "needle",
+                opts: SearchOptions::default(),
+                expected_total: 3,
+                expected_snippets: Some(all_three.clone()),
+                expected_absent: vec![],
+                expected_present: vec![],
+                expected_partial: Some(false),
+            },
+        ];
+        let with_rg = rg_available();
+        if !with_rg {
             safe_eprintln!("[test][skip] rg binary not on PATH");
-            return;
         }
-        {
-            let opts = SearchOptions::default();
-            let (total, kind, rx) = run_session_one_root_rg(
-                "s-case-rg-default",
-                dir.path(),
-                "Needle",
-                &opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind, "complete");
-            assert_eq!(total, 3, "rg must match all three variants like the walker");
-            let events = collect_until_terminal(&rx, Duration::from_secs(2));
-            let rg_set = delivered_snippets(&events);
-            assert_eq!(
-                rg_set, walker_default_set,
-                "IDENTICAL result set on both legs for the Mixed-case default pattern — the pattern-dependent smart-case mode must not override the explicit toggle"
-            );
-        }
-        {
-            let opts = SearchOptions {
-                is_case_sensitive: Some(true),
-                ..Default::default()
-            };
-            let (total, kind, rx) = run_session_one_root_rg(
-                "s-case-rg-sensitive",
-                dir.path(),
-                "Needle",
-                &opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind, "complete");
-            assert_eq!(total, 1);
-            let events = collect_until_terminal(&rx, Duration::from_secs(2));
-            assert_eq!(delivered_snippets(&events), exact_only);
-        }
-        {
-            let opts = SearchOptions::default();
-            let (total, kind, rx) = run_session_one_root_rg(
-                "s-case-rg-lower",
-                dir.path(),
-                "needle",
-                &opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind, "complete");
-            assert_eq!(total, 3);
-            let events = collect_until_terminal(&rx, Duration::from_secs(2));
-            assert_eq!(delivered_snippets(&events), all_three);
+        for row in &rows {
+            row.run_both_engines(dir.path(), with_rg);
         }
     }
 
     #[test]
     fn engine_parity_gitignore_outside_git_across_legs() {
-        // A plain folder — NO .git entry — with a .gitignore listing one
-        // file and a sibling file, both bodies carrying the needle. The
-        // walker canon (require_git(false)) filters the gitignored file
-        // everywhere; every leg must deliver the identical set.
-        let dir = TempDir::new().unwrap();
-        write(dir.path().join(".gitignore"), "secret.md\n").unwrap();
-        write(dir.path().join("secret.md"), "needle\n").unwrap();
-        write(dir.path().join("public.md"), "needle\n").unwrap();
-        let opts = SearchOptions::default();
-
-        // Content walker leg (always).
-        let (total_w, kind_w, rx_w) = run_session_one_root(
-            "s-gi-walker",
-            dir.path(),
-            "needle",
-            &opts,
-            Arc::new(AtomicBool::new(false)),
-        );
-        assert_eq!(kind_w, "complete");
-        assert_eq!(total_w, 1, "walker filters the gitignored file outside git");
-        let events_w = collect_until_terminal(&rx_w, Duration::from_secs(2));
-        assert!(
-            events_w
-                .iter()
-                .any(|e| e.hits.iter().any(|h| h.path.ends_with("public.md"))),
-            "the sibling must be present"
-        );
-        assert!(
-            !events_w
-                .iter()
-                .any(|e| e.hits.iter().any(|h| h.path.ends_with("secret.md"))),
-            "the gitignored file must be absent"
-        );
-
-        // Files-mode walker leg (always).
-        let (pfw_total, pfw_kind, pfw_rx) = run_session_files_one_root(
-            "s-gi-files-walker",
-            dir.path(),
-            &opts,
-            Arc::new(AtomicBool::new(false)),
-        );
-        assert_eq!(pfw_kind, "complete");
-        assert_eq!(pfw_total, 1, "files-mode walker filters the gitignored file too");
-        let files_walker_events =
-            collect_all(&pfw_rx, Duration::from_millis(400), Duration::from_millis(1500));
-        let mut files_walker_paths = delivered_paths(&files_walker_events);
-        files_walker_paths.sort();
-        assert_eq!(files_walker_paths.len(), 1);
-        assert!(files_walker_paths[0].ends_with("public.md"));
-
-        // rg legs (availability-guarded, canon skip marker): content AND
-        // files mode must filter identically outside a git repository.
-        if !rg_available() {
+        // One shared fixture-builder, parameterized over repository
+        // presence: the no-git instance is the parity row (all four legs —
+        // content walker, content rg, files walker, files rg — must filter
+        // identically); the with-git instance is the companion recording
+        // that inside a repository nothing changes on either engine. The
+        // bare .git entry is the same presence heuristic the ignore crate
+        // and rg consult; no git binary invocation, no PATH mutation.
+        let build_gitignore_fixture = |with_git: bool| -> TempDir {
+            let dir = TempDir::new().unwrap();
+            if with_git {
+                std::fs::create_dir(dir.path().join(".git")).unwrap();
+            }
+            write(dir.path().join(".gitignore"), "secret.md\n").unwrap();
+            write(dir.path().join("secret.md"), "needle\n").unwrap();
+            write(dir.path().join("public.md"), "needle\n").unwrap();
+            dir
+        };
+        let with_rg = rg_available();
+        if !with_rg {
             safe_eprintln!("[test][skip] rg binary not on PATH");
-            return;
         }
-        {
+        for with_git in [false, true] {
+            let dir = build_gitignore_fixture(with_git);
+            let leg_note = if with_git {
+                "inside a git repository nothing changes on either engine"
+            } else {
+                "outside a git repository every leg must filter identically"
+            };
+            let opts = SearchOptions::default();
+
+            // Content walker leg (always).
+            let (total_w, kind_w, rx_w) = run_session_one_root(
+                "s-gi-walker",
+                dir.path(),
+                "needle",
+                &opts,
+                Arc::new(AtomicBool::new(false)),
+            );
+            assert_eq!(kind_w, "complete", "{leg_note}");
+            assert_eq!(
+                total_w, 1,
+                "walker filters the gitignored file ({leg_note})"
+            );
+            let events_w = collect_until_terminal(&rx_w, Duration::from_secs(2));
+            assert!(
+                events_w
+                    .iter()
+                    .any(|e| e.hits.iter().any(|h| h.path.ends_with("public.md"))),
+                "the sibling must be present ({leg_note})"
+            );
+            assert!(
+                !events_w
+                    .iter()
+                    .any(|e| e.hits.iter().any(|h| h.path.ends_with("secret.md"))),
+                "the gitignored file must be absent ({leg_note})"
+            );
+
+            // Files-mode walker leg (always).
+            let (pfw_total, pfw_kind, pfw_rx) = run_session_files_one_root(
+                "s-gi-files-walker",
+                dir.path(),
+                &opts,
+                Arc::new(AtomicBool::new(false)),
+            );
+            assert_eq!(pfw_kind, "complete", "{leg_note}");
+            assert_eq!(
+                pfw_total, 1,
+                "files-mode walker filters the gitignored file too ({leg_note})"
+            );
+            let files_walker_events =
+                collect_all(&pfw_rx, Duration::from_millis(400), Duration::from_millis(1500));
+            let mut files_walker_paths = delivered_paths(&files_walker_events);
+            files_walker_paths.sort();
+            assert_eq!(files_walker_paths.len(), 1, "{leg_note}");
+            assert!(files_walker_paths[0].ends_with("public.md"), "{leg_note}");
+
+            // rg legs (availability-guarded, canon skip marker): identical
+            // expectations on the same fixture.
+            if !with_rg {
+                continue;
+            }
             let (total_r, kind_r, rx_r) = run_session_one_root_rg(
                 "s-gi-rg",
                 dir.path(),
@@ -4674,36 +4781,34 @@ mod tests {
                 &opts,
                 Arc::new(AtomicBool::new(false)),
             );
-            assert_eq!(kind_r, "complete");
+            assert_eq!(kind_r, "complete", "{leg_note}");
             assert_eq!(
                 total_r, total_w,
-                "IDENTICAL content result set outside a git repository — rg must honor .gitignore exactly like the walker"
+                "IDENTICAL content result set — rg must honor .gitignore exactly like the walker ({leg_note})"
             );
             let events_r = collect_until_terminal(&rx_r, Duration::from_secs(2));
             assert!(
                 !events_r
                     .iter()
                     .any(|e| e.hits.iter().any(|h| h.path.ends_with("secret.md"))),
-                "the gitignored file must be absent on the rg content leg too"
+                "the gitignored file must be absent on the rg content leg too ({leg_note})"
             );
             assert!(
                 events_r
                     .iter()
                     .any(|e| e.hits.iter().any(|h| h.path.ends_with("public.md"))),
-                "the sibling must be present on the rg content leg"
+                "the sibling must be present on the rg content leg ({leg_note})"
             );
-        }
-        {
             let (total_rf, kind_rf, rx_rf) = run_session_files_one_root_rg(
                 "s-gi-files-rg",
                 dir.path(),
                 &opts,
                 Arc::new(AtomicBool::new(false)),
             );
-            assert_eq!(kind_rf, "complete");
+            assert_eq!(kind_rf, "complete", "{leg_note}");
             assert_eq!(
                 total_rf, pfw_total,
-                "IDENTICAL files-mode listing outside a git repository"
+                "IDENTICAL files-mode listing ({leg_note})"
             );
             let files_rg_events =
                 collect_all(&rx_rf, Duration::from_millis(400), Duration::from_millis(1500));
@@ -4711,40 +4816,9 @@ mod tests {
             files_rg_paths.sort();
             assert_eq!(
                 files_rg_paths, files_walker_paths,
-                "IDENTICAL path sets on both files-mode legs"
+                "IDENTICAL path sets on both files-mode legs ({leg_note})"
             );
         }
-
-        // Companion: INSIDE a git repository nothing changes on either
-        // engine. The fixture carries a bare .git directory — the same
-        // presence heuristic the ignore crate and rg consult for
-        // require_git; no git binary invocation, no PATH mutation.
-        let repo = TempDir::new().unwrap();
-        std::fs::create_dir(repo.path().join(".git")).unwrap();
-        write(repo.path().join(".gitignore"), "secret.md\n").unwrap();
-        write(repo.path().join("secret.md"), "needle\n").unwrap();
-        write(repo.path().join("public.md"), "needle\n").unwrap();
-        let (total_rw, kind_rw, _rx_rw) = run_session_one_root(
-            "s-gi-repo-walker",
-            repo.path(),
-            "needle",
-            &opts,
-            Arc::new(AtomicBool::new(false)),
-        );
-        assert_eq!(kind_rw, "complete");
-        assert_eq!(total_rw, 1, "inside git the walker filter is unchanged");
-        let (total_rr, kind_rr, _rx_rr) = run_session_one_root_rg(
-            "s-gi-repo-rg",
-            repo.path(),
-            "needle",
-            &opts,
-            Arc::new(AtomicBool::new(false)),
-        );
-        assert_eq!(kind_rr, "complete");
-        assert_eq!(
-            total_rr, total_rw,
-            "inside a git repository both engines filter identically"
-        );
     }
 
     #[test]
@@ -4806,347 +4880,230 @@ mod tests {
 
     #[test]
     fn engine_parity_hidden_and_excludes_across_legs() {
-        // Agreeing-row insurance suite: every row below already agrees on
-        // the pre-change tree; the pin keeps the implementation tasks from
-        // silently breaking an aligned row while the shared flag source is
-        // re-plumbed. Green before AND after by construction; each row is
-        // asserted identically on the walker leg (always) and the rg leg
-        // (availability-guarded).
+        // The agreeing-row insurance suite as table rows (T-005): one
+        // shared fixture-builder per row, identical expectations on both
+        // engines. Green before AND after by construction — the pin keeps
+        // the implementation tasks from silently breaking an aligned row
+        // while the shared flag source is re-plumbed.
+        let mut fixtures: Vec<(TempDir, Vec<ParityRow>)> = Vec::new();
 
         // Row: hidden files skipped by default.
-        let hidden_dir = TempDir::new().unwrap();
-        write(hidden_dir.path().join(".secret.md"), "needle\n").unwrap();
-        write(hidden_dir.path().join("public.md"), "needle\n").unwrap();
-        let hidden_opts = SearchOptions::default();
-
+        {
+            let dir = TempDir::new().unwrap();
+            write(dir.path().join(".secret.md"), "needle\n").unwrap();
+            write(dir.path().join("public.md"), "needle\n").unwrap();
+            fixtures.push((
+                dir,
+                vec![ParityRow {
+                    name: "hidden-default-skip",
+                    pattern: "needle",
+                    opts: SearchOptions::default(),
+                    expected_total: 1,
+                    expected_snippets: None,
+                    expected_absent: vec![".secret.md"],
+                    expected_present: vec!["public.md"],
+                    expected_partial: Some(false),
+                }],
+            ));
+        }
         // Row: include_hidden picks the dotfile up.
-        let dot_dir = TempDir::new().unwrap();
-        write(dot_dir.path().join(".secret.md"), "needle\n").unwrap();
-        let dot_opts = SearchOptions {
-            include_hidden: Some(true),
-            ..Default::default()
-        };
-
+        {
+            let dir = TempDir::new().unwrap();
+            write(dir.path().join(".secret.md"), "needle\n").unwrap();
+            fixtures.push((
+                dir,
+                vec![ParityRow {
+                    name: "include-hidden",
+                    pattern: "needle",
+                    opts: SearchOptions {
+                        include_hidden: Some(true),
+                        ..Default::default()
+                    },
+                    expected_total: 1,
+                    expected_snippets: None,
+                    expected_absent: vec![],
+                    expected_present: vec![".secret.md"],
+                    expected_partial: Some(false),
+                }],
+            ));
+        }
         // Row: exclusion masks — masked file absent, sibling present.
-        let excl_dir = TempDir::new().unwrap();
-        write(excl_dir.path().join("secret.md"), "needle\n").unwrap();
-        write(excl_dir.path().join("public.md"), "needle\n").unwrap();
-        let excl_opts = SearchOptions {
-            exclusions: Some(vec!["secret.md".to_string()]),
-            ..Default::default()
-        };
-
+        {
+            let dir = TempDir::new().unwrap();
+            write(dir.path().join("secret.md"), "needle\n").unwrap();
+            write(dir.path().join("public.md"), "needle\n").unwrap();
+            fixtures.push((
+                dir,
+                vec![ParityRow {
+                    name: "exclusion-mask",
+                    pattern: "needle",
+                    opts: SearchOptions {
+                        exclusions: Some(vec!["secret.md".to_string()]),
+                        ..Default::default()
+                    },
+                    expected_total: 1,
+                    expected_snippets: None,
+                    expected_absent: vec!["secret.md"],
+                    expected_present: vec!["public.md"],
+                    expected_partial: Some(true),
+                }],
+            ));
+        }
         // Row: invalid mask ignored + the honest partial flag.
-        let invalid_dir = TempDir::new().unwrap();
-        write(invalid_dir.path().join("a.md"), "needle\n").unwrap();
-        let invalid_opts = SearchOptions {
-            exclusions: Some(vec!["[".to_string()]),
-            ..Default::default()
-        };
-
+        {
+            let dir = TempDir::new().unwrap();
+            write(dir.path().join("a.md"), "needle\n").unwrap();
+            fixtures.push((
+                dir,
+                vec![ParityRow {
+                    name: "invalid-mask-ignored",
+                    pattern: "needle",
+                    opts: SearchOptions {
+                        exclusions: Some(vec!["[".to_string()]),
+                        ..Default::default()
+                    },
+                    expected_total: 1,
+                    expected_snippets: None,
+                    expected_absent: vec![],
+                    expected_present: vec![],
+                    expected_partial: Some(true),
+                }],
+            ));
+        }
         // Row: content-mode maxFileSize — the size-limited fixture yields
         // identically filtered results on both legs.
-        let size_dir = TempDir::new().unwrap();
-        write(size_dir.path().join("big.md"), "needle\n".repeat(20_000)).unwrap();
-        write(size_dir.path().join("small.md"), "needle\n").unwrap();
-        let size_opts = SearchOptions {
-            max_file_size: Some(1024),
-            ..Default::default()
-        };
-
-        // Row: follow_symlinks — default skips the symlink, follow picks
+        {
+            let dir = TempDir::new().unwrap();
+            write(dir.path().join("big.md"), "needle\n".repeat(20_000)).unwrap();
+            write(dir.path().join("small.md"), "needle\n").unwrap();
+            fixtures.push((
+                dir,
+                vec![ParityRow {
+                    name: "maxfilesize-content-row",
+                    pattern: "needle",
+                    opts: SearchOptions {
+                        max_file_size: Some(1024),
+                        ..Default::default()
+                    },
+                    expected_total: 1,
+                    expected_snippets: None,
+                    expected_absent: vec!["big.md"],
+                    expected_present: vec!["small.md"],
+                    expected_partial: Some(true),
+                }],
+            ));
+        }
+        // Rows: follow_symlinks — default skips the symlink, follow picks
         // both paths up (unix-gated symlink creation).
         #[cfg(unix)]
-        let (link_dir, link_default_total, link_follow_total) = {
+        {
             let dir = TempDir::new().unwrap();
             write(dir.path().join("real.md"), "needle\n").unwrap();
             std::fs::create_dir_all(dir.path().join("sub")).unwrap();
             std::os::unix::fs::symlink(dir.path().join("real.md"), dir.path().join("sub/link.md"))
                 .unwrap();
-            let default_opts = SearchOptions::default();
-            let (total_def, kind_def, _rx) = run_session_one_root(
-                "s-rows-follow-def-w",
-                dir.path(),
-                "needle",
-                &default_opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind_def, "complete");
-            assert_eq!(total_def, 1, "default: the symlink is not followed");
-            let follow_opts = SearchOptions {
-                follow_symlinks: Some(true),
-                ..Default::default()
-            };
-            let (total_fol, kind_fol, _rx) = run_session_one_root(
-                "s-rows-follow-on-w",
-                dir.path(),
-                "needle",
-                &follow_opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind_fol, "complete");
-            assert_eq!(total_fol, 2, "follow_symlinks: both paths deliver");
-            (dir, total_def, total_fol)
-        };
-
+            fixtures.push((
+                dir,
+                vec![
+                    ParityRow {
+                        name: "follow-symlinks-default",
+                        pattern: "needle",
+                        opts: SearchOptions::default(),
+                        expected_total: 1,
+                        expected_snippets: None,
+                        expected_absent: vec![],
+                        expected_present: vec![],
+                        expected_partial: Some(false),
+                    },
+                    ParityRow {
+                        name: "follow-symlinks-on",
+                        pattern: "needle",
+                        opts: SearchOptions {
+                            follow_symlinks: Some(true),
+                            ..Default::default()
+                        },
+                        expected_total: 2,
+                        expected_snippets: None,
+                        expected_absent: vec![],
+                        expected_present: vec![],
+                        expected_partial: Some(false),
+                    },
+                ],
+            ));
+        }
         // Row: whole-word.
-        let word_dir = TempDir::new().unwrap();
-        write(word_dir.path().join("a.md"), "cat catalog scattered\n").unwrap();
-        let word_opts = SearchOptions {
-            is_whole_word: Some(true),
-            ..Default::default()
-        };
-
-        // Row: literal and regex shapes (one match per line — the row pins
-        // pattern-semantics parity, not the recorded per-line delivery
+        {
+            let dir = TempDir::new().unwrap();
+            write(dir.path().join("a.md"), "cat catalog scattered\n").unwrap();
+            fixtures.push((
+                dir,
+                vec![ParityRow {
+                    name: "whole-word",
+                    pattern: "cat",
+                    opts: SearchOptions {
+                        is_whole_word: Some(true),
+                        ..Default::default()
+                    },
+                    expected_total: 1,
+                    expected_snippets: Some(vec!["cat catalog scattered".to_string()]),
+                    expected_absent: vec![],
+                    expected_present: vec![],
+                    expected_partial: Some(false),
+                }],
+            ));
+        }
+        // Rows: literal and regex shapes (one match per line — the rows
+        // pin pattern-semantics parity, not the recorded per-line delivery
         // divergence the #320 bounds supersede).
-        let lit_dir = TempDir::new().unwrap();
-        write(lit_dir.path().join("a.md"), "foo.bar\nfooXbar\n").unwrap();
-        let lit_opts = SearchOptions::default();
-        let regex_dir = TempDir::new().unwrap();
-        write(regex_dir.path().join("a.md"), "foo123\nbar456\n").unwrap();
-        let regex_opts = SearchOptions {
-            is_regexp: Some(true),
-            ..Default::default()
-        };
-
-        // Walker legs (always run).
         {
-            let (total, kind, rx) = run_session_one_root(
-                "s-rows-hidden-w",
-                hidden_dir.path(),
-                "needle",
-                &hidden_opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind, "complete");
-            assert_eq!(total, 1, "hidden: only the public file matches");
-            let events = collect_until_terminal(&rx, Duration::from_secs(2));
-            assert!(!events.iter().any(|e| e.hits.iter().any(|h| h.path.ends_with(".secret.md"))));
+            let dir = TempDir::new().unwrap();
+            write(dir.path().join("a.md"), "foo.bar\nfooXbar\n").unwrap();
+            fixtures.push((
+                dir,
+                vec![ParityRow {
+                    name: "literal-dot",
+                    pattern: "foo.bar",
+                    opts: SearchOptions::default(),
+                    expected_total: 1,
+                    expected_snippets: Some(vec!["foo.bar".to_string()]),
+                    expected_absent: vec![],
+                    expected_present: vec![],
+                    expected_partial: Some(false),
+                }],
+            ));
         }
         {
-            let (total, kind, rx) = run_session_one_root(
-                "s-rows-dot-w",
-                dot_dir.path(),
-                "needle",
-                &dot_opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind, "complete");
-            assert_eq!(total, 1);
-            let events = collect_until_terminal(&rx, Duration::from_secs(2));
-            assert!(events.iter().any(|e| e.hits.iter().any(|h| h.path.ends_with(".secret.md"))));
-        }
-        {
-            let (total, kind, rx) = run_session_one_root(
-                "s-rows-excl-w",
-                excl_dir.path(),
-                "needle",
-                &excl_opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind, "complete");
-            assert_eq!(total, 1, "exclusions: only the unmasked sibling matches");
-            let events = collect_until_terminal(&rx, Duration::from_secs(2));
-            assert!(!events.iter().any(|e| e.hits.iter().any(|h| h.path.ends_with("secret.md"))));
-            assert!(events.iter().any(|e| e.hits.iter().any(|h| h.path.ends_with("public.md"))));
-            assert_eq!(events.last().unwrap().partial, Some(true));
-        }
-        {
-            let (total, kind, rx) = run_session_one_root(
-                "s-rows-invalid-w",
-                invalid_dir.path(),
-                "needle",
-                &invalid_opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind, "complete");
-            assert_eq!(total, 1, "invalid mask filters nothing");
-            let events = collect_until_terminal(&rx, Duration::from_secs(2));
-            assert_eq!(events.last().unwrap().partial, Some(true));
-        }
-        {
-            let (total, kind, rx) = run_session_one_root(
-                "s-rows-size-w",
-                size_dir.path(),
-                "needle",
-                &size_opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind, "complete");
-            assert_eq!(total, 1, "maxFileSize: only the small file is searched");
-            let events = collect_until_terminal(&rx, Duration::from_secs(2));
-            assert!(!events.iter().any(|e| e.hits.iter().any(|h| h.path.ends_with("big.md"))));
-        }
-        {
-            let (total, kind, rx) = run_session_one_root(
-                "s-rows-word-w",
-                word_dir.path(),
-                "cat",
-                &word_opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind, "complete");
-            assert_eq!(total, 1, "whole-word: only the standalone word matches");
-        }
-        {
-            let (total, kind, rx) = run_session_one_root(
-                "s-rows-lit-w",
-                lit_dir.path(),
-                "foo.bar",
-                &lit_opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind, "complete");
-            assert_eq!(total, 1, "literal mode: the dot matches a literal dot only");
-            let events = collect_until_terminal(&rx, Duration::from_secs(2));
-            assert_eq!(delivered_snippets(&events), vec!["foo.bar".to_string()]);
-        }
-        {
-            let (total, kind, rx) = run_session_one_root(
-                "s-rows-regex-w",
-                regex_dir.path(),
-                r"\w+\d+",
-                &regex_opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind, "complete");
-            assert_eq!(total, 2, "regex mode: both tokens match");
+            let dir = TempDir::new().unwrap();
+            write(dir.path().join("a.md"), "foo123\nbar456\n").unwrap();
+            fixtures.push((
+                dir,
+                vec![ParityRow {
+                    name: "regex-shape",
+                    pattern: r"\w+\d+",
+                    opts: SearchOptions {
+                        is_regexp: Some(true),
+                        ..Default::default()
+                    },
+                    expected_total: 2,
+                    expected_snippets: Some(vec![
+                        "bar456".to_string(),
+                        "foo123".to_string(),
+                    ]),
+                    expected_absent: vec![],
+                    expected_present: vec![],
+                    expected_partial: Some(false),
+                }],
+            ));
         }
 
-        // rg legs (availability-guarded, canon skip marker): the same
-        // rows, identical expectations.
-        if !rg_available() {
+        let with_rg = rg_available();
+        if !with_rg {
             safe_eprintln!("[test][skip] rg binary not on PATH");
-            return;
         }
-        {
-            let (total, kind, rx) = run_session_one_root_rg(
-                "s-rows-hidden-r",
-                hidden_dir.path(),
-                "needle",
-                &hidden_opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind, "complete");
-            assert_eq!(total, 1, "rg hidden row must agree with the walker");
-            let events = collect_until_terminal(&rx, Duration::from_secs(2));
-            assert!(!events.iter().any(|e| e.hits.iter().any(|h| h.path.ends_with(".secret.md"))));
-        }
-        {
-            let (total, kind, rx) = run_session_one_root_rg(
-                "s-rows-dot-r",
-                dot_dir.path(),
-                "needle",
-                &dot_opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind, "complete");
-            assert_eq!(total, 1);
-            let events = collect_until_terminal(&rx, Duration::from_secs(2));
-            assert!(events.iter().any(|e| e.hits.iter().any(|h| h.path.ends_with(".secret.md"))));
-        }
-        {
-            let (total, kind, rx) = run_session_one_root_rg(
-                "s-rows-excl-r",
-                excl_dir.path(),
-                "needle",
-                &excl_opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind, "complete");
-            assert_eq!(total, 1, "rg exclusion row must agree with the walker");
-            let events = collect_until_terminal(&rx, Duration::from_secs(2));
-            assert!(!events.iter().any(|e| e.hits.iter().any(|h| h.path.ends_with("secret.md"))));
-            assert!(events.iter().any(|e| e.hits.iter().any(|h| h.path.ends_with("public.md"))));
-            assert_eq!(events.last().unwrap().partial, Some(true));
-        }
-        {
-            let (total, kind, rx) = run_session_one_root_rg(
-                "s-rows-invalid-r",
-                invalid_dir.path(),
-                "needle",
-                &invalid_opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind, "complete", "invalid mask must never reach rg");
-            assert_eq!(total, 1);
-            let events = collect_until_terminal(&rx, Duration::from_secs(2));
-            assert_eq!(events.last().unwrap().partial, Some(true));
-        }
-        {
-            let (total, kind, rx) = run_session_one_root_rg(
-                "s-rows-size-r",
-                size_dir.path(),
-                "needle",
-                &size_opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind, "complete");
-            assert_eq!(total, 1, "rg maxFileSize row must agree with the walker");
-            let events = collect_until_terminal(&rx, Duration::from_secs(2));
-            assert!(!events.iter().any(|e| e.hits.iter().any(|h| h.path.ends_with("big.md"))));
-        }
-        #[cfg(unix)]
-        {
-            let default_opts = SearchOptions::default();
-            let (total_def, kind_def, _rx) = run_session_one_root_rg(
-                "s-rows-follow-def-r",
-                link_dir.path(),
-                "needle",
-                &default_opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind_def, "complete");
-            assert_eq!(total_def, link_default_total, "rg follow-off row agrees");
-            let follow_opts = SearchOptions {
-                follow_symlinks: Some(true),
-                ..Default::default()
-            };
-            let (total_fol, kind_fol, _rx) = run_session_one_root_rg(
-                "s-rows-follow-on-r",
-                link_dir.path(),
-                "needle",
-                &follow_opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind_fol, "complete");
-            assert_eq!(total_fol, link_follow_total, "rg follow-on row agrees");
-        }
-        {
-            let (total, kind, rx) = run_session_one_root_rg(
-                "s-rows-word-r",
-                word_dir.path(),
-                "cat",
-                &word_opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind, "complete");
-            assert_eq!(total, 1, "rg whole-word row must agree with the walker");
-        }
-        {
-            let (total, kind, rx) = run_session_one_root_rg(
-                "s-rows-lit-r",
-                lit_dir.path(),
-                "foo.bar",
-                &lit_opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind, "complete");
-            assert_eq!(total, 1);
-            let events = collect_until_terminal(&rx, Duration::from_secs(2));
-            assert_eq!(delivered_snippets(&events), vec!["foo.bar".to_string()]);
-        }
-        {
-            let (total, kind, rx) = run_session_one_root_rg(
-                "s-rows-regex-r",
-                regex_dir.path(),
-                r"\w+\d+",
-                &regex_opts,
-                Arc::new(AtomicBool::new(false)),
-            );
-            assert_eq!(kind, "complete");
-            assert_eq!(total, 2);
+        for (dir, rows) in &fixtures {
+            for row in rows {
+                row.run_both_engines(dir.path(), with_rg);
+            }
         }
     }
 }
