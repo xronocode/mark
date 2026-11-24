@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved">
+<GraceChangeSpec graceVersion="4.0" status="applied">
   <C-RECENTS-SERIALIZE>
     <Name>Recents serialization: an encompassing store mutex over the recent-list read-modify-write, an unchanged-list write skip, and renderer-side serialization of every recents RMW so concurrent opens, save-all fan-outs and parallel folder additions all land on disk</Name>
     <Created>2026-11-23</Created>
