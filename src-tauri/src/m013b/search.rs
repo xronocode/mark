@@ -578,6 +578,29 @@ fn run_session_files_with_program(
 //   engine_parity_case_modes_across_legs (red on the pre-change tree: rg
 //   leg 1 variant vs walker 3; green once the case decision flows through
 //   resolve_engine_flags).
+//
+// GITIGNORE OUTSIDE GIT — identical inside and outside a repository:
+//   semantic: .gitignore sources are honored EVERYWHERE, plain folders
+//   included; inside a git repository nothing changes on either engine.
+//   walker anchors: the two require_git(false) sites (run_files_walker and
+//   run_search) — their long-standing "(matches ripgrep
+//   --no-require-git)" comments become true statements of delivered
+//   parity, with no walker line touched.
+//   rg anchors: START_BLOCK_BUILD_RIPGREP_COMMAND and
+//   START_BLOCK_BUILD_RIPGREP_FILES_COMMAND — both transports pass
+//   --no-require-git through resolve_engine_flags; no per-leg hardcoded
+//   gitignore flag remains outside the artifact.
+//   receipt: the failing-first
+//   engine_parity_gitignore_outside_git_across_legs (red on the
+//   pre-change tree: the walker legs filtered the gitignored file outside
+//   git while both rg legs did not; green now).
+//
+// IGNORE-FAMILY SWITCHES (already agreeing; documented with their
+// anchors): .ignore / .git_ignore / .git_global / .git_exclude resolve
+// from one respect_ignore value in both walker legs; rg honors .ignore
+// regardless of git presence (matching the walker's .ignore switch) and
+// passes --no-ignore on the same no_ignore option (both rg transports).
+// The no_ignore row keeps disabling ALL ignore sources on both engines.
 // END_BLOCK_ENGINE_PARITY_TABLE
 
 // START_CONTRACT: resolve_engine_flags
@@ -609,6 +632,11 @@ struct EngineFlags {
     /// Per-file size ceiling. The files-LISTING leg deliberately skips it
     /// — the documented files-mode size row (see the parity table).
     max_file_size: Option<u64>,
+    /// Gitignore-outside row (the walker canon, not option-derived):
+    /// honor .gitignore sources regardless of repository presence. The
+    /// walkers express it through their unconditional require_git(false)
+    /// lines; both rg transports deliver it as --no-require-git.
+    honor_gitignore_outside_git: bool,
 }
 
 fn resolve_engine_flags(opts: &SearchOptions) -> EngineFlags {
@@ -623,6 +651,9 @@ fn resolve_engine_flags(opts: &SearchOptions) -> EngineFlags {
         whole_word: opts.is_whole_word.unwrap_or(false),
         is_regexp: opts.is_regexp.unwrap_or(false),
         max_file_size: opts.max_file_size,
+        // The walker's require_git(false) canon (C-SEARCH-ENGINE-PARITY
+        // gitignore row): unconditional on both engines.
+        honor_gitignore_outside_git: true,
     }
 }
 
@@ -1214,6 +1245,13 @@ fn run_ripgrep_with_program(
     if flags.whole_word {
         cmd.arg("--word-regexp");
     }
+    // Gitignore row (C-SEARCH-ENGINE-PARITY): the walker's
+    // require_git(false) canon delivered on this transport — .gitignore
+    // sources are honored regardless of repository presence; inside a
+    // git repository nothing changes.
+    if flags.honor_gitignore_outside_git {
+        cmd.arg("--no-require-git");
+    }
     if flags.include_hidden {
         cmd.arg("--hidden");
     }
@@ -1517,6 +1555,12 @@ fn run_ripgrep_files_with_program(
     // no --max-filesize here (see the block comment above).
     let flags = resolve_engine_flags(opts);
     cmd.arg("--files");
+    // Gitignore row (C-SEARCH-ENGINE-PARITY): the walker's
+    // require_git(false) canon delivered on the listing transport too —
+    // .gitignore sources are honored regardless of repository presence.
+    if flags.honor_gitignore_outside_git {
+        cmd.arg("--no-require-git");
+    }
     if flags.include_hidden {
         cmd.arg("--hidden");
     }
