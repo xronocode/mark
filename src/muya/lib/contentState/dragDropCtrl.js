@@ -1,3 +1,18 @@
+// FILE: src/muya/lib/contentState/dragDropCtrl.js
+// VERSION: 1.0.0
+// START_MODULE_CONTRACT
+//   PURPOSE: ContentState drag-and-drop behavior — dragover ghost creation, dragleave cleanup, and drop handling for web-link images and local image files.
+//   SCOPE: Prototype methods installed on ContentState (hideGhost, createGhost, dragoverHandler, dragleaveHandler, dropHandler); no DOM rendering of its own. Local divergence from the upstream marktext/muya algorithm (C-MUYA-MODEL-SURGERY, recorded per the local divergence policy): the dropHandler file branch is confirmed-or-rolled-back (insert-after-confirm) — muya.options.imageAction runs before any document-model write, a rejection inserts nothing, restores the captured dropAnchor, leaves the cursor at its pre-drop position and emits one muya-image-action-failed event carrying { id, error } only; the web-link branch keeps the upstream algorithm.
+//   DEPENDS: muya config regexes (URL_REG, IMAGE_EXT_REG), muya selection/utils (findNearestParagraph, findOutMostParagraph, verticalPositionInRect, getUniqueId, getImageInfo, checkImageContentType), window.electron.webUtils.
+//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   default - dragDropCtrl modifier: installs the drag-and-drop prototype methods on ContentState.
+// END_MODULE_MAP
+
 import { findNearestParagraph, findOutMostParagraph } from '../selection/dom'
 import {
   verticalPositionInRect,
@@ -151,26 +166,41 @@ const dragDropCtrl = (ContentState) => {
         const { name } = image
         const path = window.electron.webUtils.getPathForFile(image)
         const id = `loading-${getUniqueId()}`
-        const text = `![${id}](${path})`
-        const imageBlock = this.createBlockP(text)
-        const { anchor, position } = dropAnchor
-        if (position === 'up') {
-          this.insertBefore(imageBlock, anchor)
-        } else {
-          this.insertAfter(imageBlock, anchor)
-        }
 
-        const key = imageBlock.children[0].key
-        const offset = 0
-        this.cursor = {
-          start: { key, offset },
-          end: { key, offset },
-          isEdit: true
-        }
-        this.render()
-
+        // C-MUYA-MODEL-SURGERY: insert-after-confirm — imageAction runs
+        // before any document-model write, so a rejection writes nothing, the
+        // captured dropAnchor is restored and the cursor stays at its
+        // pre-drop position; the failure surfaces as one engine-clean
+        // `muya-image-action-failed` event carrying { id, error } only.
+        let newSrc = null
+        let confirmed = false
         try {
-          const newSrc = await this.muya.options.imageAction(path, id, name)
+          newSrc = await this.muya.options.imageAction(path, id, name)
+          confirmed = true
+        } catch (error) {
+          this.dropAnchor = dropAnchor
+          this.muya.eventCenter.dispatch('muya-image-action-failed', { id, error })
+        }
+
+        if (confirmed) {
+          const text = `![${id}](${path})`
+          const imageBlock = this.createBlockP(text)
+          const { anchor, position } = dropAnchor
+          if (position === 'up') {
+            this.insertBefore(imageBlock, anchor)
+          } else {
+            this.insertAfter(imageBlock, anchor)
+          }
+
+          const key = imageBlock.children[0].key
+          const offset = 0
+          this.cursor = {
+            start: { key, offset },
+            end: { key, offset },
+            isEdit: true
+          }
+          this.render()
+
           const { src } = getImageSrc(path)
           if (src) {
             this.stateRender.urlMap.set(newSrc, src)
@@ -184,9 +214,6 @@ const dragDropCtrl = (ContentState) => {
               src: newSrc
             })
           }
-        } catch (error) {
-          // TODO: Notify user about an error.
-          console.error('Unexpected error on image action:', error)
         }
       }
       this.muya.eventCenter.dispatch('stateChange')

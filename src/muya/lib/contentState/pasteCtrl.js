@@ -1,7 +1,7 @@
 // FILE: src/muya/lib/contentState/pasteCtrl.js
-// VERSION: 1.2.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
-//   PURPOSE: ContentState paste behavior — plain/markdown/HTML clipboard import, clipboard image insertion, and the URL-over-selection smart paste.
+//   PURPOSE: ContentState paste behavior — plain/markdown/HTML clipboard import, clipboard image insertion, and the URL-over-selection smart paste. Image insertion is confirmed-or-rolled-back (insert-after-confirm): muya.options.imageAction runs before any document-model write, and a rejection leaves the document byte-identical and emits one muya-image-action-failed event carrying { id, error } only.
 //   SCOPE: Prototype methods installed on ContentState (checkPasteType, checkCopyType, standardizeHTML, insertImageFromPath, pasteImage, docPasteHandler, pasteHandler); no DOM rendering of its own.
 //   DEPENDS: muya config regexes, muya utils (sanitize/getUniqueId/getImageInfo/getPageTitle), DOMPurify via utils.
 //   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012; .grace/changes/archive/C-16; .grace/changes/archive/C-24.
@@ -15,6 +15,7 @@
 //
 // START_CHANGE_SUMMARY
 //   - (v1.0.0 implied: upstream pasteCtrl baseline, previously ungoverned.)
+//   - 2026-11-25 v1.4.0: C-MUYA-MODEL-SURGERY — START_BLOCK_INSERT_IMAGE_FROM_PATH and the pasteImage bitmap branch became insert-after-confirm: muya.options.imageAction (and the local FileReader read) run before any document-model write, a rejection leaves the document byte-identical (no loading/empty-src token, no urlMap entry, no cursor move, no history step) and emits one muya-image-action-failed event carrying { id, error } only; the TODO/console.error acknowledgment is gone and the return codes (null / '' / path|file) are unchanged — an image-action failure still ends the paste, now without residue.
 //   - 2026-11-17 v1.3.0: C-PASTE-ASCII-TABLES — START_BLOCK_SMART_PASTE_ASCII_TABLE converts a detected terminal-rendered plain-text table (box borders or rule-aligned columns) into a GFM pipe table before markdownToState on the normal path only; pasteAsPlainText and special surfaces keep raw text.
 //   - 2026-10-13 v1.2.0: C-24 R-4 — the local-path image branch of pasteImage became START_BLOCK_INSERT_IMAGE_FROM_PATH (insertImageFromPath), reused by the Tauri file drop; an image-action failure still ends the paste.
 //   - 2026-09-21 v1.1.0: C-16 R-1 — START_BLOCK_SMART_PASTE_URL wraps a non-empty single-block selection as [text](url) before the Firefox URL→anchor special case; SMART_PASTE_URL_REG accepts bare hosts (URL_REG's mandatory /path rejected the most common clipboard form); link labels escape brackets/backslashes and flatten soft breaks, and URLs containing parentheses are declined so the CommonMark destination cannot be truncated; special surfaces (code/language/table cells) and pasteAsPlainText keep their own handling.
@@ -163,6 +164,12 @@ const pasteCtrl = (ContentState) => {
   // Tauri file drop (mt::drop-image, C-24 R-4). Returns the path when
   // inserted, '' when the image action failed (handled, nothing more to try) and
   // null when the input is not a local image path.
+  //
+  // C-MUYA-MODEL-SURGERY: insert-after-confirm — imageAction runs before any
+  // document-model write, so a rejection leaves the document byte-identical
+  // (no loading token, no urlMap entry, no cursor move, no history step) and
+  // surfaces as one engine-clean `muya-image-action-failed` event carrying
+  // { id, error } only. Return codes are unchanged (C-24 callers).
   ContentState.prototype.insertImageFromPath = async function (imagePath, alt = '') {
     if (!imagePath || typeof imagePath !== 'string' || !IMAGE_EXT_REG.test(imagePath)) {
       return null
@@ -174,8 +181,20 @@ const pasteCtrl = (ContentState) => {
       return ''
     }
     const id = `loading-${getUniqueId()}`
-    if (this.selectedImage) {
-      this.replaceImage(this.selectedImage, {
+    // Capture the pre-await selection so the post-confirm write keeps the
+    // replace/insert branch semantics of the selection at call time.
+    const selectedImage = this.selectedImage
+
+    let newSrc = null
+    try {
+      newSrc = await this.muya.options.imageAction(imagePath, id)
+    } catch (error) {
+      this.muya.eventCenter.dispatch('muya-image-action-failed', { id, error })
+      return ''
+    }
+
+    if (selectedImage) {
+      this.replaceImage(selectedImage, {
         alt: id,
         src: imagePath
       })
@@ -184,15 +203,6 @@ const pasteCtrl = (ContentState) => {
         alt: id,
         src: imagePath
       })
-    }
-
-    let newSrc = null
-    try {
-      newSrc = await this.muya.options.imageAction(imagePath, id)
-    } catch (error) {
-      // TODO: Notify user about an error.
-      console.error('Unexpected error on image action:', error)
-      return ''
     }
 
     const { src } = getImageSrc(imagePath)
@@ -229,9 +239,32 @@ const pasteCtrl = (ContentState) => {
 
     // handle paste to create inline image
     if (file) {
+      // C-MUYA-MODEL-SURGERY: insert-after-confirm — imageAction and the
+      // local FileReader read both run before any document-model write, so a
+      // rejection writes nothing (no empty-src token, no urlMap entry, no
+      // wrapper residue) and surfaces as one engine-clean
+      // `muya-image-action-failed` event carrying { id, error } only. No
+      // reader continuation can resurrect a token, because every write sits
+      // behind the confirmed branch.
       const id = `loading-${getUniqueId()}`
-      if (this.selectedImage) {
-        this.replaceImage(this.selectedImage, {
+
+      let newSrc = null
+      try {
+        newSrc = await this.muya.options.imageAction(file, id)
+      } catch (error) {
+        this.muya.eventCenter.dispatch('muya-image-action-failed', { id, error })
+        return null
+      }
+
+      const base64 = await new Promise((resolve) => {
+        const reader = new FileReader()
+        reader.onload = (event) => resolve(event.target.result)
+        reader.readAsDataURL(file)
+      })
+
+      const selectedImage = this.selectedImage
+      if (selectedImage) {
+        this.replaceImage(selectedImage, {
           alt: id,
           src: ''
         })
@@ -242,41 +275,19 @@ const pasteCtrl = (ContentState) => {
         })
       }
 
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        const base64 = event.target.result
-        const imageWrapper = this.muya.container.querySelector(`span[data-id=${id}]`)
-        const imageContainer = this.muya.container.querySelector(
-          `span[data-id=${id}] .ag-image-container`
-        )
-        this.stateRender.urlMap.set(id, base64)
+      // Preview keyed through urlMap under the final src; no residual id key.
+      this.stateRender.urlMap.set(newSrc, base64)
+      const imageWrapper = this.muya.container.querySelector(`span[data-id=${id}]`)
+
+      if (imageWrapper) {
+        imageWrapper.classList.remove('ag-empty-image')
+        imageWrapper.classList.add('ag-image-success')
+        const imageContainer = imageWrapper.querySelector('.ag-image-container')
         if (imageContainer) {
-          imageWrapper.classList.remove('ag-empty-image')
-          imageWrapper.classList.add('ag-image-success')
           const image = document.createElement('img')
           image.src = base64
           imageContainer.appendChild(image)
         }
-      }
-      reader.readAsDataURL(file)
-
-      let newSrc = null
-      try {
-        newSrc = await this.muya.options.imageAction(file, id)
-      } catch (error) {
-        // TODO: Notify user about an error.
-        console.error('Unexpected error on image action:', error)
-        return null
-      }
-
-      const base64 = this.stateRender.urlMap.get(id)
-      if (base64) {
-        this.stateRender.urlMap.set(newSrc, base64)
-        this.stateRender.urlMap.delete(id)
-      }
-      const imageWrapper = this.muya.container.querySelector(`span[data-id=${id}]`)
-
-      if (imageWrapper) {
         const imageInfo = getImageInfo(imageWrapper)
         this.replaceImage(imageInfo, {
           src: newSrc

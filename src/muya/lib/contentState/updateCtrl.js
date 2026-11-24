@@ -1,3 +1,18 @@
+// FILE: src/muya/lib/contentState/updateCtrl.js
+// VERSION: 1.0.0
+// START_MODULE_CONTRACT
+//   PURPOSE: ContentState inline update behavior — a paragraph line's text is re-examined after each edit and the underlying block tree is converted in place (thematic break, bullet/order/task lists, ATX/Setext headings, blockquote, indent code, footnote, back to paragraph).
+//   SCOPE: Prototype methods installed on ContentState (checkSameMarkerOrDelimiter, checkNeedRender, checkInlineUpdate and the update* converters); no DOM rendering of its own. Local divergence from the upstream marktext/muya algorithm (C-MUYA-MODEL-SURGERY, recorded per the local divergence policy): updateTaskListItem is a direct structural conversion — the task item and the surrounding sibling lists are assembled in one ordered pass per list, with no created-then-discarded transient wrapper block and no remove-and-reinsert walk over already-placed blocks, while the delivered block-tree outcome (including today's sibling-list split for mixed lists) is unchanged.
+//   DEPENDS: muya parser tokenizer, muya utils (conflict), muya config regexes.
+//   LINKS: .grace/graph/runtime.xml M-012; .grace/verification/runtime.xml V-M-012.
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   default - updateCtrl modifier: installs the inline-update prototype methods on ContentState.
+// END_MODULE_MAP
+
 import { tokenizer } from '../parser/'
 import { conflict } from '../utils'
 
@@ -308,6 +323,25 @@ const updateCtrl = (ContentState) => {
     }
   }
 
+  // C-MUYA-MODEL-SURGERY: link one list's final children in a single ordered
+  // pass — the direct conversion below never removes and re-inserts an
+  // already-placed block to assemble a list.
+  const linkChildren = (list, children) => {
+    list.children = children
+    children.forEach((child, i) => {
+      child.parent = list.key
+      child.preSibling = i ? children[i - 1].key : null
+      child.nextSibling = i < children.length - 1 ? children[i + 1].key : null
+    })
+  }
+
+  // C-MUYA-MODEL-SURGERY: direct structural conversion. The checkbox and
+  // marker mutation stays immediate, but the surrounding list is rebuilt
+  // without transient surgery: every constructed block lands in the delivered
+  // tree (no created-then-discarded wrapper) and no already-placed block is
+  // removed and re-inserted. The delivered block-tree outcome matches the
+  // previous wrapper algorithm, including today's sibling-list split for
+  // mixed lists.
   ContentState.prototype.updateTaskListItem = function (block, type, marker = '') {
     const { preferLooseListItem } = this.muya.options
     const parent = this.getParent(block)
@@ -323,44 +357,36 @@ const updateCtrl = (ContentState) => {
     parent.listItemType = 'task'
     parent.isLooseListItem = preferLooseListItem
 
-    let taskListWrapper
+    let taskList = null
     if (this.isOnlyChild(parent)) {
       grandpa.listType = 'task'
-    } else if (this.isFirstChild(parent) || this.isLastChild(parent)) {
-      taskListWrapper = this.createBlock('ul', {
-        listType: 'task'
-      })
-
-      this.isFirstChild(parent)
-        ? this.insertBefore(taskListWrapper, grandpa)
-        : this.insertAfter(taskListWrapper, grandpa)
-      this.removeBlock(parent)
-      this.appendChild(taskListWrapper, parent)
     } else {
-      taskListWrapper = this.createBlock('ul', {
+      taskList = this.createBlock('ul', {
         listType: 'task'
       })
-
-      const bulletListWrapper = this.createBlock('ul', {
-        listType: 'bullet'
-      })
-
-      let preSibling = this.getPreSibling(parent)
-      while (preSibling) {
-        this.removeBlock(preSibling)
-        if (bulletListWrapper.children.length) {
-          const firstChild = bulletListWrapper.children[0]
-          this.insertBefore(preSibling, firstChild)
-        } else {
-          this.appendChild(bulletListWrapper, preSibling)
-        }
-        preSibling = this.getPreSibling(preSibling)
+      const isFirst = this.isFirstChild(parent)
+      if (isFirst || this.isLastChild(parent)) {
+        const index = this.findIndex(grandpa.children, parent)
+        grandpa.children.splice(index, 1)
+        linkChildren(grandpa, grandpa.children)
+        linkChildren(taskList, [parent])
+        isFirst ? this.insertBefore(taskList, grandpa) : this.insertAfter(taskList, grandpa)
+      } else {
+        const bulletList = this.createBlock('ul', {
+          listType: 'bullet'
+        })
+        // One splice detaches the preceding siblings together with the
+        // converting item; grandpa keeps the following siblings as today's
+        // bullet list, so the mixed list stays sibling lists with listType
+        // per ul.
+        const index = this.findIndex(grandpa.children, parent)
+        const taken = grandpa.children.splice(0, index + 1)
+        linkChildren(bulletList, taken.slice(0, -1))
+        linkChildren(taskList, [parent])
+        linkChildren(grandpa, grandpa.children)
+        this.insertBefore(bulletList, grandpa)
+        this.insertBefore(taskList, grandpa)
       }
-
-      this.removeBlock(parent)
-      this.appendChild(taskListWrapper, parent)
-      this.insertBefore(taskListWrapper, grandpa)
-      this.insertBefore(bulletListWrapper, taskListWrapper)
     }
 
     this.cursor = {
@@ -374,7 +400,7 @@ const updateCtrl = (ContentState) => {
       },
       isEdit: true
     }
-    return taskListWrapper || grandpa
+    return taskList || grandpa
   }
 
   // ATX heading doesn't support soft line break and hard line break.
