@@ -1,5 +1,5 @@
 // FILE: tests/e2e/unsaved-dialog-theme.spec.ts
-// VERSION: 2.0.0
+// VERSION: 2.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify the FIX-007 themed unsaved-changes confirmation — the teleported dialog follows the active dark theme instead of staying white; FIX-011 keeps the coverage on the new three-action unsavedCloseDialog surface with default/destructive styling asserted against the theme tokens.
 //   SCOPE: Dark-theme boot, dirty-tab close flow through the real store funnel (CLOSE_UNSAVED_TAB → askUnsavedClose), computed surface/title/action colours against the app theme tokens.
@@ -12,7 +12,12 @@
 //   resolveVar - Resolves a CSS variable through a hidden probe element the way the browser resolves it.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v2.0.0 - 2026-10-20 FIX-011
+//   LAST_CHANGE: v2.1.0 - 2026-11-25 (C-FOCUS-CANON-COMPLETE): the open
+//   dialog renders in the chrome font — the computed font-family of the
+//   box, the title and the Save & Close action must equal the resolved
+//   var(--chromeFontFamily) (the resolveVar probe gained the font kind);
+//   the FIX-007/FIX-011 colour assertions stay byte-identical.
+//   PREV: v2.0.0 - 2026-10-20 FIX-011
 //   (C-FIX-011-UNTITLED-CLOSE-ACTIONS): the dialog surface moved from
 //   ElMessageBox to the three-action unsavedCloseDialog; the dark-theme
 //   assertions now cover the dialog box, title and the default/destructive
@@ -24,13 +29,13 @@ import { test, expect, type Page } from '@playwright/test'
 import { installTauriShim } from './fixtures/tauri-shim'
 import { bootEditor, openFileTab } from './fixtures/helpers'
 
-async function resolveVar(page: Page, cssVar: string, kind: 'bg' | 'color'): Promise<string> {
-  return page.evaluate(({ v, k }: { v: string; k: 'bg' | 'color' }) => {
+async function resolveVar(page: Page, cssVar: string, kind: 'bg' | 'color' | 'font'): Promise<string> {
+  return page.evaluate(({ v, k }: { v: string; k: 'bg' | 'color' | 'font' }) => {
     const el = document.createElement('div')
-    el.style.cssText = `${k === 'bg' ? 'background' : 'color'}: var(${v}); position: absolute; visibility: hidden;`
+    el.style.cssText = `${k === 'bg' ? 'background' : k === 'font' ? 'font-family' : 'color'}: var(${v}); position: absolute; visibility: hidden;`
     document.body.appendChild(el)
     const cs = window.getComputedStyle(el)
-    const value = k === 'bg' ? cs.backgroundColor : cs.color
+    const value = k === 'bg' ? cs.backgroundColor : k === 'font' ? cs.fontFamily : cs.color
     el.remove()
     return value
   }, { v: cssVar, k: kind })
@@ -97,5 +102,19 @@ test.describe('unsaved-changes dialog theme (FIX-007)', () => {
     expect(saveColor).toBe(themeColor)
     expect(discardColor).toBe(deleteColor)
     expect(discardColor).not.toBe(saveColor)
+
+    // C-FOCUS-CANON-COMPLETE: the dialog renders in the chrome font — the
+    // computed stack of the box, the title and one action button must each
+    // equal the resolved var(--chromeFontFamily) value (C-38 list
+    // membership, not a local fork in unsavedCloseDialog.css).
+    const chromeFontFamily = await resolveVar(page, '--chromeFontFamily', 'font')
+    const [boxFontFamily, titleFontFamily, saveFontFamily] = await Promise.all([
+      page.evaluate(() => getComputedStyle(document.querySelector('.ag-unsaved-close-dialog') as HTMLElement).fontFamily),
+      page.evaluate(() => getComputedStyle(document.querySelector('.ag-unsaved-close-title') as HTMLElement).fontFamily),
+      page.evaluate(() => getComputedStyle(document.querySelector('.ag-unsaved-close-save') as HTMLElement).fontFamily)
+    ])
+    expect(boxFontFamily).toBe(chromeFontFamily)
+    expect(titleFontFamily).toBe(chromeFontFamily)
+    expect(saveFontFamily).toBe(chromeFontFamily)
   })
 })

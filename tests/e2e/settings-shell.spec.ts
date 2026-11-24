@@ -19,6 +19,7 @@ import { writeFile } from 'node:fs/promises'
 //   checkKeyboardFocus - Prove visible focus and unchanged control semantics from actual keyboard input.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   LAST_CHANGE: C-FOCUS-CANON-COMPLETE: the theme-parameterized shared-control group gains the class-completing routes — the Appearance theme tile (state probe anchored on .pref-theme-swatches, the toolbar-tab alternate-anchor path), the Appearance stepper button and the General button row; the harness helpers stay byte-identical.
 //   LAST_CHANGE: C-COMPACT-WINDOWS-FIT: the overflow walker now covers .pref-toolbar and .pref-toolbar * beside .pref-body * (toolbar scrollWidth at most innerWidth) and the harness gained the settings-toolbar-tab focus group (anchored on .pref-toolbar instead of a .pref-row).
 //   LAST_CHANGE: Add source-bound keyboard presentation regressions for actual Settings/Quick Settings consumers.
 // END_CHANGE_SUMMARY
@@ -148,7 +149,8 @@ for (const theme of ['paper', 'ink']) {
     const generalTargets = [
       ['switch-off', '.pref-switch[aria-checked="false"]'],
       ['switch-on', '.pref-switch[aria-checked="true"]'],
-      ['select', '.pref-popup:not([disabled])']
+      ['select', '.pref-popup:not([disabled])'],
+      ['button', '.pref-button:not([disabled])']
     ]
     for (const [label, selector] of generalTargets) {
       await general.click()
@@ -163,6 +165,20 @@ for (const theme of ['paper', 'ink']) {
       await appearance.click()
       await checkKeyboardFocus(page, page.locator(`.pref-tab-page--appearance ${selector}`).first(), info, `${theme}-${label}`, label === 'textbox-control')
     }
+    // C-FOCUS-CANON-COMPLETE: the class-completing routes. The tiles have
+    // no .pref-row ancestor — the state probe anchors on the swatches grid
+    // itself (the same alternate-anchor path as the settings-toolbar-tab
+    // group); the stepper rides the default row anchor.
+    await appearance.click()
+    await checkKeyboardFocus(
+      page, page.locator('.pref-tab-page--appearance .theme-family-tile[data-family="paper"]').first(), info,
+      `${theme}-theme-tile`, false, '.pref-theme-swatches'
+    )
+    await appearance.click()
+    await checkKeyboardFocus(
+      page, page.locator('.pref-tab-page--appearance .pref-stepper-btn:not([disabled])').first(), info,
+      `${theme}-stepper-button`
+    )
     // Independent pointer-first context: keyboard modality from the main
     // regression must not make this positive activation control pass.
     const pointerContext = await browser.newContext({ viewport: { width: 640, height: 620 } })

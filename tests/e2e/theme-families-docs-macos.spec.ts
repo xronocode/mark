@@ -231,7 +231,7 @@ test.describe('Docs and macOS theme families (C-51 T-007)', () => {
 
     // Manual light → the cycle's next state is Dark: the dark member of
     // the SAME family applies and the pie re-renders with its palette.
-    await page.locator('.titlebar-nav-btn[title*="Theme"]').first().click()
+    await page.locator('[data-testid="titlebar-theme-toggle"]').first().click()
     await expect(page.locator('body')).toHaveClass(/(^|\s)dark(\s|$)/, { timeout: 5_000 })
     await expect
       .poll(async () => (await pieFills(page))[0], { timeout: 30_000 })

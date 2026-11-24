@@ -171,7 +171,7 @@ async function bootTree(page: Page, state: TreeMocks, opts: { theme?: string } =
     // Auto → Light → Dark: click until the body carries the dark class.
     for (let i = 0; i < 3; i++) {
       if (await page.evaluate(() => document.body.classList.contains('dark'))) break
-      await page.locator('.titlebar-nav-btn[title*="Theme"]').first().click()
+      await page.locator('[data-testid="titlebar-theme-toggle"]').first().click()
       await page.waitForTimeout(250)
     }
     await page.waitForFunction(() => document.body.classList.contains('dark'))

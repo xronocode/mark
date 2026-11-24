@@ -24,7 +24,7 @@
 
 <script setup>
 // FILE: src/renderer/src/prefComponents/common/buttonRow/index.vue
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Settings button row (C-38 T-003) — label + optional help left, a mockup push button right (plain or destructive).
 //   SCOPE: Button rendering and click dispatch (onClick function prop, mirroring the onChange convention of the other controls).
@@ -39,6 +39,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-25 v1.1.0: C-FOCUS-CANON-COMPLETE — the push button carries
+//     the C-SETTINGS-KEYBOARD-FOCUS canon outline for keyboard focus only,
+//     completing the shared Settings control set; the `all: unset` base,
+//     the danger variant and the disabled state stay untouched.
 //   - 2026-10-15 v1.0.0: C-38 T-003 — new control for T-004 action rows (updates, shortcuts, extensions, reset); danger variant renders the destructive red.
 // END_CHANGE_SUMMARY
 
@@ -100,6 +104,14 @@ body.dark .pref-button-item.pref-button-item--danger .pref-button {
 
 .pref-button-item .pref-button:disabled {
   opacity: 0.45;
+}
+
+/* C-SETTINGS-KEYBOARD-FOCUS canon: visible only for keyboard focus
+   (C-FOCUS-CANON-COMPLETE — the push button of the General/Advanced
+   action rows completes the shared Settings control set). */
+.pref-button-item .pref-button:focus-visible {
+  outline: 2px solid var(--prefAccent);
+  outline-offset: 1px;
 }
 /* END_BLOCK_BUTTON_METRICS */
 </style>

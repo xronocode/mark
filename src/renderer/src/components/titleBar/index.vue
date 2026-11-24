@@ -86,6 +86,7 @@
           class="titlebar-nav-btn"
           role="button"
           tabindex="0"
+          data-testid="titlebar-theme-toggle"
           :aria-label="themeTooltip"
           :title="themeTooltip"
           @click.stop="handleThemeToggle"
@@ -152,6 +153,7 @@
           class="frameless-titlebar-button frameless-titlebar-theme"
           role="button"
           tabindex="0"
+          data-testid="titlebar-theme-toggle"
           :aria-label="themeTooltip"
           :title="themeTooltip"
           @click.stop="handleThemeToggle"
@@ -248,7 +250,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/titleBar/index.vue
-// VERSION: 2.5.2
+// VERSION: 2.5.3
 // START_MODULE_CONTRACT
 //   PURPOSE: Render the main-window title bar in the C-WINDOWS-TITLEBAR-ALIGNMENT amendment-5 state — Win/Linux keeps [☰][sidebar][⚙] … [title] … [share] with native Segoe caption glyphs and the theme toggle as a flush fourth caption cell; macOS keeps the minimal bar (native menu owns menu/settings, theme beside Share) — plus the C-40 T-002 document info popover (C-DOC-POPOVER-EXPORT-HUB: HIG-tightened, quick-export row PDF/Word/HTML on the File-menu commands), native file-path actions, window controls and drag affordances. The «?» guide button is gone on every platform (Help › Mark Guide covers it). C-PAGE-WIDTH-TABLES T-003: the quick-settings button («Aa» text glyph, quickSettings/index.vue — M-061) mounts in the right cluster between the mode chips and the theme button.
 //   SCOPE: Renderer-side titlebar behavior: sidebar toggle, app-menu popup and Settings window entry points (amendment 5 restored), the document info popover (stats + folder/size/modified + Rename/Reveal/Copy path + quick-export row), the win32-only Segoe MDL2/Fluent caption path with the drawn SVG fallback elsewhere, the caption-row theme cell, native title context menu, and WKWebView/macOS drag fallbacks. The quick-settings panel is a self-contained child component (open/close, tabs, palette) — this file only mounts it and hands over the active pathname.
@@ -286,6 +288,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-25 v2.5.3 C-FOCUS-CANON-COMPLETE: both theme-toggle variants
+//     (the macOS nav button and the Win/Linux caption cell) gain the
+//     locale-independent data-testid="titlebar-theme-toggle" e2e hook
+//     (the modeChips.vue convention) — eight e2e specs select the hook
+//     instead of the localized title/aria-label tooltips, which stay the
+//     human-facing labels exactly as they were; no handler or marker moves.
 //   - 2026-11-12 C-EXPORT-SETTINGS-SECTION-RECOVERY: PDF/HTML quick export captures remembered settings and opens Save directly.
 //   - 2026-11-09 v2.5.2: the bar's z-index rises 2 → 6 — muya's table
 //     side-wall handles (injected z-index 3) escaped to the root

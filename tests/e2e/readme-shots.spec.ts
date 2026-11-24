@@ -492,7 +492,7 @@ test.describe('README screenshots (C-53 R-2)', () => {
     // lights it when the boot theme alone did not).
     for (let i = 0; i < 3; i++) {
       if (await page.evaluate(() => document.body.classList.contains('dark'))) break
-      await page.locator('.titlebar-nav-btn[title*="Theme"]').first().click()
+      await page.locator('[data-testid="titlebar-theme-toggle"]').first().click()
       await page.waitForTimeout(250)
     }
     await expect(page.locator('body')).toHaveClass(/(^|\s)dark(\s|$)/, { timeout: 5_000 })

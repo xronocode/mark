@@ -97,7 +97,7 @@ async function openSettings (page: Page, route: string): Promise<void> {
 const activeTab = (page: Page) => page.locator('.pref-toolbar .pref-tab--active').getAttribute('data-tab')
 const row = (page: Page, label: string | RegExp) => page.locator('.pref-row', { has: page.locator('.pref-row-label', { hasText: label }) })
 const isDark = (page: Page) => page.evaluate(() => document.body.classList.contains('dark'))
-const themeButton = (page: Page) => page.locator('.titlebar-nav-btn[aria-label*="Theme"], .titlebar-nav-btn[title*="Theme"]').first()
+const themeButton = (page: Page) => page.locator('[data-testid="titlebar-theme-toggle"]').first()
 
 // ── C-41: title-bar Auto / Light / Dark ──────────────────────────────────
 

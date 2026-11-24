@@ -411,7 +411,7 @@ test.describe('rendered content follows the app theme (C-51 T-005)', () => {
     })
     expect(barFillBefore).not.toBe('none')
 
-    await page.locator('.titlebar-nav-btn[title*="Theme"]').first().click()
+    await page.locator('[data-testid="titlebar-theme-toggle"]').first().click()
     await expect(page.locator('body')).toHaveClass(/(^|\s)dark(\s|$)/, { timeout: 5_000 })
 
     await expect
