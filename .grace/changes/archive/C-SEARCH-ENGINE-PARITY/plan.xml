@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved">
+<GraceChangePlan graceVersion="4.0" status="applied">
   <C-SEARCH-ENGINE-PARITY>
     <Name>Engine parity for the search zone — one semantic table, one flag source, explicit case mode, gitignore outside git, boundary-safe truncation — implementation plan</Name>
     <ChangeRef>C-SEARCH-ENGINE-PARITY</ChangeRef>
