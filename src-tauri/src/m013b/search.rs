@@ -1,10 +1,10 @@
 // FILE: src-tauri/src/m013b/search.rs
-// VERSION: 2.6.0-beta
+// VERSION: 2.7.0-beta
 // START_MODULE_CONTRACT
 //   PURPOSE: Run cancellable content searches and stream bounded result batches to the renderer.
-//   SCOPE: Tauri search commands, rg JSON-process transport (exit-status honesty, bounded stderr capture, cancel watcher), embedded ignore/regex fallback, the files-mode session (mode "files": path-only walker leg without body reads, `rg --files` listing transport, shared inclusion/exclusion glob compilation, FILES_RESULT_CAP delivered-hits honesty), shared exclusion-mask compilation, search-session coordination (session-wide seq, exactly one terminal), cancellation, and search-event payloads (additive optional partial flag; additive optional honest matchStart/matchEnd hit bounds).
+//   SCOPE: Tauri search commands, rg JSON-process transport (exit-status honesty, bounded stderr capture, cancel watcher), embedded ignore/regex fallback, the files-mode session (mode "files": path-only walker leg without body reads, `rg --files` listing transport, shared inclusion/exclusion glob compilation, FILES_RESULT_CAP delivered-hits honesty), shared exclusion-mask compilation, search-session coordination (session-wide seq, exactly one terminal), cancellation, and search-event payloads (additive optional partial flag; additive optional honest matchStart/matchEnd hit bounds). C-SEARCH-ENGINE-PARITY: one documented engine-parity table (START_BLOCK_ENGINE_PARITY_TABLE) governs both engines across all four transport legs, resolve_engine_flags is the single flag source feeding both WalkBuilder chains and both rg command builders, the case mode is explicit-option-only (--smart-case removed), both rg transports pass --no-require-git (gitignore outside git honored identically to the walker), and the walker's snippet truncation is boundary-safe (floor_to_char_boundary floors the 1 MB byte cut to the last UTF-8 character boundary at or before the cap).
 //   DEPENDS: ignore, regex, serde_json, tauri, m010_security, m013b::error, m013b::state.
-//   LINKS: M-004, V-M-004, Phase-B2 step-4, C-SEARCH-SESSION-COMPLETION, C-SEARCH-ERROR-VISIBILITY, C-SEARCH-RESULT-CONTRACT, C-QUICKOPEN-FILES-MODE.
+//   LINKS: M-004, V-M-004, Phase-B2 step-4, C-SEARCH-SESSION-COMPLETION, C-SEARCH-ERROR-VISIBILITY, C-SEARCH-RESULT-CONTRACT, C-QUICKOPEN-FILES-MODE, C-SEARCH-ENGINE-PARITY.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -30,12 +30,15 @@
 //   compile_inclusion_masks - Shared whitelist-glob semantics for the files-mode name filter; invalid globs explicitly ignored.
 //   FILES_RESULT_CAP - Delivered path hits allowed per files-mode session.
 //   compile_exclusion_masks - Shared mask semantics for walker filtering and rg --glob=! args; invalid masks explicitly ignored.
+//   resolve_engine_flags - The single flag authority for the aligned rows of the engine-parity table: one EngineFlags resolution consumed by all four transport legs.
+//   floor_to_char_boundary - Floors the walker's 1 MB snippet byte cut to the last UTF-8 character boundary at or before the cap (boundary-safe truncation).
 //   mt_search_spawn - Validate and start an asynchronous rg-backed search (mode "files" dispatches to the files-mode session).
 //   mt_search_cancel - Cancel an in-flight search by id (flag flip; the terminal comes from the session coordinator).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2.6.0-beta - C-QUICKOPEN-FILES-MODE T-002: real files mode — mt_search_spawn dispatches the discriminator (START_BLOCK_FILES_MODE_DISPATCH) instead of discarding it; mode "files" runs the mirrored run_session_files(_with_program) session over the same coordinator/warm-up/registry/engine selection with a path-only walker leg (START_BLOCK_WALKER_PATH_LEG — no File::open, no line reading, no matcher) and the `rg --files` listing transport (START_BLOCK_BUILD_RIPGREP_FILES_COMMAND) inheriting #303's honesty machinery (bounded stderr capture, cancel watcher, 0/1-vs-error exit gate, injection seam); path-only SearchHits (line 0, column 0, empty snippet, wire-absent bounds) ride the existing match envelope so the #320 contract keeps working unchanged.
+//   LAST_CHANGE: 2.7.0-beta - C-SEARCH-ENGINE-PARITY T-001..T-006: engine parity across all four transport legs — one documented engine-parity table (START_BLOCK_ENGINE_PARITY_TABLE) over both engines; one shared flag source resolve_engine_flags (one START_CONTRACT) feeding both WalkBuilder chains and both rg command builders; case-mode unification: --smart-case removed (its pattern-dependent implicit mode overrode the renderer's explicit isCaseSensitive toggle on the rg leg only), explicit-option-only canon — explicit --case-sensitive on the toggle, explicit --ignore-case otherwise, the walker's build_matcher semantics unchanged as the canon; --no-require-git delivered on both rg transports through the shared flag source, making the walker legs' "(matches ripgrep --no-require-git)" comments true with no walker line touched; boundary-safe snippet truncation: floor_to_char_boundary floors the MAX_LINE_BYTES byte cut to the last UTF-8 character boundary at or before the cap, closing the recorded triple-debt entry (the UTF-8 truncation item named verbatim in the NonGoals of #303, #324 and #333), pinned by the failing-first Cyrillic/emoji walker_utf8_boundary_truncation_does_not_panic; the parameterized parity suite (ParityRow::run_both_engines — one fixture set, both engines, identical expectations per table row, walker leg always, rg leg availability-guarded) with the T-001 red receipts preserved as pre-change evidence; the files-mode size row resolved as documented divergence (walker metadata skip canon, rg listing not size-filtered, quickOpen never sends maxFileSize).
+//   PREVIOUS: 2.6.0-beta - C-QUICKOPEN-FILES-MODE T-002: real files mode — mt_search_spawn dispatches the discriminator (START_BLOCK_FILES_MODE_DISPATCH) instead of discarding it; mode "files" runs the mirrored run_session_files(_with_program) session over the same coordinator/warm-up/registry/engine selection with a path-only walker leg (START_BLOCK_WALKER_PATH_LEG — no File::open, no line reading, no matcher) and the `rg --files` listing transport (START_BLOCK_BUILD_RIPGREP_FILES_COMMAND) inheriting #303's honesty machinery (bounded stderr capture, cancel watcher, 0/1-vs-error exit gate, injection seam); path-only SearchHits (line 0, column 0, empty snippet, wire-absent bounds) ride the existing match envelope so the #320 contract keeps working unchanged.
 //   PREVIOUS: 2.5.0-beta - C-SEARCH-RESULT-CONTRACT T-001/T-002: SearchHit grows two additive optional match-bound fields (matchStart/matchEnd, wire-absent via skip_serializing_if) — the first submatch's span within the DELIVERED snippet text, in UTF-16 code-unit offsets (0-based start, exclusive end; the renderer substring index space) computed by one shared byte_offset_to_utf16_units conversion; filled by BOTH engines (rg --json first-submatch start/end replacing the reserved pattern_len placeholder, embedded walker match span), honest-or-absent when the match is not fully inside the delivered snippet (walker byte truncation; defensively for rg too); legacy column per-leg values untouched.
 //   PREVIOUS: 2.4.0-beta - C-SEARCH-ERROR-VISIBILITY T-001/T-003: rg honesty and prompt cancel settle — stderr piped with a bounded START_BLOCK_RIPGREP_STDERR_CAPTURE tail (BLOCK log only, never the wire error), child exit status reaped and checked (0/1 normal, >=2 the single "rg exited with code N" error class), START_BLOCK_CANCEL_WATCHER thread kills+waits a silent child without needing a stdout line, compile_exclusion_masks applied symmetrically (walker filter + rg --glob=! args; invalid masks explicitly ignored), additive optional SearchEvent.partial with finalize(terminal, error, partial) computed conservatively in run_session.
 //   PREVIOUS: 2.3.0-beta - C-SEARCH-SESSION-COMPLETION T-001: SearchSessionCoordinator owns the session-wide seq and the single terminal (complete/cancelled/error); run_search/run_ripgrep emit match batches only, run_session finalizes exactly once across all roots and both engines — no per-root terminals, no seq restart.
@@ -4464,8 +4467,9 @@ mod tests {
     //     legs filter the gitignored file outside a git repository while
     //     both rg legs do not (result-set mismatch on the rg legs);
     // (c) walker_utf8_boundary_truncation_does_not_panic — the raw byte
-    //     slice at MAX_LINE_BYTES panics inside a multi-byte character
-    //     (red by panic);
+    //     slice at the 1 MB cap (the pre-fix snippet construction, a byte
+    //     offset cut with no boundary floor) panicked inside a multi-byte
+    //     character (red by panic);
     // (d) engine_parity_hidden_and_excludes_across_legs — the
     //     agreeing-row insurance suite, green before AND after by
     //     construction so the implementation tasks cannot silently break
@@ -4826,11 +4830,11 @@ mod tests {
         // The byte cut at MAX_LINE_BYTES lands inside a multi-byte
         // character: 1-byte filler up to MAX_LINE_BYTES - 1, then Cyrillic
         // letters (2 bytes each — the first one straddles the cap), an
-        // emoji (4 bytes) and the needle after the cut. Today the raw
-        // slice `&line[..MAX_LINE_BYTES.min(line.len())]` panics; the
-        // session must complete instead, deliver the hit with the
-        // truncated flag and the ellipsis marker, valid UTF-8 only, and
-        // honest-or-absent bounds per the #320 rule.
+        // emoji (4 bytes) and the needle after the cut. On the pre-change
+        // tree the raw byte slice at the cap (with no boundary floor)
+        // panicked; the session must complete instead, deliver the hit
+        // with the truncated flag and the ellipsis marker, valid UTF-8
+        // only, and honest-or-absent bounds per the #320 rule.
         let mut line = "x".repeat(MAX_LINE_BYTES - 1);
         line.push_str("бб"); // 4 bytes: the cut at MAX_LINE_BYTES lands inside the first б
         line.push_str("🙂🙂"); // astral-plane content after the cut
