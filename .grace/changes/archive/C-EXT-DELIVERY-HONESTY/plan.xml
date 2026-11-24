@@ -1,0 +1,447 @@
+<GraceChangePlan graceVersion="4.0" status="applied">
+  <C-EXT-DELIVERY-HONESTY>
+    <ChangeRef>C-EXT-DELIVERY-HONESTY</ChangeRef>
+    <Created>2026-11-23</Created>
+    <IntentSummary>Make M-045's delivery and publication honest at its three failure surfaces without touching a wire shape or the renderer: (1) honest open — a doc_open whose frontend emission fails rolls the just-stored session back to the exact pre-open guard value (None on a plain fresh open, Some(inactive) on a fresh open after close/timeout, the replaced session on a same-session resync), refuses the open with a distinct logged 500-class plain {"error": ...} answer instead of the current 200 accepted:true over an undelivered stream, and retires the consumed epoch without reusing it, while the success path keeps the exact 200 contract and the existing event; (2) bounded, surfaced endpoint publication — the live-endpoint.json write moves into a bounded retry helper beside the endpoint file I/O with named attempt-count and pause constants and an injected writer, every retried attempt distinctly logged, exhaustion ending in a "running but unpublished" final state textually distinct from BLOCK_START_FAILED, and a first-attempt success behaving exactly as today; (3) bounded, sanitized invoke errors — every InvokeError.message clamped under a named constant, the extension-controlled BadStatus body control-neutralized and truncated with an explicit original-size marker before it reaches the journal through Display, and the renderer-facing mt_ext_invoke error for BadStatus composed without the body (class, HTTP status, body-withheld note). Proven by failing-first doc_open refusal pins (fresh-open None, fresh-open-after-close Some(inactive), resync restoration, epoch non-reuse, 200 success control), failing-first endpoint publish pins (transient success, exhaustion, first-attempt control) driven by the injected writer, failing-first invoke body-bound and renderer-withholding pins, and the unchanged predecessor suites named by the spec with zero moved pins.</IntentSummary>
+    <ReferenceState>Authored 2026-11-23 against the current read-only state of the green-ext4 worktree (branch spec/ext-delivery-honesty, base 1dbe9bb9, all landed predecessor waves merged: C-SEC-EXT-GRANT-BOUND, C-EXT-EDIT-PROOF, C-EXT-TRUST-COHERENCE). src-tauri/src/m045_ext/live_server.rs: pub(super) async fn handle_doc_open (1398-1564) authenticates via authenticate_stream under the stream fence (1403), takes registry.stream_gate (1409), re-checks enabled under the session lock with the plain 401 "extension is not enabled" (1417-1419), classifies via decide_open (1421-1453: ForeignOwner 409 without disclosure, Conflict 409 with existing_session_id, ReplaceSameSession resync log BLOCK_DOC_OPEN_RESYNC, FreshOpen), builds sections/document_md (1455-1466), applies the C-STREAM-BUDGET refusals — section cap then byte cap, 413 with budget and cap named, zero mutation (1475-1512, pure counts STREAM_BUDGET_MAX_SECTIONS/STREAM_BUDGET_TOTAL_BYTES) — consumes the monotonic epoch state.next_epoch.fetch_add(1, Ordering::Relaxed) (1515), charges the fresh budget once (1520-1521), builds the LiveSession (1522-1533), stores it (1535), emits doc_open via super::live_bridge::emit_doc_open (1540-1546) and on emit failure ONLY logs BLOCK_DOC_OPEN_EMIT_FAILED reason={e} (1547-1549) before falling through to the BLOCK_DOC_OPEN_OK log (1552-1555) and the 200 DocOpenResponse {accepted: true, revision: 1} answer (1557-1563) — the STREAM-INVISIBLE lie: the response anchor is 1557-1563; 1552-1555 is only the OK log. The pure core decide_open (684-693) over OpenDecision (670-682): None → FreshOpen, Some(s) if !s.active → FreshOpen (the fresh-open-after-close-or-heartbeat-timeout shape — the pre-open session value there is Some(inactive), never None), foreign owner → ForeignOwner, same id → ReplaceSameSession, else Conflict. The LiveSession budget field carries the C-STREAM-BUDGET contract "a refusal leaves it untouched" (250-253). LiveServerState (270-279): session Mutex&lt;Option&lt;LiveSession&gt;&gt;, next_epoch AtomicU64, app_handle, pending_context std::sync::Mutex. The file's 500-class plain-error precedents: "pairing state unavailable" (1178-1182), "pairing grant state unavailable" (1212-1216), context emit-failed (2066-2069) and context channel-closed (2122-2125). Mid-stream emit failures stay log-only today and must stay so: doc_patch (1789-1801, BLOCK_DOC_PATCH_EMIT_FAILED 1799), doc_close (1871-1882, 1879), heartbeat-timeout close (2574-2586). src-tauri/src/m045_ext/live_bridge.rs: the single emit point emit_live_update (59-73, BLOCK_EMIT/BLOCK_EMIT_FAILED) through which emit_doc_open (80-96), emit_doc_patch (99-117), emit_doc_close (120-134) and emit_context_request (139-156) all travel; no test seam exists today. src-tauri/src/m045_ext/live_endpoint.rs: write_endpoint (86-127) inside START_BLOCK_WRITE — serialize (BLOCK_SERIALIZE_FAILED), atomic tmp write (BLOCK_WRITE_TMP_FAILED) + rename (BLOCK_RENAME_FAILED with temp cleanup), success BLOCK_WRITE_OK (119-124); endpoint_path/endpoint_path_for_data_root (57-78); cleanup_endpoint (135-167), check_stale (177-210) and is_pid_alive (217-251) — all untouched by this change; make_endpoint (258-300); a cfg(test) profile_namespace_tests module (355-368). src-tauri/src/m045_ext/invoke.rs: InvokeErrorKind (60-69: CapabilityNotFound, RequestFailed, BadStatus, InvalidResponse) and Display (71-75, "{:?}: {message}" — the journal voice); retry_after_wait (92-100) and the C-EXT-EDIT-PROOF retry/idempotency policy (untouched); invoke_extension (109-246): BadStatus arm reads let body_text = resp.text().await.unwrap_or_default() (219) and composes format!("HTTP {status}: {body_text}") (224-227) — the ERRBODY-UNFILTERED anchor: unbounded, control-bearing, foreign; the other InvokeError constructions are CapabilityNotFound (125-131), URL refused (134-138), client-build failed (146-155), response parse failed (178-187) and request failed (240-243). src-tauri/src/m045_ext/mod.rs: mt_ext_invoke (279-305) logs BLOCK_INVOKE_FAILED id/cap/reason={e} (297-299) and returns format!("{e}") (300) — the raw body-bearing Display reaches the renderer. src-tauri/src/main.rs: the in-source M-045 B5a setup block (817-852); the LiveServerState literal is 823-828 (822 is the Arc::new line) with the inferred HashMap::new() pending_context; the spawn (835-851) on start_live_server Ok(port) makes the endpoint and performs exactly ONE write_endpoint call (838-843) with log-only BLOCK_ENDPOINT_WRITE_FAILED (840-843), and on Err logs BLOCK_START_FAILED (845-849) — log-only one-shots, no retry. src-tauri/src/m045_ext/tests.rs: the fixture builds LiveServerState with next_epoch from 1 (1084-1090) and listens on mt::live::update (1091-1095); the doc_open request patterns are stream_open_fixture (2876-2882, handler call 2881), the budget family budget_open/budget_open_sections (3031-3045, handler calls 3035/3043) and stream_route_fixture (2884-2893); budget_body (3068-3071) reads response bodies; the loopback invoke harness fixture_listener/serve_fixture/serve_scripted (START_BLOCK_LOOPBACK_URL_TESTS) drives real TCP answers. Predecessor pins that must keep meaning with zero moved pins: invoke_honest_loopback_ok (2680), probe_health_honest_loopback_ok (2696), invoke_redirect_response_not_followed (2708, asserts only .kind), invoke_carries_stable_idempotency_key_across_retries (2794), invoke_retries_429_once_honoring_retry_after (2817), invoke_retry_after_over_ceiling_waits_no_longer_than_ceiling (2844), stream_foreign_owner_cannot_disclose_or_replace_session (2909), stream_authentication_cannot_cross_disable_or_session_replacement (2943, open leg 2959), stream_events_keep_ordered_identity_and_disable_only_closes_its_owner (2987, monotonic-epoch pin 3001-3003), stream_budget_open_refuses_over_total_bytes (3074) and the whole C-STREAM-BUDGET family. Read-only anchors: src/renderer/src/store/editor.js START_BLOCK_LIVE_DOCUMENT_OWNERSHIP (1655-1715) — OPEN_LIVE_DOCUMENT (1656-1682, null on a closing window, a stale or malformed epoch and a tab-factory failure), PATCH_LIVE_DOCUMENT (1684-1707, the binding-gated patch) and CLOSE_LIVE_DOCUMENT (1709-1714); src/renderer/src/components/liveViewer/index.vue — the fail-closed isLive gate (58-67: doc_open sets isLive only on a truthy OPEN_LIVE_DOCUMENT return, doc_patch and doc_close are dropped while not live) — both preserved byte-for-byte in meaning; the C-SEC-STREAM-TABS, C-SEC-EDIT-TARGETING, C-EXT-EDIT-PROOF and C-EXT-TRUST-COHERENCE handler behaviors (authenticators, grant checks, epoch re-check fences, apply verdicts) are untouched. Graph anchors: .grace/graph/features.xml M-045 (1740-2379) with the SummaryDelta tail group C-SEC-STREAM-SCOPE/C-SEC-EDIT-TARGETING/C-SEC-PAIR-REBIND/C-SEC-EXT-GRANT-BOUND/C-EXT-EDIT-PROOF/C-EXT-TRUST-COHERENCE (2374-2378) before &lt;/M-045&gt; (2379); .grace/graph/runtime.xml has NO M-045 entry — main.rs deltas are recorded on M-001 (the runtime entry point) whose head SummaryDelta group (lines 9-13, C-STABILIZE-LINK-ALIASES last) is the C-SEC-STREAM-AUTH precedent for live-server setup changes; .grace/verification/features.xml V-M-045 (1981-2432): Commands (1983-1991, the native command already in executed form), Scenarios (1992-2033), Markers (2034-2047), TraceAssertions (2048-2061), LegacyMatrixEvidence (2062-2074), LegacySource (2425) and the C-* scenario tail (2426-2431). Renderer regression suites exist: tests/renderer/store/live-stream-ownership.test.js, tests/renderer/components/liveViewer.test.js, tests/renderer/components/liveViewer/index.test.js. Design decisions locked by this plan: (1) the emit-failure refusal is the 500-class named constant DOC_OPEN_DELIVERY_REFUSED_STATUS = StatusCode::INTERNAL_SERVER_ERROR (the file's "pairing state unavailable"/channel-closed precedents), the plain {"error": "live document delivery failed"} body, and the distinct logged state BLOCK_DOC_OPEN_DELIVERY_REFUSED carrying session_id and reason but no document content — within the spec's pinned bounds (non-2xx, plain error voice, distinct logged state); BLOCK_DOC_OPEN_OK never prints on the refusal path. (2) The pre-open guard captures the EXACT Option&lt;LiveSession&gt; (let pre_open = session_guard.clone();) before decide_open runs and the refusal restores it verbatim (*session_guard = pre_open;) — None on a plain fresh open, Some(inactive closed-or-timed-out session) on a fresh open after close/timeout, the replaced session on resync; never an unconditional None; the rollback is in-memory under the already-held stream_gate and session lock (no lock-order change, no I/O), and next_epoch is never decremented or reset — a consumed epoch stays consumed, the counter stays monotonic and a later successful open carries a strictly higher epoch. (3) The refusal branch sits after the budget checks (1475-1512) so it can neither relax nor re-order them; the budget contract "a refusal leaves it untouched" (250-253) holds because the refused session and its fresh budget are discarded whole. (4) The emit-failure seam is cfg(test)-gated and lives in live_bridge.rs: the DOC_OPEN_EMIT_INJECTION AtomicBool consulted only by emit_doc_open, armed via the cfg(test) helper arm_doc_open_emit_injection(armed: bool); emit_live_update, emit_doc_patch, emit_doc_close and emit_context_request stay byte-identical, so the single emit point and the mid-stream log-only behavior are preserved; release builds compile the seam out and the main.rs literal (823-828) stays textually unchanged. (5) Endpoint publication: pub fn publish_endpoint_with_retry(endpoint, writer) -&gt; EndpointPublication {Published, PublishedAfterRetry { attempt }, Unpublished { attempts }} in live_endpoint.rs beside the endpoint file I/O, with named constants ENDPOINT_PUBLISH_ATTEMPTS (3) and ENDPOINT_PUBLISH_RETRY_PAUSE_MS (250) — a bounded total window well under a second, std::thread::sleep pauses, startup-only, no timer/queue/watcher infrastructure; each failed attempt keeps the BLOCK_ENDPOINT_WRITE_FAILED name with an attempt={n}/{N} counter, each pause logs BLOCK_ENDPOINT_PUBLISH_RETRY, exhaustion logs BLOCK_ENDPOINT_UNPUBLISHED port={} attempts={} — the "live server running but its address is unpublished after N attempts" state, textually and semantically distinct from BLOCK_START_FAILED's "no server"; main.rs passes the real m045_ext::write_endpoint as the writer; a first-attempt success writes exactly once with the existing BLOCK_WRITE_OK and the returned Published outcome; cleanup_endpoint, check_stale and the stale-PID logic are untouched. (6) Invoke bounds: INVOKE_MESSAGE_MAX_CHARS = 400 (a few hundred characters); fn sanitize_foreign_body neutralizes every C0/C1 control character and DEL to U+FFFD and, past the body's share of the bound, appends fn truncation_marker's "[truncated: {original_bytes} bytes withheld]" naming the ORIGINAL size; fn bound_message clamps EVERY InvokeError.message under the same constant at all six construction sites so parse-failure and client-build messages stay bounded too; InvokeError gains http_status: Option&lt;u16&gt; (None for non-HTTP classes; Display unchanged mechanically) so mod.rs mt_ext_invoke renders BadStatus as the class, the HTTP status and "extension response body withheld" without any body fragment, while non-BadStatus command errors keep format!("{e}") (bounded, no foreign body involved); BLOCK_INVOKE_FAILED keeps logging reason={e} — the journal keeps the bounded, sanitized, marker-carrying text and the renderer loses the foreign material entirely; no content-level redaction or secret scanning is attempted. Deviation note: none — the spec's ObservedWriteScope already enumerates every file this plan touches, including both graph files; runtime.xml is changed only on M-001 per the precedent above, and M-045 gains no runtime.xml entry. Per the drafting instruction this plan carries no self-referential grace-lint MustPassCommand; the orchestrator runs current/target/final lifecycle assertions itself. Writing this draft approves neither the execution plan nor code implementation, apply/archive, commits, departure into main, manual-acceptance exceptions or release.</ReferenceState>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-045</Value>
+        <Value>src-tauri/src/m045_ext/live_server.rs</Value>
+        <Value>src-tauri/src/m045_ext/live_bridge.rs</Value>
+        <Value>src-tauri/src/m045_ext/live_endpoint.rs</Value>
+        <Value>src-tauri/src/m045_ext/invoke.rs</Value>
+        <Value>src-tauri/src/m045_ext/mod.rs</Value>
+        <Value>src-tauri/src/m045_ext/tests.rs</Value>
+        <Value>src-tauri/src/main.rs</Value>
+        <Value>src/renderer/src/store/editor.js</Value>
+        <Value>src/renderer/src/components/liveViewer/index.vue</Value>
+        <Value>tests/renderer/store/live-stream-ownership.test.js</Value>
+        <Value>tests/renderer/components/liveViewer.test.js</Value>
+        <Value>tests/renderer/components/liveViewer/index.test.js</Value>
+        <Value>.grace/graph/features.xml</Value>
+        <Value>.grace/graph/runtime.xml</Value>
+        <Value>.grace/verification/features.xml</Value>
+      </MustExist>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>async fn handle_doc_open</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>pub fn decide_open</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>OpenDecision::ReplaceSameSession</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_DOC_OPEN_EMIT_FAILED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_DOC_OPEN_OK</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>state.next_epoch.fetch_add(1, Ordering::Relaxed)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>STREAM_BUDGET_TOTAL_BYTES</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>a refusal leaves it untouched</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_DOC_PATCH_EMIT_FAILED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_DOC_CLOSE_EMIT_FAILED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>pairing state unavailable</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_bridge.rs</File>
+        <Text>pub fn emit_live_update</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_bridge.rs</File>
+        <Text>pub fn emit_doc_open</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_bridge.rs</File>
+        <Text>BLOCK_EMIT_FAILED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_endpoint.rs</File>
+        <Text>pub fn write_endpoint</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_endpoint.rs</File>
+        <Text>BLOCK_WRITE_OK</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_endpoint.rs</File>
+        <Text>BLOCK_WRITE_TMP_FAILED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_endpoint.rs</File>
+        <Text>BLOCK_RENAME_FAILED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_endpoint.rs</File>
+        <Text>pub fn cleanup_endpoint</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_endpoint.rs</File>
+        <Text>pub fn make_endpoint</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/invoke.rs</File>
+        <Text>let body_text = resp.text().await.unwrap_or_default()</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/invoke.rs</File>
+        <Text>impl std::fmt::Display for InvokeError</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/invoke.rs</File>
+        <Text>BLOCK_BAD_STATUS</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>pub async fn mt_ext_invoke</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>BLOCK_INVOKE_FAILED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>format!("{e}")</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/main.rs</File>
+        <Text>m045_ext::LiveServerState</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/main.rs</File>
+        <Text>BLOCK_ENDPOINT_WRITE_FAILED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/main.rs</File>
+        <Text>BLOCK_START_FAILED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/main.rs</File>
+        <Text>m045_ext::write_endpoint</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>async fn invoke_honest_loopback_ok</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>async fn probe_health_honest_loopback_ok</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>async fn invoke_redirect_response_not_followed</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>async fn invoke_carries_stable_idempotency_key_across_retries</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>async fn invoke_retries_429_once_honoring_retry_after</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>async fn invoke_retry_after_over_ceiling_waits_no_longer_than_ceiling</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>async fn stream_events_keep_ordered_identity_and_disable_only_closes_its_owner</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>async fn stream_foreign_owner_cannot_disclose_or_replace_session</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>async fn stream_budget_open_refuses_over_total_bytes</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>fn stream_open_fixture</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>START_BLOCK_LIVE_DOCUMENT_OWNERSHIP</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>END_BLOCK_LIVE_DOCUMENT_OWNERSHIP</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>OPEN_LIVE_DOCUMENT</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>PATCH_LIVE_DOCUMENT</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/editor.js</File>
+        <Text>CLOSE_LIVE_DOCUMENT</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/features.xml</File>
+        <Text>scenario-security-stream-budget</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/features.xml</File>
+        <Text>scenario-security-ext-edit-proof</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-045</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>DOC_OPEN_DELIVERY_REFUSED_STATUS</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>BLOCK_DOC_OPEN_DELIVERY_REFUSED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>live document delivery failed</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>let pre_open = session_guard.clone();</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_server.rs</File>
+        <Text>*session_guard = pre_open;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_bridge.rs</File>
+        <Text>DOC_OPEN_EMIT_INJECTION</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_bridge.rs</File>
+        <Text>arm_doc_open_emit_injection</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_endpoint.rs</File>
+        <Text>pub fn publish_endpoint_with_retry</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_endpoint.rs</File>
+        <Text>EndpointPublication</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_endpoint.rs</File>
+        <Text>ENDPOINT_PUBLISH_ATTEMPTS</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_endpoint.rs</File>
+        <Text>ENDPOINT_PUBLISH_RETRY_PAUSE_MS</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_endpoint.rs</File>
+        <Text>BLOCK_ENDPOINT_PUBLISH_RETRY</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/live_endpoint.rs</File>
+        <Text>BLOCK_ENDPOINT_UNPUBLISHED</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/main.rs</File>
+        <Text>publish_endpoint_with_retry</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/invoke.rs</File>
+        <Text>INVOKE_MESSAGE_MAX_CHARS</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/invoke.rs</File>
+        <Text>fn sanitize_foreign_body</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/invoke.rs</File>
+        <Text>fn bound_message</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/invoke.rs</File>
+        <Text>fn truncation_marker</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/invoke.rs</File>
+        <Text>http_status</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/mod.rs</File>
+        <Text>extension response body withheld</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>doc_open_emit_failure_refuses_fresh_open</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>doc_open_emit_failure_after_close_restores_the_closed_session_exactly</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>doc_open_emit_failure_on_resync_restores_the_replaced_session</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>doc_open_refusal_never_reuses_the_consumed_epoch</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>doc_open_success_keeps_the_200_contract</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>endpoint_publish_first_attempt_writes_exactly_once</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>endpoint_publish_retries_transient_failure_within_budget</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>endpoint_publish_exhaustion_is_distinct_from_start_failure</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>invoke_bad_status_body_is_bounded_and_control_safe</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>invoke_invalid_response_message_stays_within_bound</Text>
+      </MustContain>
+      <MustContain>
+        <File>src-tauri/src/m045_ext/tests.rs</File>
+        <Text>mt_ext_invoke_withholds_the_extension_error_body</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/features.xml</File>
+        <Text>scenario-security-extension-delivery-honesty</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/store/live-stream-ownership.test.js tests/renderer/components/liveViewer.test.js tests/renderer/components/liveViewer/index.test.js</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-045 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-045 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src-tauri/src/main.rs</File>
+      <File>src-tauri/src/m045_ext/live_server.rs</File>
+      <File>src-tauri/src/m045_ext/live_bridge.rs</File>
+      <File>src-tauri/src/m045_ext/live_endpoint.rs</File>
+      <File>src-tauri/src/m045_ext/invoke.rs</File>
+      <File>src-tauri/src/m045_ext/mod.rs</File>
+      <File>src-tauri/src/m045_ext/tests.rs</File>
+      <File>.grace/graph/features.xml</File>
+      <File>.grace/graph/runtime.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Failing-first doc_open delivery-refusal pins and the cfg(test) emit-failure seam in live_bridge</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src-tauri/src/m045_ext/live_bridge.rs gains the test-only emit-failure injection seam: a #[cfg(test)]-gated DOC_OPEN_EMIT_INJECTION atomic flag plus the cfg(test) helper arm_doc_open_emit_injection(armed: bool); when armed, emit_doc_open returns Err("injected doc_open emit failure (test)") BEFORE any app.emit call. The seam is consulted only by emit_doc_open — emit_live_update, emit_doc_patch, emit_doc_close and emit_context_request stay byte-identical, so the single emit point, the mid-stream log-only emit-failure behavior and the BLOCK_EMIT anchors are preserved; the seam compiles out of release builds and touches no shared state (the main.rs LiveServerState literal 823-828 stays textually unchanged). A dated C-EXT-DELIVERY-HONESTY CHANGE_SUMMARY entry records the seam in live_bridge.rs; every START_BLOCK_/END_BLOCK_ marker stays paired and unique codebase-wide.</Criterion>
+          <Criterion>src-tauri/src/m045_ext/tests.rs gains a new paired START_BLOCK_DOC_OPEN_DELIVERY_TESTS/END_BLOCK_DOC_OPEN_DELIVERY_TESTS block with the failing-first refusal family, all driven through the existing stream_open_fixture/budget_open handler-call pattern against IncomingFixture state: doc_open_emit_failure_refuses_fresh_open (arm the seam on a fresh fixture, open → the answer is a non-2xx 500-class refusal with a plain {"error": ...} body and never accepted:true; the session guard equals the exact pre-open value None; a patch echoing the refused session id and epoch is refused with zero live events; disarming restores normal behavior); doc_open_emit_failure_after_close_restores_the_closed_session_exactly (open OK → close OK → arm → re-open (a FreshOpen decision over Some(inactive)) → refusal; the surviving session equals the pre-open closed session EXACTLY — same session_id, same session_epoch as the first open, active==false — never an unconditional None; zero new live events); doc_open_emit_failure_on_resync_restores_the_replaced_session (open OK → arm → re-open the same session_id with different content → refusal; the session equals the pre-resync session exactly — original epoch, original document_md, revision 1, active — and a subsequent patch on the restored session still applies 200, the existing recovery route); doc_open_refusal_never_reuses_the_consumed_epoch (arm → fresh open refused → disarm → a successful open carries a strictly higher session_epoch than the refused one, in both the None and the Some(inactive) pre-open shapes; next_epoch is never decremented).</Criterion>
+          <Criterion>The same block pins the success-path control doc_open_success_keeps_the_200_contract: with the seam disarmed an open answers 200 with body accepted==true and revision==1, stores the session with revision 1, and emits exactly one doc_open event carrying the session_id and the assigned session_epoch — pinned alongside the refusals so the fix cannot over-reach into the working path.</Criterion>
+          <Criterion>Every predecessor pin keeps its name, location and assertion byte-identical: the #321 invoke family (2680/2696/2708/2794/2817/2844), the stream security family (2909/2943/2987) and the C-STREAM-BUDGET family keep passing unchanged; the renderer vitest suites are untouched. No Cargo.toml, dependency or wire-shape change; no renderer file is modified.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">cargo check --locked --offline --manifest-path src-tauri/Cargo.toml</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Honest open: the handle_doc_open emit-failure rollback and refusal in live_server</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src-tauri/src/m045_ext/live_server.rs handle_doc_open becomes honest on delivery: immediately after the enabled re-check and BEFORE decide_open (i.e. before any classification or mutation) it captures the pre-open guard value (let pre_open = session_guard.clone(); — the exact Option&lt;LiveSession&gt;); the emit leg (currently 1540-1550) changes so an emission failure logs the distinct BLOCK_DOC_OPEN_DELIVERY_REFUSED marker carrying session_id and reason={e} but no document content, restores the captured value verbatim (*session_guard = pre_open;), and returns (DOC_OPEN_DELIVERY_REFUSED_STATUS, Json(json!({"error": "live document delivery failed"}))) where DOC_OPEN_DELIVERY_REFUSED_STATUS is a named 500-class StatusCode constant (INTERNAL_SERVER_ERROR, the file's pairing-state-unavailable/channel-closed precedents). The refusal never prints BLOCK_DOC_OPEN_OK and never answers accepted:true; a successful emission keeps the path from the OK log (1552-1555) through the 200 answer (1557-1563) byte-identical.</Criterion>
+          <Criterion>The rollback semantics are exact-value, not shape-based: a plain fresh open rolls back to None; a fresh open after a close or a heartbeat-timeout close rolls back to Some(the inactive pre-open session with its original id and epoch); a ReplaceSameSession resync rolls back to the replaced session whole (epoch, document_md, sections, revision, budget). The refusal branch sits after the budget checks (1475-1512) so it can neither relax nor re-order them, charges no budget (the refused session and its fresh StreamBudget are discarded whole — the 250-253 "a refusal leaves it untouched" contract holds), runs entirely in-memory under the already-held stream_gate and session lock (no lock-order change, no native I/O), and never decrements or resets next_epoch — a consumed epoch stays consumed and a later successful open carries a strictly higher epoch.</Criterion>
+          <Criterion>The refusal is additive to the response vocabulary: the C-STREAM-BUDGET 413/429 refusals, the 401/409 authentication and conflict branches, the DocOpenResponse success shape and every request shape keep their exact statuses and bodies; doc_patch, doc_close and the heartbeat-timeout close keep today's log-only emit-failure behavior byte-for-byte (1789-1801, 1871-1882, 2574-2586) — the open is the delivery gate.</Criterion>
+          <Criterion>Module hygiene: live_server.rs gains a dated C-EXT-DELIVERY-HONESTY CHANGE_SUMMARY entry and MODULE_MAP coverage for the new constant and branch; markers stay paired and unique; no renderer change; the T-001 refusal family is green after this task and the T-001 success control plus every predecessor suite stay green (zero moved pins).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">cargo check --locked --offline --manifest-path src-tauri/Cargo.toml</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Bounded, surfaced endpoint publication: the retry helper in live_endpoint and the main.rs call</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src-tauri/src/m045_ext/live_endpoint.rs gains, beside the endpoint file I/O (after START_BLOCK_WRITE), the bounded publication helper: pub fn publish_endpoint_with_retry(endpoint: &amp;LiveEndpoint, write: impl Fn(&amp;LiveEndpoint) -&gt; Result&lt;(), String&gt;) -&gt; EndpointPublication with pub enum EndpointPublication { Published, PublishedAfterRetry { attempt: u32 }, Unpublished { attempts: u32 } }; named constants ENDPOINT_PUBLISH_ATTEMPTS: u32 = 3 and ENDPOINT_PUBLISH_RETRY_PAUSE_MS: u64 = 250 pin the bounded attempt budget and inter-attempt pause (total window well under a second, std::thread::sleep pauses, startup-only — no unbounded loop, no timer, no queue, no background republication). Attempt 1 runs first; each failed attempt logs BLOCK_ENDPOINT_WRITE_FAILED with an attempt={n}/{ENDPOINT_PUBLISH_ATTEMPTS} counter and the underlying reason; before each subsequent try it logs BLOCK_ENDPOINT_PUBLISH_RETRY attempt={n} pause_ms={ENDPOINT_PUBLISH_RETRY_PAUSE_MS}; exhausting the budget logs the distinct final state BLOCK_ENDPOINT_UNPUBLISHED port={} attempts={} — the "live server running on port P but its address is unpublished after N attempts" meaning, textually and semantically distinct from BLOCK_START_FAILED's "no server". A first-attempt success returns Published after exactly one write — the existing BLOCK_WRITE_OK inside write_endpoint is the only success log, exactly today's behavior.</Criterion>
+          <Criterion>src-tauri/src/main.rs's in-source M-045 B5a setup block (817-852) calls m045_ext::publish_endpoint_with_retry(&amp;endpoint, m045_ext::write_endpoint) in place of the single write_endpoint call (838-843): the injected writer is the real file writer in production; the spawn's start-failure arm keeps BLOCK_START_FAILED byte-identical (845-849); the LiveServerState literal (823-828) stays textually unchanged and nothing outside the 817-852 block is touched. cleanup_endpoint, check_stale, is_pid_alive and the stale-PID logic are untouched (the spec's no-server-start-retry and no-publication-later non-goals hold).</Criterion>
+          <Criterion>src-tauri/src/m045_ext/tests.rs gains a paired START_BLOCK_ENDPOINT_PUBLISH_TESTS/END_BLOCK_ENDPOINT_PUBLISH_TESTS block driving the helper purely with counting writer closures (no filesystem): endpoint_publish_first_attempt_writes_exactly_once (a succeeding writer is called exactly once, outcome Published — the control matching today); endpoint_publish_retries_transient_failure_within_budget (a writer failing twice then succeeding yields PublishedAfterRetry with attempt == 3 and exactly ENDPOINT_PUBLISH_ATTEMPTS calls); endpoint_publish_exhaustion_is_distinct_from_start_failure (an always-failing writer yields Unpublished with attempts == ENDPOINT_PUBLISH_ATTEMPTS and exactly the named attempt count of calls, and the outcome vocabulary (BLOCK_ENDPOINT_UNPUBLISHED) is asserted distinct from the start-failure marker string). Red-first evidence: on the baseline tree these pins do not compile (the helper does not exist) — the recorded failure evidence follows the C-STREAM-BUDGET precedent; with the helper replaced locally by the single unconditional write, the transient and exhaustion pins fail against the baseline behavior and pass restored, recorded as task evidence without any commit.</Criterion>
+          <Criterion>Module hygiene: dated C-EXT-DELIVERY-HONESTY CHANGE_SUMMARY entries in live_endpoint.rs and main.rs (the in-source block note); markers stay paired and unique; no wire, manifest-schema, discovery or renderer change; the predecessor suites stay green unchanged.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">cargo check --locked --offline --manifest-path src-tauri/Cargo.toml</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Bounded, sanitized invoke errors and the body-withheld renderer mapping</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>src-tauri/src/m045_ext/invoke.rs bounds every InvokeError.message: pub const INVOKE_MESSAGE_MAX_CHARS: usize = 400 (a few hundred characters); fn bound_message(message: String) -&gt; String clamps any longer message to the constant, appending fn truncation_marker(original)'s "[truncated: {original} bytes withheld]" naming the withheld original size; fn sanitize_foreign_body(body: &amp;str) -&gt; String neutralizes every C0/C1 control character and DEL to U+FFFD before bounding. Every InvokeError construction site (CapabilityNotFound, URL refused, client-build, parse, BadStatus, request-failed) passes through bound_message; the BadStatus arm (217-227) additionally sanitizes the foreign body before composing "HTTP {status}: {sanitized}" — no raw control character and no unbounded foreign material reaches any message. InvokeError gains http_status: Option&lt;u16&gt; (Some on BadStatus, None elsewhere; Display at 71-75 stays mechanically unchanged, so the journal line BLOCK_INVOKE_FAILED reason={e} keeps carrying the bounded, sanitized, marker-bearing text). The C-EXT-EDIT-PROOF request path, retry policy, Retry-After handling, idempotency key and the success path are untouched; the loopback URL/redirect/client hygiene is untouched.</Criterion>
+          <Criterion>src-tauri/src/m045_ext/mod.rs mt_ext_invoke composes the renderer-facing error without the extension body: the map_err (296-301) keeps logging BLOCK_INVOKE_FAILED reason={e} verbatim (the journal keeps its bounded diagnostic value), but the returned String for InvokeErrorKind::BadStatus becomes the class, the HTTP status and the note — format naming BadStatus, the http_status value and "extension response body withheld" — containing no fragment of the extension response; non-BadStatus kinds keep format!("{e}") (their messages carry no extension-controlled body and are already bounded). No wire request/response shape changes and the success path is unchanged.</Criterion>
+          <Criterion>src-tauri/src/m045_ext/tests.rs gains a paired START_BLOCK_INVOKE_BODY_BOUND_TESTS/END_BLOCK_INVOKE_BODY_BOUND_TESTS block on the existing loopback harness: invoke_bad_status_body_is_bounded_and_control_safe (a scripted non-2xx answer with a multi-kilobyte body full of control characters and a distinctive canary yields an InvokeError whose message length is within INVOKE_MESSAGE_MAX_CHARS, contains no raw control character, carries the truncation marker with the original size, and does not contain the intact canary); invoke_invalid_response_message_stays_within_bound (a 200 answer with an oversized non-JSON body yields a bounded InvalidResponse message under the same constant — the non-body construction sites stay bounded); mt_ext_invoke_withholds_the_extension_error_body (a registered, enabled fixture pointing at the scripted non-2xx server: the command's Err string names the BadStatus class and the HTTP status, states the body was withheld, and contains no fragment of the body, while the journal marker still exists). Red-first evidence: on the baseline tree all three fail naturally — the body flows verbatim and unbounded into the message (invoke.rs:219-227) and format!("{e}") returns it to the renderer (mod.rs:300) — recorded as task evidence without any commit.</Criterion>
+          <Criterion>Zero moved pins: invoke_honest_loopback_ok, probe_health_honest_loopback_ok, invoke_redirect_response_not_followed (asserts .kind only), invoke_carries_stable_idempotency_key_across_retries, invoke_retries_429_once_honoring_retry_after, invoke_retry_after_over_ceiling_waits_no_longer_than_ceiling, the stream security and budget families and the doc_open delivery family all keep passing with unchanged assertions; the renderer vitest suites are untouched and stay green. Module hygiene: dated C-EXT-DELIVERY-HONESTY CHANGE_SUMMARY entries in invoke.rs and mod.rs; markers paired and unique; no secret, token or document content enters any new marker, message or error body.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Record the M-045 graph delta, the M-001 runtime delta and the V-M-045 verification evidence</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>In .grace/graph/features.xml append a dated C-EXT-DELIVERY-HONESTY SummaryDelta to M-045 after the C-EXT-TRUST-COHERENCE delta (before &lt;/M-045&gt;): the open whose frontend emission fails refuses — the pre-open session guard value is captured before decide_open and restored exactly (None on a plain fresh open, the Some(inactive) closed-or-timed-out session on a fresh open after close, the replaced session on resync), the consumed epoch is retired without reuse, the refusal is the 500-class plain "live document delivery failed" body with the distinct BLOCK_DOC_OPEN_DELIVERY_REFUSED state beside the unchanged success contract; the endpoint publication gains the bounded ENDPOINT_PUBLISH_ATTEMPTS/ENDPOINT_PUBLISH_RETRY_PAUSE_MS retry with per-attempt and exhaustion states distinct from the start failure; InvokeError messages are bounded under INVOKE_MESSAGE_MAX_CHARS with control-neutralized, original-size-marked foreign bodies and the renderer-facing invoke error withholds the body entirely. Every existing SummaryDelta, Summary sentence, LegacySource and LegacyAttributes stays byte-identical.</Criterion>
+          <Criterion>In .grace/graph/runtime.xml append a dated C-EXT-DELIVERY-HONESTY SummaryDelta to M-001 (the runtime entry point owning main.rs, following the C-SEC-STREAM-AUTH precedent) after the last existing M-001 delta: the M-045 B5a setup block publishes the endpoint through publish_endpoint_with_retry with the real writer in place of the single write_endpoint call, the start-failure arm and the LiveServerState literal (823-828) stay textually unchanged; M-045 has no runtime.xml entry (verified 2026-11-23) and gains none. Every existing byte stays identical.</Criterion>
+          <Criterion>In .grace/verification/features.xml V-M-045: add the three new log markers to the Markers block ([ExtHost][live_server][BLOCK_DOC_OPEN_DELIVERY_REFUSED], [ExtHost][live_endpoint][BLOCK_ENDPOINT_PUBLISH_RETRY], [ExtHost][live_endpoint][BLOCK_ENDPOINT_UNPUBLISHED]) and record one scenario-security-extension-delivery-honesty scenario naming the executed commands (cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext; npx --no-install vitest run tests/renderer/store/live-stream-ownership.test.js tests/renderer/components/liveViewer.test.js tests/renderer/components/liveViewer/index.test.js) and every new test by name with its expected outcomes (the refusal family: non-2xx 500-class plain error, exact pre-open restoration in all three shapes, epoch strictly higher after refusal, patches refused with zero events, the 200 success control intact; the endpoint family: one write on first-attempt success, transient success within the named attempt budget, exhaustion at exactly the named count distinct from BLOCK_START_FAILED; the invoke family: message within INVOKE_MESSAGE_MAX_CHARS, control-free, original-size truncation marker, no intact canary, the command error naming class and status with the body withheld). Keep every existing scenario, Marker, TraceAssertion, Command, the LegacyMatrixEvidence block and the C-* scenario tail verbatim; do not claim evidence for anything not executed — the real axum bind failure path, the macOS keychain and real Tauri webview emission stay open and are exercised only through injected writers, the cfg(test) seam and source shapes.</Criterion>
+          <Criterion>No durable artifact outside the ObservedWriteScope changes; no release publication, version change or lane action is authorized by this task.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+          <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/store/live-stream-ownership.test.js tests/renderer/components/liveViewer.test.js tests/renderer/components/liveViewer/index.test.js</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Command budgetSeconds="900">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m045_ext</Command>
+      <Command budgetSeconds="600">npx --no-install vitest run tests/renderer/store/live-stream-ownership.test.js tests/renderer/components/liveViewer.test.js tests/renderer/components/liveViewer/index.test.js</Command>
+      <Environment>Baseline is the current green-ext4 worktree (branch spec/ext-delivery-honesty, base 1dbe9bb9): the Rust toolchain runs with --locked --offline against the committed Cargo.lock and all three renderer regression suites exist (verified). Tasks run strictly sequentially T-001 through T-005. After T-001 the native suite is knowingly red in a controlled way: the four refusal pins fail against the unchanged handler (which answers 200 accepted:true over an undelivered stream, live_server.rs:1540-1563) while the success control and every predecessor suite stay green — the suite becomes green at T-002 and stays green through T-005; cargo check passes alone after T-001, T-002 and T-003. The T-001 refusal family is red in the honest sense (running tests, wrong answers); the T-003 endpoint pins are red in the C-STREAM-BUDGET precedent sense (non-compiling on the baseline, then failing against the locally-restored single write, then green restored — recorded as task evidence without any commit); the T-004 invoke pins are red naturally against the verbatim-body baseline and green after the fix. Red-before-green evidence is recorded per task without any commit. The renderer vitest suites are regression-only for the whole plan — no renderer file is in the write scope, the C-SEC-STREAM-TABS store contract (START_BLOCK_LIVE_DOCUMENT_OWNERSHIP 1655-1715) and the LiveViewer fail-closed isLive gate are preserved by design, and no renderer test is added or moved. Wire discipline holds everywhere: request shapes unchanged; the DocOpenResponse success fields keep their names and meaning; the refusal joins the file's existing plain {"error": ...} refusal vocabulary as a distinct 500-class branch additive to 401/409/413/429; the C-STREAM-BUDGET refusals keep exact statuses, bodies and zero-mutation semantics with the delivery branch strictly after them; doc_patch/doc_close/heartbeat-timeout closes keep log-only emit failures. Security hygiene holds: sanitization only removes and bounds material, control characters are neutralized against log injection, no document content, token or secret material enters any new marker or error body, the loopback-only binding, Bearer model, capability/grant gates and the stream fence ordering (authenticate_stream, stream_gate, session lock) are untouched, and the rollback is in-memory work under the already-held locks (no lock-order change). Boundedness holds: the endpoint attempt count and pause are named constants with a total window well under a second, the invoke message bound is the named INVOKE_MESSAGE_MAX_CHARS = 400 with an explicit original-size truncation marker, and there is no new unbounded memory, channel, queue or timer anywhere. No new user-facing UI strings: every new surface is a log marker or a machine-facing English technical error body, the ten-locale canon is not triggered and no static/locales file is touched. Every START_BLOCK_/END_BLOCK_ marker stays paired and unique after each task, including the three new tests.rs block pairs. Debug/unsigned-build semantics carry no deliberate behavior change beyond the three honesty fixes themselves. This plan deliberately carries no self-referential grace-lint MustPassCommand; the orchestrator runs grace lint --path . --change C-EXT-DELIVERY-HONESTY --assertions target during implementation, --assertions final --run-commands before archiving, and --assertions current plus grace status --path . --with modules --json after archiving. Owned cargo/vitest processes are cleaned up after runs; no apply/archive, commit/push, lane admission, departure into main, version/tag or release is authorized by this plan.</Environment>
+    </AcceptanceVerification>
+  </C-EXT-DELIVERY-HONESTY>
+</GraceChangePlan>

@@ -44,6 +44,16 @@
 //     combination (standing or unreadable marker, surviving or unreadable
 //     secret, enabled or unregistered id) runs the full disable path and
 //     the #326 recovery legs unchanged.
+//   - 2026-11-23 C-EXT-DELIVERY-HONESTY T-004: mt_ext_invoke composes the
+//     renderer-facing error without the extension body — the BadStatus arm
+//     names the class, the http_status value and "extension response body
+//     withheld" with no fragment of the extension response, while
+//     BLOCK_INVOKE_FAILED keeps logging the bounded, sanitized,
+//     marker-carrying Display text verbatim; non-BadStatus kinds keep
+//     format!("{e}") (already bounded, no foreign body involved). The
+//     message bound and sanitization live in invoke.rs
+//     (INVOKE_MESSAGE_MAX_CHARS, sanitize_foreign_body, bound_message,
+//     truncation_marker).
 //   - 2026-11-23 C-EXT-TRUST-COHERENCE T-004: a failed revocation stays
 //     failed until proven otherwise — mt_ext_disable's failure branch
 //     records the persistent revoke-pending marker best-effort
@@ -93,7 +103,7 @@ pub use registry::{ExtRegistry, ExtensionInfo};
 #[allow(unused_imports)]
 pub use live_server::{start_live_server, LiveServerState};
 #[allow(unused_imports)]
-pub use live_endpoint::{write_endpoint, cleanup_endpoint, make_endpoint};
+pub use live_endpoint::{write_endpoint, cleanup_endpoint, make_endpoint, publish_endpoint_with_retry, EndpointPublication, ENDPOINT_PUBLISH_ATTEMPTS, ENDPOINT_PUBLISH_RETRY_PAUSE_MS};
 #[allow(unused_imports)]
 pub use live_bridge::{emit_live_update, emit_doc_open, emit_doc_patch, emit_doc_close, emit_context_request, LiveUpdate};
 #[allow(unused_imports)]
@@ -363,10 +373,25 @@ pub async fn mt_ext_invoke(
     )
     .await
     .map_err(|e| {
+        // The journal keeps the bounded, sanitized, marker-carrying text.
         safe_eprintln!(
             "[ExtHost][command][BLOCK_INVOKE_FAILED id={id} cap={capability} reason={e}]"
         );
-        format!("{e}")
+        // C-EXT-DELIVERY-HONESTY: the renderer-facing error for BadStatus
+        // names the class and the HTTP status and states the body was
+        // withheld — no fragment of the extension response crosses the
+        // command boundary. Non-BadStatus kinds keep format!("{e}"): their
+        // messages carry no extension-controlled body and are already
+        // bounded.
+        match e.kind {
+            invoke::InvokeErrorKind::BadStatus => match e.http_status {
+                Some(status) => {
+                    format!("BadStatus HTTP {status}: extension response body withheld")
+                }
+                None => "BadStatus: extension response body withheld".to_string(),
+            },
+            _ => format!("{e}"),
+        }
     })?;
 
     safe_eprintln!("[ExtHost][command][BLOCK_INVOKE_OK id={id} cap={capability}]");

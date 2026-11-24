@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved">
+<GraceChangeSpec graceVersion="4.0" status="applied">
   <C-PREFS-WRITE-TRUTH>
     <Name>Preference write truth: a failed disk write rolls back backend memory and the renderer UI instead of silently surviving the next write or a restart</Name>
     <Created>2026-11-23</Created>
