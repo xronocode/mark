@@ -108,7 +108,9 @@ describe('actual command stream failure containment', () => {
 
 
 async function qaWait(observe, message) {
-  const deadline = Date.now() + 2500
+  // Loaded CI runners (the windows pool) can legitimately take longer than 2.5s
+  // to spawn the fixture child and record state; the deadline bounds a hang, not timing.
+  const deadline = Date.now() + 15000
   while (!observe()) {
     if (Date.now() >= deadline) throw Error(message)
     await new Promise(resolve => setTimeout(resolve, 10))
@@ -147,9 +149,13 @@ async function qaCliFixture(phase, closePipe) {
   child.stdin.end('run')
   try {
     if (closePipe) {
-      await qaWait(() => existsSync(ready) || closed, 'real child did not reach fixture readiness')
+      // Windows runners can observe ready.json between create and flush:
+      // readiness is the JSON parsing cleanly, never the mere existence of the file.
+      await qaWait(() => {
+        if (closed) return true
+        try { readyProof = JSON.parse(readFileSync(ready)); return true } catch { return false }
+      }, 'real child did not reach fixture readiness')
       expect(closed).toBe(false)
-      readyProof = JSON.parse(readFileSync(ready))
       expect(readyProof.beforeOutputIdentityRecorded).toBe(true)
       child.stderr.destroy(); writeFileSync(start, 'closed-reader')
     }
