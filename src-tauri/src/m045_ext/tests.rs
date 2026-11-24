@@ -40,6 +40,16 @@
 //     discover_extensions_in(dirs, prober) seam, with the payload pin
 //     mt_ext_discover_payload_carries_failures_beside_the_list committed
 //     compile-red against the target command signature (T-004 lands it).
+//   - 2026-11-23 C-EXT-DELIVERY-HONESTY T-004: the bounded, sanitized
+//     invoke family in START_BLOCK_INVOKE_BODY_BOUND_TESTS —
+//     invoke_bad_status_body_is_bounded_and_control_safe (message within
+//     INVOKE_MESSAGE_MAX_CHARS, control-free, the truncation marker naming
+//     the exact original size, no intact canary),
+//     invoke_invalid_response_message_stays_within_bound (the non-body
+//     construction site bounded under the same constant, http_status None)
+//     and mt_ext_invoke_withholds_the_extension_error_body (the command
+//     error names BadStatus and the HTTP status, states the body was
+//     withheld, carries no body fragment, while the journal marker stays).
 //   - 2026-11-23 C-EXT-DELIVERY-HONESTY T-003: the bounded endpoint
 //     publication family in START_BLOCK_ENDPOINT_PUBLISH_TESTS —
 //     endpoint_publish_first_attempt_writes_exactly_once (control),
@@ -3909,6 +3919,8 @@ async fn doc_open_emit_failure_refuses_fresh_open() {
 
 #[tokio::test]
 async fn doc_open_emit_failure_after_close_restores_the_closed_session_exactly() {
+    let _serial = DOC_OPEN_EMIT_INJECTION_SERIAL.lock().unwrap_or_else(|e| e.into_inner());
+    let _disarm = DisarmDocOpenEmitInjection;
     let f = incoming_fixture(true, "stream.document");
     assert_eq!(delivery_open(&f, "session-a", "original").await.status(), StatusCode::OK);
     let first_epoch = f.state.session.lock().await.as_ref().unwrap().session_epoch;
@@ -3957,6 +3969,8 @@ async fn doc_open_emit_failure_on_resync_restores_the_replaced_session() {
 
 #[tokio::test]
 async fn doc_open_refusal_never_reuses_the_consumed_epoch() {
+    let _serial = DOC_OPEN_EMIT_INJECTION_SERIAL.lock().unwrap_or_else(|e| e.into_inner());
+    let _disarm = DisarmDocOpenEmitInjection;
     // The None pre-open shape: the refused open consumed exactly one
     // epoch (the counter stays monotonic — never decremented or reset)
     // and a later successful open carries a strictly higher epoch than
@@ -3988,6 +4002,8 @@ async fn doc_open_refusal_never_reuses_the_consumed_epoch() {
 
 #[tokio::test]
 async fn doc_open_success_keeps_the_200_contract() {
+    let _serial = DOC_OPEN_EMIT_INJECTION_SERIAL.lock().unwrap_or_else(|e| e.into_inner());
+    let _disarm = DisarmDocOpenEmitInjection;
     let f = incoming_fixture(true, "stream.document");
     // Seam disarmed: the success path is byte-identical to today.
     let response = delivery_open(&f, "session-a", "original").await;
@@ -4094,3 +4110,146 @@ fn endpoint_publish_exhaustion_is_distinct_from_start_failure() {
     assert_ne!("BLOCK_ENDPOINT_UNPUBLISHED", "BLOCK_START_FAILED");
 }
 // END_BLOCK_ENDPOINT_PUBLISH_TESTS
+
+// START_BLOCK_INVOKE_BODY_BOUND_TESTS
+// C-EXT-DELIVERY-HONESTY: the bounded, sanitized invoke error family on the
+// existing loopback harness. Red-first: on the baseline tree the body pins
+// fail naturally — the foreign body flows verbatim and unbounded into the
+// message (invoke.rs:219-227) and format!("{e}") returns it to the renderer
+// (mod.rs:300) — while the InvalidResponse guard pin does not compile on
+// the baseline (no http_status field) and, once the API exists, pins the
+// non-body construction sites staying bounded under the same constant.
+use super::invoke::{INVOKE_MESSAGE_MAX_CHARS, InvokeErrorKind};
+
+/// A multi-kilobyte foreign body full of control characters with the
+/// canary planted far beyond the bounded keep window.
+fn hostile_body(canary: &str) -> String {
+    let mut body = String::new();
+    for i in 0..2000 {
+        body.push((b'a' + (i % 26) as u8) as char);
+        if i % 7 == 0 {
+            body.push('\u{0007}');
+        }
+        if i % 11 == 0 {
+            body.push('\u{001B}');
+        }
+    }
+    body.push_str("DEADZONE");
+    body.push_str(canary);
+    body.push_str("DEADZONE");
+    for i in 0..2000 {
+        body.push((b'A' + (i % 26) as u8) as char);
+    }
+    body
+}
+
+#[tokio::test]
+async fn invoke_bad_status_body_is_bounded_and_control_safe() {
+    let listener = fixture_listener("INVOKE_BODY_BOUND");
+    let mut manifest = test_manifest("body-bound-fixture");
+    manifest.discovery.base_url = format!("http://{}", listener.local_addr().unwrap());
+    manifest.invoke.timeout_secs = 5;
+    let canary = "canary-9Q4Z-withheld";
+    let body = hostile_body(canary);
+    let original_bytes = body.len();
+    let server = serve_fixture(listener, "500 Internal Server Error", String::new(), &body, 2000);
+    let error = super::invoke::invoke_extension(&manifest, "text.insert", serde_json::json!({"text":"dummy"}), Some("dummy-fixture-bearer"))
+        .await.unwrap_err();
+    server.join().unwrap();
+    assert!(matches!(error.kind, InvokeErrorKind::BadStatus));
+    assert_eq!(error.http_status, Some(500));
+    // Bounded under the named constant.
+    assert!(
+        error.message.chars().count() <= INVOKE_MESSAGE_MAX_CHARS,
+        "message length {} exceeds the bound",
+        error.message.chars().count()
+    );
+    // No raw control character survives sanitization.
+    assert!(
+        !error.message.chars().any(|c| c.is_control()),
+        "a raw control character survived: {:?}",
+        error.message
+    );
+    // The truncation marker names the ORIGINAL (untruncated) size exactly:
+    // the sanitized body (each 1-byte control character became the 3-byte
+    // U+FFFD) plus the "HTTP {status}: " prefix.
+    let control_count = body.chars().filter(|c| c.is_control()).count();
+    let expected_original = original_bytes
+        + control_count * 2
+        + "HTTP 500 Internal Server Error: ".len();
+    assert!(
+        error.message.contains(&format!("[truncated: {expected_original} bytes withheld]")),
+        "the marker names the original size {expected_original}: {}",
+        error.message
+    );
+    // The intact canary never reaches the message.
+    assert!(
+        !error.message.contains(canary),
+        "the canary survived intact: {}",
+        error.message
+    );
+}
+
+#[tokio::test]
+async fn invoke_invalid_response_message_stays_within_bound() {
+    let listener = fixture_listener("INVOKE_INVALID_BOUND");
+    let mut manifest = test_manifest("invalid-bound-fixture");
+    manifest.discovery.base_url = format!("http://{}", listener.local_addr().unwrap());
+    manifest.invoke.timeout_secs = 5;
+    let oversized = "x".repeat(100_000);
+    let server = serve_fixture(listener, "200 OK", String::new(), &oversized, 2000);
+    let error = super::invoke::invoke_extension(&manifest, "text.insert", serde_json::json!({"text":"dummy"}), Some("dummy-fixture-bearer"))
+        .await.unwrap_err();
+    server.join().unwrap();
+    // The non-body construction site stays bounded under the same constant.
+    assert!(matches!(error.kind, InvokeErrorKind::InvalidResponse));
+    assert_eq!(error.http_status, None, "non-HTTP classes carry no status");
+    assert!(
+        error.message.chars().count() <= INVOKE_MESSAGE_MAX_CHARS,
+        "message length {} exceeds the bound",
+        error.message.chars().count()
+    );
+}
+
+#[tokio::test]
+async fn mt_ext_invoke_withholds_the_extension_error_body() {
+    let f = incoming_fixture(true, "text.transform");
+    let listener = fixture_listener("INVOKE_WITHHOLD");
+    // Point the registered manifest's base_url at the scripted listener.
+    let mut manifest = f.app.state::<ExtRegistry>().get_manifest(&f.id).unwrap();
+    manifest.discovery.base_url = format!("http://{}", listener.local_addr().unwrap());
+    manifest.invoke.timeout_secs = 5;
+    // Re-register overwrite resets the enabled flag — restore it so
+    // get_manifest answers.
+    f.app.state::<ExtRegistry>().register(manifest, true).unwrap();
+    f.app.state::<ExtRegistry>().enable(&f.id).unwrap();
+    let canary = "secretcanary-X7T2";
+    let body = hostile_body(canary);
+    let server = serve_fixture(listener, "500 Internal Server Error", String::new(), &body, 2000);
+    let result = super::mt_ext_invoke(
+        f.id.clone(),
+        "text.transform".to_string(),
+        serde_json::json!({"text":"dummy"}),
+        f.app.state(),
+    ).await;
+    server.join().unwrap();
+    let message = result.unwrap_err();
+    // The command error names the class and the HTTP status and states the
+    // body was withheld — no fragment of the extension response.
+    assert!(message.contains("BadStatus"), "names the class: {message}");
+    assert!(message.contains("500"), "names the HTTP status: {message}");
+    assert!(
+        message.contains("extension response body withheld"),
+        "states the withholding: {message}"
+    );
+    assert!(!message.contains(canary), "no body fragment: {message}");
+    assert!(
+        message.chars().count() <= INVOKE_MESSAGE_MAX_CHARS,
+        "the renderer error stays bounded: {message}"
+    );
+    // The journal marker still exists (source shape) — the journal keeps
+    // its bounded diagnostic line while the renderer loses the body.
+    let source = include_str!("mod.rs");
+    assert!(source.contains("BLOCK_INVOKE_FAILED"));
+}
+// END_BLOCK_INVOKE_BODY_BOUND_TESTS
