@@ -61,6 +61,7 @@
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
 //   - C-QA-MACOS-LAUNCH-GATE: pre-exec ownership and independent protected cleanup; native acceptance separate.
+//   - C-QA-MACOS-LAUNCH-GATE: copy alias inode leg requires non-zero inodes on both stats; Windows dev/ino can read 0 for distinct files.
 // END_CHANGE_SUMMARY
 import * as fs from 'node:fs'
 import { basename, delimiter, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
@@ -205,7 +206,12 @@ function copy(from, to) {
   fs.copyFileSync(from, to, fs.constants.COPYFILE_EXCL | fs.constants.COPYFILE_FICLONE)
   fs.chmodSync(to, before.mode & 0o777)
   const after = regular(to)
-  if (gateHashFile(from) !== gateHashFile(to) || (before.dev === after.dev && before.ino === after.ino)) fail('copy-alias')
+  // The inode leg proves a true alias (same content AND same inode). Some
+  // Windows volumes report dev/ino as 0 — for genuinely distinct files too —
+  // so the leg only counts when both stats returned a real inode; the
+  // content hash stays authoritative for everything else.
+  const aliased = before.ino !== 0 && after.ino !== 0 && before.dev === after.dev && before.ino === after.ino
+  if (gateHashFile(from) !== gateHashFile(to) || aliased) fail('copy-alias')
 }
 export async function runGateTool({ file, args, session, inspect, signal }) {
   regular(file)
