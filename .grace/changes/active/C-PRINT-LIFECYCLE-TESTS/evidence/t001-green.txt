@@ -1,0 +1,21 @@
+# T-001 green evidence (2026-11-25)
+# Pins landed green immediately (coverage-first honesty map) – no behavior-red run required; a behavior-red result would have been a regression stop.
+
+## $ npx vitest run tests/renderer/components/editor-print-clearup.test.js tests/renderer/store/export-docx-dispatch.test.js
+ ✓ tests/renderer/store/export-docx-dispatch.test.js (4 tests) 111ms
+[intlify] Not found 'editor.export.failed' key in 'en' locale messages.
+ ✓ tests/renderer/components/editor-print-clearup.test.js (7 tests) 366ms
+ Test Files  2 passed (2)
+      Tests  11 passed (11)
+
+## $ npx vitest run tests/renderer/components/editor-print-clearup.test.js tests/renderer/components/editor-coverage.test.js tests/renderer/components/editor-export-images.test.js tests/renderer/store/export-docx-dispatch.test.js
+[Vue warn]: Invalid prop: custom validator check failed for prop "size". 
+[Vue warn]: Invalid prop: validation failed. Expected one of ["", "default", "small", "large"], got value "mini". 
+[Vue warn]: Invalid prop: custom validator check failed for prop "size". 
+ ✓ tests/renderer/components/editor-coverage.test.js (229 tests) 2350ms
+   ✓ editor.vue — coverage (229)
+     ✓ handleEditParagraph opens table dialog for type=table 310ms
+ ✓ tests/renderer/store/export-docx-dispatch.test.js (4 tests) 46ms
+ Test Files  4 passed (4)
+      Tests  264 passed (264)
+   Duration  2.86s (tests 80%, environment 12%, transform 3%, import 2%, setup 2%)

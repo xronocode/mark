@@ -1,0 +1,32 @@
+# T-001 absence evidence (recorded 2026-11-25, BEFORE any edit to editor-print-clearup.test.js)
+# Red-first artifact per the binding honesty map: no component-level docx lifecycle assertion exists.
+# The conversion-failure notice is owned by store isolation (export-docx-dispatch.test.js:123-129);
+# the nearest component pin (editor-export-images.test.js:622-643) stops at the embed pass (:642).
+
+## $ grep -rn "docx" tests/renderer/components/
+tests/renderer/components/import.test.js:48:    expect(texts).toContain('.docx')
+tests/renderer/components/editor-export-images.test.js:4://   PURPOSE: Pin the C-SELF-CONTAINED-HTML-EXPORT wiring in editor.vue's handleExport — the styledHtml branch runs embedLocalImages with the active document's directory before EXPORT and warns on skips; the pdf and print branches never run the pass (design-context corner C-12); an untitled document passes no directory. C-EXPORT-BOUNDARIES adds the two consent-gate wiring pins: the PlantUML card ('export-plantuml-consent') raised before exportStyledHTML in the styledHtml and docx branches with the decision riding plantumlRemoteConsent, the embed card ('export-embed-consent') granting exactly the listed files through requestScopeConsent, the rollbackConfirm-pattern card shape, the ten-locale editor.export consent-key completeness pin and the count-only console-privacy pin.
+tests/renderer/components/editor-export-images.test.js:441:// docx branches with the decision riding plantumlRemoteConsent, the
+tests/renderer/components/editor-export-images.test.js:622:  it('plantuml gate: the docx branch raises the same card and passes the decision into exportStyledHTML', async () => {
+tests/renderer/components/editor-export-images.test.js:626:    const done = getBusHandler('export')({ type: 'docx', ...exportOptions })
+tests/renderer/components/editor-export-images.test.js:640:    // The docx branch consumed the same post-consent HTML through the
+tests/renderer/components/tabs-lock.test.js:206:      // C-NATIVE-DOCX-RTF-EXPORT: the per-tab export entries (pdf/html/docx).
+
+## $ grep -rn "type: .docx." tests/renderer/components/
+tests/renderer/components/editor-export-images.test.js:626:    const done = getBusHandler('export')({ type: 'docx', ...exportOptions })
+
+## $ grep -rn "name: .Word." tests/renderer/components/
+(no matches)
+
+## $ grep -rn "exportToDocx" tests/renderer/components/
+(no matches)
+
+## $ grep -rn "spyOn(editorStore, .EXPORT.)" tests/renderer/components/
+tests/renderer/components/editor-export-images.test.js:1017:    const exportSpy = vi.spyOn(editorStore, 'EXPORT')
+tests/renderer/components/editor-export-images.test.js:1049:    const exportSpy = vi.spyOn(editorStore, 'EXPORT')
+
+## $ grep -n "docx" tests/renderer/components/editor-print-clearup.test.js tests/renderer/components/editor-coverage.test.js
+(no matches — neither suite carries a docx leg)
+
+## $ grep -n "conversion failure surfaces" tests/renderer/store/export-docx-dispatch.test.js
+123:  it('a conversion failure surfaces the editor.export.failed error notice', async () => {

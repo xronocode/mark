@@ -1,8 +1,8 @@
 // FILE: tests/renderer/components/editor-print-clearup.test.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
-//   PURPOSE: Pin the C-61 macOS print/pdf container lifecycle through editor.vue's handleExport with isOsx=true — the print container is cleared after mt_print_webview resolves (the backend resolves when the panel closes) and after every Export-to-PDF outcome (saved, cancelled, failed).
-//   SCOPE: The bus 'export' handler for types print/pdf only; same harness as editor-coverage.test.js but with the macOS util flag.
+//   PURPOSE: Pin the C-61 macOS print/pdf container lifecycle through editor.vue's handleExport with isOsx=true — the print container is cleared after mt_print_webview resolves (the backend resolves when the panel closes) and after every Export-to-PDF outcome (saved, cancelled, failed). C-PRINT-LIFECYCLE-TESTS adds the docx lifecycle: one store dispatch carries the post-embed HTML to the modal-less Word branch, the print container is never engaged, and both failure legs surface the failure notice (render-stage through editor.vue's catch, conversion through the store's catch).
+//   SCOPE: The bus 'export' handler for types print/pdf/docx; same harness as editor-coverage.test.js but with the macOS util flag.
 //   DEPENDS: Vitest, editor.vue (mounted with mocked Muya/Printer/Tauri surfaces), global @tauri-apps mocks from tests/renderer/setup.ts.
 //   LINKS: .grace/verification/runtime.xml V-M-052 scenario-2; .grace/changes/archive/C-61 (R-1, corner-2).
 //   ROLE: TEST
@@ -20,10 +20,12 @@
 //   getCssForOptionsMock - export CSS helper double.
 //   getHtmlTocMock - export TOC helper double.
 //   animatedScrollToMock - @/util scroll double (the rest of @/util is real).
+//   exportToDocxMock - the lazy '@/util/exportDocx' conversion double (the store's Word leg).
 //   i18n - test i18n instance.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-25 C-PRINT-LIFECYCLE-TESTS: three docx lifecycle pins – the success leg (one EXPORT dispatch carries the post-embed HTML beside pageOptions and exportPin, one Word-filtered save dialog, one conversion, one binary write, the print container never engaged), the render-stage failure leg (the editor.export.failed notice from editor.vue's own catch, zero dispatches) and the conversion-failure handoff (exactly one dispatch reaching the store's catch notice) – over a test-file-local '@/util/exportDocx' double.
 //   - 2026-11-23 C-EXPORT-DOCUMENT-PIN: the pdf captured-options case waits for the export to reach its CSS load before releasing the deferred getCssForOptions promise (the pin capture's awaited reads moved that load later; releasing earlier abandoned the operation into the next test's window).
 //   - 2026-11-12 C-EXPORT-SETTINGS-SECTION-RECOVERY: an in-flight PDF cannot overwrite newer remembered settings.
 //   LAST_CHANGE: 2026-10-18 v1.0.0 - C-61 T-002: initial file — macOS print
@@ -43,6 +45,9 @@ const logMock = vi.hoisted(() => ({ error: vi.fn(), warn: vi.fn(), info: vi.fn()
 const animatedScrollToMock = vi.hoisted(() => vi.fn())
 const getCssForOptionsMock = vi.hoisted(() => vi.fn(async () => ''))
 const getHtmlTocMock = vi.hoisted(() => vi.fn(() => ''))
+// C-PRINT-LIFECYCLE-TESTS: the lazy conversion double – the store's Word
+// leg imports '../util/exportDocx', the same module id the mock resolves.
+const exportToDocxMock = vi.hoisted(() => vi.fn())
 
 const mockEditorInstance = vi.hoisted(() => ({
   container: null,
@@ -185,6 +190,7 @@ vi.mock('@/util/pdf', () => ({
   getCssForOptions: getCssForOptionsMock,
   getHtmlToc: getHtmlTocMock
 }))
+vi.mock('@/util/exportDocx', () => ({ exportToDocx: (...args) => exportToDocxMock(...args) }))
 vi.mock('@/util/theme', () => ({
   addCommonStyle: vi.fn(),
   setEditorWidth: vi.fn(),
@@ -266,6 +272,7 @@ describe('editor.vue — C-61 print/pdf container lifecycle (macOS)', () => {
     mockPrinter.renderMarkdown.mockClear()
     mockPrinter.clearup.mockClear()
     noticeMock.notify.mockClear()
+    exportToDocxMock.mockReset()
   })
 
   it('print: the container is cleared once mt_print_webview resolves (panel closed)', async () => {
@@ -395,6 +402,144 @@ describe('editor.vue — C-61 print/pdf container lifecycle (macOS)', () => {
       }
     })
     expect(mockPrinter.clearup).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
+  })
+
+  it('docx: a successful export writes the rendered document through the store and never engages the print container', async () => {
+    const { save } = await import('@tauri-apps/plugin-dialog')
+    save.mockReset()
+    save.mockResolvedValue('/tmp/test.docx')
+    const bytes = new Uint8Array([1, 2, 3])
+    exportToDocxMock.mockResolvedValue(bytes)
+    // Muya's styled html; the real M-065 embed pass runs over the
+    // image-free markup (no img, no consent, no fs) and round-trips it
+    // unchanged through its detached container.
+    const postEmbedHtml = '<p>doc body</p>'
+    mockEditorInstance.exportStyledHTML.mockResolvedValueOnce(postEmbedHtml)
+    const exportSpy = vi.spyOn(editorStore, 'EXPORT')
+    const wrapper = await mountEditor()
+
+    await getBusHandler('export')({
+      type: 'docx',
+      header: '',
+      footer: '',
+      headerFooterStyled: false,
+      htmlTitle: '',
+      pageMarginTop: 20,
+      pageMarginRight: 15,
+      pageMarginBottom: 20,
+      pageMarginLeft: 15
+    })
+
+    // The store dispatch is fire-and-forget (editor.vue calls EXPORT
+    // without await), so the dialog – conversion – write tail is still in
+    // flight when the bus handler resolves; ride waitFor, never a bare
+    // await-then-assert.
+    await vi.waitFor(() => {
+      expect(exportSpy).toHaveBeenCalledTimes(1)
+      expect(window.fileUtils.writeFile).toHaveBeenCalledTimes(1)
+    })
+    expect(exportSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'docx',
+        content: postEmbedHtml,
+        pageOptions: expect.objectContaining({
+          pageMarginTop: 20,
+          pageMarginRight: 15,
+          pageMarginBottom: 20,
+          pageMarginLeft: 15
+        }),
+        exportPin: expect.any(Object)
+      })
+    )
+    expect(save).toHaveBeenCalledTimes(1)
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({ filters: [{ name: 'Word', extensions: ['docx'] }] })
+    )
+    expect(exportToDocxMock).toHaveBeenCalledTimes(1)
+    expect(exportToDocxMock.mock.calls[0][0].html).toBe(postEmbedHtml)
+    expect(window.fileUtils.writeFile).toHaveBeenCalledWith('/tmp/test.docx', bytes, 'binary')
+    // The docx branch creates no print container (modal-less Word leg), so
+    // nothing exists to clear – the lifecycle half.
+    expect(mockPrinter.renderMarkdown).not.toHaveBeenCalled()
+    expect(mockPrinter.clearup).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
+  it('docx: a render-stage failure surfaces the Word-branch failure notice and dispatches nothing', async () => {
+    const { save } = await import('@tauri-apps/plugin-dialog')
+    save.mockReset()
+    save.mockResolvedValue('/tmp/test.docx')
+    mockEditorInstance.exportStyledHTML.mockRejectedValueOnce(new Error('render fail'))
+    const exportSpy = vi.spyOn(editorStore, 'EXPORT')
+    const wrapper = await mountEditor()
+
+    await getBusHandler('export')({
+      type: 'docx',
+      header: '',
+      footer: '',
+      headerFooterStyled: false,
+      htmlTitle: '',
+      pageMarginTop: 20,
+      pageMarginRight: 15,
+      pageMarginBottom: 20,
+      pageMarginLeft: 15
+    })
+
+    await vi.waitFor(() => {
+      expect(noticeMock.notify).toHaveBeenCalledTimes(1)
+    })
+    // editor.vue's useI18n resolves under this suite's empty-message en
+    // plugin, so the title is the raw 'editor.export.failed' key – unlike
+    // the store leg's real-singleton interpolation.
+    expect(noticeMock.notify).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'editor.export.failed', type: 'error' })
+    )
+    expect(exportSpy).not.toHaveBeenCalled()
+    expect(save).not.toHaveBeenCalled()
+    expect(exportToDocxMock).not.toHaveBeenCalled()
+    expect(window.fileUtils.writeFile).not.toHaveBeenCalled()
+    expect(mockPrinter.renderMarkdown).not.toHaveBeenCalled()
+    expect(mockPrinter.clearup).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
+  it("docx: a conversion failure reaches the store's catch through exactly one dispatch", async () => {
+    const { save } = await import('@tauri-apps/plugin-dialog')
+    save.mockReset()
+    save.mockResolvedValue('/tmp/test.docx')
+    exportToDocxMock.mockRejectedValue(new Error('convert fail'))
+    const exportSpy = vi.spyOn(editorStore, 'EXPORT')
+    const wrapper = await mountEditor()
+
+    await getBusHandler('export')({
+      type: 'docx',
+      header: '',
+      footer: '',
+      headerFooterStyled: false,
+      htmlTitle: '',
+      pageMarginTop: 20,
+      pageMarginRight: 15,
+      pageMarginBottom: 20,
+      pageMarginLeft: 15
+    })
+
+    // Meaningful-proof handoff pin: the store leg always notifies (owned
+    // by the store isolation suite); this proves the component dispatch
+    // still reaches that catch – exactly one dispatch, exactly one notice,
+    // no editor.vue-level duplicate.
+    await vi.waitFor(() => {
+      expect(noticeMock.notify).toHaveBeenCalledTimes(1)
+    })
+    // The store resolves through the real '@/i18n' singleton (real
+    // en.json), so the title is the interpolated 'Word export failed'.
+    expect(noticeMock.notify).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Word export failed', type: 'error' })
+    )
+    expect(exportSpy).toHaveBeenCalledTimes(1)
+    expect(window.fileUtils.writeFile).not.toHaveBeenCalled()
+    expect(mockPrinter.renderMarkdown).not.toHaveBeenCalled()
+    expect(mockPrinter.clearup).not.toHaveBeenCalled()
     wrapper.unmount()
   })
 })

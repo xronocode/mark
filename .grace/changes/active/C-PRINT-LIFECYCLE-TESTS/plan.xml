@@ -1,0 +1,207 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-PRINT-LIFECYCLE-TESTS>
+    <Name>Print/export lifecycle test coverage: docx component pins, the e2e print-export zero-write companion and the V-M-052 selector re-aim — implementation plan</Name>
+    <Created>2026-11-25</Created>
+    <Spec>C-PRINT-LIFECYCLE-TESTS</Spec>
+    <IntentSummary>Draft plan for the approved pure test-coverage change, every code fact re-verified byte-exact at its cited line on this tree at plan time (worktree green-w5c, branch spec/print-lifecycle-tests, HEAD d26e5b52, rebased on fork/main 638c0a7c; active change set = C-47 (deferred), C-50 (approved, has plan) plus this draft — states re-verified 2026-11-25). (R-1, T-001) tests/renderer/components/editor-print-clearup.test.js gains three docx lifecycle pins on the untouched existing harness (mocked Muya/Printer/Tauri surfaces, real store via setupTestPinia, file-level isOsx: true at :161-167 unchanged): pin one «docx: a successful export writes the rendered document through the store and never engages the print container» (exactly one store EXPORT dispatch observed through a vi.spyOn call-through carrying the post-embed html beside pageOptions and the additive exportPin in the editor-coverage.test.js:2255-2258 objectContaining style, exactly one Word-filtered save dialog, the test-file-local '@/util/exportDocx' double consumed once with the same post-embed HTML followed by exactly one binary write, mockPrinter.renderMarkdown and mockPrinter.clearup both zero), pin two «docx: a render-stage failure surfaces the Word-branch failure notice and dispatches nothing» (mockEditorInstance.exportStyledHTML rejects before any dispatch; exactly one editor.export.failed error notice raised by editor.vue's own catch at :2630-2637, zero dispatches, no save dialog, zero print-container activity), pin three «docx: a conversion failure reaches the store's catch through exactly one dispatch» (meaningful-proof: the handoff reaches the store catch at store/editor.js:2316-2323 whose notice is the store isolation's owned assertion, export-docx-dispatch.test.js:123-129; exactly one dispatch, no duplicate editor.vue-level notice, zero binary writes, zero print-container activity). Red-first honesty, binding: pins one and two are named failing-first per the spec but the map is coverage-first — the pinned behavior is already correct on this tree, the red artifact is the absent assertion recorded as bundle evidence (grep at plan time: tests/renderer/components carries no docx lifecycle assertion outside the consent-gate wiring pin editor-export-images.test.js:622-643 which ends at embedMock :642, editor-print-clearup.test.js contains no docx at all, editor-coverage.test.js none either, and store isolation owns the conversion leg), so T-001 records the absence grep and then the green runs; no behavioral red runs are required and a behavior-red pin is a regression stop. Notice-title resolution is pinned per suite reality: editor.vue's useI18n t (:461) resolves under the suite's empty-message en plugin so pin two's title asserts the key verbatim 'editor.export.failed', while the store resolves through the real '@/i18n' singleton (store/editor.js:31, real en.json :83) so pin three's title asserts the interpolated «Word export failed» — the same two-resolver split the store isolation avoids by mocking '@/i18n'. (R-2, T-002) tests/e2e/print-export.spec.ts — the C-61-delivered file (archive spec.xml:33, plan.xml:138-144), extended in place: one paired unique // START_BLOCK_PRINT_EXPORT_LIFECYCLE / // END_BLOCK_PRINT_EXPORT_LIFECYCLE pair wrapping the existing describe (:25, export-document-pin.spec.ts:30 precedent), and the print pin's filtered invoke trace (:66-71) gains mt_fs_write/mt_fs_write_binary (tauri-shim.ts:133-134 seam) keeping expect(relevant).toEqual(['mt_print_webview']) — the same line now proves the exact order AND zero disk writes; the delivered assertions (exactly one mt_print_webview, no export-settings dialog, the platform-conditioned container check :54-61) stay byte-identical, and the pdf control (:74-115) and pdf corner-2 (:117-146) pins stay byte-identical including their own three-command filters. Nothing in R-2 is defect coverage — the deliverables are the governance markup and the companion zero-write assertion. (R-3, T-003) route decision made at plan time: the dangling «--project=webkit» selector in .grace/verification/runtime.xml V-M-052's Commands entry (:13064-13067) is DROPPED and the entry collapses to the single-line Command «npx playwright test tests/e2e/print-export.spec.ts --project=chromium» — the exact shape of the spec's own ExpectedCommand, which keeps playwright.config.ts read-only and OUT of ObservedWriteScope (the alternative scoped webkit-print-export project entry is deliberately not taken: no acceptance criterion requires a webkit lane for this spec and a new lane would add maintenance no requirement asks for; the spec lists both routes as valid, AC-3 «dropped or replaced»); the V-M-052 scenario wording and one prepended M-011 SummaryDelta (.grace/graph/runtime.xml, M-011 at :2640, deltas prepended at :2641) name the three docx pins and the e2e additions; editor-print-clearup.test.js gets VERSION 1.0.0 → 1.1.0 and one new START_CHANGE_SUMMARY line. V-M-057's identical dangling selector (runtime.xml :13169) is a recorded lane-wide follow-up, untouched here. Execution mode: T-001 → T-002 → T-003 strictly sequential, single-writer; no production source, locale or backend file is touched; the four existing editor-print-clearup pins and all predecessor suites stay green byte-identically; evidence (absence grep, green runs, the R-3 route rationale) lands under .grace/changes/active/C-PRINT-LIFECYCLE-TESTS/; no grace-lint command appears inside this plan — lint runs only in the external target/final phases; no implementation before this plan is approved; no release or train admission follows.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src/renderer/src/components/editorWithTabs/editor.vue</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/renderer/src/store/editor.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/renderer/src/services/printService.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/renderer/components/editor-print-clearup.test.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/renderer/components/editor-coverage.test.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/renderer/components/editor-export-images.test.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/renderer/store/export-docx-dispatch.test.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/e2e/print-export.spec.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/e2e/export-document-pin.spec.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/e2e/export-office.spec.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/e2e/fixtures/tauri-shim.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>playwright.config.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.grace/changes/archive/C-61/spec.xml</Value>
+      </MustExist>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>case 'docx': {</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>No settings dialog, no print container (both</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>editorStore.EXPORT({ type, content: html, pageOptions: options, exportPin })</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>title: t('editor.export.failed', { type: 'Word' }),</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>async _EXPORT_DOCX(content, pageOptions, exportPin) {</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>filters: [{ name: 'Word', extensions: ['docx'] }]</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>const { exportToDocx } = await import('../util/exportDocx')</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>await window.fileUtils.writeFile(filePath, bytes, 'binary')</Text></MustContain>
+      <MustContain><File>src/renderer/src/store/editor.js</File><Text>title: i18n.global.t('editor.export.failed', { type: 'Word' }),</Text></MustContain>
+      <MustContain><File>src/renderer/src/services/printService.js</File><Text>renderMarkdown(html, renderStatic) {</Text></MustContain>
+      <MustContain><File>src/renderer/src/services/printService.js</File><Text>printContainer.classList.add('print-container')</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>"failed": "Print failed",</Text></MustContain>
+      <MustContain><File>static/locales/en.json</File><Text>"failed": "{type} export failed",</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-print-clearup.test.js</File><Text>// VERSION: 1.0.0</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-print-clearup.test.js</File><Text>isOsx: true,</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-print-clearup.test.js</File><Text>it('print: the container is cleared once mt_print_webview resolves (panel closed)', async () => {</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-print-clearup.test.js</File><Text>pdf: a cancelled save dialog writes nothing, notifies nobody, and clears the container (corner-2)</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-print-clearup.test.js</File><Text>pdf: a successful save dialog runs mt_export_pdf and clears the container</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-coverage.test.js</File><Text>isOsx: false,</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-coverage.test.js</File><Text>expect(mockPrinter.clearup).not.toHaveBeenCalled()</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-export-images.test.js</File><Text>expect(embedMock).toHaveBeenCalledTimes(1)</Text></MustContain>
+      <MustContain><File>tests/renderer/store/export-docx-dispatch.test.js</File><Text>a conversion failure surfaces the editor.export.failed error notice</Text></MustContain>
+      <MustContain><File>tests/e2e/print-export.spec.ts</File><Text>test.describe('print and export-to-pdf flows (C-61)', () => {</Text></MustContain>
+      <MustContain><File>tests/e2e/print-export.spec.ts</File><Text>c === 'mt_print_webview' || c === 'mt_export_pdf' || c === 'plugin:dialog|save'</Text></MustContain>
+      <MustContain><File>tests/e2e/print-export.spec.ts</File><Text>expect(relevant).toEqual(['mt_print_webview'])</Text></MustContain>
+      <MustContain><File>tests/e2e/print-export.spec.ts</File><Text>expect(relevant).toEqual(['plugin:dialog|save', 'mt_export_pdf'])</Text></MustContain>
+      <MustContain><File>tests/e2e/print-export.spec.ts</File><Text>expect(relevant).toEqual(['plugin:dialog|save'])</Text></MustContain>
+      <MustContain><File>tests/e2e/fixtures/tauri-shim.ts</File><Text>mt_fs_write_binary: () => null,</Text></MustContain>
+      <MustContain><File>tests/e2e/export-document-pin.spec.ts</File><Text>// START_BLOCK_EXPORT_DOCUMENT_PIN</Text></MustContain>
+      <MustContain><File>tests/e2e/export-office.spec.ts</File><Text>never a settings dialog, never the print surface</Text></MustContain>
+      <MustContain><File>playwright.config.ts</File><Text>{ name: 'chromium', use: { browserName: 'chromium' }, testIgnore: ['**/fixtures/**', '**/perf/**'] },</Text></MustContain>
+      <MustContain><File>playwright.config.ts</File><Text>{ name: 'webkit-settings', use: { browserName: 'webkit' }, testMatch: 'settings-shell.spec.ts' },</Text></MustContain>
+      <MustContain><File>.grace/verification/runtime.xml</File><Text>npx playwright test tests/e2e/print-export.spec.ts --project=chromium</Text></MustContain>
+      <MustContain><File>.grace/verification/runtime.xml</File><Text>--project=webkit</Text></MustContain>
+      <MustNotContain><File>tests/renderer/components/editor-print-clearup.test.js</File><Text>type: 'docx'</Text></MustNotContain>
+      <MustNotContain><File>tests/renderer/components/editor-print-clearup.test.js</File><Text>@/util/exportDocx</Text></MustNotContain>
+      <MustNotContain><File>tests/e2e/print-export.spec.ts</File><Text>START_BLOCK_PRINT_EXPORT_LIFECYCLE</Text></MustNotContain>
+      <MustNotContain><File>tests/e2e/print-export.spec.ts</File><Text>mt_fs_write</Text></MustNotContain>
+      <MustPassCommand>
+        <Command budgetSeconds="300">npx vitest run tests/renderer/components/editor-print-clearup.test.js tests/renderer/components/editor-coverage.test.js tests/renderer/components/editor-export-images.test.js tests/renderer/store/export-docx-dispatch.test.js</Command>
+      </MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-011</Module>
+      </MustVerify>
+      <MustContain><File>tests/renderer/components/editor-print-clearup.test.js</File><Text>// VERSION: 1.1.0</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-print-clearup.test.js</File><Text>C-PRINT-LIFECYCLE-TESTS</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-print-clearup.test.js</File><Text>vi.mock('@/util/exportDocx'</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-print-clearup.test.js</File><Text>docx: a successful export writes the rendered document through the store and never engages the print container</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-print-clearup.test.js</File><Text>docx: a render-stage failure surfaces the Word-branch failure notice and dispatches nothing</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-print-clearup.test.js</File><Text>docx: a conversion failure reaches the store's catch through exactly one dispatch</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-print-clearup.test.js</File><Text>filters: [{ name: 'Word', extensions: ['docx'] }]</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-print-clearup.test.js</File><Text>expect(mockPrinter.renderMarkdown).not.toHaveBeenCalled()</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-print-clearup.test.js</File><Text>expect(mockPrinter.clearup).not.toHaveBeenCalled()</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-print-clearup.test.js</File><Text>it('print: the container is cleared once mt_print_webview resolves (panel closed)', async () => {</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-print-clearup.test.js</File><Text>pdf: a successful save dialog runs mt_export_pdf and clears the container</Text></MustContain>
+      <MustContain><File>tests/e2e/print-export.spec.ts</File><Text>// START_BLOCK_PRINT_EXPORT_LIFECYCLE</Text></MustContain>
+      <MustContain><File>tests/e2e/print-export.spec.ts</File><Text>// END_BLOCK_PRINT_EXPORT_LIFECYCLE</Text></MustContain>
+      <MustContain><File>tests/e2e/print-export.spec.ts</File><Text>c === 'mt_fs_write' || c === 'mt_fs_write_binary'</Text></MustContain>
+      <MustContain><File>tests/e2e/print-export.spec.ts</File><Text>test.describe('print and export-to-pdf flows (C-61)', () => {</Text></MustContain>
+      <MustContain><File>tests/e2e/print-export.spec.ts</File><Text>expect(relevant).toEqual(['mt_print_webview'])</Text></MustContain>
+      <MustContain><File>tests/e2e/print-export.spec.ts</File><Text>expect(relevant).toEqual(['plugin:dialog|save', 'mt_export_pdf'])</Text></MustContain>
+      <MustContain><File>tests/e2e/print-export.spec.ts</File><Text>expect(relevant).toEqual(['plugin:dialog|save'])</Text></MustContain>
+      <MustContain><File>.grace/graph/runtime.xml</File><Text>C-PRINT-LIFECYCLE-TESTS</Text></MustContain>
+      <MustContain><File>.grace/verification/runtime.xml</File><Text>C-PRINT-LIFECYCLE-TESTS</Text></MustContain>
+      <MustContain><File>.grace/verification/runtime.xml</File><Text>npx playwright test tests/e2e/print-export.spec.ts --project=chromium&lt;/Command></Text></MustContain>
+      <MustPassCommand>
+        <Command budgetSeconds="300">npx vitest run tests/renderer/components/editor-print-clearup.test.js tests/renderer/components/editor-coverage.test.js tests/renderer/components/editor-export-images.test.js tests/renderer/store/export-docx-dispatch.test.js</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">npx playwright test tests/e2e/print-export.spec.ts --project=chromium</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="900">npx playwright test tests/e2e/export-office.spec.ts tests/e2e/export-html-images.spec.ts tests/e2e/export-document-pin.spec.ts --project=chromium</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="900">npm test</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="30">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/runtime.xml'); ET.parse('.grace/verification/runtime.xml')"</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-011 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-052 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>tests/renderer/components/editor-print-clearup.test.js</File>
+      <File>tests/e2e/print-export.spec.ts</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>R-1 docx lifecycle pins in editor-print-clearup.test.js: absence evidence recorded, then the three pins green on the untouched harness</Title>
+        <DependsOn></DependsOn>
+        <Files>tests/renderer/components/editor-print-clearup.test.js only (VERSION bump, CHANGE_SUMMARY line, contract SCOPE/PURPOSE wording extended to docx — all pre-existing lines byte-identical).</Files>
+        <Steps>
+          <Step>Record the absence evidence FIRST, before any edit, in the bundle evidence: grep tests/renderer for component-level docx lifecycle assertions and capture the output — expected: editor-export-images.test.js carries only the consent-gate wiring pin (:622-643, ending at the embed pass assertion :642), editor-print-clearup.test.js and editor-coverage.test.js carry no docx leg at all, and the conversion-failure notice is owned by store isolation (export-docx-dispatch.test.js:123-129). This recorded absence IS the red-first artifact per the binding honesty map — no behavioral red runs are performed; the pins land green immediately and any behavior-red result is a regression stop, investigated as a broken predecessor, never shipped red.</Step>
+          <Step>Add the test-file-local conversion double beside the existing vi.mock block: vi.mock('@/util/exportDocx', ...) exposing an exportToDocxMock reset in beforeEach — the same isolation discipline as export-docx-dispatch.test.js (:50-51); the mock resolves the same module id the store lazily imports as '../util/exportDocx' (store/editor.js:2312). No other mock is added: the PlantUML gate declines silently at count 0 over the suite's fence-free markdown (editor-export-images.test.js:610-619 precedent, no card machinery added) and the real M-065 embed pass no-ops over the image-free HTML; the save dialog rides the global plugin-dialog mock (tests/renderer/setup.ts:141-145) and the write observable the global window.fileUtils.writeFile mock (:185-195).</Step>
+          <Step>Pin one (named failing-first, lands green — coverage-first): Async discipline for all three pins: the docx dispatch is fire-and-forget (editor.vue:2629 calls editorStore.EXPORT without await, unlike the pdf branch :2686), so after awaiting the bus handler the store tail (dialog → conversion → write → notice) is still in flight — assertions ride vi.waitFor / the suite's deferred-release pattern, never a bare await-then-assert. «docx: a successful export writes the rendered document through the store and never engages the print container» — resolve the save dialog to '/tmp/test.docx' (save.mockResolvedValueOnce), stub the double to resolve bytes, spy the real store action with vi.spyOn(editorStore, 'EXPORT') (call-through preserved), drive getBusHandler('export') with type: 'docx' and await it; assert exactly one dispatch carrying expect.objectContaining({ type: 'docx', content: (the post-embed html), exportPin: expect.any(Object) }) beside the full pageOptions, exactly one save dialog whose payload asserts filters: [{ name: 'Word', extensions: ['docx'] }], the double consumed once with the same html the dispatch carried, window.fileUtils.writeFile called exactly once with the resolved path and 'binary' mode, and the lifecycle half — expect(mockPrinter.renderMarkdown).not.toHaveBeenCalled() and expect(mockPrinter.clearup).not.toHaveBeenCalled(): the branch creates no container (editor.vue:2592-2594), so nothing exists to clear.</Step>
+          <Step>Pin two (named failing-first, lands green — coverage-first): «docx: a render-stage failure surfaces the Word-branch failure notice and dispatches nothing» — mockEditorInstance.exportStyledHTML rejects before any dispatch (the editor-coverage pdf/print error precedent :2280/:2317 applied to the docx leg); assert exactly one noticeMock.notify with title 'editor.export.failed' (editor.vue's useI18n t resolves the key verbatim under the suite's empty-message en plugin) and type 'error' (the :2289-2291 objectContaining precedent), zero store EXPORT dispatches, no save dialog, no conversion, zero writeFile calls, zero print-container activity.</Step>
+          <Step>Pin three (meaningful-proof, recorded honestly as handoff coverage): «docx: a conversion failure reaches the store's catch through exactly one dispatch» — save resolves to a .docx path, the double rejects; assert exactly one store EXPORT dispatch (the handoff), exactly one noticeMock.notify call overall raised by the store's catch (store/editor.js:2316-2323) whose title asserts the real-singleton interpolation 'Word export failed' with severity 'error', no editor.vue-level duplicate notice, zero binary writes, zero print-container activity. Not a defect detector — the store leg always notifies and is pinned in isolation; this pin proves the component→store handoff still reaches it.</Step>
+          <Step>Synchronize the file's semantic markup honestly: VERSION 1.0.0 → 1.1.0, one new START_CHANGE_SUMMARY line naming C-PRINT-LIFECYCLE-TESTS and the three pins, PURPOSE/SCOPE contract lines extended from «types print/pdf only» to include the docx leg — every pre-existing markup line byte-identical; the four existing pins (:271-399) and the isOsx: true partial mock (:161-167) stay byte-identical. Run the four-suite vitest floor green.</Step>
+        </Steps>
+        <AcceptanceCriteria>
+          <Criterion>The three pins exist with exactly the named titles and assert observable behavior only (dispatch payloads and counts, dialog payload, write counts and mode, printer counters, notice titles/type) — never implementation internals; the success pin's lifecycle assertion is «never engages the print container» (renderMarkdown and clearup both zero), not «clears the container»; pins one and two carry the recorded absence evidence as their red-first artifact and pass green immediately, pin three is marked meaningful-proof; the four pre-existing pins pass byte-identically; any behavior-red result is a regression stop recorded in the bundle, never waived.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="180">npx vitest run tests/renderer/components/editor-print-clearup.test.js tests/renderer/store/export-docx-dispatch.test.js</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>R-2 e2e print-export companion: the paired START_BLOCK_PRINT_EXPORT_LIFECYCLE markup and the print pin's zero-disk-write filter extension</Title>
+        <DependsOn>T-001</DependsOn>
+        <Files>tests/e2e/print-export.spec.ts only (annotation plus the print pin's filter widening; the fixtures and helpers are consumed read-only).</Files>
+        <Steps>
+          <Step>Wrap the existing describe (line 25, unchanged text) in one paired unique semantic block: // START_BLOCK_PRINT_EXPORT_LIFECYCLE immediately before test.describe('print and export-to-pdf flows (C-61)', () => { and // END_BLOCK_PRINT_EXPORT_LIFECYCLE immediately after its closing — the export-document-pin.spec.ts:30 precedent; the prose header (:1-17) stays byte-identical; the pair is unique in the repository (verified absent at plan time).</Step>
+          <Step>Extend ONLY the print pin's filtered invoke trace (:66-71): the filter's command list gains the two fs-write commands with the exact continuation c === 'mt_fs_write' || c === 'mt_fs_write_binary' appended after c === 'mt_print_webview' || c === 'mt_export_pdf' || c === 'plugin:dialog|save', and expect(relevant).toEqual(['mt_print_webview']) is kept unchanged — the same line now proves both the exact invoke order and that the print flow never writes a file (the tauri-shim.ts:133-134 seam enters the trace). The pin's delivered assertions stay byte-identical: exactly one mt_print_webview via waitForFunction, the no-export-settings-dialog check (:47), and the platform-conditioned container check (:54-61) with its darwin/other-host split exactly as C-61 shipped it (no conversion to host-skips).</Step>
+          <Step>Leave the pdf control pin (:74-115) and the pdf corner-2 pin (:117-146) byte-identical, including their own three-command filters and their exact expect lines (['plugin:dialog|save', 'mt_export_pdf'] and ['plugin:dialog|save']) and the log-level expect(log).not.toContain('mt_print_webview') (:114); run the chromium lane green — the three delivered pins pass unchanged, the additions ride the existing installTauriShim/bootEditor/openFileTab harness with no new fixture.</Step>
+        </Steps>
+        <AcceptanceCriteria>
+          <Criterion>The paired block markers exist as a unique wrapping pair and the print pin's trace asserts the absence of mt_fs_write/mt_fs_write_binary while its delivered assertions pass unchanged; the pdf control and corner-2 pins are byte-identical (their exact expect lines survive as Target anchors); recorded honestly as meaningful-proof companion coverage completing the C-61 net — no red-first defect claim is made for any R-2 deliverable.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">npx playwright test tests/e2e/print-export.spec.ts --project=chromium</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>R-3 governance: the V-M-052 selector re-aim (drop route), the M-011 SummaryDelta, and the full green matrix</Title>
+        <DependsOn>T-002</DependsOn>
+        <Files>.grace/verification/runtime.xml (strictly the V-M-052 entry) and .grace/graph/runtime.xml (strictly the M-011 entry).</Files>
+        <Steps>
+          <Step>Re-aim .grace/verification/runtime.xml V-M-052's dangling Commands entry (:13064-13067): collapse it to the single-line Command npx playwright test tests/e2e/print-export.spec.ts --project=chromium — the dangling --project=webkit selector is dropped (the plan-time route decision: drop, not the scoped webkit-print-export project entry; playwright.config.ts stays read-only, matching the spec's ExpectedCommand verbatim). No other V-M-052 line changes except the honest scenario wording: scenario-2's delivered-tense e2e sentence (:13092-13095) stays and gains the naming of the three docx component pins (editor-print-clearup.test.js) and the print net's zero-disk-write companion; scenario-1 is untouched (it already credits editor-coverage.test.js for the Windows keep, :13075-13084). V-M-057's identical dangling selector (:13169) is NOT touched — recorded as the lane-wide follow-up in the bundle evidence, fixed in its own lane.</Step>
+          <Step>Prepend exactly one SummaryDelta in .grace/graph/runtime.xml's M-011 entry (after line 2640, before the C-EXPORT-DOCUMENT-PIN delta at :2641) naming C-PRINT-LIFECYCLE-TESTS: the docx export branch proves its observable lifecycle at component level (the write dispatch, both failure legs and the never-engaged print container pinned in editor-print-clearup.test.js) and the C-61-delivered e2e print net carries its paired semantic block and zero-disk-write companion; no other module's entry is edited.</Step>
+          <Step>Run the full matrix green in one pass: the four-suite vitest floor, the print-export chromium lane, the three existing export e2e specs (export-office, export-html-images, export-document-pin) and npm test; parse both governance XMLs; any pre-existing unrelated failure is recorded in the bundle evidence rather than silently skipped; record the absence-grep artifact, the green runs and the R-3 route rationale under .grace/changes/active/C-PRINT-LIFECYCLE-TESTS/. No grace-lint command runs inside this plan — lint belongs to the external target/final phases.</Step>
+        </Steps>
+        <AcceptanceCriteria>
+          <Criterion>The V-M-052 playwright command resolves against the existing file with a project selector that exists (chromium; the dangling webkit selector gone from the V-M-052 entry while V-M-057's :13169 stays untouched as the recorded follow-up); the M-011 SummaryDelta and the V-M-052 scenario wording name the delivered pins and carry the C-PRINT-LIFECYCLE-TESTS id; both XML files parse; the working-tree diff touches no production source file, no locale file and no backend file; the full matrix is green against the recorded pre-existing baseline.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="300">npx vitest run tests/renderer/components/editor-print-clearup.test.js tests/renderer/components/editor-coverage.test.js tests/renderer/components/editor-export-images.test.js tests/renderer/store/export-docx-dispatch.test.js</Command>
+          <Command budgetSeconds="600">npx playwright test tests/e2e/print-export.spec.ts --project=chromium</Command>
+          <Command budgetSeconds="900">npx playwright test tests/e2e/export-office.spec.ts tests/e2e/export-html-images.spec.ts tests/e2e/export-document-pin.spec.ts --project=chromium</Command>
+          <Command budgetSeconds="30">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/runtime.xml'); ET.parse('.grace/verification/runtime.xml')"</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Criterion>Docx lifecycle pins (spec AC-1, R-1/T-001): editor-print-clearup.test.js pins the success leg (exactly one store EXPORT dispatch carrying the post-embed content beside pageOptions and the additive exportPin via objectContaining through a call-through spy, exactly one Word-filtered save dialog, the conversion double consumed once with the same html followed by exactly one binary write, mockPrinter.renderMarkdown and mockPrinter.clearup both zero), the render-stage failure leg (exactly one editor.export.failed error notice from editor.vue's catch, zero dispatches, no save dialog, zero print-container activity) and the conversion-leg handoff (exactly one dispatch, exactly one store-catch notice with no editor.vue-level duplicate, zero binary writes, zero print-container activity) — pins one and two coverage-first per the binding honesty map with the recorded absence grep as the red artifact, pin three marked meaningful-proof; all three land green immediately and any behavior-red result is a regression stop; the four existing pins (:271-399) and the isOsx mock (:161-167) stay byte-identical and green.</Criterion>
+      <Criterion>E2e companion (spec AC-2, R-2/T-002): print-export.spec.ts carries the paired unique START_BLOCK_PRINT_EXPORT_LIFECYCLE/END_BLOCK_PRINT_EXPORT_LIFECYCLE block wrapping the unchanged describe and the print pin's widened trace asserting mt_fs_write/mt_fs_write_binary absent from the print flow while expect(relevant).toEqual(['mt_print_webview']) survives; the delivered print assertions (one mt_print_webview, no export-settings dialog, the platform-conditioned container check) and the pdf control and corner-2 pins pass byte-identically; nothing in this criterion claims defect coverage.</Criterion>
+      <Criterion>Governance and no-regression (spec AC-3, R-3/T-003): the V-M-052 entry resolves as the single-line chromium command (the dropped-selector route chosen at plan time, playwright.config.ts read-only and outside ObservedWriteScope; V-M-057's :13169 dangling selector untouched and recorded as the lane-wide follow-up); the M-011 SummaryDelta and V-M-052 scenarios name the pins with the change id; editor-print-clearup.test.js carries VERSION 1.1.0 and the new CHANGE_SUMMARY line; the MustPassCommand matrix (four-suite vitest, print-export chromium lane, the three export e2e specs, npm test, XML parse) is green against the recorded pre-existing baseline; the diff touches only the two test files and the two governance XMLs — no production source, locale or backend file.</Criterion>
+      <Criterion>Plan discipline: no implementation before this plan and the spec are approved; tasks strictly sequential T-001 → T-002 → T-003; pins describe observable behavior only; no grace-lint command appears inside this plan (external target/final phases only); no test deleted, skipped or weakened, no threshold moved; evidence (absence grep, green runs, route rationale) recorded under the bundle directory; no release or train admission follows from this plan or its approval.</Criterion>
+    </AcceptanceVerification>
+  </C-PRINT-LIFECYCLE-TESTS>
+</GraceChangePlan>
