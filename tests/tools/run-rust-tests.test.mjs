@@ -417,7 +417,8 @@ const fixture = (mode = 'success', { count = 2, direct = false } = {}) => {
 }
 
 const waitUntil = async predicate => {
-  const deadline = Date.now() + 2500
+  // Loaded CI runners can legitimately exceed 2.5s; the deadline bounds a hang, not timing.
+  const deadline = Date.now() + 15000
   while (!predicate()) {
     if (Date.now() > deadline) throw Error('synthetic child watchdog')
     await new Promise(done => setTimeout(done, 10))
