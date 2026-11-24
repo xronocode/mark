@@ -601,6 +601,24 @@ fn run_session_files_with_program(
 // regardless of git presence (matching the walker's .ignore switch) and
 // passes --no-ignore on the same no_ignore option (both rg transports).
 // The no_ignore row keeps disabling ALL ignore sources on both engines.
+//
+// SNIPPET TRUNCATION (walker-inherent; closes the recorded triple-debt
+// entry named verbatim in the NonGoals of C-SEARCH-ERROR-VISIBILITY,
+// C-SEARCH-LIFECYCLE-DISCARD and C-QUICKOPEN-FILES-MODE):
+//   walker anchor: the snippet construction site in run_search — the
+//   MAX_LINE_BYTES byte cut is floored to the last UTF-8 character
+//   boundary at or before the cap (floor_to_char_boundary), so a
+//   Cyrillic/emoji line crossing the cap no longer panics the walker
+//   thread. The ellipsis marker, the truncated flag, delivered_end_byte
+//   and the honest-or-absent bounds rule keep their contracts; the cap
+//   value stays a byte cap. Receipt: the failing-first
+//   walker_utf8_boundary_truncation_does_not_panic (red by panic on the
+//   pre-change tree at the raw byte slice; green now).
+//   rg anchor: the content rg transport delivers rg's own line text —
+//   rg lines are not walker-capped and no truncation is introduced
+//   there; that delivery shape is rg-inherent and documented here, not
+//   equated. The files-mode path-only legs stay body-read-free
+//   (START_BLOCK_WALKER_PATH_LEG) — truncation does not apply to them.
 // END_BLOCK_ENGINE_PARITY_TABLE
 
 // START_CONTRACT: resolve_engine_flags
@@ -784,6 +802,24 @@ fn build_matcher(pattern: &str, opts: &SearchOptions) -> Result<regex::Regex, re
     RegexBuilder::new(&wrapped)
         .case_insensitive(!opts.is_case_sensitive.unwrap_or(false))
         .build()
+}
+
+/// Floor a byte cut to the last UTF-8 character boundary at or before the
+/// cap (C-SEARCH-ENGINE-PARITY): the walker's snippet truncation is a
+/// byte-cap cut, and a raw slice at an offset inside a multi-byte
+/// character would panic (the recorded triple-debt entry — Cyrillic 2
+/// bytes, emoji 4). The floored cut is at most three bytes shorter than
+/// the intended byte cut and never longer: MAX_LINE_BYTES stays the byte
+/// cap (the V-M-004 "no full-line buffer over 4 MB" budget holds).
+fn floor_to_char_boundary(text: &str, cap: usize) -> usize {
+    if cap >= text.len() {
+        return text.len();
+    }
+    let mut cut = cap.min(text.len());
+    while cut > 0 && !text.is_char_boundary(cut) {
+        cut -= 1;
+    }
+    cut
 }
 
 /// Shared exclusion-mask semantics for BOTH engines (C-SEARCH-ERROR-VISIBILITY).
@@ -1007,7 +1043,11 @@ pub fn run_search(
             };
             let truncated = line.len() > MAX_LINE_BYTES;
             let snippet = if truncated {
-                format!("{}…", &line[..MAX_LINE_BYTES.min(line.len())])
+                // C-SEARCH-ENGINE-PARITY: the cut floors to the last UTF-8
+                // character boundary at or before the cap — a raw byte
+                // slice at an offset inside a multi-byte character
+                // panicked here (the recorded triple-debt entry).
+                format!("{}…", &line[..floor_to_char_boundary(&line, MAX_LINE_BYTES)])
             } else {
                 line.clone()
             };
