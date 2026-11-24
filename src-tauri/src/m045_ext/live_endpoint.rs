@@ -11,6 +11,20 @@
 //   STATUS:  Phase-B5a initial — discovery file write/cleanup/stale.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-23 C-EXT-DELIVERY-HONESTY T-003: bounded, surfaced endpoint
+//     publication — publish_endpoint_with_retry(endpoint, write) beside the
+//     endpoint file I/O with named constants ENDPOINT_PUBLISH_ATTEMPTS (3)
+//     and ENDPOINT_PUBLISH_RETRY_PAUSE_MS (250), an injected writer, every
+//     failed attempt logged BLOCK_ENDPOINT_WRITE_FAILED attempt={n}/{N},
+//     each pause logged BLOCK_ENDPOINT_PUBLISH_RETRY, and exhaustion logged
+//     as the distinct final state BLOCK_ENDPOINT_UNPUBLISHED port={}
+//     attempts={} ("running but unpublished" — textually and semantically
+//     distinct from BLOCK_START_FAILED's "no server"); a first-attempt
+//     success returns Published after exactly one write (the existing
+//     BLOCK_WRITE_OK stays the only success log). Startup-only, bounded
+//     total window well under a second, std::thread::sleep pauses — no
+//     timer, queue or background republication; cleanup_endpoint,
+//     check_stale and the stale-PID logic are untouched.
 //   - 2026-11-09 C-STABILIZE-NATIVE-PROFILE-CLOSEOUT: endpoint writes and cleanup use the configured durable data root; canonical macOS path is unchanged.
 //   - 2026-06-08 B5a: initial live_endpoint module creation.
 //   - 2026-09-28 C-15 T-W2: is_pid_alive gains a tasklist-based Windows
@@ -127,6 +141,85 @@ pub fn write_endpoint(endpoint: &LiveEndpoint) -> Result<(), String> {
 }
 
 // END_BLOCK_WRITE
+
+// START_BLOCK_PUBLISH
+
+/// C-EXT-DELIVERY-HONESTY: the bounded attempt budget for publishing the
+/// live-endpoint discovery file — a transient write failure is retried
+/// within this count (the total retry window stays well under a second).
+pub const ENDPOINT_PUBLISH_ATTEMPTS: u32 = 3;
+
+/// C-EXT-DELIVERY-HONESTY: the inter-attempt pause (milliseconds) between
+/// endpoint publication attempts — startup-only, bounded.
+pub const ENDPOINT_PUBLISH_RETRY_PAUSE_MS: u64 = 250;
+
+/// C-EXT-DELIVERY-HONESTY: the bounded endpoint publication outcome.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EndpointPublication {
+    /// First attempt succeeded — exactly one write, exactly today's
+    /// behavior (the existing BLOCK_WRITE_OK is the only success log).
+    Published,
+    /// A transient failure recovered within the bounded attempt budget;
+    /// `attempt` names the successful try (1-based).
+    PublishedAfterRetry {
+        attempt: u32,
+    },
+    /// Every attempt failed — the live server is running but its address
+    /// is unpublished for the process lifetime ("running but unpublished",
+    /// textually and semantically distinct from BLOCK_START_FAILED's
+    /// "no server"). Accepted per the spec: a missing live-endpoint.json
+    /// stays an honest missing file; no publication-later mechanism.
+    Unpublished {
+        attempts: u32,
+    },
+}
+
+/// Publish the live-endpoint discovery file with a bounded retry: attempt 1
+/// runs first; every failed attempt logs BLOCK_ENDPOINT_WRITE_FAILED with an
+/// attempt={n}/{ENDPOINT_PUBLISH_ATTEMPTS} counter and the underlying
+/// reason; before each subsequent try BLOCK_ENDPOINT_PUBLISH_RETRY names the
+/// pause; exhausting the budget logs the distinct final state
+/// BLOCK_ENDPOINT_UNPUBLISHED port={} attempts={}. The writer is injected so
+/// tests drive the helper deterministically; main.rs passes the real
+/// write_endpoint. Startup-only — no timer, queue, watcher or background
+/// republication.
+pub fn publish_endpoint_with_retry(
+    endpoint: &LiveEndpoint,
+    write: impl Fn(&LiveEndpoint) -> Result<(), String>,
+) -> EndpointPublication {
+    for attempt in 1..=ENDPOINT_PUBLISH_ATTEMPTS {
+        match write(endpoint) {
+            Ok(()) if attempt == 1 => return EndpointPublication::Published,
+            Ok(()) => return EndpointPublication::PublishedAfterRetry { attempt },
+            Err(reason) => {
+                safe_eprintln!(
+                    "[ExtHost][live_endpoint][BLOCK_ENDPOINT_WRITE_FAILED attempt={attempt}/{} reason={reason}]",
+                    ENDPOINT_PUBLISH_ATTEMPTS,
+                );
+                if attempt < ENDPOINT_PUBLISH_ATTEMPTS {
+                    let upcoming = attempt + 1;
+                    safe_eprintln!(
+                        "[ExtHost][live_endpoint][BLOCK_ENDPOINT_PUBLISH_RETRY attempt={upcoming} pause_ms={}]",
+                        ENDPOINT_PUBLISH_RETRY_PAUSE_MS,
+                    );
+                    std::thread::sleep(std::time::Duration::from_millis(
+                        ENDPOINT_PUBLISH_RETRY_PAUSE_MS,
+                    ));
+                }
+            }
+        }
+    }
+    safe_eprintln!(
+        "[ExtHost][live_endpoint][BLOCK_ENDPOINT_UNPUBLISHED port={} attempts={}]",
+        endpoint.port,
+        ENDPOINT_PUBLISH_ATTEMPTS,
+    );
+    EndpointPublication::Unpublished {
+        attempts: ENDPOINT_PUBLISH_ATTEMPTS,
+    }
+}
+
+// END_BLOCK_PUBLISH
 
 // START_BLOCK_CLEANUP
 

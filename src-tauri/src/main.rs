@@ -48,6 +48,13 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 C-EXT-DELIVERY-HONESTY T-003: the in-source M-045 B5a setup
+//     block publishes the discovery endpoint through the bounded
+//     m045_ext::publish_endpoint_with_retry with the real m045_ext::write_endpoint
+//     as the injected writer (transient write failures retried within
+//     ENDPOINT_PUBLISH_ATTEMPTS with per-attempt and exhaustion states
+//     distinct from BLOCK_START_FAILED); the start-failure arm and the
+//     LiveServerState literal stay textually unchanged.
 //   - 2026-11-21 C-DEV-ENV-ISOLATION: debug builds bind the dev namespace default through mt_paths::resolve_boot_identifier at the unchanged C-STABILIZE-PROFILE-ISOLATION boot point; MARK_PROFILE_IDENTIFIER is the debug-only, migration-testing escape hatch (fail-closed on invalid values); release binding stays byte-identical.
 //   - 2026-11-15 C-BOOKMARK-PERSISTENCE-DURABILITY: consume grant failures;
 //     install content-free main-window warning wakeups and readiness recovery.
@@ -836,10 +843,28 @@ fn main() {
                     match m045_ext::start_live_server(live_state).await {
                         Ok(port) => {
                             let endpoint = m045_ext::make_endpoint(port);
-                            if let Err(e) = m045_ext::write_endpoint(&endpoint) {
-                                safe_eprintln!(
-                                    "[ExtHost][live_server][BLOCK_ENDPOINT_WRITE_FAILED reason={e}]"
-                                );
+                            // C-EXT-DELIVERY-HONESTY: bounded, surfaced
+                            // publication — transient write failures are
+                            // retried within ENDPOINT_PUBLISH_ATTEMPTS with
+                            // per-attempt BLOCK_ENDPOINT_WRITE_FAILED and
+                            // pause/retry logs inside the helper; exhaustion
+                            // is the distinct "running but unpublished" state,
+                            // never BLOCK_START_FAILED ("no server").
+                            match m045_ext::publish_endpoint_with_retry(
+                                &endpoint,
+                                m045_ext::write_endpoint,
+                            ) {
+                                m045_ext::EndpointPublication::Published => {}
+                                m045_ext::EndpointPublication::PublishedAfterRetry { attempt } => {
+                                    safe_eprintln!(
+                                        "[ExtHost][live_server][BLOCK_ENDPOINT_PUBLISH_RECOVERED attempt={attempt}]"
+                                    );
+                                }
+                                m045_ext::EndpointPublication::Unpublished { attempts } => {
+                                    safe_eprintln!(
+                                        "[ExtHost][live_server][BLOCK_ENDPOINT_WRITE_FAILED attempts={attempts} reason=discovery file still unwritten]"
+                                    );
+                                }
                             }
                         }
                         Err(e) => {

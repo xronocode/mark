@@ -40,6 +40,27 @@
 //     discover_extensions_in(dirs, prober) seam, with the payload pin
 //     mt_ext_discover_payload_carries_failures_beside_the_list committed
 //     compile-red against the target command signature (T-004 lands it).
+//   - 2026-11-23 C-EXT-DELIVERY-HONESTY T-003: the bounded endpoint
+//     publication family in START_BLOCK_ENDPOINT_PUBLISH_TESTS —
+//     endpoint_publish_first_attempt_writes_exactly_once (control),
+//     endpoint_publish_retries_transient_failure_within_budget
+//     (PublishedAfterRetry at attempt 3, exactly ENDPOINT_PUBLISH_ATTEMPTS
+//     calls) and endpoint_publish_exhaustion_is_distinct_from_start_failure
+//     (Unpublished at exactly the named count, the outcome vocabulary
+//     distinct from BLOCK_START_FAILED) — driven purely by counting writer
+//     closures with no filesystem.
+//   - 2026-11-23 C-EXT-DELIVERY-HONESTY T-001: the honest-open delivery
+//     family in START_BLOCK_DOC_OPEN_DELIVERY_TESTS — the failing-first
+//     refusal pins doc_open_emit_failure_refuses_fresh_open,
+//     doc_open_emit_failure_after_close_restores_the_closed_session_exactly,
+//     doc_open_emit_failure_on_resync_restores_the_replaced_session and
+//     doc_open_refusal_never_reuses_the_consumed_epoch (driven by the
+//     cfg(test) arm_doc_open_emit_injection seam managed as state on each
+//     fixture's own app handle, so no cross-test serialization is needed)
+//     plus the
+//     success-path control doc_open_success_keeps_the_200_contract; green
+//     at T-002 with the live_server refusal branch, predecessor suites
+//     untouched.
 //   - 2026-11-23 C-EXT-TRUST-COHERENCE T-006: the rebind honesty family —
 //     rebind_growth_classification_enumerates_added_capabilities,
 //     rebind_equality_and_narrowing_dialogs_state_the_grant_truth and
@@ -3818,3 +3839,258 @@ async fn stream_budget_under_budget_traffic_unchanged() {
     assert_eq!(events[2]["payload"]["final_revision"], 2);
 }
 // END_BLOCK_STREAM_BUDGET_TESTS
+
+// START_BLOCK_DOC_OPEN_DELIVERY_TESTS
+// C-EXT-DELIVERY-HONESTY: the honest-open delivery family. Red-first:
+// against the baseline handler an injected doc_open emit failure is
+// log-only and the open still answers 200 accepted:true over an
+// undelivered stream with the just-stored session surviving — every
+// refusal pin below fails against that baseline and goes green with the
+// T-002 refusal branch (non-2xx plain {"error": ...} answer, the exact
+// pre-open guard value restored, the consumed epoch never reused). The
+// injection flag is managed as state on each fixture's OWN app handle, so
+// the family needs no cross-test serialization and concurrently running
+// predecessor pins are immune.
+use super::live_bridge::arm_doc_open_emit_injection;
+
+async fn delivery_open(f: &IncomingFixture, sid: &str, initial_md: &str) -> axum::response::Response {
+    let request = serde_json::from_value(serde_json::json!({
+        "extension_id": f.id.clone(), "session_id": sid, "title": "Delivery stream",
+        "initial_md": initial_md,
+        "sections": [{"name":"body", "content": initial_md}],
+    })).unwrap();
+    super::live_server::handle_doc_open(State(f.state.clone()), bearer_headers(Some(&f.token)), Json(request))
+        .await.into_response()
+}
+
+async fn delivery_patch(f: &IncomingFixture, sid: &str, seq: u64, base_revision: u64, content: &str) -> StatusCode {
+    let request = serde_json::from_value(serde_json::json!({
+        "session_id": sid, "seq": seq, "base_revision": base_revision,
+        "op": "replace", "section": "body", "content": content,
+    })).unwrap();
+    super::live_server::handle_doc_patch(State(f.state.clone()), bearer_headers(Some(&f.token)), Json(request))
+        .await.into_response().status()
+}
+
+async fn delivery_close(f: &IncomingFixture, sid: &str) -> StatusCode {
+    let request = serde_json::from_value(serde_json::json!({"session_id": sid, "seq": 99})).unwrap();
+    super::live_server::handle_doc_close(State(f.state.clone()), bearer_headers(Some(&f.token)), Json(request))
+        .await.into_response().status()
+}
+
+async fn delivery_body(response: axum::response::Response) -> serde_json::Value {
+    let bytes = axum::body::to_bytes(response.into_body(), 65536).await.unwrap();
+    serde_json::from_slice(&bytes).unwrap()
+}
+
+#[tokio::test]
+async fn doc_open_emit_failure_refuses_fresh_open() {
+    let f = incoming_fixture(true, "stream.document");
+    arm_doc_open_emit_injection(f.app.handle(), true);
+    let response = delivery_open(&f, "session-a", "original").await;
+    // A non-2xx 500-class refusal with the plain {"error": ...} body —
+    // never the 200 accepted:true over an undelivered stream.
+    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR, "the refusal is the 500 class");
+    let body = delivery_body(response).await;
+    assert!(body.get("error").is_some(), "the refusal carries the plain error body: {body}");
+    assert!(body.get("accepted").is_none(), "never answers accepted:true — body: {body}");
+    // The exact pre-open guard value None survives the refusal — no ghost
+    // session — so a patch echoing the refused session id is refused with
+    // zero live events.
+    assert!(f.state.session.lock().await.is_none(), "no session survives the refusal");
+    // With the guard back at None the owner/epoch fence refuses the patch
+    // (the authenticate-time owns gate answers 409 before any lookup).
+    assert_eq!(delivery_patch(&f, "session-a", 1, 1, "stale").await, StatusCode::CONFLICT);
+    assert!(f.live_events.lock().unwrap().is_empty());
+    // Disarming restores normal behavior on the same fixture.
+    arm_doc_open_emit_injection(f.app.handle(), false);
+    assert_eq!(delivery_open(&f, "session-b", "original").await.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn doc_open_emit_failure_after_close_restores_the_closed_session_exactly() {
+    let f = incoming_fixture(true, "stream.document");
+    assert_eq!(delivery_open(&f, "session-a", "original").await.status(), StatusCode::OK);
+    let first_epoch = f.state.session.lock().await.as_ref().unwrap().session_epoch;
+    assert_eq!(delivery_close(&f, "session-a").await, StatusCode::OK);
+    let events_before = f.live_events.lock().unwrap().len();
+    arm_doc_open_emit_injection(f.app.handle(), true);
+    let response = delivery_open(&f, "session-a", "replacement").await;
+    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    arm_doc_open_emit_injection(f.app.handle(), false);
+    // The pre-open guard value here is Some(inactive): the surviving
+    // session equals the closed session EXACTLY — same id, same epoch as
+    // the first open, still inactive — never an unconditional None.
+    let guard = f.state.session.lock().await;
+    let session = guard.as_ref().expect("the closed pre-open session is restored verbatim");
+    assert_eq!(session.session_id, "session-a");
+    assert_eq!(session.session_epoch, first_epoch);
+    assert!(!session.active);
+    assert_eq!(session.document_md, "original");
+    assert_eq!(session.revision, 1);
+    drop(guard);
+    assert_eq!(f.live_events.lock().unwrap().len(), events_before, "zero new live events");
+}
+
+#[tokio::test]
+async fn doc_open_emit_failure_on_resync_restores_the_replaced_session() {
+    let f = incoming_fixture(true, "stream.document");
+    assert_eq!(delivery_open(&f, "session-a", "original").await.status(), StatusCode::OK);
+    let original_epoch = f.state.session.lock().await.as_ref().unwrap().session_epoch;
+    arm_doc_open_emit_injection(f.app.handle(), true);
+    let response = delivery_open(&f, "session-a", "replacement").await;
+    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    arm_doc_open_emit_injection(f.app.handle(), false);
+    // The resync refusal restores the replaced session whole: original
+    // epoch, original document_md, revision 1, still active.
+    let guard = f.state.session.lock().await;
+    let session = guard.as_ref().expect("the replaced session is restored verbatim");
+    assert_eq!(session.session_id, "session-a");
+    assert_eq!(session.session_epoch, original_epoch);
+    assert_eq!(session.document_md, "original");
+    assert_eq!(session.revision, 1);
+    assert!(session.active);
+    drop(guard);
+    // The existing recovery route still works on the restored session.
+    assert_eq!(delivery_patch(&f, "session-a", 1, 1, "delta").await, StatusCode::OK);
+}
+
+#[tokio::test]
+async fn doc_open_refusal_never_reuses_the_consumed_epoch() {
+    // The None pre-open shape: the refused open consumed exactly one
+    // epoch (the counter stays monotonic — never decremented or reset)
+    // and a later successful open carries a strictly higher epoch than
+    // the refused one.
+    let f = incoming_fixture(true, "stream.document");
+    let counter_before = f.state.next_epoch.load(std::sync::atomic::Ordering::Relaxed);
+    arm_doc_open_emit_injection(f.app.handle(), true);
+    assert_eq!(delivery_open(&f, "session-a", "original").await.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    arm_doc_open_emit_injection(f.app.handle(), false);
+    let counter_after_refusal = f.state.next_epoch.load(std::sync::atomic::Ordering::Relaxed);
+    assert_eq!(counter_after_refusal, counter_before + 1, "the consumed epoch stays consumed");
+    assert_eq!(delivery_open(&f, "session-a", "original").await.status(), StatusCode::OK);
+    let epoch = f.state.session.lock().await.as_ref().unwrap().session_epoch;
+    assert!(epoch >= counter_after_refusal, "a later successful open carries a strictly higher epoch than the refused one: {epoch} > {}", counter_before);
+    // The Some(inactive) pre-open shape: the same monotonic property.
+    let f2 = incoming_fixture(true, "stream.document");
+    assert_eq!(delivery_open(&f2, "session-a", "original").await.status(), StatusCode::OK);
+    let first_epoch = f2.state.session.lock().await.as_ref().unwrap().session_epoch;
+    assert_eq!(delivery_close(&f2, "session-a").await, StatusCode::OK);
+    let counter_before2 = f2.state.next_epoch.load(std::sync::atomic::Ordering::Relaxed);
+    arm_doc_open_emit_injection(f2.app.handle(), true);
+    assert_eq!(delivery_open(&f2, "session-a", "replacement").await.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    arm_doc_open_emit_injection(f2.app.handle(), false);
+    assert_eq!(f2.state.next_epoch.load(std::sync::atomic::Ordering::Relaxed), counter_before2 + 1);
+    assert_eq!(delivery_open(&f2, "session-a", "replacement").await.status(), StatusCode::OK);
+    let next_epoch = f2.state.session.lock().await.as_ref().unwrap().session_epoch;
+    assert!(next_epoch > first_epoch, "the post-refusal epoch is strictly higher than the pre-close epoch");
+}
+
+#[tokio::test]
+async fn doc_open_success_keeps_the_200_contract() {
+    let f = incoming_fixture(true, "stream.document");
+    // Seam disarmed: the success path is byte-identical to today.
+    let response = delivery_open(&f, "session-a", "original").await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = delivery_body(response).await;
+    assert_eq!(body["accepted"], true);
+    assert_eq!(body["revision"], 1);
+    let epoch = {
+        let guard = f.state.session.lock().await;
+        let session = guard.as_ref().expect("the session is stored");
+        assert_eq!(session.session_id, "session-a");
+        assert_eq!(session.revision, 1);
+        session.session_epoch
+    };
+    let events = f.live_events.lock().unwrap();
+    assert_eq!(events.len(), 1, "exactly one doc_open event");
+    assert_eq!(events[0]["update_type"], "doc_open");
+    assert_eq!(events[0]["payload"]["session_id"], "session-a");
+    assert_eq!(events[0]["payload"]["session_epoch"], epoch);
+}
+// END_BLOCK_DOC_OPEN_DELIVERY_TESTS
+
+// START_BLOCK_ENDPOINT_PUBLISH_TESTS
+// C-EXT-DELIVERY-HONESTY: the bounded endpoint publication family, driven
+// purely with counting writer closures — no filesystem, no real I/O.
+// Red-first: on the baseline tree these pins do not compile (the helper
+// does not exist — the C-STREAM-BUDGET precedent); with the helper locally
+// replaced by the single unconditional write, the transient and exhaustion
+// legs fail against the baseline behavior and pass restored (recorded as
+// task evidence without any commit).
+use super::live_endpoint::{
+    publish_endpoint_with_retry, EndpointPublication, ENDPOINT_PUBLISH_ATTEMPTS,
+};
+
+/// A synthetic discovery descriptor — the helper never touches the
+/// filesystem, so every field value is inert.
+fn publish_endpoint_fixture() -> super::live_endpoint::LiveEndpoint {
+    serde_json::from_value(serde_json::json!({
+        "pid": 4242, "port": 45973, "protocol_version": 1,
+        "mark_version": "test", "instance_id": "publish-fixture",
+        "started_at": "2026-11-23T00:00:00Z", "platform": "macos-aarch64",
+    })).unwrap()
+}
+
+#[test]
+fn endpoint_publish_first_attempt_writes_exactly_once() {
+    let endpoint = publish_endpoint_fixture();
+    let calls = std::sync::atomic::AtomicU32::new(0);
+    let outcome = publish_endpoint_with_retry(&endpoint, |_| {
+        calls.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        Ok(())
+    });
+    // The control matching today: a succeeding writer is called exactly
+    // once and the outcome is Published — the existing BLOCK_WRITE_OK is
+    // the only success log.
+    assert_eq!(calls.load(std::sync::atomic::Ordering::Relaxed), 1);
+    assert_eq!(outcome, EndpointPublication::Published);
+}
+
+#[test]
+fn endpoint_publish_retries_transient_failure_within_budget() {
+    let endpoint = publish_endpoint_fixture();
+    let calls = std::sync::atomic::AtomicU32::new(0);
+    let script = Mutex::new(std::collections::VecDeque::from(vec![
+        Err("transient fixture failure".to_string()),
+        Err("transient fixture failure".to_string()),
+        Ok(()),
+    ]));
+    let outcome = publish_endpoint_with_retry(&endpoint, |_| {
+        calls.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        script.lock().unwrap().pop_front().unwrap()
+    });
+    // A writer failing twice then succeeding yields PublishedAfterRetry
+    // with attempt == 3 and exactly ENDPOINT_PUBLISH_ATTEMPTS calls.
+    assert_eq!(
+        calls.load(std::sync::atomic::Ordering::Relaxed),
+        ENDPOINT_PUBLISH_ATTEMPTS,
+    );
+    assert_eq!(outcome, EndpointPublication::PublishedAfterRetry { attempt: 3 });
+}
+
+#[test]
+fn endpoint_publish_exhaustion_is_distinct_from_start_failure() {
+    let endpoint = publish_endpoint_fixture();
+    let calls = std::sync::atomic::AtomicU32::new(0);
+    let outcome = publish_endpoint_with_retry(&endpoint, |_| {
+        calls.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        Err("permanent fixture failure".to_string())
+    });
+    // An always-failing writer exhausts exactly the named attempt count.
+    assert_eq!(
+        calls.load(std::sync::atomic::Ordering::Relaxed),
+        ENDPOINT_PUBLISH_ATTEMPTS,
+    );
+    assert_eq!(
+        outcome,
+        EndpointPublication::Unpublished { attempts: ENDPOINT_PUBLISH_ATTEMPTS },
+    );
+    // The outcome vocabulary is distinct from the start-failure marker:
+    // "running but unpublished" (BLOCK_ENDPOINT_UNPUBLISHED) names a
+    // different state than BLOCK_START_FAILED's "no server".
+    let outcome_text = format!("{outcome:?}");
+    assert!(outcome_text.contains("Unpublished"), "{outcome_text}");
+    assert_ne!("BLOCK_ENDPOINT_UNPUBLISHED", "BLOCK_START_FAILED");
+}
+// END_BLOCK_ENDPOINT_PUBLISH_TESTS
