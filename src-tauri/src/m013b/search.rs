@@ -547,6 +547,85 @@ fn run_session_files_with_program(
     (total_paths, terminal_kind_name(terminal))
 }
 
+// START_BLOCK_ENGINE_PARITY_TABLE
+// C-SEARCH-ENGINE-PARITY: the one documented engine-parity table of the
+// search zone. It governs BOTH engines — the embedded ignore/regex walker
+// and the rg shell-out — across all FOUR transport legs (content walker,
+// files walker, content rg search, rg files listing). Every shared
+// semantic appears here exactly once, with its owning code anchor per
+// leg; the single flag source below (resolve_engine_flags) is the only
+// place these decisions are made, so the same options and the same
+// fixture cannot produce different result sets depending on which engine
+// a machine selected. Per-leg leftovers are only the legs' inherent shape
+// (rg process arguments versus ignore-crate builder calls) and the
+// documented files-mode size row.
+//
+// CASE MODE — explicit-option-only on both engines:
+//   semantic: the renderer's isCaseSensitive toggle is the only case
+//   control. Toggle off: case-INsensitive for EVERY pattern, including
+//   Mixed-case patterns. Toggle on: exact case only.
+//   walker anchor: build_matcher — case_insensitive(!opts.is_case_sensitive
+//   .unwrap_or(false)) (the unchanged canon).
+//   rg content anchor: START_BLOCK_BUILD_RIPGREP_COMMAND — an explicit
+//   --case-sensitive on the toggle, an explicit --ignore-case otherwise.
+//   files legs: no matcher — the row does not apply.
+//   removal reason: rg's --smart-case was the divergence source. Its
+//   documented implicit mode searched case-SENSITIVELY whenever the
+//   pattern contained any uppercase character, silently overriding the
+//   renderer's explicit toggle on the rg leg only (the pattern "Needle"
+//   with default options returned all three case variants on the walker
+//   but only the exact-case line on rg). Receipt: the failing-first
+//   engine_parity_case_modes_across_legs (red on the pre-change tree: rg
+//   leg 1 variant vs walker 3; green once the case decision flows through
+//   resolve_engine_flags).
+// END_BLOCK_ENGINE_PARITY_TABLE
+
+// START_CONTRACT: resolve_engine_flags
+//   PURPOSE: The one shared flag-resolution artifact (C-SEARCH-ENGINE-PARITY): resolve the engine-parity table's shared semantics from SearchOptions exactly once so both WalkBuilder chains and both rg command builders draw from one source — no per-leg hardcoded flag may decide an aligned row outside this function (the gitignore-outside row completes here with T-003's --no-require-git delivery).
+//   INPUTS: { opts: &SearchOptions - renderer search preferences }
+//   OUTPUTS: { EngineFlags - the resolved shared semantics consumed by all four transport legs }
+//   SIDE_EFFECTS: None.
+//   LINKS: START_BLOCK_ENGINE_PARITY_TABLE, run_files_walker, run_search, run_ripgrep_with_program, run_ripgrep_files_with_program, engine_parity_case_modes_across_legs, V-M-004.
+// END_CONTRACT: resolve_engine_flags
+/// Resolved shared engine semantics — the engine-parity table's flag
+/// source. One construction per transport leg; every field is the table's
+/// decision, never a per-leg re-derivation.
+#[derive(Clone, Copy, Debug)]
+struct EngineFlags {
+    /// Case row (explicit-option-only): insensitive by default, sensitive
+    /// on the renderer's isCaseSensitive toggle — the walker's
+    /// build_matcher semantics is the canon on both engines.
+    case_sensitive: bool,
+    /// The ignore-family switch: no_ignore disables every ignore source.
+    no_ignore: bool,
+    /// Hidden entries stay invisible unless include_hidden is set.
+    include_hidden: bool,
+    /// Symlink traversal.
+    follow_symlinks: bool,
+    /// Whole-word matching.
+    whole_word: bool,
+    /// Literal (escaped) versus raw regex pattern handling.
+    is_regexp: bool,
+    /// Per-file size ceiling. The files-LISTING leg deliberately skips it
+    /// — the documented files-mode size row (see the parity table).
+    max_file_size: Option<u64>,
+}
+
+fn resolve_engine_flags(opts: &SearchOptions) -> EngineFlags {
+    EngineFlags {
+        // Explicit-option-only (C-SEARCH-ENGINE-PARITY): the renderer's
+        // isCaseSensitive toggle is the only case control; there is no
+        // pattern-dependent implicit mode on either engine.
+        case_sensitive: opts.is_case_sensitive.unwrap_or(false),
+        no_ignore: opts.no_ignore.unwrap_or(false),
+        include_hidden: opts.include_hidden.unwrap_or(false),
+        follow_symlinks: opts.follow_symlinks.unwrap_or(false),
+        whole_word: opts.is_whole_word.unwrap_or(false),
+        is_regexp: opts.is_regexp.unwrap_or(false),
+        max_file_size: opts.max_file_size,
+    }
+}
+
 // START_BLOCK_WALKER_PATH_LEG
 // C-QUICKOPEN-FILES-MODE: the files-mode walker path leg — the identical
 // WalkBuilder filter setup of the content walker (standard filters, hidden,
@@ -564,18 +643,21 @@ fn run_files_walker(
     delivered: Arc<AtomicUsize>,
     coordinator: &mut SearchSessionCoordinator,
 ) -> (u32, bool) {
+    // The engine-parity table's shared semantics resolve exactly once —
+    // this leg consumes resolve_engine_flags (C-SEARCH-ENGINE-PARITY).
+    let flags = resolve_engine_flags(opts);
     let mut walker = WalkBuilder::new(root);
-    let respect_ignore = !opts.no_ignore.unwrap_or(false);
+    let respect_ignore = !flags.no_ignore;
     walker
         .standard_filters(true)
-        .hidden(!opts.include_hidden.unwrap_or(false))
+        .hidden(!flags.include_hidden)
         .ignore(respect_ignore)
         .git_ignore(respect_ignore)
         .git_global(respect_ignore)
         .git_exclude(respect_ignore)
         .require_git(false) // honor .gitignore outside git repos (matches ripgrep --no-require-git)
-        .follow_links(opts.follow_symlinks.unwrap_or(false));
-    if let Some(max_size) = opts.max_file_size {
+        .follow_links(flags.follow_symlinks);
+    if let Some(max_size) = flags.max_file_size {
         walker.max_filesize(Some(max_size));
     }
     // Whitelist name filtering (C-QUICKOPEN-FILES-MODE): ONE combined
@@ -822,18 +904,21 @@ pub fn run_search(
         planned_phase: String::new(),
     })?;
 
+    // The engine-parity table's shared semantics resolve exactly once —
+    // this leg consumes resolve_engine_flags (C-SEARCH-ENGINE-PARITY).
+    let flags = resolve_engine_flags(opts);
     let mut walker = WalkBuilder::new(root);
-    let respect_ignore = !opts.no_ignore.unwrap_or(false);
+    let respect_ignore = !flags.no_ignore;
     walker
         .standard_filters(true)
-        .hidden(!opts.include_hidden.unwrap_or(false))
+        .hidden(!flags.include_hidden)
         .ignore(respect_ignore)
         .git_ignore(respect_ignore)
         .git_global(respect_ignore)
         .git_exclude(respect_ignore)
         .require_git(false) // honor .gitignore outside git repos (matches ripgrep --no-require-git)
-        .follow_links(opts.follow_symlinks.unwrap_or(false));
-    if let Some(max_size) = opts.max_file_size {
+        .follow_links(flags.follow_symlinks);
+    if let Some(max_size) = flags.max_file_size {
         walker.max_filesize(Some(max_size));
     }
 
@@ -1107,26 +1192,35 @@ fn run_ripgrep_with_program(
     use std::process::{Command, Stdio};
 
     // START_BLOCK_BUILD_RIPGREP_COMMAND
+    // Every shared semantic below resolves through resolve_engine_flags
+    // (C-SEARCH-ENGINE-PARITY) — no per-leg hardcoded flag decides an
+    // aligned row here.
+    let flags = resolve_engine_flags(opts);
     let mut cmd = Command::new(rg_program);
     cmd.arg("--json").arg("--no-heading");
-    if !opts.is_regexp.unwrap_or(false) {
+    if !flags.is_regexp {
         cmd.arg("--fixed-strings");
     }
-    if opts.is_case_sensitive.unwrap_or(false) {
+    // Case row (C-SEARCH-ENGINE-PARITY): explicit-option-only. The
+    // pattern-dependent --smart-case branch is gone — its documented
+    // implicit mode searched case-sensitively for any Mixed-case pattern
+    // and silently overrode the renderer's explicit toggle on this leg
+    // only (see the parity table's case row).
+    if flags.case_sensitive {
         cmd.arg("--case-sensitive");
     } else {
-        cmd.arg("--smart-case");
+        cmd.arg("--ignore-case");
     }
-    if opts.is_whole_word.unwrap_or(false) {
+    if flags.whole_word {
         cmd.arg("--word-regexp");
     }
-    if opts.include_hidden.unwrap_or(false) {
+    if flags.include_hidden {
         cmd.arg("--hidden");
     }
-    if opts.no_ignore.unwrap_or(false) {
+    if flags.no_ignore {
         cmd.arg("--no-ignore");
     }
-    if opts.follow_symlinks.unwrap_or(false) {
+    if flags.follow_symlinks {
         cmd.arg("--follow");
     }
     // C-SEARCH-ERROR-VISIBILITY: exclusion masks go to rg symmetrically
@@ -1137,7 +1231,7 @@ fn run_ripgrep_with_program(
     for mask in &exclusions.valid {
         cmd.arg(format!("--glob=!{mask}"));
     }
-    if let Some(max) = opts.max_file_size {
+    if let Some(max) = flags.max_file_size {
         cmd.arg(format!("--max-filesize={max}"));
     }
     cmd.arg("--").arg(pattern).arg(root);
@@ -1418,14 +1512,18 @@ fn run_ripgrep_files_with_program(
     // per-transport size divergence is documented in the plan and owned by
     // C-SEARCH-ENGINE-PARITY — quickOpen never sends maxFileSize.
     let mut cmd = Command::new(rg_program);
+    // The listing's shared rows resolve through resolve_engine_flags too
+    // (C-SEARCH-ENGINE-PARITY); the size row stays a documented leftover —
+    // no --max-filesize here (see the block comment above).
+    let flags = resolve_engine_flags(opts);
     cmd.arg("--files");
-    if opts.include_hidden.unwrap_or(false) {
+    if flags.include_hidden {
         cmd.arg("--hidden");
     }
-    if opts.no_ignore.unwrap_or(false) {
+    if flags.no_ignore {
         cmd.arg("--no-ignore");
     }
-    if opts.follow_symlinks.unwrap_or(false) {
+    if flags.follow_symlinks {
         cmd.arg("--follow");
     }
     // Whitelist name filtering symmetric with the walker leg, in the
