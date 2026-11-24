@@ -3919,8 +3919,6 @@ async fn doc_open_emit_failure_refuses_fresh_open() {
 
 #[tokio::test]
 async fn doc_open_emit_failure_after_close_restores_the_closed_session_exactly() {
-    let _serial = DOC_OPEN_EMIT_INJECTION_SERIAL.lock().unwrap_or_else(|e| e.into_inner());
-    let _disarm = DisarmDocOpenEmitInjection;
     let f = incoming_fixture(true, "stream.document");
     assert_eq!(delivery_open(&f, "session-a", "original").await.status(), StatusCode::OK);
     let first_epoch = f.state.session.lock().await.as_ref().unwrap().session_epoch;
@@ -3969,8 +3967,6 @@ async fn doc_open_emit_failure_on_resync_restores_the_replaced_session() {
 
 #[tokio::test]
 async fn doc_open_refusal_never_reuses_the_consumed_epoch() {
-    let _serial = DOC_OPEN_EMIT_INJECTION_SERIAL.lock().unwrap_or_else(|e| e.into_inner());
-    let _disarm = DisarmDocOpenEmitInjection;
     // The None pre-open shape: the refused open consumed exactly one
     // epoch (the counter stays monotonic — never decremented or reset)
     // and a later successful open carries a strictly higher epoch than
@@ -4002,8 +3998,6 @@ async fn doc_open_refusal_never_reuses_the_consumed_epoch() {
 
 #[tokio::test]
 async fn doc_open_success_keeps_the_200_contract() {
-    let _serial = DOC_OPEN_EMIT_INJECTION_SERIAL.lock().unwrap_or_else(|e| e.into_inner());
-    let _disarm = DisarmDocOpenEmitInjection;
     let f = incoming_fixture(true, "stream.document");
     // Seam disarmed: the success path is byte-identical to today.
     let response = delivery_open(&f, "session-a", "original").await;
