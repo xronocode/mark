@@ -251,5 +251,5 @@ it('can import the guard from Node stdin without starting the builder', () => {
     input: `import { resolvePreparedTauri } from ${JSON.stringify(script)}; console.log(resolvePreparedTauri().version);`,
     encoding: 'utf8', timeout: 5000
   })
-  expect(output.trim()).toBe('2.12.4')
+  expect(output.trim()).toBe('2.12.6')
 })
