@@ -88,13 +88,46 @@ describe('ExtensionGallery – extended coverage', () => {
     expect(wrapper.find('.gallery-error').exists()).toBe(true)
   })
 
-  it('refresh clears error when discover fails but list succeeds', async () => {
+  it('a failed discovery notice survives the awaited successful list fetch', async () => {
+    // Guard audit f-006: the list fetch owns only its own errors — the
+    // discovery-failure notice stays visible until the next discovery's
+    // outcome replaces it, exactly like the scanFailures notice.
     const wrapper = await mountComponent([SAMPLE_EXT])
     invokeMock.mockRejectedValueOnce(new Error('discover fail'))
-    invokeMock.mockResolvedValueOnce([SAMPLE_EXT]) // list succeeds, clearing the error
+    invokeMock.mockResolvedValueOnce([SAMPLE_EXT]) // list succeeds
     await wrapper.find('.gallery-refresh-btn').trigger('click')
     await flushPromises()
-    // error set by discover is cleared by successful list fetch
+    expect(wrapper.find('.gallery-error').exists()).toBe(true)
+    expect(wrapper.find('.gallery-error').text()).toContain('discover fail')
+    // A fresh refresh whose discovery succeeds clears the notice.
+    invokeMock.mockResolvedValueOnce(undefined) // discover ok
+    invokeMock.mockResolvedValueOnce([SAMPLE_EXT]) // list ok
+    await wrapper.find('.gallery-refresh-btn').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('.gallery-error').exists()).toBe(false)
+  })
+
+  it('a later list fetch after a failed discovery keeps the discovery notice', async () => {
+    // Guard audit f-006 pin: any subsequent successful list fetch (here a
+    // toggle's refetch) leaves the discovery-failure notice standing; only
+    // a fresh discovery clears it.
+    const wrapper = await mountComponent([SAMPLE_EXT])
+    invokeMock.mockRejectedValueOnce(new Error('discover fail'))
+    invokeMock.mockResolvedValueOnce([SAMPLE_EXT]) // refresh list succeeds
+    await wrapper.find('.gallery-refresh-btn').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('.gallery-error').text()).toContain('discover fail')
+    // A successful toggle runs its own list fetch — the notice survives it.
+    invokeMock.mockResolvedValueOnce(undefined) // disable ok
+    invokeMock.mockResolvedValueOnce([{ ...SAMPLE_EXT, enabled: false }])
+    await wrapper.find('input[type="checkbox"]').setValue(false)
+    await flushPromises()
+    expect(wrapper.find('.gallery-error').text()).toContain('discover fail')
+    // The next fresh discovery clears the notice again.
+    invokeMock.mockResolvedValueOnce(undefined) // discover ok
+    invokeMock.mockResolvedValueOnce([{ ...SAMPLE_EXT, enabled: false }])
+    await wrapper.find('.gallery-refresh-btn').trigger('click')
+    await flushPromises()
     expect(wrapper.find('.gallery-error').exists()).toBe(false)
   })
 

@@ -1422,28 +1422,43 @@ export const installSignedUpdate = async (status) => {
 // END_BLOCK_INSTALL_SIGNED_UPDATE
 
 if (isUpdatable()) {
+  // Guard audit f-005: module-scope single-flight for the check, the
+  // installInFlight precedent below. Rapid re-invocations of the command
+  // ride the live check instead of starting a second concurrent
+  // mt_updater_check round-trip; the shared outcome notifies once and the
+  // guard clears when the check settles so a later retry works as before.
+  let checkUpdateInFlight = null
   commands.push({
     id: 'file.check-update',
     execute: async () => {
-      const { invoke } = await import('@tauri-apps/api/core')
-      const notice = (await import('../services/notification')).default
-      try {
-        const status = await invoke('mt_updater_check')
-        if (!status.available) {
-          if (status.statusNote) {
-            notice.notify({ title: status.statusNote, type: 'warning' })
-          } else {
-            notice.notify({
-              title: `Mark ${status.currentVersion} is up to date`,
-              type: 'info'
-            })
-          }
-          return
-        }
-        await installSignedUpdate(status)
-      } catch (e) {
-        notice.notify({ title: 'Update failed', message: String(e), type: 'warning' })
+      if (checkUpdateInFlight) {
+        console.warn('[commands][check-update][BLOCK_CHECK_IN_PROGRESS]')
+        return checkUpdateInFlight
       }
+      checkUpdateInFlight = (async () => {
+        const { invoke } = await import('@tauri-apps/api/core')
+        const notice = (await import('../services/notification')).default
+        try {
+          const status = await invoke('mt_updater_check')
+          if (!status.available) {
+            if (status.statusNote) {
+              notice.notify({ title: status.statusNote, type: 'warning' })
+            } else {
+              notice.notify({
+                title: `Mark ${status.currentVersion} is up to date`,
+                type: 'info'
+              })
+            }
+            return
+          }
+          await installSignedUpdate(status)
+        } catch (e) {
+          notice.notify({ title: 'Update failed', message: String(e), type: 'warning' })
+        } finally {
+          checkUpdateInFlight = null
+        }
+      })()
+      return checkUpdateInFlight
     }
   })
 }

@@ -32,6 +32,16 @@
 //     extension_id names no batch and is dropped — fail-closed). The dedup
 //     store semantics, the per-batch deadline and every status/body shape
 //     are untouched.
+//   - 2026-11-26 C-EXT-DELIVERY-HONESTY recovery evidence (guard audit,
+//     integration f-005 follow-up): no behavior change — doc_patch and
+//     doc_close keep their documented log-only emit-failure behavior and
+//     the 200 answers; the recovery evidence gains two pins
+//     (START_BLOCK_DOC_PATCH_RECOVERY_TESTS, driven through the cfg(test)
+//     DOC_PATCH_EMIT_INJECTION seam in live_bridge.rs): an emit failure
+//     answers the unchanged 200 DocPatchResponse with the applied
+//     revision, emits no live event, and the NEXT patch emission carries
+//     the full rebuilt document (every section), healing a frontend that
+//     missed the lost emission.
 //   - 2026-11-23 C-EXT-DELIVERY-HONESTY T-002: the honest open — a
 //     doc_open whose frontend emission fails refuses instead of answering
 //     200 accepted:true over an undelivered stream: the exact pre-open

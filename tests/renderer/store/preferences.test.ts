@@ -62,6 +62,36 @@ describe('store/preferences', () => {
     expect(s.buildCapabilities).toEqual({ setDefaultHandler: false })
   })
 
+  it('FETCH_BUILD_MODE installs the capabilities once — a second call early-returns (guard audit f-008)', async () => {
+    // The bootstrap floating fetch and the app shell's awaited fetch must
+    // share one mt_build_mode round-trip: once installed, the second
+    // caller early-returns the settled answer instead of racing a second
+    // fetch (the double-mount finding).
+    vi.mocked(invoke).mockClear()
+    vi.mocked(invoke).mockResolvedValueOnce({ setDefaultHandler: false } as never)
+    const { usePreferencesStore } = await import('@/store/preferences')
+    const s = usePreferencesStore()
+    await s.FETCH_BUILD_MODE()
+    await s.FETCH_BUILD_MODE()
+    expect(
+      vi.mocked(invoke).mock.calls.filter(([id]) => id === 'mt_build_mode')
+    ).toHaveLength(1)
+    expect(s.buildCapabilities).toEqual({ setDefaultHandler: false })
+    // A failed install keeps the C-38 T-003 review retry tolerance: a
+    // non-object answer leaves the guard open, so the next boot window's
+    // caller fetches again (a fresh store instance — a fresh webview).
+    setupTestPinia()
+    const s2 = usePreferencesStore()
+    const s2Defaults = { ...s2.buildCapabilities }
+    vi.mocked(invoke).mockClear()
+    vi.mocked(invoke).mockResolvedValueOnce(undefined as never)
+    await s2.FETCH_BUILD_MODE()
+    expect(
+      vi.mocked(invoke).mock.calls.filter(([id]) => id === 'mt_build_mode')
+    ).toHaveLength(1)
+    expect(s2.buildCapabilities).toEqual(s2Defaults)
+  })
+
   it('state defaults — spot-check critical fields', async () => {
     const { usePreferencesStore } = await import('@/store/preferences')
     const s = usePreferencesStore()
@@ -249,6 +279,28 @@ describe('store/preferences', () => {
       await s.SET_SINGLE_PREFERENCE({ type: 'tabSize', value: 2 })
       expect(s.tabSize).toBe(before)
       expect(errSpy).toHaveBeenCalled()
+      errSpy.mockRestore()
+    })
+
+    it('a late write refusal does not roll back a value the user re-edited (guard audit f-003)', async () => {
+      // The first write is still pending when the user re-edits the key;
+      // the re-edit's own write confirms. When the stale write's refusal
+      // arrives late, rolling back to ITS pre-write value would clobber
+      // the confirmed re-edit — the newer write owns the slot.
+      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const { usePreferencesStore } = await import('@/store/preferences')
+      const s = usePreferencesStore()
+      let rejectFirst: (e: unknown) => void = () => {}
+      ;(invoke as any).mockImplementationOnce(
+        () => new Promise((_res, rej) => { rejectFirst = rej })
+      )
+      const staleWrite = s.SET_SINGLE_PREFERENCE({ type: 'tabSize', value: 2 })
+      ;(invoke as any).mockResolvedValueOnce(undefined)
+      await s.SET_SINGLE_PREFERENCE({ type: 'tabSize', value: 9 })
+      rejectFirst(new Error('late refusal'))
+      await expect(staleWrite).resolves.toBe(false)
+      // The re-edited value survives the stale attempt's refusal.
+      expect(s.tabSize).toBe(9)
       errSpy.mockRestore()
     })
   })

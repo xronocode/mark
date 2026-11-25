@@ -1620,6 +1620,44 @@ jobs:
           done
           echo "[ReleasePublish][publish][BLOCK_RELEASE_LATEST_ADVANCED] tag=$TAG"
 
+      - name: verify update channel on republish
+        # Guard-audit integration f-007: a republish of an
+        # already-published release skips the final mutation above, so the
+        # in-app updater feed (releases/latest) must be asserted
+        # explicitly — the per-tag concurrency stays, no mutation happens,
+        # and an older tag still holding the channel fails the run loudly
+        # instead of passing.
+        if: steps.draft.outputs.already_published == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.build.outputs.tag }}
+          PRERELEASE: ${{ needs.authorize-tag.outputs.prerelease }}
+        run: |
+          set -euo pipefail
+          if [ "$PRERELEASE" = true ]; then
+            gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,isPrerelease,tagName \
+              | jq -e --arg tag "$TAG" 'select(.isDraft == false and .isPrerelease == true and .tagName == $tag)' >/dev/null
+            for ATTEMPT in 1 2 3 4 5; do
+              LATEST=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
+              [ "$LATEST" != "$TAG" ] && break
+              [ "$ATTEMPT" = 5 ] && { echo "::error::prerelease must not advance releases/latest"; exit 1; }
+              sleep $((ATTEMPT * 3))
+            done
+            echo "[ReleasePublish][republish][BLOCK_RELEASE_PRERELEASE_NOT_LATEST] tag=$TAG"
+            exit 0
+          fi
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,isPrerelease,tagName \
+            | jq -e --arg tag "$TAG" 'select(.isDraft == false and .isPrerelease == false and .tagName == $tag)' >/dev/null
+          # The in-app updater reads releases/latest: an already-live
+          # republish is honest only while the feed points at this tag.
+          for ATTEMPT in 1 2 3 4 5; do
+            LATEST=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
+            [ "$LATEST" = "$TAG" ] && break
+            [ "$ATTEMPT" = 5 ] && { echo "::error::latest release feed does not point at $TAG"; exit 1; }
+            sleep $((ATTEMPT * 3))
+          done
+          echo "[ReleasePublish][republish][BLOCK_RELEASE_LATEST_ADVANCED] tag=$TAG"
+
   publish-cask:
     name: cross-repo cask PR
     needs: [authorize-tag, build, publish]

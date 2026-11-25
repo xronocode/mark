@@ -112,6 +112,7 @@
 //   extensions - Most recently fetched extension list.
 //   loading - Discovery and refresh progress.
 //   error - Current visible failure message.
+//   errorSource - Which surface wrote the current notice (guard audit f-006).
 //   scanFailures - Scan-failure notice state from the discover payload.
 //   fetchGeneration - Monotonic list-fetch generation guarding the display.
 //   toggling - Per-extension enable/disable progress.
@@ -157,6 +158,12 @@ const revokePendingIds = new Set()
 // captures its generation at start and lands only when that generation
 // is still the newest, so a late stale snapshot flips nothing.
 let fetchGeneration = 0
+// Guard audit f-006: which surface wrote the current error notice. A
+// successful list fetch may clear only a notice the list surface owns —
+// a discovery-failure notice ('discover') survives the awaited list
+// fetch and is replaced by the next discovery's outcome, the same rule
+// the scanFailures notice already follows.
+let errorSource = ''
 // C-EXT-GALLERY-STATE: the distinct scan-failure notice state, set by the
 // discover Ok payload and replaced only by the next discovery's outcome.
 const scanFailures = ref(false)
@@ -188,7 +195,11 @@ const fetchExtensions = async () => {
     for (const ext of list) {
       if (ext.enabled) revokePendingIds.delete(ext.id)
     }
-    error.value = ''
+    // Guard audit f-006: never wipe a discovery-failure notice here.
+    if (errorSource !== 'discover') {
+      error.value = ''
+      errorSource = ''
+    }
     // eslint-disable-next-line no-console
     console.log(`[ExtGallery][BLOCK_LIST_OK count=${list.length}]`)
   } catch (err) {
@@ -198,6 +209,7 @@ const fetchExtensions = async () => {
       return
     }
     error.value = String(err)
+    errorSource = 'list'
     // eslint-disable-next-line no-console
     console.error('[ExtGallery][BLOCK_LIST_FAILED]', err)
   }
@@ -214,6 +226,7 @@ const fetchExtensions = async () => {
 const refresh = async () => {
   loading.value = true
   error.value = ''
+  errorSource = ''
   try {
     const report = await invoke('mt_ext_discover')
     scanFailures.value = Array.isArray(report?.failed_manifests) && report.failed_manifests.length > 0
@@ -221,6 +234,7 @@ const refresh = async () => {
     console.log(`[ExtGallery][BLOCK_DISCOVER_OK scanFailures=${scanFailures.value}]`)
   } catch (err) {
     error.value = String(err)
+    errorSource = 'discover'
     // eslint-disable-next-line no-console
     console.error('[ExtGallery][BLOCK_DISCOVER_FAILED]', err)
   }
@@ -269,7 +283,10 @@ const toggleExtension = async (ext) => {
     console.error(`[ExtGallery][BLOCK_TOGGLE_FAILED id=${ext.id}]`, err)
   }
   await fetchExtensions()
-  if (toggleFailure) error.value = toggleFailure
+  if (toggleFailure) {
+    error.value = toggleFailure
+    errorSource = 'toggle'
+  }
   toggling.value[ext.id] = false
 }
 

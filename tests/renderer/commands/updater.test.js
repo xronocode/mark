@@ -231,6 +231,39 @@ describe('file.check-update — signed in-app updater', () => {
     })
   })
 
+  it('shares one in-flight check between rapid invocations (guard audit f-005)', async () => {
+    // The first mt_updater_check is still pending when the second
+    // invocation starts: the second must ride the live check instead of
+    // starting a second concurrent network check, and the shared outcome
+    // notifies once. The guard clears when the check settles.
+    let resolveCheck
+    invoke.mockImplementationOnce(
+      () => new Promise((res) => { resolveCheck = res })
+    )
+    const first = findCmd('file.check-update').execute()
+    // Let the command's dynamic imports settle so the shared check is
+    // genuinely in flight, then start the second invocation against the
+    // still-pending first.
+    await vi.waitFor(() => expect(invoke).toHaveBeenCalledWith('mt_updater_check'))
+    const second = findCmd('file.check-update').execute()
+    resolveCheck({
+      currentVersion: '2.0.6',
+      available: false,
+      latestVersion: null,
+      downloadUrl: null,
+      statusNote: null
+    })
+    await Promise.all([first, second])
+    expect(
+      invoke.mock.calls.filter(([id]) => id === 'mt_updater_check')
+    ).toHaveLength(1)
+    expect(notifyMock).toHaveBeenCalledTimes(1)
+    expect(notifyMock).toHaveBeenCalledWith({
+      title: 'Mark 2.0.6 is up to date',
+      type: 'info'
+    })
+  })
+
   it('ships updater capability and no obsolete Terminal command', () => {
     const workspaceRoot = resolve(import.meta.dirname, '../../..')
     const capability = JSON.parse(

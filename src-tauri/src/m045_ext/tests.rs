@@ -4168,6 +4168,113 @@ async fn doc_open_success_keeps_the_200_contract() {
 }
 // END_BLOCK_DOC_OPEN_DELIVERY_TESTS
 
+// START_BLOCK_DOC_PATCH_RECOVERY_TESTS
+// C-EXT-DELIVERY-HONESTY recovery evidence (guard audit, integration
+// f-005 follow-up): the documented patch recovery contract. A doc_patch
+// whose frontend emission fails stays log-only — the patch is applied,
+// the session advances, and the answer stays the 200 DocPatchResponse
+// with the applied revision (the honest refusal exists only for
+// doc_open) — and the recovery is the NEXT patch emission carrying the
+// full rebuilt document, so a frontend that missed the lost emission is
+// healed by the next one. The pins need the cfg(test)
+// DOC_PATCH_EMIT_INJECTION seam (the doc_open injection cannot fail a
+// patch emission); against a handler that refused the patch on emit
+// failure, the 200 pins below would fail.
+use super::live_bridge::arm_doc_patch_emit_injection;
+
+async fn delivery_patch_full(
+    f: &IncomingFixture,
+    sid: &str,
+    seq: u64,
+    base_revision: u64,
+    content: &str,
+) -> axum::response::Response {
+    let request = serde_json::from_value(serde_json::json!({
+        "session_id": sid, "seq": seq, "base_revision": base_revision,
+        "op": "replace", "section": "body", "content": content,
+    })).unwrap();
+    super::live_server::handle_doc_patch(State(f.state.clone()), bearer_headers(Some(&f.token)), Json(request))
+        .await.into_response()
+}
+
+async fn delivery_open_two_sections(f: &IncomingFixture, sid: &str) -> StatusCode {
+    let request = serde_json::from_value(serde_json::json!({
+        "extension_id": f.id.clone(), "session_id": sid, "title": "Delivery stream",
+        "initial_md": "one\n\ntwo",
+        "sections": [{"name":"body", "content": "one"}, {"name":"notes", "content": "two"}],
+    })).unwrap();
+    super::live_server::handle_doc_open(State(f.state.clone()), bearer_headers(Some(&f.token)), Json(request))
+        .await.into_response().status()
+}
+
+#[tokio::test]
+async fn doc_patch_emit_failure_stays_log_only_and_answers_200() {
+    let f = incoming_fixture(true, "stream.document");
+    assert_eq!(delivery_open(&f, "session-a", "original").await.status(), StatusCode::OK);
+    let events_before = f.live_events.lock().unwrap().len();
+    arm_doc_patch_emit_injection(f.app.handle(), true);
+    let response = delivery_patch_full(&f, "session-a", 1, 1, "delta-1").await;
+    // The 200 contract: applied revision, no duplicate, no resync — never
+    // a refusal over an applied patch.
+    assert_eq!(response.status(), StatusCode::OK, "the emit failure stays log-only");
+    let body = delivery_body(response).await;
+    assert_eq!(body["applied_revision"], 2);
+    assert_eq!(body["duplicate"], false);
+    assert_eq!(body["needs_resync"], false);
+    // The session state advanced even though the emission was lost.
+    {
+        let guard = f.state.session.lock().await;
+        let session = guard.as_ref().expect("the session survives");
+        assert_eq!(session.revision, 2);
+        assert_eq!(session.document_md, "delta-1");
+    }
+    assert_eq!(
+        f.live_events.lock().unwrap().len(),
+        events_before,
+        "the lost emission emits no live event"
+    );
+    // Disarming restores normal behavior on the same fixture.
+    arm_doc_patch_emit_injection(f.app.handle(), false);
+    assert_eq!(delivery_patch(&f, "session-a", 2, 2, "delta-2").await, StatusCode::OK);
+    let events = f.live_events.lock().unwrap();
+    assert_eq!(events.len(), events_before + 1, "the next patch emits again");
+    assert_eq!(events[events_before]["update_type"], "doc_patch");
+}
+
+#[tokio::test]
+async fn the_next_patch_emission_carries_the_full_document() {
+    // The recovery story: the emission following a lost one carries the
+    // full rebuilt document (the rebuild_document_md join of every
+    // section) — the fresh delta AND the untouched section ride together,
+    // proving a full-document replacement rather than a section delta.
+    let f = incoming_fixture(true, "stream.document");
+    assert_eq!(delivery_open_two_sections(&f, "session-a").await, StatusCode::OK);
+    // A delivered patch lands normally: the emission carries the full
+    // document, not just the section delta.
+    assert_eq!(delivery_patch(&f, "session-a", 1, 1, "patched").await, StatusCode::OK);
+    {
+        let events = f.live_events.lock().unwrap();
+        assert_eq!(events[1]["payload"]["full_content"], "patched\n\ntwo");
+    }
+    // The lost patch emission: the state applies, the event never emits.
+    arm_doc_patch_emit_injection(f.app.handle(), true);
+    assert_eq!(delivery_patch(&f, "session-a", 2, 2, "lost-delta").await, StatusCode::OK);
+    arm_doc_patch_emit_injection(f.app.handle(), false);
+    assert_eq!(
+        f.live_events.lock().unwrap().len(),
+        2,
+        "the lost emission emits no event"
+    );
+    // The next emission carries the full document again.
+    assert_eq!(delivery_patch(&f, "session-a", 3, 3, "final").await, StatusCode::OK);
+    let events = f.live_events.lock().unwrap();
+    assert_eq!(events.len(), 3);
+    assert_eq!(events[2]["update_type"], "doc_patch");
+    assert_eq!(events[2]["payload"]["full_content"], "final\n\ntwo");
+    assert_eq!(events[2]["payload"]["revision"], 4);
+}
+// END_BLOCK_DOC_PATCH_RECOVERY_TESTS
+
 // START_BLOCK_ENDPOINT_PUBLISH_TESTS
 // C-EXT-DELIVERY-HONESTY: the bounded endpoint publication family, driven
 // purely with counting writer closures — no filesystem, no real I/O.
