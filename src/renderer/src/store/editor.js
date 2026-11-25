@@ -642,6 +642,10 @@ export const useEditorStore = defineStore('editor', {
       const savedLocks=this.tabs.map(tab=>({tab,locked:tab.locked}))
       // Only the already-approved destruction handoff locks input; disk I/O is complete.
       savedLocks.forEach(({tab})=>{tab.locked=true})
+      // C-SURFACE-OWNERSHIP: the committed window close deactivates the
+      // live binding through the one path — harmless when no active
+      // binding exists.
+      this._deactivateLiveDocument(this.liveDocument)
       try {
         return await invokeDocumentCommand(command)
       } catch (error) {
@@ -1391,6 +1395,12 @@ export const useEditorStore = defineStore('editor', {
         }
         tabs.splice(index, 1)
         this.updateTabIdToIndex()
+        // C-SURFACE-OWNERSHIP: closing a streamed tab kills its active
+        // binding synchronously with the splice — no dangling binding
+        // survives pointing at the dead tabId until the lazy PATCH heal.
+        if (this.liveDocument?.active && this.liveDocument.tabId === file.id) {
+          this._deactivateLiveDocument(this.liveDocument)
+        }
       }
 
       if (file.id && autoSaveTimers.has(file.id)) {
@@ -1693,6 +1703,20 @@ export const useEditorStore = defineStore('editor', {
       }
     },
 
+    // C-SURFACE-OWNERSHIP: the one live-document closure path. Every
+    // closure entry that ends an active binding deactivates it here —
+    // FORCE_CLOSE_TAB (synchronously with the tab splice) and
+    // _commitDocumentWindow (on the committed window close) eagerly;
+    // CLOSE_LIVE_DOCUMENT on the stream end. Count-only marker carrying
+    // tab and session identifiers only — never document content or user
+    // paths (console-privacy).
+    _deactivateLiveDocument(binding) {
+      if (!binding?.active) return
+      binding.active = false
+      // eslint-disable-next-line no-console
+      console.debug(`[editor][live][BLOCK_LIVE_BINDING_DEACTIVATED tab=${binding.tabId} session=${binding.sessionId}]`)
+    },
+
     // START_BLOCK_LIVE_DOCUMENT_OWNERSHIP
     OPEN_LIVE_DOCUMENT({ sessionId, sessionEpoch, markdown, title }) {
       if (this.documentWindowClosing || typeof sessionId !== 'string' || !sessionId ||
@@ -1750,7 +1774,9 @@ export const useEditorStore = defineStore('editor', {
     CLOSE_LIVE_DOCUMENT({ sessionId, sessionEpoch }) {
       const binding = this.liveDocument
       if (!binding?.active || binding.sessionId !== sessionId || binding.sessionEpoch !== sessionEpoch) return false
-      binding.active = false
+      // C-SURFACE-OWNERSHIP: binding-only stream-end volume through the one
+      // path — the streamed tab remains as a requiresExplicitSave document.
+      this._deactivateLiveDocument(binding)
       return true
     },
     // END_BLOCK_LIVE_DOCUMENT_OWNERSHIP
@@ -2795,7 +2821,7 @@ export const useEditorStore = defineStore('editor', {
 // ----------------------------------------------------------------------------
 // START_MODULE_CONTRACT
 //   PURPOSE: Pinia state and actions for open documents, persistence, autosave, and filesystem reloads.
-//   SCOPE: Session-incarnation-owned live tabs; complete text/format checkpoints, composition-first format actions, immutable correlated saves and explicit-retry autosave guard; current export appearance/page snapshots and pre-Save Word options with independent native print geometry; transient Find visibility and selection-prefill ownership; tab lifecycle, content revisions, save outcomes, watcher coordination with dirty-buffer protection across async reloads, per-tab diff baselines (recording only — resolution lives in diffView.vue), the FIX-009 cold-start session offer, and the FORCE_CLOSE_TAB record hook into the recently-closed history.
+//   SCOPE: Session-incarnation-owned live tabs with one closure volume (C-SURFACE-OWNERSHIP): FORCE_CLOSE_TAB and _commitDocumentWindow deactivate a matching active binding eagerly through the one _deactivateLiveDocument path, CLOSE_LIVE_DOCUMENT deactivates the binding only and the streamed tab remains as a requiresExplicitSave document, and the lazy PATCH heal stays as defense-in-depth; complete text/format checkpoints, composition-first format actions, immutable correlated saves and explicit-retry autosave guard; current export appearance/page snapshots and pre-Save Word options with independent native print geometry; transient Find visibility and selection-prefill ownership; tab lifecycle, content revisions, save outcomes, watcher coordination with dirty-buffer protection across async reloads, per-tab diff baselines (recording only — resolution lives in diffView.vue), the FIX-009 cold-start session offer, and the FORCE_CLOSE_TAB record hook into the recently-closed history.
 //   DEPENDS: ipc runtime, Pinia, editor/project/preferences/recentlyClosed stores, renderer bus, store/diffSnapshots, util/externalReload, documentFormat/documentSnapshot/documentOperations, util/exportPageDefaults, util/exportSettingsNavigation.
 //   LINKS: .grace/graph/features.xml M-032; .grace/verification/features.xml V-M-032; .grace/graph/runtime.xml M-011 and M-052; .grace/changes/archive/C-EXTERNAL-RELOAD-OPERATION (one reload admission owner); .grace/changes/archive/C-FIX-016-AUTOSAVE-DISABLE-RACE; .grace/changes/archive/C-68 (opened baseline), .grace/changes/archive/C-43 (pre-reload ring); .grace/changes/archive/C-61 (PDF export + print); components/editorWithTabs/unsavedCloseDialog.js (FIX-011 CLOSE_UNSAVED_TAB confirm); .grace/changes/archive/C-FIX-009-SESSION-COLD-START and C-FIX-009-RECENTLY-CLOSED; util/pageWidthStore.js (C-PAGE-WIDTH-TABLES — RENAME/RENAME_IF_NEEDED also move the file's pageWidths entry); .grace/changes/archive/C-RENDER-REVIEW-FIXES (honest async notification actions).
 //   ROLE: RUNTIME
@@ -2809,6 +2835,21 @@ export const useEditorStore = defineStore('editor', {
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   2026-11-24 C-SURFACE-OWNERSHIP: one live-document closure volume —
+//   the store-internal _deactivateLiveDocument path flips the binding
+//   inactive and logs the count-only [editor][live][BLOCK_LIVE_BINDING_DEACTIVATED]
+//   marker carrying tab and session identifiers only; FORCE_CLOSE_TAB
+//   deactivates a matching active binding synchronously with the tab
+//   splice (closing the dangling-binding window that survived until the
+//   lazy PATCH heal) and _commitDocumentWindow deactivates through the
+//   same path on the committed window close; CLOSE_LIVE_DOCUMENT keeps
+//   its documented binding-only stream-end shape (the streamed tab
+//   remains as a requiresExplicitSave document) routed through the same
+//   path; the lazy PATCH heal stays as defense-in-depth and the six
+//   documentWindowClosing guard sites are untouched. The one behavior
+//   delta is silent, store-private, marker-only. The surface-ownership
+//   predicate collapse of this change lives in editor.vue's own
+//   CHANGE_SUMMARY entry.
 //   EXPORT: 2026-11-23 C-EXPORT-DOCUMENT-PIN: additive optional exportPin through EXPORT/_EXPORT_DOCX/_EXPORT_PDF — assertExportPinCurrent refuses before any dialog when the pinned document no longer owns the active surface (owner token + currentFile.id + contentRevision + pathname equality, closing the rename window for free) and re-verifies after each save dialog resolves and before any write or mt_export_pdf invocation; the disk predicate is HASH-OVER-BYTES (SHA-256 over the ipcFs.readBinary bytes via crypto.subtle.digest with a stat short-circuit that may refuse early and NEVER waives the digest compare — a same-size same-mtime rewrite cannot pass); refusals raise exactly one localized editor.export.pinMismatch / pinDiskChanged notice (four new keys in all ten locales) plus the count-only [export][pin][BLOCK_EXPORT_PIN_MISMATCH class=identity|disk] marker; pin-absent callers keep today's path and live default-name reads byte-identical, pinned runs derive names from the pinned pieces (including the pdf default name); cancel in the save dialog returns before verification and stays silent (corner-2).
 //   - 2026-11-23 C-SESSION-DURABILITY: the restore read hygiene — the
 //     live RESTORE_SESSION and the BOOT_SESSION cold-start capture read
