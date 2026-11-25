@@ -1,0 +1,76 @@
+T-004 governance evidence
+
+
+== XML parse (plan Verification command) ==
+$ python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/runtime.xml'); ET.parse('.grace/verification/runtime.xml')"
+XML OK
+
+== Combined-diff audit: git diff 638c0a7c (whole branch) ==
+$ git diff --stat 638c0a7c
+ .grace/changes/active/C-EDITOR-A11Y-CSS/plan.xml   | 455 +++++++++++++++++++++
+ .grace/changes/active/C-EDITOR-A11Y-CSS/spec.xml   |  65 +++
+ .grace/graph/runtime.xml                           |   1 +
+ .grace/verification/runtime.xml                    |   3 +
+ .../editorWithTabs/unsavedCloseDialog.css          |   6 +
+ .../src/components/sideBar/workspaceModeDialog.vue |   9 +-
+ .../src/prefComponents/common/buttonRow/index.vue  |  11 +-
+ .../src/prefComponents/common/range/index.vue      |  11 +-
+ .../src/prefComponents/keybindings/index.vue       |  12 +-
+ .../src/prefComponents/tabs/advanced/index.vue     |  19 +-
+ .../tabs/advanced/sheets/customCssSheet.vue        |  10 +-
+ .../src/prefComponents/tabs/appearance/index.vue   |  12 +-
+ .../prefComponents/tabs/editor/dictionaryList.vue  |   9 +-
+ tests/e2e/settings-shell.spec.ts                   | 111 +++++
+ tests/e2e/unsaved-dialog-theme.spec.ts             | 143 ++++++-
+ 15 files changed, 864 insertions(+), 13 deletions(-)
+
+$ git status --porcelain (untracked: bundle evidence + the new inventory test only)
+ M .grace/graph/runtime.xml
+ M .grace/verification/runtime.xml
+ M src/renderer/src/components/editorWithTabs/unsavedCloseDialog.css
+ M src/renderer/src/components/sideBar/workspaceModeDialog.vue
+ M src/renderer/src/prefComponents/common/buttonRow/index.vue
+ M src/renderer/src/prefComponents/common/range/index.vue
+ M src/renderer/src/prefComponents/keybindings/index.vue
+ M src/renderer/src/prefComponents/tabs/advanced/index.vue
+ M src/renderer/src/prefComponents/tabs/advanced/sheets/customCssSheet.vue
+ M src/renderer/src/prefComponents/tabs/appearance/index.vue
+ M src/renderer/src/prefComponents/tabs/editor/dictionaryList.vue
+ M tests/e2e/settings-shell.spec.ts
+ M tests/e2e/unsaved-dialog-theme.spec.ts
+?? .grace/changes/active/C-EDITOR-A11Y-CSS/evidence/
+?? tests/renderer/prefComponents/settings-focus-inventory.test.js
+
+== CSS-only proof for the seven .vue components ==
+Removed lines across the whole prefComponents diff (only the old VERSION lines):
+-// VERSION: 1.0.0
+-// VERSION: 2.1.0
+-// VERSION: 2.0.0
+-// VERSION: 2.0.0
+-// VERSION: 1.0.0
+-// VERSION: 2.3.0
+-// VERSION: 1.0.0
+
+== Read-only files undiffed ==
+$ git diff 638c0a7c -- <read-only set> | wc -l  ->  0
+(0 = byte-identical; the C-PREFS-WRITE-TRUTH watcher-replay enumeration in app.vue watch(customCss) is untouched)
+
+== M-061/V-M-061 untouched ==
+$ git diff --stat 638c0a7c -- .grace/graph/performance.xml .grace/verification/performance.xml
+(no output = undiffed)
+
+== Governance deltas ==
+graph/runtime.xml added SummaryDelta lines naming C-EDITOR-A11Y-CSS: 1
+verification/runtime.xml added lines:
++        <Command>npx --no-install vitest run tests/renderer/prefComponents/settings-focus-inventory.test.js tests/renderer/components/quick-settings.test.js te
++        <Command>npx --no-install playwright test --project=chromium tests/e2e/unsaved-dialog-theme.spec.ts</Command>
++        <scenario-editor-a11y-css>C-EDITOR-A11Y-CSS: the settings-focus-inventory source-walk guard (tests/renderer/prefComponents/settings-focus-inventory.tes
+
+== Active set adjacency untouched ==
+$ ls .grace/changes/active/
+C-47
+C-50
+C-EDITOR-A11Y-CSS
+(C-47 and C-50 dirs present and untouched)
+
+No locale file changed, no new dependency, no IPC or preference key, no tabindex/role change; grace-lint commands appear in no file (external phases only).

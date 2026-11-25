@@ -3,6 +3,9 @@
  * unsaved-changes dialog. Reuses the FIX-007 float tokens so light and
  * dark themes both render correctly — the surface must never be white
  * over a dark editor.
+ * C-EDITOR-A11Y-CSS: the dialog box renders in the chrome system font —
+ * it is body-teleported and outside the C-38 T-006 N4a selector list
+ * (index.css:583), so it carries the same declaration here.
  */
 
 .ag-unsaved-close-overlay {
@@ -28,6 +31,9 @@
   border: 1px solid var(--floatBorderColor, var(--editorColor10));
   background-color: var(--floatBgColor);
   box-shadow: 0 4px 8px 0 var(--floatBorderColor);
+  /* The C-38 T-006 N4a chrome-font rule (index.css:583), carried here —
+     this imperative dialog is teleported to body, outside that list. */
+  font-family: var(--chromeFontFamily);
 }
 
 .ag-unsaved-close-header {

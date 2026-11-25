@@ -123,7 +123,7 @@
 
 <script setup>
 // FILE: src/renderer/src/prefComponents/tabs/appearance/index.vue
-// VERSION: 2.3.0
+// VERSION: 2.3.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Appearance tab of the C-38 Settings window — Theme group (Auto/Light/Dark segmented control + the compact 8-per-row family swatch grid), Text group (font, size, line spacing, writing-area width) and Window-and-panels group per the N2 IA §3.2 and the approved mockup.
 //   SCOPE: Row composition; title-bar-identical theme mode semantics; family picking that sets both mode members; swatch colours read from the shipped theme CSS variables.
@@ -145,6 +145,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-25 v2.3.1: C-EDITOR-A11Y-CSS — the family tiles carry the
+//     C-SETTINGS-KEYBOARD-FOCUS canon outline (2px var(--prefAccent), 1px
+//     offset) under :focus-visible; the selected ring stays a box-shadow.
 //   - 2026-11-21 v2.3.0: C-PREFS-TRUTH (F-010) — the Appearance tab stops
 //     offering the no-op System frame choice on Windows: decorations:false
 //     (tauri.windows.conf.json) and the title bar's forced 'custom'
@@ -324,6 +327,13 @@ const titleBarStyleHelp = computed(() => (isWindows
   align-items: center;
   gap: 5px;
   text-align: center;
+}
+
+/* C-SETTINGS-KEYBOARD-FOCUS canon: keyboard-visible outline only; the
+   selected tile's 2.5px ring stays a box-shadow, visually distinct. */
+.pref-tab-page--appearance .theme-family-tile:focus-visible {
+  outline: 2px solid var(--prefAccent);
+  outline-offset: 1px;
 }
 
 .pref-tab-page--appearance .theme-family-tile .family-halves {

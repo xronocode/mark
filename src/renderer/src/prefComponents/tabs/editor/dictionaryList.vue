@@ -29,7 +29,7 @@
 
 <script setup>
 // FILE: src/renderer/src/prefComponents/tabs/editor/dictionaryList.vue
-// VERSION: 1.0.0
+// VERSION: 1.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Custom spellchecking dictionary list under the Editor › Spelling group (C-38 T-004) — words from mt_spell_get_custom_dictionary_words with a per-word remove action.
 //   SCOPE: List rendering, backend word loading (guarded — the custom-dictionary backend may not exist yet), removal via mt_spell_remove_word.
@@ -46,6 +46,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   LAST_CHANGE: [v1.0.1 - 2026-11-25 C-EDITOR-A11Y-CSS: the remove affordance carries the C-SETTINGS-KEYBOARD-FOCUS canon outline (2px var(--prefAccent), 1px offset) under :focus-visible.]
 //   LAST_CHANGE: [v1.0.0 - 2026-10-15 C-38 T-004: replaces the retired spellchecker page's el-table with a Settings-styled list; commands and failure behaviour unchanged.]
 // END_CHANGE_SUMMARY
 
@@ -151,6 +152,12 @@ onMounted(loadWords)
   height: 20px;
   border-radius: 4px;
   color: var(--prefSub, #6b6b70);
+}
+
+/* C-SETTINGS-KEYBOARD-FOCUS canon: keyboard-visible outline only. */
+.pref-dictionary .pref-dictionary-remove:focus-visible {
+  outline: 2px solid var(--prefAccent);
+  outline-offset: 1px;
 }
 
 .pref-dictionary .pref-dictionary-remove:hover {

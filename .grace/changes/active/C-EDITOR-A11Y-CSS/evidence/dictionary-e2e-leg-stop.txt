@@ -1,0 +1,46 @@
+T-001/T-002 bounded-replan record: the dictionary remove button e2e leg is stopped
+
+Symptom
+-------
+The planned settings-shell pin "shows keyboard focus on the dictionary remove
+button" cannot reach its target on the renderer this chromium project drives.
+
+Facts (verified on this tree, faae8ae6 base)
+--------------------------------------------
+1. The only `.pref-dictionary-remove` consumer is
+   src/renderer/src/prefComponents/tabs/editor/dictionaryList.vue, rendered
+   from tabs/editor/index.vue:104 as `<dictionary-list v-if="showDictionary" />`.
+2. tabs/editor/index.vue:236:
+   `const showDictionary = computed(() => !isOsx && spellcheckerEnabled.value && dictionarySupported.value)`
+   — the custom dictionary is contractually non-macOS-only (the component's
+   MODULE_CONTRACT says "the custom dictionary on non-macOS").
+3. src/renderer/src/util/index.js:168-175: `isOsx = process.platform === 'darwin'`
+   where `process.platform` is a vite build-time DEFINE folded to the build
+   host — static in the darwin-built bundle; no runtime override exists.
+4. Red-run proof (T-001, pre-change dist): the pin failed at its setup step
+   `await expect(...pref-dictionary-row).toHaveCount(2)` with "Received: 0" —
+   it never reached the outline assertion. The other seven pins failed red on
+   exactly the computed-outline assertion as planned.
+
+Attempts
+--------
+(a) Seeding `mt_spell_get_custom_dictionary_words` through the shim — the rows
+    still never render: the gate is platform, not backend words (red log).
+(b) Looking for a runtime platform override — none: `isOsx` is a build-time
+    define (util/index.js:168-175 comment).
+(c) Repo e2e precedent for platform-gated specs — affordance-audit.spec.ts:282
+    uses `test.skip` for a darwin-scoped fix, but this plan forbids skips
+    ("No successful skip ... anywhere in this task"), so that route is closed.
+
+Resolution (honest, per the plan's own bounded-replan pattern)
+--------------------------------------------------------------
+The e2e leg is stopped for this bundle rather than faked with synthetic DOM or
+greened via a skip. The dictionaryList.vue control still receives its canon
+`:focus-visible` rule in this change (TargetAssertions for the file hold), and
+the class-level regression stays guarded by the source-walk inventory test
+(the plan's own class guard), which lists
+`.pref-dictionary .pref-dictionary-remove` as one of its eight red controls.
+The plan's TargetAssertion "shows keyboard focus on the dictionary remove
+button" in tests/e2e/settings-shell.spec.ts is NOT satisfied by this bundle and
+needs an owner decision (e.g. a non-macOS-built e2e project) — reported as a
+deviation, not silently dropped.

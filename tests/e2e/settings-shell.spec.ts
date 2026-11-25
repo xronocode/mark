@@ -19,6 +19,7 @@ import { writeFile } from 'node:fs/promises'
 //   checkKeyboardFocus - Prove visible focus and unchanged control semantics from actual keyboard input.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   LAST_CHANGE: C-EDITOR-A11Y-CSS: seven real-Tab canon-outline pins for the all:unset Settings-window controls that render on the darwin build (row action, stepper, family tile, image-folder, reset dialog, the two sheet buttons) plus the sheet-overlay viewport-coverage insurance check; the dictionary remove button is unreachable here (non-macOS-only surface) and is guarded by the source-walk inventory instead.
 //   LAST_CHANGE: C-COMPACT-WINDOWS-FIT: the overflow walker now covers .pref-toolbar and .pref-toolbar * beside .pref-body * (toolbar scrollWidth at most innerWidth) and the harness gained the settings-toolbar-tab focus group (anchored on .pref-toolbar instead of a .pref-row).
 //   LAST_CHANGE: Add source-bound keyboard presentation regressions for actual Settings/Quick Settings consumers.
 // END_CHANGE_SUMMARY
@@ -234,6 +235,116 @@ for (const theme of ['paper', 'ink']) {
     }
   })
 }
+
+// C-EDITOR-A11Y-CSS: the eight remaining all:unset Settings-window
+// controls carry the C-SETTINGS-KEYBOARD-FOCUS canon outline beside
+// their own chrome — the same real-Tab canon, one pin per control
+// (the sheet pins route through the open sheet, the reset pin through
+// its alertdialog).
+for (const theme of ['paper', 'ink']) {
+  test(`shows keyboard focus on the row action button in ${theme}`, async ({ page }, info) => {
+    await installFocusPreferences(page, theme)
+    await page.goto('/?type=settings&wid=0&udp=/tmp/mark-focus-settings&debug=0')
+    if (theme === 'ink') await expect(page.locator('body')).toHaveClass(/dark/)
+    else await expect(page.locator('body')).not.toHaveClass(/dark/)
+    await page.locator('.pref-toolbar [data-tab="advanced"]').click()
+    await checkKeyboardFocus(page, page.locator('.pref-tab-page--advanced .pref-button').first(), info, `${theme}-row-action-button`)
+  })
+
+  test(`shows keyboard focus on the numeric stepper button in ${theme}`, async ({ page }, info) => {
+    await installFocusPreferences(page, theme)
+    await page.goto('/?type=settings&wid=0&udp=/tmp/mark-focus-settings&debug=0')
+    if (theme === 'ink') await expect(page.locator('body')).toHaveClass(/dark/)
+    else await expect(page.locator('body')).not.toHaveClass(/dark/)
+    await page.locator('.pref-toolbar [data-tab="appearance"]').click()
+    await checkKeyboardFocus(page, page.locator('.pref-tab-page--appearance .pref-stepper-btn').first(), info, `${theme}-numeric-stepper-button`)
+  })
+
+  test(`shows keyboard focus on the appearance family tile in ${theme}`, async ({ page }, info) => {
+    await installFocusPreferences(page, theme)
+    await page.goto('/?type=settings&wid=0&udp=/tmp/mark-focus-settings&debug=0')
+    if (theme === 'ink') await expect(page.locator('body')).toHaveClass(/dark/)
+    else await expect(page.locator('body')).not.toHaveClass(/dark/)
+    await page.locator('.pref-toolbar [data-tab="appearance"]').click()
+    // The tile grid anchors the state probe (no .pref-row exists here).
+    await checkKeyboardFocus(page, page.locator('.pref-tab-page--appearance .theme-family-tile').first(), info, `${theme}-appearance-family-tile`, false, '.pref-theme-swatches')
+  })
+
+  // The dictionary remove button has NO chromium pin here: the custom
+  // dictionary is non-macOS-only (tabs/editor showDictionary =
+  // !isOsx && spellcheckerEnabled && dictionarySupported, and isOsx is
+  // folded to the build host via the process.platform define), so the
+  // control never renders in the darwin-built renderer this project
+  // drives. The C-EDITOR-A11Y-CSS bundle evidence records the stopped
+  // leg; the control stays guarded by the source-walk inventory.
+  test(`shows keyboard focus on the image-folder button in ${theme}`, async ({ page }, info) => {
+    await installFocusPreferences(page, theme)
+    await page.goto('/?type=settings&wid=0&udp=/tmp/mark-focus-settings&debug=0')
+    if (theme === 'ink') await expect(page.locator('body')).toHaveClass(/dark/)
+    else await expect(page.locator('body')).not.toHaveClass(/dark/)
+    await page.locator('.pref-toolbar [data-tab="advanced"]').click()
+    await checkKeyboardFocus(page, page.locator('.pref-tab-page--advanced .pref-image-folder-btn').first(), info, `${theme}-image-folder-button`)
+  })
+
+  test(`shows keyboard focus on the reset dialog button in ${theme}`, async ({ page }, info) => {
+    await installFocusPreferences(page, theme)
+    await page.goto('/?type=settings&wid=0&udp=/tmp/mark-focus-settings&debug=0')
+    if (theme === 'ink') await expect(page.locator('body')).toHaveClass(/dark/)
+    else await expect(page.locator('body')).not.toHaveClass(/dark/)
+    await page.locator('.pref-toolbar [data-tab="advanced"]').click()
+    // The destructive Restore row is the last button row of the tab;
+    // clicking it opens the alertdialog the pin walks inside.
+    await page.locator('.pref-tab-page--advanced .pref-button').last().click()
+    await expect(page.locator('.pref-reset-overlay')).toBeVisible()
+    await checkKeyboardFocus(page, page.locator('.pref-reset-overlay .pref-reset-btn').first(), info, `${theme}-reset-dialog-button`, false, '.pref-reset-actions')
+  })
+
+  test(`shows keyboard focus on the custom-CSS sheet button in ${theme}`, async ({ page }, info) => {
+    await installFocusPreferences(page, theme)
+    await page.goto('/?type=settings&wid=0&udp=/tmp/mark-focus-settings&debug=0')
+    if (theme === 'ink') await expect(page.locator('body')).toHaveClass(/dark/)
+    else await expect(page.locator('body')).not.toHaveClass(/dark/)
+    await page.locator('.pref-toolbar [data-tab="advanced"]').click()
+    // Advanced › Customise › Custom CSS — the third Edit row opens the
+    // sheet whose foot carries the pair.
+    await page.locator('.pref-tab-page--advanced .pref-button').nth(2).click()
+    await expect(page.locator('.pref-sheet')).toBeVisible()
+    await checkKeyboardFocus(page, page.locator('.pref-sheet .pref-custom-css-btn').first(), info, `${theme}-custom-css-sheet-button`, false, '.pref-sheet-foot')
+  })
+
+  test(`shows keyboard focus on the keybindings sheet button in ${theme}`, async ({ page }, info) => {
+    await installFocusPreferences(page, theme)
+    await page.goto('/?type=settings&wid=0&udp=/tmp/mark-focus-settings&debug=0')
+    if (theme === 'ink') await expect(page.locator('body')).toHaveClass(/dark/)
+    else await expect(page.locator('body')).not.toHaveClass(/dark/)
+    await page.locator('.pref-toolbar [data-tab="advanced"]').click()
+    // Advanced › Customise › Keyboard shortcuts — the first Edit row.
+    await page.locator('.pref-tab-page--advanced .pref-button').first().click()
+    await expect(page.locator('.pref-keybindings')).toBeVisible()
+    await checkKeyboardFocus(page, page.locator('.pref-keybindings .pref-keybindings-btn').first(), info, `${theme}-keybindings-sheet-button`, false, '.footer')
+  })
+}
+
+// C-EDITOR-A11Y-CSS R-3b: insurance, authored green-today (the overlay is
+// the delivered C-COMPACT-WINDOWS-FIT R-4 surface) — the fixed inset:0
+// geometry that makes the dimmed page's buttons pointer-unreachable
+// while a sheet is open.
+test('the sheet overlay covers the viewport while open', async ({ page }) => {
+  await installFocusPreferences(page, 'paper')
+  await page.goto('/?type=settings&wid=0&udp=/tmp/mark-focus-settings&debug=0')
+  await page.locator('.pref-toolbar [data-tab="advanced"]').click()
+  await page.locator('.pref-tab-page--advanced .pref-button').nth(2).click()
+  const overlay = page.locator('.pref-sheet-overlay')
+  await expect(overlay).toBeVisible()
+  const coverage = await overlay.evaluate((el) => {
+    const r = el.getBoundingClientRect()
+    return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, vw: window.innerWidth, vh: window.innerHeight }
+  })
+  expect(coverage.left).toBeLessThanOrEqual(0)
+  expect(coverage.top).toBeLessThanOrEqual(0)
+  expect(coverage.right).toBeGreaterThanOrEqual(coverage.vw)
+  expect(coverage.bottom).toBeGreaterThanOrEqual(coverage.vh)
+})
 
 test.describe('settings shell', () => {
   test.beforeEach(async ({ page }) => {

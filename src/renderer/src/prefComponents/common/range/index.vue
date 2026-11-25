@@ -46,7 +46,7 @@
 
 <script setup>
 // FILE: src/renderer/src/prefComponents/common/range/index.vue
-// VERSION: 2.1.0
+// VERSION: 2.1.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Settings numeric row (C-38 T-003 anatomy) — the old range slider rendered as the mockup stepper: label + help left, value (unit once) with up/down steppers right, honouring the same min/max/step/onChange contract.
 //   SCOPE: Stepping, clamping and float-safe rounding; props-compatible with every existing range caller. C-PAGE-WIDTH-TABLES T-004: the optional displayText prop replaces the value+unit text with a verbatim string (the quick-settings Page tab renders "Full window" on the width stepper while its buttons stay disabled) — unset leaves every existing row byte-identical.
@@ -67,6 +67,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-25 v2.1.1: C-EDITOR-A11Y-CSS — the stepper buttons carry the
+//     C-SETTINGS-KEYBOARD-FOCUS canon outline (2px var(--prefAccent), 1px
+//     offset) under :focus-visible; no other change.
 //   - 2026-11-02 v2.1.0: C-PAGE-WIDTH-TABLES T-004 — optional displayText
 //     prop renders a verbatim value text (the panel's Full window width
 //     state); the numeric path is untouched when the prop is unset.
@@ -223,6 +226,12 @@ const select = (value) => {
   align-items: center;
   justify-content: center;
   height: 10px;
+}
+
+/* C-SETTINGS-KEYBOARD-FOCUS canon: keyboard-visible outline only. */
+.pref-range-item .pref-stepper-btn:focus-visible {
+  outline: 2px solid var(--prefAccent);
+  outline-offset: 1px;
 }
 
 .pref-range-item .pref-stepper-btn:disabled {

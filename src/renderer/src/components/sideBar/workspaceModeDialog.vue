@@ -60,7 +60,7 @@
 
 <script setup>
 // FILE: src/renderer/src/components/sideBar/workspaceModeDialog.vue
-// VERSION: 1.0.0
+// VERSION: 1.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: C-MULTI-SOURCE-WORKSPACE — the shared Add-or-Replace chooser
 //            for ambiguous folder inputs (drop, clipboard, Recent, switcher)
@@ -87,6 +87,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   LAST_CHANGE: v1.0.1 - 2026-11-25 C-EDITOR-A11Y-CSS: the dialog box
+//   renders in the chrome system font (font-family: var(--chromeFontFamily)
+//   beside its own chrome, the C-38 T-006 N4a rule it sits outside);
+//   the C-MULTI-SOURCE-WORKSPACE anatomy is otherwise unchanged.
 //   LAST_CHANGE: v1.0.0 - 2026-10-22 C-MULTI-SOURCE-WORKSPACE: new module.
 //   One dialog, two store-driven modes: the chooser (Add preselected as the
 //   safe default, Replace labelled destructive, Cancel) and the replace
@@ -214,6 +218,9 @@ const onKeydown = (event) => {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  /* The C-38 T-006 N4a chrome-font rule (index.css:583), carried here —
+     this imperative dialog is teleported to body, outside that list. */
+  font-family: var(--chromeFontFamily);
 }
 
 .workspace-mode-header {
