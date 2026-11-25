@@ -21,6 +21,24 @@
 //   STATUS:  Phase-B5b — handlers emit to frontend via live_bridge.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-23 C-EXT-DELIVERY-HONESTY T-002: the honest open — a
+//     doc_open whose frontend emission fails refuses instead of answering
+//     200 accepted:true over an undelivered stream: the exact pre-open
+//     guard value is captured before decide_open (pre_open) and restored
+//     verbatim on the refusal (None on a plain fresh open, Some(inactive)
+//     after a close/heartbeat-timeout, the replaced session on a resync),
+//     the consumed epoch is retired without reuse (never decremented), and
+//     the handler answers DOC_OPEN_DELIVERY_REFUSED_STATUS (500 class,
+//     the pairing-state-unavailable precedent) with the plain
+//     {"error": "live document delivery failed"} body and the distinct
+//     BLOCK_DOC_OPEN_DELIVERY_REFUSED log (session_id and reason only —
+//     no document content). The refusal sits strictly after the
+//     C-STREAM-BUDGET checks, charges no budget (the refused session and
+//     its fresh StreamBudget are discarded whole) and runs in-memory under
+//     the already-held stream_gate and session lock; the success path from
+//     BLOCK_DOC_OPEN_OK through the 200 DocOpenResponse is byte-identical,
+//     and doc_patch/doc_close/heartbeat-timeout keep their log-only
+//     emit-failure behavior.
 //   - 2026-11-23 C-EXT-TRUST-COHERENCE T-006: the rebind dialogs state the
 //     grant truth and display the registered name — the stored grant read
 //     is hoisted before the approval decision (an unreadable grant is the
@@ -171,6 +189,9 @@
 //
 // START_MODULE_MAP
 //   Coverage: GRACE 4 synchronized surface for M-045.
+//   C-EXT-DELIVERY-HONESTY: DOC_OPEN_DELIVERY_REFUSED_STATUS and the
+//   BLOCK_DOC_OPEN_DELIVERY_REFUSED refusal branch in handle_doc_open
+//   (pre_open capture + exact restore, epoch retired without reuse).
 // END_MODULE_MAP
 
 use axum::extract::State;
@@ -208,7 +229,9 @@ pub const STREAM_BUDGET_REFILL_SECS: u64 = 2;
 /// by every (re)open, so a same-session resync re-open resets both
 /// budgets (the documented recovery for a client that hit a cap
 /// honestly). Per-opens quota abuse via fresh opens is an accepted
-/// NonGoal.
+/// NonGoal. Clone: C-EXT-DELIVERY-HONESTY captures the exact pre-open
+/// session (budget included) beside the lock for the delivery refusal.
+#[derive(Clone)]
 pub struct StreamBudget {
     /// Cumulative accepted payload bytes: the authoritative document_md
     /// bytes accepted at open plus the GROSS content bytes of every
@@ -236,6 +259,10 @@ impl StreamBudget {
 
 /// A live streaming session. Tracks document state, sequence numbers
 /// for idempotency, and heartbeat timestamp for timeout detection.
+/// Clone: C-EXT-DELIVERY-HONESTY — `let pre_open = session_guard.clone();`
+/// captures the exact Option<LiveSession> before decide_open so a failed
+/// doc_open delivery restores it verbatim.
+#[derive(Clone)]
 pub struct LiveSession {
     pub session_id: String,
     pub extension_id: String,
@@ -1394,6 +1421,11 @@ pub(super) async fn handle_pair<R: tauri::Runtime>(
     )
 }
 
+/// C-EXT-DELIVERY-HONESTY: the 500-class refusal status for an open whose
+/// frontend emission failed — the file's pairing-state-unavailable /
+/// channel-closed precedent voice.
+const DOC_OPEN_DELIVERY_REFUSED_STATUS: StatusCode = StatusCode::INTERNAL_SERVER_ERROR;
+
 /// POST /stream/open — start a live document session.
 pub(super) async fn handle_doc_open<R: tauri::Runtime>(
     State(state): State<Arc<LiveServerState<R>>>,
@@ -1417,6 +1449,13 @@ pub(super) async fn handle_doc_open<R: tauri::Runtime>(
     if !identity.is_enabled(&registry) {
         return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({"error":"extension is not enabled"})));
     }
+
+    // C-EXT-DELIVERY-HONESTY: capture the exact pre-open guard value
+    // BEFORE any classification or mutation, so a delivery failure can
+    // restore it verbatim — None on a plain fresh open, Some(inactive)
+    // on a fresh open after a close/heartbeat-timeout, the replaced
+    // session on a same-session resync.
+    let pre_open = session_guard.clone();
 
     match decide_open(session_guard.as_ref(), &req.session_id, &extension_id) {
         OpenDecision::ForeignOwner => {
@@ -1537,6 +1576,16 @@ pub(super) async fn handle_doc_open<R: tauri::Runtime>(
     // B5b: emit doc_open to frontend for live rendering. Emits the
     // authoritative document_md (== join of sections), not the raw
     // client-supplied initial_md.
+    // C-EXT-DELIVERY-HONESTY: a failed emission refuses the open instead
+    // of answering accepted:true over an undelivered stream — the exact
+    // pre-open guard value is restored verbatim (the rollback is
+    // in-memory under the already-held stream_gate and session lock), the
+    // consumed epoch is retired without reuse, and the refusal is logged
+    // as the distinct BLOCK_DOC_OPEN_DELIVERY_REFUSED state (session_id
+    // and reason only — no document content). This branch sits strictly
+    // after the C-STREAM-BUDGET refusals and never prints
+    // BLOCK_DOC_OPEN_OK; doc_patch/doc_close/heartbeat-timeout keep
+    // their log-only emit-failure behavior.
     if let Err(e) = super::live_bridge::emit_doc_open(
         &state.app_handle,
         &req.session_id,
@@ -1544,8 +1593,20 @@ pub(super) async fn handle_doc_open<R: tauri::Runtime>(
         &req.title,
         &document_md_for_emit,
     ) {
+        // The existing raw emit-failure state stays, and the distinct
+        // refusal state stands beside it (session_id and reason only —
+        // no document content).
         safe_eprintln!(
             "[ExtHost][live_server][BLOCK_DOC_OPEN_EMIT_FAILED reason={e}]"
+        );
+        safe_eprintln!(
+            "[ExtHost][live_server][BLOCK_DOC_OPEN_DELIVERY_REFUSED session_id={} reason={e}]",
+            req.session_id,
+        );
+        *session_guard = pre_open;
+        return (
+            DOC_OPEN_DELIVERY_REFUSED_STATUS,
+            Json(serde_json::json!({"error": "live document delivery failed"})),
         );
     }
 

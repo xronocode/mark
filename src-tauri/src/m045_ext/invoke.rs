@@ -21,6 +21,19 @@
 // END_MODULE_MAP
 
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 C-EXT-DELIVERY-HONESTY T-004: bounded, sanitized invoke
+//     errors — every InvokeError.message is clamped under the named
+//     INVOKE_MESSAGE_MAX_CHARS = 400 by bound_message at every construction
+//     site, appending truncation_marker's "[truncated: {original_bytes}
+//     bytes withheld]" naming the ORIGINAL size; the extension-controlled
+//     BadStatus body is control-neutralized by sanitize_foreign_body (every
+//     C0/C1 control character and DEL to U+FFFD) before composition, so no
+//     raw control character and no unbounded foreign material reaches any
+//     message. InvokeError gains http_status: Option<u16> (Some on
+//     BadStatus, None elsewhere; Display mechanically unchanged — the
+//     journal line keeps the bounded, sanitized, marker-carrying text).
+//     The request path, retry policy, idempotency key and success path are
+//     unchanged.
 //   - 2026-11-22 C-EXT-EDIT-PROOF T-006: honest retries — invoke_extension
 //     generates one idempotency key per logical call (in-tree secret
 //     generator) and attaches the idempotency-key header to every attempt;
@@ -50,10 +63,53 @@ pub const INVOKE_RETRY_MAX_WAIT: Duration = Duration::from_millis(2000);
 const INVOKE_DEFAULT_RETRY_WAIT_MS: u64 = 500;
 
 // START_BLOCK_INVOKE_ERROR
+/// C-EXT-DELIVERY-HONESTY: every InvokeError.message is clamped under this
+/// named bound (a few hundred characters), the extension-controlled
+/// BadStatus body additionally control-neutralized — no unbounded,
+/// control-bearing foreign material reaches the journal or the renderer.
+pub const INVOKE_MESSAGE_MAX_CHARS: usize = 400;
+
+/// C-EXT-DELIVERY-HONESTY: the explicit marker naming the withheld
+/// ORIGINAL size in bytes.
+fn truncation_marker(original: &str) -> String {
+    format!("[truncated: {} bytes withheld]", original.len())
+}
+
+/// C-EXT-DELIVERY-HONESTY: neutralize every control character in a
+/// foreign-controlled body — C0, C1 and DEL (the whole Unicode Cc class)
+/// become U+FFFD — before it enters any message, so log injection through
+/// control characters is impossible. Sanitization only removes and bounds
+/// material; no content-level redaction is attempted.
+fn sanitize_foreign_body(body: &str) -> String {
+    body.chars()
+        .map(|c| if c.is_control() { '\u{FFFD}' } else { c })
+        .collect()
+}
+
+/// C-EXT-DELIVERY-HONESTY: clamp EVERY InvokeError.message under
+/// INVOKE_MESSAGE_MAX_CHARS, appending the truncation marker with the
+/// withheld original byte size. Applies at every construction site, so
+/// parse-failure and client-build messages stay bounded too.
+fn bound_message(message: String) -> String {
+    if message.chars().count() <= INVOKE_MESSAGE_MAX_CHARS {
+        return message;
+    }
+    let marker = truncation_marker(&message);
+    let keep = INVOKE_MESSAGE_MAX_CHARS.saturating_sub(marker.chars().count());
+    let mut bounded: String = message.chars().take(keep).collect();
+    bounded.push_str(&marker);
+    bounded
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InvokeError {
     pub kind: InvokeErrorKind,
     pub message: String,
+    /// C-EXT-DELIVERY-HONESTY: the HTTP status for BadStatus, None for
+    /// every non-HTTP class. Display is unchanged mechanically — the
+    /// renderer mapping in mod.rs composes its BadStatus answer from the
+    /// class and this status WITHOUT the message body.
+    pub http_status: Option<u16>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -124,17 +180,18 @@ pub async fn invoke_extension(
         );
         return Err(InvokeError {
             kind: InvokeErrorKind::CapabilityNotFound,
-            message: format!(
+            http_status: None,
+            message: bound_message(format!(
                 "extension '{}' does not declare capability '{capability}'",
                 manifest.id
-            ),
+            )),
         });
     }
 
     let url = super::manifest::extension_endpoint(&manifest.discovery.base_url, &manifest.invoke.invoke_path)
         .map_err(|e| {
             safe_eprintln!("[ExtHost][invoke][BLOCK_URL_REFUSED id={} reason={e}]", manifest.id);
-            InvokeError { kind: InvokeErrorKind::RequestFailed, message: e.to_string() }
+            InvokeError { kind: InvokeErrorKind::RequestFailed, http_status: None, message: bound_message(e.to_string()) }
         })?;
 
     let timeout = Duration::from_secs(manifest.invoke.timeout_secs);
@@ -150,7 +207,8 @@ pub async fn invoke_extension(
             );
             InvokeError {
                 kind: InvokeErrorKind::RequestFailed,
-                message: format!("failed to build HTTP client: {e}"),
+                http_status: None,
+                message: bound_message(format!("failed to build HTTP client: {e}")),
             }
         })?;
 
@@ -182,7 +240,8 @@ pub async fn invoke_extension(
                     );
                     InvokeError {
                         kind: InvokeErrorKind::InvalidResponse,
-                        message: format!("failed to parse response JSON: {e}"),
+                        http_status: None,
+                        message: bound_message(format!("failed to parse response JSON: {e}")),
                     }
                 })?;
                 safe_eprintln!(
@@ -221,9 +280,23 @@ pub async fn invoke_extension(
                     "[ExtHost][invoke][BLOCK_BAD_STATUS id={} cap={capability} status={status}]",
                     manifest.id
                 );
+                // C-EXT-DELIVERY-HONESTY: the foreign body is
+                // control-neutralized before composition and the whole
+                // message clamped under INVOKE_MESSAGE_MAX_CHARS with the
+                // original-size truncation marker; http_status lets the
+                // renderer mapping answer without any body fragment.
                 return Err(InvokeError {
                     kind: InvokeErrorKind::BadStatus,
-                    message: format!("HTTP {status}: {body_text}"),
+                    http_status: Some(status.as_u16()),
+                    // C-EXT-DELIVERY-HONESTY: the foreign body is
+                    // control-neutralized before composition and the whole
+                    // message clamped under INVOKE_MESSAGE_MAX_CHARS with the
+                    // original-size truncation marker; http_status lets the
+                    // renderer mapping answer without any body fragment.
+                    message: bound_message(format!(
+                        "HTTP {status}: {}",
+                        sanitize_foreign_body(&body_text)
+                    )),
                 });
             }
             Err(e) => {
@@ -239,7 +312,8 @@ pub async fn invoke_extension(
                 }
                 return Err(InvokeError {
                     kind: InvokeErrorKind::RequestFailed,
-                    message: format!("request failed: {e}"),
+                    http_status: None,
+                    message: bound_message(format!("request failed: {e}")),
                 });
             }
         }
@@ -248,7 +322,8 @@ pub async fn invoke_extension(
     // Unreachable in practice (loop always returns), but satisfies compiler.
     Err(InvokeError {
         kind: InvokeErrorKind::RequestFailed,
-        message: "exhausted retry attempts".to_string(),
+        http_status: None,
+        message: bound_message("exhausted retry attempts".to_string()),
     })
 }
 // END_BLOCK_INVOKE

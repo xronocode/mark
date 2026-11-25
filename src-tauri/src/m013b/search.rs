@@ -1,10 +1,10 @@
 // FILE: src-tauri/src/m013b/search.rs
-// VERSION: 2.6.0-beta
+// VERSION: 2.7.0-beta
 // START_MODULE_CONTRACT
 //   PURPOSE: Run cancellable content searches and stream bounded result batches to the renderer.
-//   SCOPE: Tauri search commands, rg JSON-process transport (exit-status honesty, bounded stderr capture, cancel watcher), embedded ignore/regex fallback, the files-mode session (mode "files": path-only walker leg without body reads, `rg --files` listing transport, shared inclusion/exclusion glob compilation, FILES_RESULT_CAP delivered-hits honesty), shared exclusion-mask compilation, search-session coordination (session-wide seq, exactly one terminal), cancellation, and search-event payloads (additive optional partial flag; additive optional honest matchStart/matchEnd hit bounds).
+//   SCOPE: Tauri search commands, rg JSON-process transport (exit-status honesty, bounded stderr capture, cancel watcher), embedded ignore/regex fallback, the files-mode session (mode "files": path-only walker leg without body reads, `rg --files` listing transport, shared inclusion/exclusion glob compilation, FILES_RESULT_CAP delivered-hits honesty), shared exclusion-mask compilation, search-session coordination (session-wide seq, exactly one terminal), cancellation, and search-event payloads (additive optional partial flag; additive optional honest matchStart/matchEnd hit bounds). C-SEARCH-ENGINE-PARITY: one documented engine-parity table (START_BLOCK_ENGINE_PARITY_TABLE) governs both engines across all four transport legs, resolve_engine_flags is the single flag source feeding both WalkBuilder chains and both rg command builders, the case mode is explicit-option-only (--smart-case removed), both rg transports pass --no-require-git (gitignore outside git honored identically to the walker), and the walker's snippet truncation is boundary-safe (floor_to_char_boundary floors the 1 MB byte cut to the last UTF-8 character boundary at or before the cap).
 //   DEPENDS: ignore, regex, serde_json, tauri, m010_security, m013b::error, m013b::state.
-//   LINKS: M-004, V-M-004, Phase-B2 step-4, C-SEARCH-SESSION-COMPLETION, C-SEARCH-ERROR-VISIBILITY, C-SEARCH-RESULT-CONTRACT, C-QUICKOPEN-FILES-MODE.
+//   LINKS: M-004, V-M-004, Phase-B2 step-4, C-SEARCH-SESSION-COMPLETION, C-SEARCH-ERROR-VISIBILITY, C-SEARCH-RESULT-CONTRACT, C-QUICKOPEN-FILES-MODE, C-SEARCH-ENGINE-PARITY.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
@@ -30,12 +30,15 @@
 //   compile_inclusion_masks - Shared whitelist-glob semantics for the files-mode name filter; invalid globs explicitly ignored.
 //   FILES_RESULT_CAP - Delivered path hits allowed per files-mode session.
 //   compile_exclusion_masks - Shared mask semantics for walker filtering and rg --glob=! args; invalid masks explicitly ignored.
+//   resolve_engine_flags - The single flag authority for the aligned rows of the engine-parity table: one EngineFlags resolution consumed by all four transport legs.
+//   floor_to_char_boundary - Floors the walker's 1 MB snippet byte cut to the last UTF-8 character boundary at or before the cap (boundary-safe truncation).
 //   mt_search_spawn - Validate and start an asynchronous rg-backed search (mode "files" dispatches to the files-mode session).
 //   mt_search_cancel - Cancel an in-flight search by id (flag flip; the terminal comes from the session coordinator).
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2.6.0-beta - C-QUICKOPEN-FILES-MODE T-002: real files mode — mt_search_spawn dispatches the discriminator (START_BLOCK_FILES_MODE_DISPATCH) instead of discarding it; mode "files" runs the mirrored run_session_files(_with_program) session over the same coordinator/warm-up/registry/engine selection with a path-only walker leg (START_BLOCK_WALKER_PATH_LEG — no File::open, no line reading, no matcher) and the `rg --files` listing transport (START_BLOCK_BUILD_RIPGREP_FILES_COMMAND) inheriting #303's honesty machinery (bounded stderr capture, cancel watcher, 0/1-vs-error exit gate, injection seam); path-only SearchHits (line 0, column 0, empty snippet, wire-absent bounds) ride the existing match envelope so the #320 contract keeps working unchanged.
+//   LAST_CHANGE: 2.7.0-beta - C-SEARCH-ENGINE-PARITY T-001..T-006: engine parity across all four transport legs — one documented engine-parity table (START_BLOCK_ENGINE_PARITY_TABLE) over both engines; one shared flag source resolve_engine_flags (one START_CONTRACT) feeding both WalkBuilder chains and both rg command builders; case-mode unification: --smart-case removed (its pattern-dependent implicit mode overrode the renderer's explicit isCaseSensitive toggle on the rg leg only), explicit-option-only canon — explicit --case-sensitive on the toggle, explicit --ignore-case otherwise, the walker's build_matcher semantics unchanged as the canon; --no-require-git delivered on both rg transports through the shared flag source, making the walker legs' "(matches ripgrep --no-require-git)" comments true with no walker line touched; boundary-safe snippet truncation: floor_to_char_boundary floors the MAX_LINE_BYTES byte cut to the last UTF-8 character boundary at or before the cap, closing the recorded triple-debt entry (the UTF-8 truncation item named verbatim in the NonGoals of #303, #324 and #333), pinned by the failing-first Cyrillic/emoji walker_utf8_boundary_truncation_does_not_panic; the parameterized parity suite (ParityRow::run_both_engines — one fixture set, both engines, identical expectations per table row, walker leg always, rg leg availability-guarded) with the T-001 red receipts preserved as pre-change evidence; the files-mode size row resolved as documented divergence (walker metadata skip canon, rg listing not size-filtered, quickOpen never sends maxFileSize).
+//   PREVIOUS: 2.6.0-beta - C-QUICKOPEN-FILES-MODE T-002: real files mode — mt_search_spawn dispatches the discriminator (START_BLOCK_FILES_MODE_DISPATCH) instead of discarding it; mode "files" runs the mirrored run_session_files(_with_program) session over the same coordinator/warm-up/registry/engine selection with a path-only walker leg (START_BLOCK_WALKER_PATH_LEG — no File::open, no line reading, no matcher) and the `rg --files` listing transport (START_BLOCK_BUILD_RIPGREP_FILES_COMMAND) inheriting #303's honesty machinery (bounded stderr capture, cancel watcher, 0/1-vs-error exit gate, injection seam); path-only SearchHits (line 0, column 0, empty snippet, wire-absent bounds) ride the existing match envelope so the #320 contract keeps working unchanged.
 //   PREVIOUS: 2.5.0-beta - C-SEARCH-RESULT-CONTRACT T-001/T-002: SearchHit grows two additive optional match-bound fields (matchStart/matchEnd, wire-absent via skip_serializing_if) — the first submatch's span within the DELIVERED snippet text, in UTF-16 code-unit offsets (0-based start, exclusive end; the renderer substring index space) computed by one shared byte_offset_to_utf16_units conversion; filled by BOTH engines (rg --json first-submatch start/end replacing the reserved pattern_len placeholder, embedded walker match span), honest-or-absent when the match is not fully inside the delivered snippet (walker byte truncation; defensively for rg too); legacy column per-leg values untouched.
 //   PREVIOUS: 2.4.0-beta - C-SEARCH-ERROR-VISIBILITY T-001/T-003: rg honesty and prompt cancel settle — stderr piped with a bounded START_BLOCK_RIPGREP_STDERR_CAPTURE tail (BLOCK log only, never the wire error), child exit status reaped and checked (0/1 normal, >=2 the single "rg exited with code N" error class), START_BLOCK_CANCEL_WATCHER thread kills+waits a silent child without needing a stdout line, compile_exclusion_masks applied symmetrically (walker filter + rg --glob=! args; invalid masks explicitly ignored), additive optional SearchEvent.partial with finalize(terminal, error, partial) computed conservatively in run_session.
 //   PREVIOUS: 2.3.0-beta - C-SEARCH-SESSION-COMPLETION T-001: SearchSessionCoordinator owns the session-wide seq and the single terminal (complete/cancelled/error); run_search/run_ripgrep emit match batches only, run_session finalizes exactly once across all roots and both engines — no per-root terminals, no seq restart.
@@ -547,6 +550,165 @@ fn run_session_files_with_program(
     (total_paths, terminal_kind_name(terminal))
 }
 
+// START_BLOCK_ENGINE_PARITY_TABLE
+// C-SEARCH-ENGINE-PARITY: the one documented engine-parity table of the
+// search zone. It governs BOTH engines — the embedded ignore/regex walker
+// and the rg shell-out — across all FOUR transport legs (content walker,
+// files walker, content rg search, rg files listing). Every shared
+// semantic appears here exactly once, with its owning code anchor per
+// leg; the single flag source below (resolve_engine_flags) is the only
+// place these decisions are made, so the same options and the same
+// fixture cannot produce different result sets depending on which engine
+// a machine selected. Per-leg leftovers are only the legs' inherent shape
+// (rg process arguments versus ignore-crate builder calls) and the
+// documented files-mode size row.
+//
+// CASE MODE — explicit-option-only on both engines:
+//   semantic: the renderer's isCaseSensitive toggle is the only case
+//   control. Toggle off: case-INsensitive for EVERY pattern, including
+//   Mixed-case patterns. Toggle on: exact case only.
+//   walker anchor: build_matcher — case_insensitive(!opts.is_case_sensitive
+//   .unwrap_or(false)) (the unchanged canon).
+//   rg content anchor: START_BLOCK_BUILD_RIPGREP_COMMAND — an explicit
+//   --case-sensitive on the toggle, an explicit --ignore-case otherwise.
+//   files legs: no matcher — the row does not apply.
+//   removal reason: rg's --smart-case was the divergence source. Its
+//   documented implicit mode searched case-SENSITIVELY whenever the
+//   pattern contained any uppercase character, silently overriding the
+//   renderer's explicit toggle on the rg leg only (the pattern "Needle"
+//   with default options returned all three case variants on the walker
+//   but only the exact-case line on rg). Receipt: the failing-first
+//   engine_parity_case_modes_across_legs (red on the pre-change tree: rg
+//   leg 1 variant vs walker 3; green once the case decision flows through
+//   resolve_engine_flags).
+//
+// GITIGNORE OUTSIDE GIT — identical inside and outside a repository:
+//   semantic: .gitignore sources are honored EVERYWHERE, plain folders
+//   included; inside a git repository nothing changes on either engine.
+//   walker anchors: the two require_git(false) sites (run_files_walker and
+//   run_search) — their long-standing "(matches ripgrep
+//   --no-require-git)" comments become true statements of delivered
+//   parity, with no walker line touched.
+//   rg anchors: START_BLOCK_BUILD_RIPGREP_COMMAND and
+//   START_BLOCK_BUILD_RIPGREP_FILES_COMMAND — both transports pass
+//   --no-require-git through resolve_engine_flags; no per-leg hardcoded
+//   gitignore flag remains outside the artifact.
+//   receipt: the failing-first
+//   engine_parity_gitignore_outside_git_across_legs (red on the
+//   pre-change tree: the walker legs filtered the gitignored file outside
+//   git while both rg legs did not; green now).
+//
+// IGNORE-FAMILY SWITCHES (already agreeing; documented with their
+// anchors): .ignore / .git_ignore / .git_global / .git_exclude resolve
+// from one respect_ignore value in both walker legs; rg honors .ignore
+// regardless of git presence (matching the walker's .ignore switch) and
+// passes --no-ignore on the same no_ignore option (both rg transports).
+// The no_ignore row keeps disabling ALL ignore sources on both engines.
+//
+// SNIPPET TRUNCATION (walker-inherent; closes the recorded triple-debt
+// entry named verbatim in the NonGoals of C-SEARCH-ERROR-VISIBILITY,
+// C-SEARCH-LIFECYCLE-DISCARD and C-QUICKOPEN-FILES-MODE):
+//   walker anchor: the snippet construction site in run_search — the
+//   MAX_LINE_BYTES byte cut is floored to the last UTF-8 character
+//   boundary at or before the cap (floor_to_char_boundary), so a
+//   Cyrillic/emoji line crossing the cap no longer panics the walker
+//   thread. The ellipsis marker, the truncated flag, delivered_end_byte
+//   and the honest-or-absent bounds rule keep their contracts; the cap
+//   value stays a byte cap. Receipt: the failing-first
+//   walker_utf8_boundary_truncation_does_not_panic (red by panic on the
+//   pre-change tree at the raw byte slice; green now).
+//   rg anchor: the content rg transport delivers rg's own line text —
+//   rg lines are not walker-capped and no truncation is introduced
+//   there; that delivery shape is rg-inherent and documented here, not
+//   equated. The files-mode path-only legs stay body-read-free
+//   (START_BLOCK_WALKER_PATH_LEG) — truncation does not apply to them.
+//
+// FILES-MODE SIZE ROW — the documented per-transport divergence:
+//   semantic: the walker leg applies max_file_size as a metadata skip
+//   (the canon); the rg --files listing transport passes NO --max-filesize
+//   and stays not size-filtered. No flag is added to the listing
+//   transport on this change's authority.
+//   walker anchor: the max_filesize metadata skips in both walker legs
+//   (run_files_walker, run_search).
+//   rg anchor: START_BLOCK_BUILD_RIPGREP_FILES_COMMAND — the updated size
+//   note points at this row. Safety argument (inherited from the
+//   C-QUICKOPEN-FILES-MODE record): quickOpen never sends maxFileSize in
+//   files mode. The content-mode rg transport keeps --max-filesize (an
+//   agreeing row, pinned by maxfilesize-content-row below).
+//
+// ROWS THAT ALREADY AGREE (pinned green before and after by
+// engine_parity_hidden_and_excludes_across_legs and the #320/#333
+// families; the owning anchor per leg):
+//   hidden — walker .hidden(!include_hidden) in both walker legs; rg
+//   --hidden only on include_hidden in both rg transports.
+//   exclusion masks — one compile_exclusion_masks feeding the walker
+//   override globs and the rg --glob=! arguments; invalid masks are
+//   ignored by BOTH engines and only force the honest partial flag.
+//   inclusion globs (files mode) — one compile_inclusion_masks feeding
+//   the walker whitelist overrides and the rg --glob= arguments.
+//   maxFileSize content row — walker metadata skip versus rg
+//   --max-filesize: identical filtering.
+//   follow_symlinks — walker follow_links versus rg --follow.
+//   whole-word — walker \b...\b wrapping (build_matcher) versus rg
+//   --word-regexp.
+//   literal/regex — walker regex::escape (build_matcher) versus rg
+//   --fixed-strings.
+// END_BLOCK_ENGINE_PARITY_TABLE
+
+// START_CONTRACT: resolve_engine_flags
+//   PURPOSE: The single flag authority for the aligned rows of the engine-parity table (C-SEARCH-ENGINE-PARITY): resolve the shared semantics from SearchOptions exactly once so both WalkBuilder chains and both rg command builders draw from one source — after the T-002..T-004 delivery no per-leg hardcoded case or gitignore flag remains outside this function in any of the four build sites; per-leg leftovers are only the legs' inherent shape and the documented files-mode size row.
+//   INPUTS: { opts: &SearchOptions - renderer search preferences }
+//   OUTPUTS: { EngineFlags - the resolved shared semantics consumed by all four transport legs }
+//   SIDE_EFFECTS: None.
+//   LINKS: START_BLOCK_ENGINE_PARITY_TABLE, run_files_walker, run_search, run_ripgrep_with_program, run_ripgrep_files_with_program, engine_parity_case_modes_across_legs, engine_parity_gitignore_outside_git_across_legs, engine_parity_hidden_and_excludes_across_legs, V-M-004.
+// END_CONTRACT: resolve_engine_flags
+/// Resolved shared engine semantics — the engine-parity table's flag
+/// source. One construction per transport leg; every field is the table's
+/// decision, never a per-leg re-derivation.
+#[derive(Clone, Copy, Debug)]
+struct EngineFlags {
+    /// Case row (explicit-option-only): insensitive by default, sensitive
+    /// on the renderer's isCaseSensitive toggle — the walker's
+    /// build_matcher semantics is the canon on both engines.
+    case_sensitive: bool,
+    /// The ignore-family switch: no_ignore disables every ignore source.
+    no_ignore: bool,
+    /// Hidden entries stay invisible unless include_hidden is set.
+    include_hidden: bool,
+    /// Symlink traversal.
+    follow_symlinks: bool,
+    /// Whole-word matching.
+    whole_word: bool,
+    /// Literal (escaped) versus raw regex pattern handling.
+    is_regexp: bool,
+    /// Per-file size ceiling. The files-LISTING leg deliberately skips it
+    /// — the documented files-mode size row (see the parity table).
+    max_file_size: Option<u64>,
+    /// Gitignore-outside row (the walker canon, not option-derived):
+    /// honor .gitignore sources regardless of repository presence. The
+    /// walkers express it through their unconditional require_git(false)
+    /// lines; both rg transports deliver it as --no-require-git.
+    honor_gitignore_outside_git: bool,
+}
+
+fn resolve_engine_flags(opts: &SearchOptions) -> EngineFlags {
+    EngineFlags {
+        // Explicit-option-only (C-SEARCH-ENGINE-PARITY): the renderer's
+        // isCaseSensitive toggle is the only case control; there is no
+        // pattern-dependent implicit mode on either engine.
+        case_sensitive: opts.is_case_sensitive.unwrap_or(false),
+        no_ignore: opts.no_ignore.unwrap_or(false),
+        include_hidden: opts.include_hidden.unwrap_or(false),
+        follow_symlinks: opts.follow_symlinks.unwrap_or(false),
+        whole_word: opts.is_whole_word.unwrap_or(false),
+        is_regexp: opts.is_regexp.unwrap_or(false),
+        max_file_size: opts.max_file_size,
+        // The walker's require_git(false) canon (C-SEARCH-ENGINE-PARITY
+        // gitignore row): unconditional on both engines.
+        honor_gitignore_outside_git: true,
+    }
+}
+
 // START_BLOCK_WALKER_PATH_LEG
 // C-QUICKOPEN-FILES-MODE: the files-mode walker path leg — the identical
 // WalkBuilder filter setup of the content walker (standard filters, hidden,
@@ -564,18 +726,21 @@ fn run_files_walker(
     delivered: Arc<AtomicUsize>,
     coordinator: &mut SearchSessionCoordinator,
 ) -> (u32, bool) {
+    // The engine-parity table's shared semantics resolve exactly once —
+    // this leg consumes resolve_engine_flags (C-SEARCH-ENGINE-PARITY).
+    let flags = resolve_engine_flags(opts);
     let mut walker = WalkBuilder::new(root);
-    let respect_ignore = !opts.no_ignore.unwrap_or(false);
+    let respect_ignore = !flags.no_ignore;
     walker
         .standard_filters(true)
-        .hidden(!opts.include_hidden.unwrap_or(false))
+        .hidden(!flags.include_hidden)
         .ignore(respect_ignore)
         .git_ignore(respect_ignore)
         .git_global(respect_ignore)
         .git_exclude(respect_ignore)
         .require_git(false) // honor .gitignore outside git repos (matches ripgrep --no-require-git)
-        .follow_links(opts.follow_symlinks.unwrap_or(false));
-    if let Some(max_size) = opts.max_file_size {
+        .follow_links(flags.follow_symlinks);
+    if let Some(max_size) = flags.max_file_size {
         walker.max_filesize(Some(max_size));
     }
     // Whitelist name filtering (C-QUICKOPEN-FILES-MODE): ONE combined
@@ -671,6 +836,24 @@ fn build_matcher(pattern: &str, opts: &SearchOptions) -> Result<regex::Regex, re
     RegexBuilder::new(&wrapped)
         .case_insensitive(!opts.is_case_sensitive.unwrap_or(false))
         .build()
+}
+
+/// Floor a byte cut to the last UTF-8 character boundary at or before the
+/// cap (C-SEARCH-ENGINE-PARITY): the walker's snippet truncation is a
+/// byte-cap cut, and a raw slice at an offset inside a multi-byte
+/// character would panic (the recorded triple-debt entry — Cyrillic 2
+/// bytes, emoji 4). The floored cut is at most three bytes shorter than
+/// the intended byte cut and never longer: MAX_LINE_BYTES stays the byte
+/// cap (the V-M-004 "no full-line buffer over 4 MB" budget holds).
+fn floor_to_char_boundary(text: &str, cap: usize) -> usize {
+    if cap >= text.len() {
+        return text.len();
+    }
+    let mut cut = cap.min(text.len());
+    while cut > 0 && !text.is_char_boundary(cut) {
+        cut -= 1;
+    }
+    cut
 }
 
 /// Shared exclusion-mask semantics for BOTH engines (C-SEARCH-ERROR-VISIBILITY).
@@ -822,18 +1005,21 @@ pub fn run_search(
         planned_phase: String::new(),
     })?;
 
+    // The engine-parity table's shared semantics resolve exactly once —
+    // this leg consumes resolve_engine_flags (C-SEARCH-ENGINE-PARITY).
+    let flags = resolve_engine_flags(opts);
     let mut walker = WalkBuilder::new(root);
-    let respect_ignore = !opts.no_ignore.unwrap_or(false);
+    let respect_ignore = !flags.no_ignore;
     walker
         .standard_filters(true)
-        .hidden(!opts.include_hidden.unwrap_or(false))
+        .hidden(!flags.include_hidden)
         .ignore(respect_ignore)
         .git_ignore(respect_ignore)
         .git_global(respect_ignore)
         .git_exclude(respect_ignore)
         .require_git(false) // honor .gitignore outside git repos (matches ripgrep --no-require-git)
-        .follow_links(opts.follow_symlinks.unwrap_or(false));
-    if let Some(max_size) = opts.max_file_size {
+        .follow_links(flags.follow_symlinks);
+    if let Some(max_size) = flags.max_file_size {
         walker.max_filesize(Some(max_size));
     }
 
@@ -891,7 +1077,11 @@ pub fn run_search(
             };
             let truncated = line.len() > MAX_LINE_BYTES;
             let snippet = if truncated {
-                format!("{}…", &line[..MAX_LINE_BYTES.min(line.len())])
+                // C-SEARCH-ENGINE-PARITY: the cut floors to the last UTF-8
+                // character boundary at or before the cap — a raw byte
+                // slice at an offset inside a multi-byte character
+                // panicked here (the recorded triple-debt entry).
+                format!("{}…", &line[..floor_to_char_boundary(&line, MAX_LINE_BYTES)])
             } else {
                 line.clone()
             };
@@ -1107,26 +1297,42 @@ fn run_ripgrep_with_program(
     use std::process::{Command, Stdio};
 
     // START_BLOCK_BUILD_RIPGREP_COMMAND
+    // Every shared semantic below resolves through resolve_engine_flags
+    // (C-SEARCH-ENGINE-PARITY) — no per-leg hardcoded flag decides an
+    // aligned row here.
+    let flags = resolve_engine_flags(opts);
     let mut cmd = Command::new(rg_program);
     cmd.arg("--json").arg("--no-heading");
-    if !opts.is_regexp.unwrap_or(false) {
+    if !flags.is_regexp {
         cmd.arg("--fixed-strings");
     }
-    if opts.is_case_sensitive.unwrap_or(false) {
+    // Case row (C-SEARCH-ENGINE-PARITY): explicit-option-only. The
+    // pattern-dependent --smart-case branch is gone — its documented
+    // implicit mode searched case-sensitively for any Mixed-case pattern
+    // and silently overrode the renderer's explicit toggle on this leg
+    // only (see the parity table's case row).
+    if flags.case_sensitive {
         cmd.arg("--case-sensitive");
     } else {
-        cmd.arg("--smart-case");
+        cmd.arg("--ignore-case");
     }
-    if opts.is_whole_word.unwrap_or(false) {
+    if flags.whole_word {
         cmd.arg("--word-regexp");
     }
-    if opts.include_hidden.unwrap_or(false) {
+    // Gitignore row (C-SEARCH-ENGINE-PARITY): the walker's
+    // require_git(false) canon delivered on this transport — .gitignore
+    // sources are honored regardless of repository presence; inside a
+    // git repository nothing changes.
+    if flags.honor_gitignore_outside_git {
+        cmd.arg("--no-require-git");
+    }
+    if flags.include_hidden {
         cmd.arg("--hidden");
     }
-    if opts.no_ignore.unwrap_or(false) {
+    if flags.no_ignore {
         cmd.arg("--no-ignore");
     }
-    if opts.follow_symlinks.unwrap_or(false) {
+    if flags.follow_symlinks {
         cmd.arg("--follow");
     }
     // C-SEARCH-ERROR-VISIBILITY: exclusion masks go to rg symmetrically
@@ -1137,7 +1343,7 @@ fn run_ripgrep_with_program(
     for mask in &exclusions.valid {
         cmd.arg(format!("--glob=!{mask}"));
     }
-    if let Some(max) = opts.max_file_size {
+    if let Some(max) = flags.max_file_size {
         cmd.arg(format!("--max-filesize={max}"));
     }
     cmd.arg("--").arg(pattern).arg(root);
@@ -1413,19 +1619,33 @@ fn run_ripgrep_files_with_program(
     // START_BLOCK_BUILD_RIPGREP_FILES_COMMAND
     // C-QUICKOPEN-FILES-MODE: the files-mode transport lists paths (`rg
     // --files`) instead of running the pattern search — plain listing lines,
-    // no --json. The listing passes NO --max-filesize (a content-search-time
-    // filter; the walker leg's max_filesize metadata skip stays); this
-    // per-transport size divergence is documented in the plan and owned by
-    // C-SEARCH-ENGINE-PARITY — quickOpen never sends maxFileSize.
+    // no --json. The listing passes NO --max-filesize: the files-mode size
+    // row of the START_BLOCK_ENGINE_PARITY_TABLE resolves this
+    // per-transport divergence as documented — the walker leg's
+    // max_filesize metadata skip stays the canon, this listing transport
+    // is recorded as not size-filtered (a content-search-time filter
+    // would belong to content mode), and the safety argument is inherited
+    // from the C-QUICKOPEN-FILES-MODE record: quickOpen never sends
+    // maxFileSize in files mode.
     let mut cmd = Command::new(rg_program);
+    // The listing's shared rows resolve through resolve_engine_flags too
+    // (C-SEARCH-ENGINE-PARITY); the size row stays a documented leftover —
+    // no --max-filesize here (see the block comment above).
+    let flags = resolve_engine_flags(opts);
     cmd.arg("--files");
-    if opts.include_hidden.unwrap_or(false) {
+    // Gitignore row (C-SEARCH-ENGINE-PARITY): the walker's
+    // require_git(false) canon delivered on the listing transport too —
+    // .gitignore sources are honored regardless of repository presence.
+    if flags.honor_gitignore_outside_git {
+        cmd.arg("--no-require-git");
+    }
+    if flags.include_hidden {
         cmd.arg("--hidden");
     }
-    if opts.no_ignore.unwrap_or(false) {
+    if flags.no_ignore {
         cmd.arg("--no-ignore");
     }
-    if opts.follow_symlinks.unwrap_or(false) {
+    if flags.follow_symlinks {
         cmd.arg("--follow");
     }
     // Whitelist name filtering symmetric with the walker leg, in the
@@ -1484,7 +1704,7 @@ fn run_ripgrep_files_with_program(
     });
     // END_BLOCK_RIPGREP_FILES_STDERR_CAPTURE
 
-    // START_BLOCK_CANCEL_WATCHER
+    // START_BLOCK_CANCEL_WATCHER_FILES
     // The #303 watcher shape inherited verbatim, extended for the files cap
     // (C-QUICKOPEN-FILES-MODE T-004): a quiet rg child must not hold the
     // session hostage until its next stdout line. The watcher observes BOTH
@@ -1526,7 +1746,7 @@ fn run_ripgrep_files_with_program(
             let _ = status_tx.send(status);
         })
     };
-    // END_BLOCK_CANCEL_WATCHER
+    // END_BLOCK_CANCEL_WATCHER_FILES
 
     let mut total: u32 = 0;
     let mut capped = false;
@@ -4233,5 +4453,661 @@ mod tests {
             "only match events may precede the terminal; got {events:?}"
         );
         assert_seq_strictly_increasing(&events);
+    }
+
+    // ─── C-SEARCH-ENGINE-PARITY T-001: failing-first parity pins ────────
+    // Red receipts recorded against the pre-change tree (VERSION
+    // 2.6.0-beta), preserved as pre-change evidence, never relabeled
+    // post-fix:
+    // (a) engine_parity_case_modes_across_legs — the walker default
+    //     matches all three case variants of the Mixed-case pattern
+    //     "Needle" while rg --smart-case matches only the exact-case line
+    //     (result-set mismatch on the rg leg);
+    // (b) engine_parity_gitignore_outside_git_across_legs — the walker
+    //     legs filter the gitignored file outside a git repository while
+    //     both rg legs do not (result-set mismatch on the rg legs);
+    // (c) walker_utf8_boundary_truncation_does_not_panic — the raw byte
+    //     slice at the 1 MB cap (the pre-fix snippet construction, a byte
+    //     offset cut with no boundary floor) panicked inside a multi-byte
+    //     character (red by panic);
+    // (d) engine_parity_hidden_and_excludes_across_legs — the
+    //     agreeing-row insurance suite, green before AND after by
+    //     construction so the implementation tasks cannot silently break
+    //     an aligned row while the shared flag source is re-plumbed.
+    // Discipline: no PATH mutation, no network, no git binary invocation;
+    // the walker legs always run (the App Store / missing-rg engine), the
+    // rg legs sit under the existing availability guard with the canon
+    // skip marker; the git-repository companion fixture uses a bare .git
+    // entry — the same presence heuristic the ignore crate and rg consult.
+    //
+    // T-005 consolidated the named pins into the parameterized parity
+    // suite (ParityRow::run_both_engines — one shared fixture-builder per
+    // table row, both engines, identical expectations per row, shaped
+    // after files_mode_rg_parity_with_walker_on_one_fixture); the receipts
+    // above stay the pre-change evidence and the named tests keep their
+    // spec names and assertions. The UTF-8 truncation row remains the
+    // walker-leg regression pin (the 1 MB cap is walker-inherent; the rg
+    // leg's delivery shape is documented in the parity table, not
+    // equated).
+
+    /// Sorted delivered snippet set (content mode) — the parity unit for
+    /// result-set comparisons across engines.
+    fn delivered_snippets(events: &[SearchEvent]) -> Vec<String> {
+        let mut out: Vec<String> = events
+            .iter()
+            .filter(|e| e.kind == "match")
+            .flat_map(|e| e.hits.iter().map(|h| h.snippet.clone()))
+            .collect();
+        out.sort();
+        out
+    }
+
+    /// rg content-session harness mirroring run_session_one_root
+    /// (in_process = false; callers availability-guard the call).
+    fn run_session_one_root_rg(
+        search_id: &str,
+        root: &Path,
+        pattern: &str,
+        opts: &SearchOptions,
+        cancel: Arc<AtomicBool>,
+    ) -> (u32, &'static str, mpsc::Receiver<SearchEvent>) {
+        let (tx, rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let mut coordinator = SearchSessionCoordinator::new(search_id.to_string(), sink);
+        let roots = vec![root.to_path_buf()];
+        let (total, kind) = run_session(&roots, pattern, opts, false, cancel, &mut coordinator);
+        (total, kind, rx)
+    }
+
+    /// rg files-session harness mirroring run_session_files_one_root
+    /// (in_process = false; callers availability-guard the call).
+    fn run_session_files_one_root_rg(
+        search_id: &str,
+        root: &Path,
+        opts: &SearchOptions,
+        cancel: Arc<AtomicBool>,
+    ) -> (u32, &'static str, mpsc::Receiver<SearchEvent>) {
+        let (tx, rx) = mpsc::channel();
+        let sink: Arc<dyn SearchSink> = Arc::new(ChannelSink { tx });
+        let mut coordinator = SearchSessionCoordinator::new(search_id.to_string(), sink);
+        let roots = vec![root.to_path_buf()];
+        let (total, kind) = run_session_files(&roots, opts, false, cancel, &mut coordinator);
+        (total, kind, rx)
+    }
+
+    /// One content-mode table row of the parameterized parity suite
+    /// (C-SEARCH-ENGINE-PARITY T-005): the query shape plus the identical
+    /// expectation BOTH engines must deliver from one fixture.
+    /// `expected_snippets` is the exact sorted snippet set (None = not
+    /// asserted); `expected_absent`/`expected_present` are path suffixes;
+    /// `expected_partial` pins the terminal's honest partial flag (None =
+    /// not asserted).
+    struct ParityRow {
+        name: &'static str,
+        pattern: &'static str,
+        opts: SearchOptions,
+        expected_total: usize,
+        expected_snippets: Option<Vec<String>>,
+        expected_absent: Vec<&'static str>,
+        expected_present: Vec<&'static str>,
+        expected_partial: Option<bool>,
+    }
+
+    impl ParityRow {
+        fn assert_leg(&self, total: u32, kind: &str, events: &[SearchEvent], engine: &str) {
+            assert_eq!(kind, "complete", "[{engine}] row {} must complete", self.name);
+            assert_eq!(
+                total as usize, self.expected_total,
+                "[{engine}] row {} must deliver the expected total",
+                self.name
+            );
+            for absent in &self.expected_absent {
+                assert!(
+                    !events
+                        .iter()
+                        .any(|e| e.hits.iter().any(|h| h.path.ends_with(absent))),
+                    "[{engine}] row {}: {absent} must be absent",
+                    self.name
+                );
+            }
+            for present in &self.expected_present {
+                assert!(
+                    events
+                        .iter()
+                        .any(|e| e.hits.iter().any(|h| h.path.ends_with(present))),
+                    "[{engine}] row {}: {present} must be present",
+                    self.name
+                );
+            }
+            if let Some(expected) = &self.expected_snippets {
+                assert_eq!(
+                    delivered_snippets(events),
+                    *expected,
+                    "[{engine}] row {} must deliver the identical expected set",
+                    self.name
+                );
+            }
+            if let Some(partial) = self.expected_partial {
+                assert_eq!(
+                    events.last().and_then(|e| e.partial),
+                    Some(partial),
+                    "[{engine}] row {}: terminal partial flag",
+                    self.name
+                );
+            }
+        }
+
+        /// Run the row through BOTH engines with identical expectations
+        /// (T-005, shaped after files_mode_rg_parity_with_walker_on_one_
+        /// fixture): the walker leg always (in_process = true — the App
+        /// Store and missing-rg paths), the rg leg under the existing
+        /// availability guard (with_rg = false skips it after the canon
+        /// marker). Editing one leg's aligned row without the other fails
+        /// loudly here — that is the suite's construction.
+        fn run_both_engines(&self, root: &Path, with_rg: bool) {
+            {
+                let (total, kind, rx) = run_session_one_root(
+                    &format!("s-parity-{}-w", self.name),
+                    root,
+                    self.pattern,
+                    &self.opts,
+                    Arc::new(AtomicBool::new(false)),
+                );
+                let events = collect_until_terminal(&rx, Duration::from_secs(2));
+                self.assert_leg(total, kind, &events, "walker");
+            }
+            if !with_rg {
+                return;
+            }
+            let (total, kind, rx) = run_session_one_root_rg(
+                &format!("s-parity-{}-r", self.name),
+                root,
+                self.pattern,
+                &self.opts,
+                Arc::new(AtomicBool::new(false)),
+            );
+            let events = collect_until_terminal(&rx, Duration::from_secs(2));
+            self.assert_leg(total, kind, &events, "rg");
+        }
+    }
+
+    #[test]
+    fn engine_parity_case_modes_across_legs() {
+        // One fixture whose lines carry "needle", "NEEDLE" and "Needle";
+        // three case rows, identical expectations per row on both engines.
+        let dir = TempDir::new().unwrap();
+        write(dir.path().join("cases.md"), "needle\nNEEDLE\nNeedle\n").unwrap();
+        let all_three: Vec<String> = vec![
+            "NEEDLE".to_string(),
+            "Needle".to_string(),
+            "needle".to_string(),
+        ];
+        let exact_only: Vec<String> = vec!["Needle".to_string()];
+        let rows = vec![
+            // Row 1 — default options, Mixed-case pattern "Needle": BOTH
+            // engines must return the identical all-three-variants set
+            // (the failing-first receipt: rg's --smart-case matched only
+            // the exact-case line on the pre-change tree).
+            ParityRow {
+                name: "case-default-mixed",
+                pattern: "Needle",
+                opts: SearchOptions::default(),
+                expected_total: 3,
+                expected_snippets: Some(all_three.clone()),
+                expected_absent: vec![],
+                expected_present: vec![],
+                expected_partial: Some(false),
+            },
+            // Row 2 — the explicit toggle is the only case control:
+            // sensitive mode yields only the exact line on both legs.
+            ParityRow {
+                name: "case-toggle-sensitive",
+                pattern: "Needle",
+                opts: SearchOptions {
+                    is_case_sensitive: Some(true),
+                    ..Default::default()
+                },
+                expected_total: 1,
+                expected_snippets: Some(exact_only.clone()),
+                expected_absent: vec![],
+                expected_present: vec![],
+                expected_partial: Some(false),
+            },
+            // Row 3 — lowercase pattern: insensitive everywhere (the #320
+            // parity shape).
+            ParityRow {
+                name: "case-lowercase-default",
+                pattern: "needle",
+                opts: SearchOptions::default(),
+                expected_total: 3,
+                expected_snippets: Some(all_three.clone()),
+                expected_absent: vec![],
+                expected_present: vec![],
+                expected_partial: Some(false),
+            },
+        ];
+        let with_rg = rg_available();
+        if !with_rg {
+            safe_eprintln!("[test][skip] rg binary not on PATH");
+        }
+        for row in &rows {
+            row.run_both_engines(dir.path(), with_rg);
+        }
+    }
+
+    #[test]
+    fn engine_parity_gitignore_outside_git_across_legs() {
+        // One shared fixture-builder, parameterized over repository
+        // presence: the no-git instance is the parity row (all four legs —
+        // content walker, content rg, files walker, files rg — must filter
+        // identically); the with-git instance is the companion recording
+        // that inside a repository nothing changes on either engine. The
+        // bare .git entry is the same presence heuristic the ignore crate
+        // and rg consult; no git binary invocation, no PATH mutation.
+        let build_gitignore_fixture = |with_git: bool| -> TempDir {
+            let dir = TempDir::new().unwrap();
+            if with_git {
+                std::fs::create_dir(dir.path().join(".git")).unwrap();
+            }
+            write(dir.path().join(".gitignore"), "secret.md\n").unwrap();
+            write(dir.path().join("secret.md"), "needle\n").unwrap();
+            write(dir.path().join("public.md"), "needle\n").unwrap();
+            dir
+        };
+        let with_rg = rg_available();
+        if !with_rg {
+            safe_eprintln!("[test][skip] rg binary not on PATH");
+        }
+        for with_git in [false, true] {
+            let dir = build_gitignore_fixture(with_git);
+            let leg_note = if with_git {
+                "inside a git repository nothing changes on either engine"
+            } else {
+                "outside a git repository every leg must filter identically"
+            };
+            let opts = SearchOptions::default();
+
+            // Content walker leg (always).
+            let (total_w, kind_w, rx_w) = run_session_one_root(
+                "s-gi-walker",
+                dir.path(),
+                "needle",
+                &opts,
+                Arc::new(AtomicBool::new(false)),
+            );
+            assert_eq!(kind_w, "complete", "{leg_note}");
+            assert_eq!(
+                total_w, 1,
+                "walker filters the gitignored file ({leg_note})"
+            );
+            let events_w = collect_until_terminal(&rx_w, Duration::from_secs(2));
+            assert!(
+                events_w
+                    .iter()
+                    .any(|e| e.hits.iter().any(|h| h.path.ends_with("public.md"))),
+                "the sibling must be present ({leg_note})"
+            );
+            assert!(
+                !events_w
+                    .iter()
+                    .any(|e| e.hits.iter().any(|h| h.path.ends_with("secret.md"))),
+                "the gitignored file must be absent ({leg_note})"
+            );
+
+            // Files-mode walker leg (always).
+            let (pfw_total, pfw_kind, pfw_rx) = run_session_files_one_root(
+                "s-gi-files-walker",
+                dir.path(),
+                &opts,
+                Arc::new(AtomicBool::new(false)),
+            );
+            assert_eq!(pfw_kind, "complete", "{leg_note}");
+            assert_eq!(
+                pfw_total, 1,
+                "files-mode walker filters the gitignored file too ({leg_note})"
+            );
+            let files_walker_events =
+                collect_all(&pfw_rx, Duration::from_millis(400), Duration::from_millis(1500));
+            let mut files_walker_paths = delivered_paths(&files_walker_events);
+            files_walker_paths.sort();
+            assert_eq!(files_walker_paths.len(), 1, "{leg_note}");
+            assert!(files_walker_paths[0].ends_with("public.md"), "{leg_note}");
+
+            // rg legs (availability-guarded, canon skip marker): identical
+            // expectations on the same fixture.
+            if !with_rg {
+                continue;
+            }
+            let (total_r, kind_r, rx_r) = run_session_one_root_rg(
+                "s-gi-rg",
+                dir.path(),
+                "needle",
+                &opts,
+                Arc::new(AtomicBool::new(false)),
+            );
+            assert_eq!(kind_r, "complete", "{leg_note}");
+            assert_eq!(
+                total_r, total_w,
+                "IDENTICAL content result set — rg must honor .gitignore exactly like the walker ({leg_note})"
+            );
+            let events_r = collect_until_terminal(&rx_r, Duration::from_secs(2));
+            assert!(
+                !events_r
+                    .iter()
+                    .any(|e| e.hits.iter().any(|h| h.path.ends_with("secret.md"))),
+                "the gitignored file must be absent on the rg content leg too ({leg_note})"
+            );
+            assert!(
+                events_r
+                    .iter()
+                    .any(|e| e.hits.iter().any(|h| h.path.ends_with("public.md"))),
+                "the sibling must be present on the rg content leg ({leg_note})"
+            );
+            let (total_rf, kind_rf, rx_rf) = run_session_files_one_root_rg(
+                "s-gi-files-rg",
+                dir.path(),
+                &opts,
+                Arc::new(AtomicBool::new(false)),
+            );
+            assert_eq!(kind_rf, "complete", "{leg_note}");
+            assert_eq!(
+                total_rf, pfw_total,
+                "IDENTICAL files-mode listing ({leg_note})"
+            );
+            let files_rg_events =
+                collect_all(&rx_rf, Duration::from_millis(400), Duration::from_millis(1500));
+            let mut files_rg_paths = delivered_paths(&files_rg_events);
+            files_rg_paths.sort();
+            assert_eq!(
+                files_rg_paths, files_walker_paths,
+                "IDENTICAL path sets on both files-mode legs ({leg_note})"
+            );
+        }
+    }
+
+    #[test]
+    fn walker_utf8_boundary_truncation_does_not_panic() {
+        // The byte cut at MAX_LINE_BYTES lands inside a multi-byte
+        // character: 1-byte filler up to MAX_LINE_BYTES - 1, then Cyrillic
+        // letters (2 bytes each — the first one straddles the cap), an
+        // emoji (4 bytes) and the needle after the cut. On the pre-change
+        // tree the raw byte slice at the cap (with no boundary floor)
+        // panicked; the session must complete instead, deliver the hit
+        // with the truncated flag and the ellipsis marker, valid UTF-8
+        // only, and honest-or-absent bounds per the #320 rule.
+        let mut line = "x".repeat(MAX_LINE_BYTES - 1);
+        line.push_str("бб"); // 4 bytes: the cut at MAX_LINE_BYTES lands inside the first б
+        line.push_str("🙂🙂"); // astral-plane content after the cut
+        line.push_str("needle");
+        line.push_str(&"y".repeat(50));
+        let dir = TempDir::new().unwrap();
+        write(dir.path().join("cyr.md"), line + "\n").unwrap();
+        let cancel = Arc::new(AtomicBool::new(false));
+        let opts = SearchOptions::default();
+        let (total, kind, rx) =
+            run_session_one_root("s-utf8-trunc", dir.path(), "needle", &opts, cancel);
+        // No panic above — the session completes and delivers the hit.
+        assert_eq!(kind, "complete");
+        assert_eq!(total, 1, "the cap-crossing multi-byte hit is still delivered");
+        let events = collect_until_terminal(&rx, Duration::from_secs(2));
+        let v = first_hit_value(&events, "cyr.md", 1);
+        assert_eq!(
+            v.get("truncated").and_then(|x| x.as_bool()),
+            Some(true),
+            "fixture sanity: the snippet really is byte-truncated"
+        );
+        let snippet = v
+            .get("snippet")
+            .and_then(|x| x.as_str())
+            .expect("snippet delivered");
+        assert!(snippet.ends_with('…'), "the ellipsis marker must be present");
+        assert!(
+            snippet.len() <= MAX_LINE_BYTES + '…'.len_utf8(),
+            "the delivered snippet stays within the cap plus the marker bytes"
+        );
+        // The delivered text is the longest prefix ending on a char
+        // boundary: String::from_utf8 on the wire form proves valid UTF-8.
+        let delivered_end_byte = snippet.len() - '…'.len_utf8();
+        assert!(
+            String::from_utf8(snippet[..delivered_end_byte].as_bytes().to_vec()).is_ok(),
+            "the delivered text must end on a UTF-8 character boundary"
+        );
+        // Honest-or-absent: the needle sits beyond the cap, so the match
+        // is not fully inside the delivered text — the bounds stay
+        // wire-absent, pinned via serde_json serialization.
+        let raw = serde_json::to_string(&v).unwrap();
+        assert!(
+            !raw.contains("\"matchStart\"") && !raw.contains("\"matchEnd\""),
+            "bounds must stay wire-absent when the match is not fully inside the delivered snippet; got {raw}"
+        );
+    }
+
+    #[test]
+    fn engine_parity_hidden_and_excludes_across_legs() {
+        // The agreeing-row insurance suite as table rows (T-005): one
+        // shared fixture-builder per row, identical expectations on both
+        // engines. Green before AND after by construction — the pin keeps
+        // the implementation tasks from silently breaking an aligned row
+        // while the shared flag source is re-plumbed.
+        let mut fixtures: Vec<(TempDir, Vec<ParityRow>)> = Vec::new();
+
+        // Row: hidden files skipped by default.
+        {
+            let dir = TempDir::new().unwrap();
+            write(dir.path().join(".secret.md"), "needle\n").unwrap();
+            write(dir.path().join("public.md"), "needle\n").unwrap();
+            fixtures.push((
+                dir,
+                vec![ParityRow {
+                    name: "hidden-default-skip",
+                    pattern: "needle",
+                    opts: SearchOptions::default(),
+                    expected_total: 1,
+                    expected_snippets: None,
+                    expected_absent: vec![".secret.md"],
+                    expected_present: vec!["public.md"],
+                    expected_partial: Some(false),
+                }],
+            ));
+        }
+        // Row: include_hidden picks the dotfile up.
+        {
+            let dir = TempDir::new().unwrap();
+            write(dir.path().join(".secret.md"), "needle\n").unwrap();
+            fixtures.push((
+                dir,
+                vec![ParityRow {
+                    name: "include-hidden",
+                    pattern: "needle",
+                    opts: SearchOptions {
+                        include_hidden: Some(true),
+                        ..Default::default()
+                    },
+                    expected_total: 1,
+                    expected_snippets: None,
+                    expected_absent: vec![],
+                    expected_present: vec![".secret.md"],
+                    expected_partial: Some(false),
+                }],
+            ));
+        }
+        // Row: exclusion masks — masked file absent, sibling present.
+        {
+            let dir = TempDir::new().unwrap();
+            write(dir.path().join("secret.md"), "needle\n").unwrap();
+            write(dir.path().join("public.md"), "needle\n").unwrap();
+            fixtures.push((
+                dir,
+                vec![ParityRow {
+                    name: "exclusion-mask",
+                    pattern: "needle",
+                    opts: SearchOptions {
+                        exclusions: Some(vec!["secret.md".to_string()]),
+                        ..Default::default()
+                    },
+                    expected_total: 1,
+                    expected_snippets: None,
+                    expected_absent: vec!["secret.md"],
+                    expected_present: vec!["public.md"],
+                    expected_partial: Some(true),
+                }],
+            ));
+        }
+        // Row: invalid mask ignored + the honest partial flag.
+        {
+            let dir = TempDir::new().unwrap();
+            write(dir.path().join("a.md"), "needle\n").unwrap();
+            fixtures.push((
+                dir,
+                vec![ParityRow {
+                    name: "invalid-mask-ignored",
+                    pattern: "needle",
+                    opts: SearchOptions {
+                        exclusions: Some(vec!["[".to_string()]),
+                        ..Default::default()
+                    },
+                    expected_total: 1,
+                    expected_snippets: None,
+                    expected_absent: vec![],
+                    expected_present: vec![],
+                    expected_partial: Some(true),
+                }],
+            ));
+        }
+        // Row: content-mode maxFileSize — the size-limited fixture yields
+        // identically filtered results on both legs.
+        {
+            let dir = TempDir::new().unwrap();
+            write(dir.path().join("big.md"), "needle\n".repeat(20_000)).unwrap();
+            write(dir.path().join("small.md"), "needle\n").unwrap();
+            fixtures.push((
+                dir,
+                vec![ParityRow {
+                    name: "maxfilesize-content-row",
+                    pattern: "needle",
+                    opts: SearchOptions {
+                        max_file_size: Some(1024),
+                        ..Default::default()
+                    },
+                    expected_total: 1,
+                    expected_snippets: None,
+                    expected_absent: vec!["big.md"],
+                    expected_present: vec!["small.md"],
+                    expected_partial: Some(true),
+                }],
+            ));
+        }
+        // Rows: follow_symlinks — default skips the symlink, follow picks
+        // both paths up (unix-gated symlink creation).
+        #[cfg(unix)]
+        {
+            let dir = TempDir::new().unwrap();
+            write(dir.path().join("real.md"), "needle\n").unwrap();
+            std::fs::create_dir_all(dir.path().join("sub")).unwrap();
+            std::os::unix::fs::symlink(dir.path().join("real.md"), dir.path().join("sub/link.md"))
+                .unwrap();
+            fixtures.push((
+                dir,
+                vec![
+                    ParityRow {
+                        name: "follow-symlinks-default",
+                        pattern: "needle",
+                        opts: SearchOptions::default(),
+                        expected_total: 1,
+                        expected_snippets: None,
+                        expected_absent: vec![],
+                        expected_present: vec![],
+                        expected_partial: Some(false),
+                    },
+                    ParityRow {
+                        name: "follow-symlinks-on",
+                        pattern: "needle",
+                        opts: SearchOptions {
+                            follow_symlinks: Some(true),
+                            ..Default::default()
+                        },
+                        expected_total: 2,
+                        expected_snippets: None,
+                        expected_absent: vec![],
+                        expected_present: vec![],
+                        expected_partial: Some(false),
+                    },
+                ],
+            ));
+        }
+        // Row: whole-word.
+        {
+            let dir = TempDir::new().unwrap();
+            write(dir.path().join("a.md"), "cat catalog scattered\n").unwrap();
+            fixtures.push((
+                dir,
+                vec![ParityRow {
+                    name: "whole-word",
+                    pattern: "cat",
+                    opts: SearchOptions {
+                        is_whole_word: Some(true),
+                        ..Default::default()
+                    },
+                    expected_total: 1,
+                    expected_snippets: Some(vec!["cat catalog scattered".to_string()]),
+                    expected_absent: vec![],
+                    expected_present: vec![],
+                    expected_partial: Some(false),
+                }],
+            ));
+        }
+        // Rows: literal and regex shapes (one match per line — the rows
+        // pin pattern-semantics parity, not the recorded per-line delivery
+        // divergence the #320 bounds supersede).
+        {
+            let dir = TempDir::new().unwrap();
+            write(dir.path().join("a.md"), "foo.bar\nfooXbar\n").unwrap();
+            fixtures.push((
+                dir,
+                vec![ParityRow {
+                    name: "literal-dot",
+                    pattern: "foo.bar",
+                    opts: SearchOptions::default(),
+                    expected_total: 1,
+                    expected_snippets: Some(vec!["foo.bar".to_string()]),
+                    expected_absent: vec![],
+                    expected_present: vec![],
+                    expected_partial: Some(false),
+                }],
+            ));
+        }
+        {
+            let dir = TempDir::new().unwrap();
+            write(dir.path().join("a.md"), "foo123\nbar456\n").unwrap();
+            fixtures.push((
+                dir,
+                vec![ParityRow {
+                    name: "regex-shape",
+                    pattern: r"\w+\d+",
+                    opts: SearchOptions {
+                        is_regexp: Some(true),
+                        ..Default::default()
+                    },
+                    expected_total: 2,
+                    expected_snippets: Some(vec![
+                        "bar456".to_string(),
+                        "foo123".to_string(),
+                    ]),
+                    expected_absent: vec![],
+                    expected_present: vec![],
+                    expected_partial: Some(false),
+                }],
+            ));
+        }
+
+        let with_rg = rg_available();
+        if !with_rg {
+            safe_eprintln!("[test][skip] rg binary not on PATH");
+        }
+        for (dir, rows) in &fixtures {
+            for row in rows {
+                row.run_both_engines(dir.path(), with_rg);
+            }
+        }
     }
 }
