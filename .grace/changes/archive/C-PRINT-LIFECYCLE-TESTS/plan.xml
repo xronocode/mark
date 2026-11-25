@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved">
+<GraceChangePlan graceVersion="4.0" status="applied">
   <C-PRINT-LIFECYCLE-TESTS>
     <Name>Print/export lifecycle test coverage: docx component pins, the e2e print-export zero-write companion and the V-M-052 selector re-aim — implementation plan</Name>
     <Created>2026-11-25</Created>

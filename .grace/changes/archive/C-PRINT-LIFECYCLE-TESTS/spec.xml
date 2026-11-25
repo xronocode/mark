@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved">
+<GraceChangeSpec graceVersion="4.0" status="applied">
   <C-PRINT-LIFECYCLE-TESTS>
     <Name>Print/export lifecycle test coverage: the docx export branch proves its write and both failure legs at component level, and the C-61-delivered e2e print-export net gains its companion zero-write assertions while V-M-052's dangling webkit selector is re-aimed</Name>
     <Created>2026-11-25</Created>
