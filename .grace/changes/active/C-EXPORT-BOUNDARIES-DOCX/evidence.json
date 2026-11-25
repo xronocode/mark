@@ -1,0 +1,126 @@
+{
+  "change": "C-EXPORT-BOUNDARIES-DOCX",
+  "recorded": "2026-11-25",
+  "worktree": "green-w5b (branch spec/export-consent-docx, pre-change HEAD 8d0fe98d, rebased on fork/main 638c0a7c)",
+  "scope": "verification-scoped: zero production code — artifact-level e2e consent pins on the html and docx doors, V-M-065/V-M-066 scenario deltas in .grace/verification/features.xml, and this evidence file; .grace/graph/features.xml untouched (recorded R-4 decision: no contract-visible addition)",
+  "coverageRed": {
+    "accounting": "this change's reds are coverage reds only; the behavior reds belong to archived applied C-EXPORT-BOUNDARIES' failing-first evidence",
+    "t001_htmlDoor": [
+      { "command": "grep -c \"consent\" tests/e2e/export-html-images.spec.ts", "tail": "0", "exit": 1 },
+      { "command": "grep -c \"C-EXPORT-BOUNDARIES-DOCX\" tests/e2e/export-html-images.spec.ts", "tail": "0", "exit": 1 },
+      { "command": "grep -c \"ag-plantuml-export-source\" tests/e2e/export-html-images.spec.ts", "tail": "0", "exit": 1 }
+    ],
+    "t002_docxDoor": [
+      { "command": "grep -c \"consent\" tests/e2e/export-office.spec.ts", "tail": "0", "exit": 1 },
+      { "command": "grep -c \"C-EXPORT-BOUNDARIES-DOCX\" tests/e2e/export-office.spec.ts", "tail": "0", "exit": 1 },
+      { "command": "grep -c \"ag-plantuml-export-source\" tests/e2e/export-office.spec.ts", "tail": "0", "exit": 1 }
+    ]
+  },
+  "regressionStop": {
+    "leg": "html-door plantuml-consent Confirm — 'plantuml consent: the card names the remote address and count before render; Confirm yields exactly one plantuml.com reference'",
+    "discovery": "behavioral red of a NEW pin on the current tree: the consented PlantUML render throws in the renderer bundle. `import zlib from 'zlib'` in src/muya/lib/parser/render/plantuml.js resolves in the vite build to an empty browser-external stub, Diagram.encode's zlib.deflateSync throws, and the renderDiagram catch (src/muya/lib/utils/exportHtml.js :266-268) writes '< Invalid Diagram >' — the consented artifact carries the error text instead of the promised plantuml.com img (the consent card promised a plantuml.com render; the artifact silently degraded).",
+    "evidence": [
+      "src/renderer/dist/assets/plantuml-BSfB_50f.js imports its zlib binding from __vite-browser-external-BwpP9LFt.js; the stub's bundled body is `t.exports={}` (empty module)",
+      "temporary console probe (reverted before commit): the consented artifact contains 'Invalid Diagram &gt;</div>' and zero 'plantuml.com' occurrences while the write landed",
+      "the Cancel leg (source placeholder) passes, proving the card→plantumlRemoteConsent options plumbing works; only the consented render branch throws"
+    ],
+    "handling": "recorded and halted per the directed coverage-red rule ('a new pin failing BEHAVIORALLY is a regression stop — record and halt that leg'): the pin stays executable as test.fail() with the full root-cause comment in tests/e2e/export-html-images.spec.ts; fixing it needs a production change (browser deflate for muya Diagram.encode, e.g. a zlib→pako build alias) which is outside this verification-scoped change's write scope",
+    "notAdapted": "no assertion weakened — the pin still asserts the plan's required consented artifact form and flips red the moment the consented render heals (unexpected-pass), forcing re-scope"
+  },
+  "ciWindowFix": {
+    "trigger": "CI rerun (macos-15, 464-test parallel, loaded machine) failed two pins with an identical duplicate-sibling shape: imageStatPaths received ['/tmp/html-flow/img/shot.png', '/tmp/html-flow/img/shot.png' (duplicate), '/tmp/html-flow-outside/secret.png'] on export-html-images.spec.ts:267 and the word-flow twin on export-office.spec.ts; the plantuml test.fail detector behaved correctly",
+    "truePhaseBehavior": [
+      "the embed pass's phase 1 classify is pure — no I/O; phase 2 stats+reads each unique resolved path exactly once behind the per-path outcome cache (src/renderer/src/util/exportImages.js :242-261)",
+      "the C-21 dead-link checker is the polluter: editor.vue runLinkCheck (:3687, the doc-markdown-changed debounce) stats every RELATIVE link/image destination through the same window.fileUtils.stat bridge, once per run behind its own per-run cache (src/renderer/src/util/linkCheck.js :142-148), while linkCheck.js :165 skips absolute dests — so the OUTSIDE path is link-check-immune and only the sibling can be double-recorded when a late debounced link-check stat lands inside the export recording window under load",
+      "image BYTES are read by nothing but the embed pass (no preview IPC: muya renders local imgs as file:// URLs via correctImageSrc, loaded by the webview directly) — the read surface is deterministic single-fire per unique path"
+    ],
+    "assertionsNowPin": {
+      "confirmLegs": "unique-ordered set of image stat paths equals [sibling, outside] (no third path, first-occurrence order intact); outside stat count === 1; image read surface equals [sibling, outside] EXACTLY ordered single-fire; outside read count === 1 — no blanket dedupe masking a real outside double-read",
+      "cancelLegs": "outside absent from stats and reads (link-check-immune + declined zero-I/O) plus the sibling embed read pinned as the exact single-entry read surface"
+    },
+    "windowDecision": "no window shrink: the startExport reset stays, and the assertions pin the real contract instead (per the directed preference); the reset remains useful noise-scoping but no correctness claim rides on it",
+    "loadedProofs": [
+      { "command": "npx playwright test tests/e2e/export-html-images.spec.ts tests/e2e/export-office.spec.ts --project=chromium --workers=4", "run": 1, "tail": "18 passed (15.0s)" },
+      { "command": "npx playwright test tests/e2e/export-html-images.spec.ts tests/e2e/export-office.spec.ts --project=chromium --workers=4", "run": 2, "tail": "18 passed (15.4s)" },
+      { "command": "npx playwright test tests/e2e/export-html-images.spec.ts tests/e2e/export-office.spec.ts tests/e2e/export-document-pin.spec.ts tests/e2e/diff-view.spec.ts --project=chromium", "run": "post-fix filter", "tail": "30 passed (33.6s)" },
+      { "command": "npx playwright test tests/e2e/export-html-images.spec.ts --project=chromium (post-fix normal)", "tail": "6 passed (7.9s)" },
+      { "command": "npx playwright test tests/e2e/export-office.spec.ts --project=chromium (post-fix normal)", "tail": "12 passed (15.4s)" }
+    ]
+  },
+  "observedFormDecisions": {
+    "htmlDeclinedSrc": "muya renders absolute image paths as file:// URLs in the export html; the declined img pins `src=\"file:///tmp/html-flow-outside/secret.png\"` — the exact form the embed pass received and left untouched (pinned from observed output, never assumed)",
+    "docxMediaByteIdentity": "docx/html (docx@9) preserves data-URL bytes exactly: the word/media/ parts of the Confirm ZIP are byte-identical to PNG_BYTES and OUTSIDE_BYTES (pinned from observed output); the declined outside image is dropped by the converter (non-data-URL src) so its bytes appear nowhere in the archive"
+  },
+  "commands": {
+    "t001_htmlDoorSuite": {
+      "command": "npx playwright test tests/e2e/export-html-images.spec.ts --project=chromium",
+      "status": "pass",
+      "runs": [
+        { "state": "pre-header-contract bytes", "tail": "6 passed (6.6s)" },
+        { "state": "final bytes (MODULE_CONTRACT headers)", "tail": "6 passed (8.1s)" }
+      ],
+      "note": "6 = 1 predecessor pin + 5 new pins; one new pin (the recorded regression stop leg) runs as an expected failure and counts green"
+    },
+    "t002_docxDoorSuite": {
+      "command": "npx playwright test tests/e2e/export-office.spec.ts --project=chromium",
+      "status": "pass",
+      "runs": [
+        { "state": "first authored run", "tail": "12 passed (16.0s)" },
+        { "state": "final bytes (MODULE_CONTRACT headers)", "tail": "12 passed (15.1s)" }
+      ],
+      "note": "12 = 7 predecessor pins + 5 new pins; all 5 new docx-door pins green on the first authored run"
+    },
+    "vitestConsentFamily": {
+      "command": "npx vitest run tests/renderer/util/exportImages.test.js tests/renderer/components/editor-export-images.test.js tests/renderer/util/export-plantuml-gate.test.js",
+      "status": "pass",
+      "tail": "Test Files 3 passed (3) · Tests 65 passed (65)"
+    },
+    "vitestDocxFamily": {
+      "command": "npx vitest run tests/renderer/util/export-docx-shapes.test.js tests/renderer/util/export-docx.test.js tests/renderer/store/export-docx-dispatch.test.js tests/renderer/contextMenu/tabs-export.test.js",
+      "status": "pass",
+      "tail": "Test Files 4 passed (4) · Tests 30 passed (30)"
+    },
+    "cargoM031Diff": {
+      "command": "cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m031_diff",
+      "status": "pass",
+      "tail": "test m031_diff::tests::baseline_sidecar_symlink_inward_reads ... ok / baseline_sidecar_outside_sandbox_denied ... ok / ... test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 745 filtered out",
+      "note": "m031_diff.rs is diff-empty against pre-change HEAD (git diff 8d0fe98d --stat -- src-tauri/src/m031_diff.rs → empty); the five in-file sandbox fixtures pass unchanged; V-M-031 untouched (hold-green, no delta)"
+    },
+    "fourSuiteE2eFilter": {
+      "command": "npx playwright test tests/e2e/export-html-images.spec.ts tests/e2e/export-office.spec.ts tests/e2e/export-document-pin.spec.ts tests/e2e/diff-view.spec.ts --project=chromium",
+      "status": "pass",
+      "runs": [
+        { "run": 1, "tail": "1 failed (embed-Confirm pin, transient — error text not captured), 29 passed", "state": "pre-header bytes" },
+        { "run": 2, "tail": "30 passed (32.8s)", "state": "pre-header bytes" },
+        { "run": 3, "tail": "30 passed (33.7s)", "state": "final bytes" }
+      ],
+      "note": "run 1's single transient failure did not reproduce in three subsequent full-filter runs (runs 2-3 plus the standalone and pair runs of the same pin); recorded rather than silently skipped"
+    },
+    "fullChromiumMatrix": {
+      "command": "npm run test:e2e",
+      "status": "pass",
+      "tail": "exit 0 · 7 skipped · 464 passed (11.7m)",
+      "note": "whole chromium project; includes the ten new pins inside the two door files"
+    },
+    "featuresXmlParse": {
+      "command": "python3 -c \"import xml.etree.ElementTree as ET; ET.parse('.grace/verification/features.xml')\"",
+      "status": "pass",
+      "tail": "features.xml parses OK"
+    },
+    "zeroProductionAudit": {
+      "command": "git diff 8d0fe98d --name-only",
+      "status": "pass",
+      "tail": ".grace/verification/features.xml · tests/e2e/export-html-images.spec.ts · tests/e2e/export-office.spec.ts (exactly the plan's ObservedWriteScope, plus this untracked bundle evidence.json)",
+      "extra": "no export-consent.spec.ts created (the extended-pair layout, exactly one layout); change id absent from every production/graph/locale file (grep -c = 0 across exportImages.js, editor.vue, exportHtml.js, plantuml.js, exportDocx.js, store/editor.js, m031_diff.rs, .grace/graph/features.xml, static/locales/en.json, export-document-pin.spec.ts, diff-view.spec.ts)"
+    },
+    "graceLintTarget": {
+      "command": "grace lint --path . --change C-EXPORT-BOUNDARIES-DOCX --assertions target",
+      "status": "pass-with-preexisting-environment-notes",
+      "tail": "zero markup.* findings and zero mentions of tests/e2e/export-html-images.spec.ts / export-office.spec.ts (the coordinator's markup check is clean); two PRE-EXISTING xml.missing-file errors for untracked local leftover dirs .grace/changes/active/C-FILE-POSITION-MEMORY/ and .grace/changes/active/C-NOTIFICATION-SYSTEM/ (evidence-only, no spec.xml, outside this change's write scope)"
+    }
+  },
+  "preExistingEnvironmentNotes": [
+    "cargo --offline initially failed (clap v4.6.9, locked by the rebased Cargo.lock, absent from the local registry cache); resolved by `cargo fetch --locked` (exact locked versions only), after which the specified --offline command ran green",
+    "the two xml.missing-file lint errors above exist independently of this change (untracked local dirs, not in the write scope; left untouched)"
+  ]
+}

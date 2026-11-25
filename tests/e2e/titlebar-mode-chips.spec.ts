@@ -153,24 +153,12 @@ test.describe('titlebar mode chips (C-TITLEBAR-MODE-CHIPS)', () => {
     await invokeCommand(page, 'view.standard-mode')
 
     await expect(page.locator('[data-testid="mode-chips"]')).toHaveCount(1)
-    // vite-8 chunking: the standard-mode command chain settles
-    // asynchronously — poll each flag like test 5 does instead of
-    // racing a fixed settle with a single state read.
-    await expect
-      .poll(async () => (await editorState(page)).splitView, { timeout: 5_000 })
-      .toBe(false)
-    await expect
-      .poll(async () => (await editorState(page)).diffMode, { timeout: 5_000 })
-      .toBe(false)
-    await expect
-      .poll(async () => (await editorState(page)).sourceCode, { timeout: 5_000 })
-      .toBe(false)
-    await expect
-      .poll(async () => (await editorState(page)).typewriter, { timeout: 5_000 })
-      .toBe(false)
-    await expect
-      .poll(async () => (await editorState(page)).focus, { timeout: 5_000 })
-      .toBe(false)
+    const state = await editorState(page)
+    expect(state.splitView).toBe(false)
+    expect(state.diffMode).toBe(false)
+    expect(state.sourceCode).toBe(false)
+    expect(state.typewriter).toBe(false)
+    expect(state.focus).toBe(false)
   })
 
   test('6. the open menu updates while a mode toggles elsewhere', async ({ page }) => {

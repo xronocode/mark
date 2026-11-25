@@ -1,0 +1,271 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-EXPORT-BOUNDARIES-DOCX>
+    <Name>Artifact-level e2e consent pins for the export boundaries: embed-consent and PlantUML-consent gates on the html/docx doors, the m031 diff-fence hold-green and the V-M-065/V-M-066 verification deltas – implementation plan</Name>
+    <Created>2026-11-25</Created>
+    <Spec>C-EXPORT-BOUNDARIES-DOCX</Spec>
+    <IntentSummary>Draft plan for the approved verification-scoped spec C-EXPORT-BOUNDARIES-DOCX, authored on worktree green-w5b (branch spec/export-consent-docx) rebased on fork/main 638c0a7c; the active drafts on this base are C-47 and C-50 plus this change (verified in .grace/changes/active/). Honest provenance: every spec-cited code anchor was re-verified byte-exact at its current line on 2026-11-25 — exportImages.js START_BLOCK_SCOPE_GATE :135-153 with the pure classifier :142 and the two-phase embedLocalImages :177-283 (the single awaited requestScopeConsent :226, the declined keep-src/skip branch :235, the count-only markers :223/:271-274), exportHtml.js countPlantUMLFences :112-139, plantUMLSourcePlaceholder :144-146, the plantuml consent branch :249-262 and the options-key read :377, plantuml.js PLANTUML_URL :4 and the src build :54, editor.vue requestScopeConsent :2327 and requestPlantUMLExportConsent :2365 with the dedupKeys :2338/:2376, the styledHtml raise-embed-notice sequence :2539-2577, the docx twin :2599-2628 and the pdf/print corner C-12 comments :2668-2672/:2707-2710, m031_diff.rs SecurityCtx command :54-58, the check_path fence :74-80, the regular-file gate :83-91, the MAX_READ_BYTES cap :94-100, the strict UTF-8 read :104-105 and the five sandbox fixtures :247-333, plus the four e2e files and the unit files at their cited ranges. One drift found against the spec text: the M-066 Dependencies line sits at :3023 in .grace/graph/features.xml (the spec cites :3022) — a one-line offset from the rebase with no content drift; every other anchor is byte-exact at the line the spec cites. Scope discipline: zero production code changes — the three boundaries are delivered and frozen by archived applied C-EXPORT-BOUNDARIES (embed scope gate, PlantUML export consent, the m031 sidecar fence) and wrapped by archived applied C-EXPORT-DOCUMENT-PIN; the genuinely open layer is the one above the unit pins. The embed-consent card is mounted by NO e2e file today (the export-html-images fixture lives entirely inside the document directory :25-32/:44-60, so the card can never fire, and the artifact assertions :86-96 never see an out-of-scope reference), the PlantUML card's only e2e mount (export-document-pin.spec.ts :64-71) drives it purely inside the pin-refusal and consented-identity scenarios, and no saved artifact is ever asserted to carry a declined out-of-directory src, the pre.ag-plantuml-export-source placeholder, a granted-set embed or exactly-one plantuml.com reference. The plan closes exactly that gap: ten artifact pins, five per door, driving documents with an out-of-directory image (plus the in-scope sibling) or exactly one ```plantuml fence through the real renderer and the real notification-stack buttons into the saved-artifact doubles — the mt_fs_write capture on the html door, the mt_fs_write_binary ZIP double unpacked with JSZip on the docx door. Test-file layout decision (exactly one layout chosen, per the spec's either/or): the EXTENDED PAIR — tests/e2e/export-html-images.spec.ts and tests/e2e/export-office.spec.ts each gain one new consent describe beside the existing ones; no tests/e2e/export-consent.spec.ts is created — because the spec's Goals word both doors as extends, the html file's PNG fixture bytes and per-path stat/read mock pattern (:22-60) are reused verbatim by the embed pins, the docx file's JSZip unpacking (:181-189) is reused verbatim, and the V-M-065/V-M-066 Commands lines already name both files, so the verification delta stays scenario-only with zero command churn. Red-first accounting is honest per the spec: this change's reds are coverage reds — the behavior reds belong to archived C-EXPORT-BOUNDARIES' failing-first evidence — and the coverage red is mechanically enforced by the baseline MustNotContain entries (both e2e files contain zero occurrences of "consent", of this change's id and of ag-plantuml-export-source today) with the command tails recorded in the bundle evidence.json; a NEW pin found red on the current tree at implementation time is by definition a regression discovery stopping the change for re-scope, never an assertion to adapt. Hold-green (T-003) keeps the m031 sandbox matrix, the diff-view renderer failure surface and every predecessor export suite green unweakened — no verification delta for (c). Governance (T-004): .grace/verification/features.xml carries V-M-065/V-M-066 scenario deltas only, each naming the new evidence and its playwright command; the R-4 decision is recorded as NO contract-visible addition, so .grace/graph/features.xml is untouched (the M-065/M-066 contracts already state the gates, and the M-066 Dependencies post-consent-consumer note sits at :3023), no runtime.xml edit, no locale edit (the cards' copy exists in all ten locales, pinned by the ten-locale describe :743-805), and no MustVerify entry appears anywhere in this plan because no graph delta exists. Zero production-code change is mechanically enforced by target MustNotContain entries pinning this change's id absent from every production file, from the graph and from the locales. No grace-lint command appears inside this plan — lint runs only in the external target/final phases. Execution mode: T-001..T-004 strictly sequential, single-writer; each door task captures its coverage-red evidence BEFORE authoring that file's pins; consent decisions resolve through the real notification-stack buttons; no test depends on plantuml.com or any network being reachable (the consented remote-img form is pinned as the src string the offline renderer builds, plantuml.js :54); the export pin rides its happy path (one stable document per test), and pin-refusal interplay stays C-EXPORT-DOCUMENT-PIN's own covered ground.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>tests/e2e/export-html-images.spec.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/e2e/export-office.spec.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/e2e/export-document-pin.spec.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/e2e/diff-view.spec.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/renderer/src/util/exportImages.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/renderer/src/components/editorWithTabs/editor.vue</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/muya/lib/utils/exportHtml.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/muya/lib/parser/render/plantuml.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/renderer/src/util/exportDocx.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/renderer/src/store/editor.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src-tauri/src/m031_diff.rs</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/renderer/util/exportImages.test.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/renderer/components/editor-export-images.test.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>tests/renderer/util/export-plantuml-gate.test.js</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.grace/verification/features.xml</Value>
+      </MustExist>
+      <MustContain><File>src/renderer/src/util/exportImages.js</File><Text>export const isInDocumentScope = (resolvedPath, baseDir) =&gt; {</Text></MustContain>
+      <MustContain><File>src/renderer/src/util/exportImages.js</File><Text>START_BLOCK_SCOPE_GATE</Text></MustContain>
+      <MustContain><File>src/renderer/src/util/exportImages.js</File><Text>export async function embedLocalImages(html, baseDir, { requestScopeConsent } = {}) {</Text></MustContain>
+      <MustContain><File>src/renderer/src/util/exportImages.js</File><Text>await requestScopeConsent(candidatePaths)</Text></MustContain>
+      <MustContain><File>src/renderer/src/util/exportImages.js</File><Text>if (!inScope &amp;&amp; !grantedPaths.has(resolved)) {</Text></MustContain>
+      <MustContain><File>src/renderer/src/util/exportImages.js</File><Text>BLOCK_EMBED_SCOPE_CONSENT outOfScope=</Text></MustContain>
+      <MustContain><File>src/renderer/src/util/exportImages.js</File><Text>BLOCK_EMBED_SCOPE_DECLINED declined=</Text></MustContain>
+      <MustContain><File>src/muya/lib/utils/exportHtml.js</File><Text>export function countPlantUMLFences (markdown) {</Text></MustContain>
+      <MustContain><File>src/muya/lib/utils/exportHtml.js</File><Text>export function plantUMLSourcePlaceholder (rawCode) {</Text></MustContain>
+      <MustContain><File>src/muya/lib/utils/exportHtml.js</File><Text>&lt;pre class="ag-plantuml-export-source"&gt;</Text></MustContain>
+      <MustContain><File>src/muya/lib/utils/exportHtml.js</File><Text>this.plantumlRemoteConsent = options.plantumlRemoteConsent === true</Text></MustContain>
+      <MustContain><File>src/muya/lib/utils/exportHtml.js</File><Text>if (this.plantumlRemoteConsent === true) {</Text></MustContain>
+      <MustContain><File>src/muya/lib/utils/exportHtml.js</File><Text>diagramContainer.innerHTML = plantUMLSourcePlaceholder(rawCode)</Text></MustContain>
+      <MustContain><File>src/muya/lib/parser/render/plantuml.js</File><Text>const PLANTUML_URL = 'https://www.plantuml.com/plantuml'</Text></MustContain>
+      <MustContain><File>src/muya/lib/parser/render/plantuml.js</File><Text>insertImgElement (container) {</Text></MustContain>
+      <MustContain><File>src/muya/lib/parser/render/plantuml.js</File><Text>const src = `${PLANTUML_URL}/svg/~1${this.encodedInput}`</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>const requestScopeConsent = (candidatePaths, documentDir) =&gt; {</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>dedupKey: 'export-embed-consent',</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>const requestPlantUMLExportConsent = async (diagramCount) =&gt; {</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>dedupKey: 'export-plantuml-consent',</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>t('editor.export.embedConsentMessage', {</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>t('editor.export.plantumlConsentMessage', {</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>const { html, embedded, total, skipped } = await embedLocalImages(rawHtml, exportPin.documentDir, {</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>requestScopeConsent: (candidatePaths) =&gt; requestScopeConsent(candidatePaths, exportPin.documentDir)</Text></MustContain>
+      <MustContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>t('editor.export.imagesEmbeddedMessage', { embedded, total }),</Text></MustContain>
+      <MustContain><File>src-tauri/src/m031_diff.rs</File><Text>pub fn mt_diff_baseline(path: String, sec: State&lt;'_, SecurityCtx&gt;) -&gt; Result&lt;String, String&gt; {</Text></MustContain>
+      <MustContain><File>src-tauri/src/m031_diff.rs</File><Text>let validated = match m010_security::check_path(sandbox, Path::new(&amp;before_str)) {</Text></MustContain>
+      <MustContain><File>src-tauri/src/m031_diff.rs</File><Text>MT_FS_TOO_LARGE: file is {} bytes, exceeds MAX_READ_BYTES</Text></MustContain>
+      <MustContain><File>src-tauri/src/m031_diff.rs</File><Text>fn baseline_sidecar_outside_sandbox_denied() {</Text></MustContain>
+      <MustContain><File>src-tauri/src/m031_diff.rs</File><Text>fn baseline_invalid_utf8_sidecar_still_errors() {</Text></MustContain>
+      <MustContain><File>tests/e2e/export-html-images.spec.ts</File><Text>local ![shot](img/shot.png)</Text></MustContain>
+      <MustContain><File>tests/e2e/export-html-images.spec.ts</File><Text>w.__mockInvoke['mt_fs_stat'] = (args: any) =&gt; {</Text></MustContain>
+      <MustContain><File>tests/e2e/export-html-images.spec.ts</File><Text>w.__mockInvoke['mt_fs_write'] = (args: any) =&gt; {</Text></MustContain>
+      <MustContain><File>tests/e2e/export-html-images.spec.ts</File><Text>expect(dataUrl).toBe(PNG_B64)</Text></MustContain>
+      <MustContain><File>tests/e2e/export-html-images.spec.ts</File><Text>expect(entry.content).not.toContain('img/shot.png')</Text></MustContain>
+      <MustContain><File>tests/e2e/export-office.spec.ts</File><Text>import JSZip from 'jszip'</Text></MustContain>
+      <MustContain><File>tests/e2e/export-office.spec.ts</File><Text>const zip = await JSZip.loadAsync(new Uint8Array(writes[0].data))</Text></MustContain>
+      <MustContain><File>tests/e2e/export-office.spec.ts</File><Text>const documentXml = await zip.file('word/document.xml')!.async('string')</Text></MustContain>
+      <MustContain><File>tests/e2e/export-office.spec.ts</File><Text>expect(bytes[0]).toBe(0x50) // 'P'</Text></MustContain>
+      <MustContain><File>tests/e2e/export-office.spec.ts</File><Text>expect(relevant).toEqual(['plugin:dialog|save', 'mt_fs_write_binary'])</Text></MustContain>
+      <MustContain><File>tests/e2e/export-document-pin.spec.ts</File><Text>page.locator('.notification-card', { hasText: PLANTUML_CARD_TEXT })</Text></MustContain>
+      <MustContain><File>tests/e2e/export-document-pin.spec.ts</File><Text>page.locator('.notification-card .action-btn', { hasText: CONFIRM_LABEL }).click()</Text></MustContain>
+      <MustContain><File>tests/renderer/util/exportImages.test.js</File><Text>describe('embedLocalImages — embed scope consent gate (C-EXPORT-BOUNDARIES)', () =&gt; {</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-export-images.test.js</File><Text>describe('editor.vue — C-EXPORT-BOUNDARIES consent gate wiring', () =&gt; {</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-export-images.test.js</File><Text>describe('editor.export consent keys — ten-locale completeness (C-EXPORT-BOUNDARIES)', () =&gt; {</Text></MustContain>
+      <MustContain><File>tests/renderer/components/editor-export-images.test.js</File><Text>expect.objectContaining({ plantumlRemoteConsent: true })</Text></MustContain>
+      <MustContain><File>tests/e2e/diff-view.spec.ts</File><Text>test('mt_diff_baseline failure falls back to the opened content — no raw error (C-68)', async ({ page }) =&gt; {</Text></MustContain>
+      <MustContain><File>.grace/verification/features.xml</File><Text>npx playwright test tests/e2e/export-html-images.spec.ts tests/e2e/print-export.spec.ts --project=chromium</Text></MustContain>
+      <MustContain><File>.grace/verification/features.xml</File><Text>npx playwright test tests/e2e/export-office.spec.ts tests/e2e/print-export.spec.ts tests/e2e/export-html-images.spec.ts --project=chromium</Text></MustContain>
+      <MustNotContain><File>tests/e2e/export-html-images.spec.ts</File><Text>consent</Text></MustNotContain>
+      <MustNotContain><File>tests/e2e/export-html-images.spec.ts</File><Text>C-EXPORT-BOUNDARIES-DOCX</Text></MustNotContain>
+      <MustNotContain><File>tests/e2e/export-html-images.spec.ts</File><Text>ag-plantuml-export-source</Text></MustNotContain>
+      <MustNotContain><File>tests/e2e/export-office.spec.ts</File><Text>consent</Text></MustNotContain>
+      <MustNotContain><File>tests/e2e/export-office.spec.ts</File><Text>C-EXPORT-BOUNDARIES-DOCX</Text></MustNotContain>
+      <MustNotContain><File>tests/e2e/export-office.spec.ts</File><Text>ag-plantuml-export-source</Text></MustNotContain>
+      <MustNotContain><File>.grace/verification/features.xml</File><Text>C-EXPORT-BOUNDARIES-DOCX</Text></MustNotContain>
+      <MustPassCommand>
+        <Command budgetSeconds="240">npx vitest run tests/renderer/util/exportImages.test.js tests/renderer/components/editor-export-images.test.js tests/renderer/util/export-plantuml-gate.test.js</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="240">npx vitest run tests/renderer/util/export-docx-shapes.test.js tests/renderer/util/export-docx.test.js tests/renderer/store/export-docx-dispatch.test.js tests/renderer/contextMenu/tabs-export.test.js</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m031_diff</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="1200">npx playwright test tests/e2e/export-html-images.spec.ts tests/e2e/export-office.spec.ts tests/e2e/export-document-pin.spec.ts tests/e2e/diff-view.spec.ts --project=chromium</Command>
+      </MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustContain><File>tests/e2e/export-html-images.spec.ts</File><Text>C-EXPORT-BOUNDARIES-DOCX</Text></MustContain>
+      <MustContain><File>tests/e2e/export-html-images.spec.ts</File><Text>export consent gates gate the saved artifact (C-EXPORT-BOUNDARIES-DOCX)</Text></MustContain>
+      <MustContain><File>tests/e2e/export-html-images.spec.ts</File><Text>embed consent: the card lists the resolved outside paths and gates the write; Confirm embeds exactly the granted set</Text></MustContain>
+      <MustContain><File>tests/e2e/export-html-images.spec.ts</File><Text>embed consent: Cancel keeps the declined src with the in-scope sibling embedded and the honest embedded/total notice</Text></MustContain>
+      <MustContain><File>tests/e2e/export-html-images.spec.ts</File><Text>plantuml consent: the card names the remote address and count before render; Confirm yields exactly one plantuml.com reference</Text></MustContain>
+      <MustContain><File>tests/e2e/export-html-images.spec.ts</File><Text>plantuml consent: Cancel yields the pinned source placeholder with no plantuml.com URL in the artifact</Text></MustContain>
+      <MustContain><File>tests/e2e/export-html-images.spec.ts</File><Text>plantuml consent: a document without plantuml fences raises no card and writes the plain artifact</Text></MustContain>
+      <MustContain><File>tests/e2e/export-html-images.spec.ts</File><Text>Embed images from outside the document folder?</Text></MustContain>
+      <MustContain><File>tests/e2e/export-html-images.spec.ts</File><Text>'Embed these files'</Text></MustContain>
+      <MustContain><File>tests/e2e/export-html-images.spec.ts</File><Text>'Skip them'</Text></MustContain>
+      <MustContain><File>tests/e2e/export-html-images.spec.ts</File><Text>PlantUML diagrams are rendered by plantuml.com</Text></MustContain>
+      <MustContain><File>tests/e2e/export-html-images.spec.ts</File><Text>https://www.plantuml.com/plantuml</Text></MustContain>
+      <MustContain><File>tests/e2e/export-html-images.spec.ts</File><Text>'Send to plantuml.com'</Text></MustContain>
+      <MustContain><File>tests/e2e/export-html-images.spec.ts</File><Text>'Keep source local'</Text></MustContain>
+      <MustContain><File>tests/e2e/export-html-images.spec.ts</File><Text>ag-plantuml-export-source</Text></MustContain>
+      <MustContain><File>tests/e2e/export-html-images.spec.ts</File><Text>expect(entry.content).not.toContain('plantuml.com')</Text></MustContain>
+      <MustContain><File>tests/e2e/export-html-images.spec.ts</File><Text>1 of 2 images embedded</Text></MustContain>
+      <MustContain><File>tests/e2e/export-html-images.spec.ts</File><Text>expect(dataUrl).toBe(PNG_B64)</Text></MustContain>
+      <MustContain><File>tests/e2e/export-office.spec.ts</File><Text>C-EXPORT-BOUNDARIES-DOCX</Text></MustContain>
+      <MustContain><File>tests/e2e/export-office.spec.ts</File><Text>docx-door consent gates gate the written archive (C-EXPORT-BOUNDARIES-DOCX)</Text></MustContain>
+      <MustContain><File>tests/e2e/export-office.spec.ts</File><Text>embed consent: the card gates the save dialog flow; Confirm writes a ZIP whose media carries exactly the granted images</Text></MustContain>
+      <MustContain><File>tests/e2e/export-office.spec.ts</File><Text>embed consent: Cancel writes a ZIP with the outside bytes absent, the in-scope sibling present and the honest notice</Text></MustContain>
+      <MustContain><File>tests/e2e/export-office.spec.ts</File><Text>plantuml consent: the card disclosure rides the docx flow; Cancel keeps the literal source with no plantuml.com string</Text></MustContain>
+      <MustContain><File>tests/e2e/export-office.spec.ts</File><Text>plantuml consent: Confirm resolves the card and writes a valid ZIP; the consented form stays unit-pinned and html-door proven</Text></MustContain>
+      <MustContain><File>tests/e2e/export-office.spec.ts</File><Text>plantuml consent: a document without plantuml fences raises no card on the docx flow either</Text></MustContain>
+      <MustContain><File>tests/e2e/export-office.spec.ts</File><Text>word/media/</Text></MustContain>
+      <MustContain><File>tests/e2e/export-office.spec.ts</File><Text>'Embed these files'</Text></MustContain>
+      <MustContain><File>tests/e2e/export-office.spec.ts</File><Text>'Keep source local'</Text></MustContain>
+      <MustContain><File>tests/e2e/export-office.spec.ts</File><Text>PlantUML diagrams are rendered by plantuml.com</Text></MustContain>
+      <MustContain><File>tests/e2e/export-office.spec.ts</File><Text>const zip = await JSZip.loadAsync(new Uint8Array(writes[0].data))</Text></MustContain>
+      <MustContain><File>tests/e2e/export-office.spec.ts</File><Text>expect(relevant).toEqual(['plugin:dialog|save', 'mt_fs_write_binary'])</Text></MustContain>
+      <MustContain><File>.grace/verification/features.xml</File><Text>C-EXPORT-BOUNDARIES-DOCX</Text></MustContain>
+      <MustNotContain><File>src/renderer/src/util/exportImages.js</File><Text>C-EXPORT-BOUNDARIES-DOCX</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/components/editorWithTabs/editor.vue</File><Text>C-EXPORT-BOUNDARIES-DOCX</Text></MustNotContain>
+      <MustNotContain><File>src/muya/lib/utils/exportHtml.js</File><Text>C-EXPORT-BOUNDARIES-DOCX</Text></MustNotContain>
+      <MustNotContain><File>src/muya/lib/parser/render/plantuml.js</File><Text>C-EXPORT-BOUNDARIES-DOCX</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/util/exportDocx.js</File><Text>C-EXPORT-BOUNDARIES-DOCX</Text></MustNotContain>
+      <MustNotContain><File>src/renderer/src/store/editor.js</File><Text>C-EXPORT-BOUNDARIES-DOCX</Text></MustNotContain>
+      <MustNotContain><File>src-tauri/src/m031_diff.rs</File><Text>C-EXPORT-BOUNDARIES-DOCX</Text></MustNotContain>
+      <MustNotContain><File>.grace/graph/features.xml</File><Text>C-EXPORT-BOUNDARIES-DOCX</Text></MustNotContain>
+      <MustNotContain><File>static/locales/en.json</File><Text>C-EXPORT-BOUNDARIES-DOCX</Text></MustNotContain>
+      <MustNotContain><File>tests/e2e/export-document-pin.spec.ts</File><Text>C-EXPORT-BOUNDARIES-DOCX</Text></MustNotContain>
+      <MustNotContain><File>tests/e2e/diff-view.spec.ts</File><Text>C-EXPORT-BOUNDARIES-DOCX</Text></MustNotContain>
+      <MustPassCommand>
+        <Command budgetSeconds="240">npx vitest run tests/renderer/util/exportImages.test.js tests/renderer/components/editor-export-images.test.js tests/renderer/util/export-plantuml-gate.test.js</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="240">npx vitest run tests/renderer/util/export-docx-shapes.test.js tests/renderer/util/export-docx.test.js tests/renderer/store/export-docx-dispatch.test.js tests/renderer/contextMenu/tabs-export.test.js</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m031_diff</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="1200">npx playwright test tests/e2e/export-html-images.spec.ts tests/e2e/export-office.spec.ts tests/e2e/export-document-pin.spec.ts tests/e2e/diff-view.spec.ts --project=chromium</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="2400">npm run test:e2e</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command budgetSeconds="30">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/verification/features.xml')"</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-065 />
+        <M-066 />
+        <M-031 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-065 />
+        <V-M-066 />
+        <V-M-031 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>tests/e2e/export-html-images.spec.ts</File>
+      <File>tests/e2e/export-office.spec.ts</File>
+      <File>.grace/verification/features.xml</File>
+      <File>.grace/changes/active/C-EXPORT-BOUNDARIES-DOCX/evidence.json</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>HTML-door artifact pins: the embed-consent and PlantUML-consent gates through the real renderer and notification stack into the saved-HTML double (extends tests/e2e/export-html-images.spec.ts)</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Coverage-red capture FIRST, on the pre-change tree, before any authoring: grep -c over tests/e2e/export-html-images.spec.ts proves zero occurrences of "consent", of C-EXPORT-BOUNDARIES-DOCX and of ag-plantuml-export-source (the existing fixture lives entirely inside the document directory :25-32/:44-60 and the artifact assertions :86-96 never see an out-of-scope reference, so no consent-formed artifact is asserted anywhere in the file); the command tails are recorded in .grace/changes/active/C-EXPORT-BOUNDARIES-DOCX/evidence.json as this change's red evidence — coverage reds only, the behavior reds belong to archived applied C-EXPORT-BOUNDARIES' failing-first evidence (spec criterion a accounting).</Criterion>
+          <Criterion>Author the embed-consent pins: a new describe 'export consent gates gate the saved artifact (C-EXPORT-BOUNDARIES-DOCX)' beside the existing one over the same installTauriShim + bootEditor + openFileTab fixtures, its header comment stating the consent-flow intent and naming C-EXPORT-BOUNDARIES-DOCX. The document carries an in-directory sibling image (img/shot.png answered by the established stat/read doubles :44-60 with PNG_BYTES) AND an out-of-directory absolute image (/tmp/html-flow-outside/secret.png whose stat/read mocks answer only that exact path with a DISTINCT fixture byte array, so byte identity proves the right file's bytes). Test 'embed consent: the card lists the resolved outside paths and gates the write; Confirm embeds exactly the granted set': emitting mt::menu-invoked file.export-file-html mounts the .notification-card with the embed-consent title 'Embed images from outside the document folder?' and a message containing the resolved outside path, its count and the document directory /tmp/html-flow (the requestScopeConsent card, editor.vue :2327-2358, wired at :2562-2564); while the card is up the write double records NOTHING (the gate strictly precedes any out-of-scope I/O and any mt_fs_write); clicking the real card action 'Embed these files' resolves the flow and the artifact captured at mt_fs_write embeds BOTH the in-scope sibling and the granted outside file as data URLs byte-identical to their distinct fixtures, with per-path call-recording doubles (the __invokeLog/__written recording canon) proving mt_fs_stat/mt_fs_read_binary touched only the in-scope sibling plus the granted outside path. A red run of this new pin on the current tree is a regression stop, not an adaptation.</Criterion>
+          <Criterion>Author the embed Cancel pin 'embed consent: Cancel keeps the declined src with the in-scope sibling embedded and the honest embedded/total notice': clicking 'Skip them' (the declined-by-default resolve([]) branch) yields a saved HTML where the outside img keeps its original src verbatim, no data URL for the outside bytes exists anywhere in the artifact, the in-scope sibling still embeds byte-identically, and the real skip notice fires ('Some images were not embedded' / '1 of 2 images embedded' — the exact {embedded}/{total} pair with the declined reference counted as skipped, editor.vue :2571-2577, counts only per the V-M-065 privacy convention).</Criterion>
+          <Criterion>Author the PlantUML-consent pins over a document with exactly one ```plantuml fence (the export-document-pin.spec.ts DOC_A shape :22): 'plantuml consent: the card names the remote address and count before render; Confirm yields exactly one plantuml.com reference' — the sticky 'export-plantuml-consent' card mounts with the title 'PlantUML diagrams are rendered by plantuml.com', the count 1 and the address https://www.plantuml.com/plantuml (editor.vue :2365-2400, raised at :2539-2541), no write exists while it is up, and after clicking 'Send to plantuml.com' the saved HTML carries exactly one plantuml.com img src (the string the offline renderer builds, plantuml.js :54 — no network dependency) and no pre.ag-plantuml-export-source block; 'plantuml consent: Cancel yields the pinned source placeholder with no plantuml.com URL in the artifact' — clicking 'Keep source local' yields exactly one pre.ag-plantuml-export-source holding the escaped literal diagram source and expect(entry.content).not.toContain('plantuml.com'); 'plantuml consent: a document without plantuml fences raises no card and writes the plain artifact' — the zero-fence document never mounts the card (count 0 skips the dialog and passes false, the existing unit pin now proven through the real flow) and the write lands.</Criterion>
+          <Criterion>Run the file green in one pass: npx playwright test tests/e2e/export-html-images.spec.ts --project=chromium — the three pre-existing in-scope pins (byte-identical data URL, remote URL untouched, no mt_fs_read, modal-less flow) pass byte-identical and unweakened beside the new ones; any red NEW pin stops the change as a regression discovery for re-scope; the coverage-red tails from the first criterion stay in evidence.json next to the green run.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">npx playwright test tests/e2e/export-html-images.spec.ts --project=chromium</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>DOCX-door artifact pins: the same two gates at the JSZip ZIP double with the pinned save-then-write order (extends tests/e2e/export-office.spec.ts)</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Coverage-red capture FIRST on the still-pre-change tests/e2e/export-office.spec.ts (T-001 touched only the html file): grep -c proves zero occurrences of "consent", of C-EXPORT-BOUNDARIES-DOCX and of ag-plantuml-export-source (the existing docx document :25-40 carries no image and no diagram, and word/document.xml is asserted for text only :181-189); tails into evidence.json with the same coverage-red accounting.</Criterion>
+          <Criterion>Author the embed-consent docx pins in a new describe 'docx-door consent gates gate the written archive (C-EXPORT-BOUNDARIES-DOCX)' beside the existing tests, header comment naming C-EXPORT-BOUNDARIES-DOCX, over the same installTauriShim + save/write doubles and JSZip import. The document carries the same two images (in-directory sibling with PNG_BYTES, out-of-directory absolute path with a distinct fixture byte array whose stat/read mocks answer only that exact path). Test 'embed consent: the card gates the save dialog flow; Confirm writes a ZIP whose media carries exactly the granted images': emitting mt::menu-invoked file.export-file-docx mounts the embed card with the resolved outside path, its count and the document directory BEFORE the save dialog resolves into conversion (no mt_fs_write_binary while the card is up — the gates run in the handleExport docx branch :2599-2616 before the store dispatch :2629); clicking 'Embed these files' lands plugin:dialog|save then mt_fs_write_binary in the pinned order; JSZip.loadAsync opens the written archive and its media parts (word/media/) carry the granted images — byte-identity pinned only as far as docx verifiably preserves it: if the converter preserves the fixture bytes the archive carries them exactly, otherwise the observed re-encoded form is pinned from the actual artifact at execution and the decision is recorded in evidence.json, never assumed.</Criterion>
+          <Criterion>Author the embed Cancel pin 'embed consent: Cancel writes a ZIP with the outside bytes absent, the in-scope sibling present and the honest notice': clicking 'Skip them' writes an archive where the outside file's bytes appear nowhere (no media part carries them), the in-scope sibling still lands, the skip notice ('1 of 2 images embedded') fires from the docx branch's identical notice block (:2622-2628), and the save/write invoke order stays the pinned one (the surviving expect(relevant).toEqual(['plugin:dialog|save', 'mt_fs_write_binary']) canon of the modal-less pins :92-101).</Criterion>
+          <Criterion>Author the PlantUML-consent docx pins over the one-fence document: 'plantuml consent: the card disclosure rides the docx flow; Cancel keeps the literal source with no plantuml.com string' — the same card (title 'PlantUML diagrams are rendered by plantuml.com', count 1, the address) mounts before conversion, and Cancel ('Keep source local') yields a word/document.xml whose text contains the literal diagram source and whose text contains no plantuml.com string; 'plantuml consent: Confirm resolves the card and writes a valid ZIP; the consented form stays unit-pinned and html-door proven' — Confirm ('Send to plantuml.com') resolves the card and the written bytes pass the existing PK-magic/valid-ZIP canon (:84-90), the substantive consented muya-HTML form being proven by T-001's html-door e2e plus the unit decision-handoff pins (:562-643), the converter being offline by construction; 'plantuml consent: a document without plantuml fences raises no card on the docx flow either' — the zero-fence document never mounts the card and the write lands.</Criterion>
+          <Criterion>Run the file green in one pass: npx playwright test tests/e2e/export-office.spec.ts --project=chromium — the pre-existing modal-less, cancelled-dialog (corner C-12), tab-menu and background-tab pins pass byte-identical and unweakened beside the new ones; any red NEW pin is a regression stop; the coverage-red and observed-artifact decisions stay in evidence.json.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="900">npx playwright test tests/e2e/export-office.spec.ts --project=chromium</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Hold-green matrix: the m031 diff-fence backend sandbox matrix, the diff-view renderer failure surface and every predecessor export suite green unweakened</Title>
+        <DependsOn>T-001, T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Backend fence hold-green: cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m031_diff passes with the five in-file sandbox fixtures unchanged — baseline_sidecar_outside_sandbox_denied (MT_FS_PATH_DENIED, no bytes returned, :247-265), baseline_sidecar_symlink_inward_reads (:269-284), baseline_sidecar_non_regular_denied (MT_FS_NOT_REGULAR, :287-298), baseline_sidecar_over_cap_denied (MT_FS_TOO_LARGE, :301-315) and baseline_invalid_utf8_sidecar_still_errors (the F7 pin, :318-333); no raw unfenced read enters m031_diff.rs — the file is diff-empty against the pre-change HEAD and the target MustNotContain id pin holds; V-M-031 already carries these fence pins, so this is hold-green with NO verification delta (spec criterion c).</Criterion>
+          <Criterion>Renderer hold-green: tests/e2e/diff-view.spec.ts passes unchanged including the baseline-failure fallback pin ('mt_diff_baseline failure falls back to the opened content — no raw error (C-68)', :132-156) and the calm-notice sibling (:159-186); the renderer failure surface of the fence stays the generic C-68 calm notice exactly as delivered.</Criterion>
+          <Criterion>Predecessor export suites hold-green: the vitest export families (the exportImages consent unit matrix :307-443, the editor consent-wiring and ten-locale pins :446-805, the plantuml-gate pure pins, the docx shapes/dispatch/tabs-export families) and the four e2e suites (export-html-images, export-office, export-document-pin, diff-view) pass with unchanged assertions and unchanged budgets; any pre-existing unrelated failure inside these filters is recorded in evidence.json rather than silently skipped, and no frozen-gate assertion is weakened to go green (the frozen-gate discipline: declined-by-default with no callback, consent never persisted, one awaited card per export, dedupKey singletons, count-only console markers).</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">cargo test --locked --offline --manifest-path src-tauri/Cargo.toml --bin mark m031_diff</Command>
+          <Command budgetSeconds="240">npx vitest run tests/renderer/util/exportImages.test.js tests/renderer/components/editor-export-images.test.js tests/renderer/util/export-plantuml-gate.test.js</Command>
+          <Command budgetSeconds="240">npx vitest run tests/renderer/util/export-docx-shapes.test.js tests/renderer/util/export-docx.test.js tests/renderer/store/export-docx-dispatch.test.js tests/renderer/contextMenu/tabs-export.test.js</Command>
+          <Command budgetSeconds="1200">npx playwright test tests/e2e/export-html-images.spec.ts tests/e2e/export-office.spec.ts tests/e2e/export-document-pin.spec.ts tests/e2e/diff-view.spec.ts --project=chromium</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>V-M-065/V-M-066 verification deltas, the recorded R-4 graph decision, the zero-production-change audit and the full command matrix</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Governance delta, .grace/verification/features.xml only: V-M-065 gains one Scenario naming the html-door evidence and its command (npx playwright test tests/e2e/export-html-images.spec.ts --project=chromium) — the embed card with the resolved paths/count/dir gating the write, Confirm embedding exactly the granted set byte-identically with the invoke log touching only granted paths, Cancel keeping the declined src with the honest {embedded}/{total} pair, and the PlantUML door's disclosure (address + count), the consented exactly-one plantuml.com artifact, the declined placeholder artifact with zero plantuml.com strings and the zero-fence no-card pin; V-M-066 gains one Scenario naming the docx-door evidence and its command (npx playwright test tests/e2e/export-office.spec.ts --project=chromium) — the card gating save-then-write, the granted media parts, the declined outside bytes absent with the in-scope sibling present, the literal source text without plantuml.com, and the zero-fence no-card pin; each new Scenario names C-EXPORT-BOUNDARIES-DOCX; no other V-M entry is edited and the existing Commands lines stay untouched (the extend layout means both files are already named there).</Criterion>
+          <Criterion>The R-4 graph decision is recorded honestly: NO contract-visible addition occurs in this change (pure test additions; the M-065/M-066 contracts already state the gates the new pins verify, and the M-066 Dependencies post-consent-consumer note sits at :3023), so .grace/graph/features.xml is NOT edited — the DurableScope anchors M-065/M-066/M-031 without a graph delta and the plan carries no MustVerify entry; no runtime.xml edit, no locale edit (the cards' copy exists in all ten locales, pinned by the ten-locale describe :743-805), no settings UI, no remembered consent, no release action.</Criterion>
+          <Criterion>Zero-production-change audit: git diff --name-only against the pre-change HEAD lists exactly tests/e2e/export-html-images.spec.ts, tests/e2e/export-office.spec.ts and .grace/verification/features.xml (plus the bundle evidence file) — nothing else; the target MustNotContain entries are the mechanical enforcement (this change's id appears in NO production file, in NO graph file and in NO locale file); the audit tails land in evidence.json; grace lint runs ONLY in the external target/final phases and no self-referential lint command appears in this plan.</Criterion>
+          <Criterion>The full matrix is green in one pass: both vitest export families, the cargo m031_diff matrix, the four-suite e2e filter with the ten new pins inside, and npm run test:e2e across the whole chromium project — clean against the recorded pre-existing baseline; .grace/verification/features.xml parses; any pre-existing unrelated failure is recorded in evidence.json rather than silently skipped.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="1200">npx playwright test tests/e2e/export-html-images.spec.ts tests/e2e/export-office.spec.ts tests/e2e/export-document-pin.spec.ts tests/e2e/diff-view.spec.ts --project=chromium</Command>
+          <Command budgetSeconds="2400">npm run test:e2e</Command>
+          <Command budgetSeconds="30">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/verification/features.xml')"</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Criterion>Embed-consent artifact pins (spec criterion a): the coverage red is honest — the baseline MustNotContain entries prove the pins' absence on the pre-change tree and the grep tails sit in evidence.json, with the behavior reds explicitly attributed to archived applied C-EXPORT-BOUNDARIES' failing-first evidence; after the change the html door pins the card (resolved outside paths, count, document directory) gating the write, Confirm embedding exactly the granted set as byte-identical data URLs with the stat/read invoke surface touching only the granted plus in-scope paths, and Cancel keeping the declined src verbatim with the in-scope sibling still embedded and the exact {embedded}/{total} notice; the docx door pins the same two outcomes at the JSZip double (granted media parts present exactly as verifiably preserved, declined outside bytes nowhere in the archive, in-scope sibling present, save-then-write order intact); any pin red on the current tree at implementation time stopped the change as a regression discovery — none was adapted.</Criterion>
+      <Criterion>PlantUML-consent artifact pins (spec criterion b): the html door pins the disclosure (exactly https://www.plantuml.com/plantuml plus the per-diagram count) before any render, Confirm yielding exactly one plantuml.com reference with no placeholder block, Cancel yielding exactly one pre.ag-plantuml-export-source with the escaped literal source and zero plantuml.com strings in the artifact, and the zero-fence document raising no card; the docx door pins the same disclosure, Cancel yielding the literal source text with no plantuml.com string in word/document.xml, Confirm bounded to the card plus a valid ZIP (the consented muya-HTML form proven by the html door and the unit decision-handoff pins :562-643); no test depends on plantuml.com or any network being reachable.</Criterion>
+      <Criterion>Diff-fence hold-green (spec criterion c): the m031 sandbox matrix (outside-sandbox denial returning no bytes, inward symlink read, not-regular, over-cap, invalid-UTF-8 F7) and the diff-view baseline-failure/calm-notice pins pass unchanged; m031_diff.rs is diff-empty against the pre-change HEAD; V-M-031 carries the fence pins with no delta.</Criterion>
+      <Criterion>Existing pins stay green unweakened: the export-html-images in-scope artifact pins (byte-identical data URL, remote URL untouched, no mt_fs_read), the export-office modal-less/cancelled-dialog/tab-menu/background-tab pins, the corner C-12 unit pins, the exportImages consent unit matrix (:307-443), the editor consent-wiring and ten-locale pins (:446-805), the plantuml-gate pure pins, the export-document-pin store/component/e2e pins and the docx unit families all pass without weakened assertions or budget changes, in the same runs as the new pins.</Criterion>
+      <Criterion>Governance (spec criterion on R-4 and Constraints): the two touched e2e files state the consent-flow intent in their headers naming C-EXPORT-BOUNDARIES-DOCX; .grace/verification/features.xml carries exactly the V-M-065/V-M-066 scenario deltas naming the new evidence and its playwright commands, parses clean, and no other V-M entry changed; exactly one test-file layout exists — the extended pair, no tests/e2e/export-consent.spec.ts created; .grace/graph/features.xml untouched (no contract-visible addition, the recorded R-4 decision), locales untouched, no IPC command, no settings UI, no remembered consent, no version bump or release action; ObservedWriteScope held to exactly the four declared files; npm run test:e2e, the vitest export families and cargo test m031_diff are clean against the recorded pre-existing baseline; grace lint ran only in the external target/final phases — this plan contains no self-referential lint command; no implementation happened before the spec and this plan were approved; no release authorization.</Criterion>
+    </AcceptanceVerification>
+  </C-EXPORT-BOUNDARIES-DOCX>
+</GraceChangePlan>
