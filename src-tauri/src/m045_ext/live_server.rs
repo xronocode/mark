@@ -21,6 +21,17 @@
 //   STATUS:  Phase-B5b — handlers emit to frontend via live_bridge.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-26 integration-acks fix: the /ext/apply verdict inbox is
+//     namespaced by extension identity — the ack entry, its guard and the
+//     resolution lookup all key the composite extension_id \u{1} request_id
+//     (the dedup store's composite shape), and the additive
+//     mt::ext::text_op_ack payload carries extension_id (the renderer's
+//     emitTextOpAck forwards the emitting extension); two extensions
+//     posting parallel batches with the same client key can no longer
+//     consume or erase each other's pending acks (a payload without
+//     extension_id names no batch and is dropped — fail-closed). The dedup
+//     store semantics, the per-batch deadline and every status/body shape
+//     are untouched.
 //   - 2026-11-23 C-EXT-DELIVERY-HONESTY T-002: the honest open — a
 //     doc_open whose frontend emission fails refuses instead of answering
 //     200 accepted:true over an undelivered stream: the exact pre-open
@@ -447,15 +458,27 @@ struct TextOpAckVerdict {
     reason: String,
 }
 
-/// C-EXT-EDIT-PROOF: pending text-op verdicts keyed by the batch request
-/// id. The handler creates the (empty) entry when its emission phase starts
-/// and removes it when the batch ends; resolve_text_op_ack appends arriving
-/// verdicts and silently drops those naming no pending batch (a stale ack
-/// carries no content). Process-global like EXT_DOCUMENT_BINDINGS —
-/// deliberately NOT a LiveServerState field, so the struct literal in
-/// src-tauri/src/main.rs stays untouched.
+/// C-EXT-EDIT-PROOF: pending text-op verdicts keyed by the composite
+/// `extension_id \u{1} batch request id` — the same composite shape as the
+/// dedup store below — so two extensions posting parallel batches with the
+/// same client key can never consume (or erase) another extension's ack
+/// through the shared client-key-only namespace. The handler creates the
+/// (empty) entry when its emission phase starts and removes it when the
+/// batch ends; resolve_text_op_ack appends arriving verdicts (which carry
+/// the emitting extension's identity) and silently drops those naming no
+/// pending composite batch (a stale ack carries no content; a payload
+/// without extension_id names no batch at all — fail-closed).
+/// Process-global like EXT_DOCUMENT_BINDINGS — deliberately NOT a
+/// LiveServerState field, so the struct literal in src-tauri/src/main.rs
+/// stays untouched.
 static EXT_APPLY_ACK_INBOX: std::sync::LazyLock<std::sync::Mutex<HashMap<String, Vec<TextOpAckVerdict>>>> =
     std::sync::LazyLock::new(|| std::sync::Mutex::new(HashMap::new()));
+
+/// The verdict-inbox composite key: extension identity plus the batch
+/// request id (mirrors the dedup composite).
+fn ack_inbox_key(extension_id: &str, request_id: &str) -> String {
+    format!("{extension_id}\u{1}{request_id}")
+}
 
 /// A terminal apply verdict: the exact (status, body) the first attempt
 /// answered. Replays answer it verbatim with an additive duplicate marker.
@@ -479,19 +502,24 @@ static APPLY_REQUEST_COUNTER: AtomicU64 = AtomicU64::new(0);
 /// C-EXT-EDIT-PROOF: the one resolution entry for the renderer's
 /// mt::ext::text_op_ack verdicts. The production listener registered in
 /// start_live_server (beside the mt::ext::context_response listener) hands
-/// the raw payload here, and the test fixture bridges the same entry. A
+/// the raw payload here, and the test fixture bridges the same entry. The
+/// payload's extension_id namespaces the verdict to its emitting
+/// extension's batch (the renderer's emitTextOpAck forwards it), so a
+/// parallel same-key batch of another extension is never matched. A
 /// malformed or unknown-target verdict names no pending batch and is
 /// dropped.
 pub(super) fn resolve_text_op_ack(payload: &str) {
     let Ok(value) = serde_json::from_str::<serde_json::Value>(payload) else { return };
-    let (Some(request_id), Some(op_index), Some(applied)) = (
+    let (Some(extension_id), Some(request_id), Some(op_index), Some(applied)) = (
+        value["extension_id"].as_str(),
         value["request_id"].as_str().map(str::to_string),
         value["op_index"].as_u64(),
         value["applied"].as_bool(),
     ) else { return };
     let reason = value["reason"].as_str().unwrap_or_default().to_string();
+    let key = ack_inbox_key(extension_id, &request_id);
     if let Ok(mut inbox) = EXT_APPLY_ACK_INBOX.lock() {
-        if let Some(queue) = inbox.get_mut(&request_id) {
+        if let Some(queue) = inbox.get_mut(&key) {
             queue.push(TextOpAckVerdict { op_index, applied, reason });
         }
     }
@@ -499,15 +527,15 @@ pub(super) fn resolve_text_op_ack(payload: &str) {
 
 /// Take the awaited verdict for one op of a pending batch, if it has
 /// arrived.
-fn take_ack_verdict(request_id: &str, op_index: u64) -> Option<TextOpAckVerdict> {
+fn take_ack_verdict(extension_id: &str, request_id: &str, op_index: u64) -> Option<TextOpAckVerdict> {
     let mut inbox = EXT_APPLY_ACK_INBOX.lock().unwrap();
-    let queue = inbox.get_mut(request_id)?;
+    let queue = inbox.get_mut(&ack_inbox_key(extension_id, request_id))?;
     let position = queue.iter().position(|verdict| verdict.op_index == op_index)?;
     Some(queue.remove(position))
 }
 
-/// Remove the batch's ack inbox entry when the handler leaves the emission
-/// phase by any path.
+/// Remove the batch's ack inbox entry (the composite extension+request
+/// key) when the handler leaves the emission phase by any path.
 struct AckInboxGuard(String);
 impl Drop for AckInboxGuard {
     fn drop(&mut self) {
@@ -2425,11 +2453,15 @@ pub(super) async fn handle_ext_apply<R: tauri::Runtime>(
 
     // C-EXT-EDIT-PROOF: the batch request id — the client-supplied key or
     // the server-minted "apply_{n}" (correlation only, no dedup promise).
+    // The verdict inbox entry is namespaced by the extension identity, so
+    // parallel batches of different extensions sharing a client key never
+    // consume or erase each other's acks.
     let batch_request_id = req.request_id.clone().unwrap_or_else(|| {
         format!("apply_{}", APPLY_REQUEST_COUNTER.fetch_add(1, Ordering::Relaxed))
     });
-    EXT_APPLY_ACK_INBOX.lock().unwrap().insert(batch_request_id.clone(), Vec::new());
-    let _inbox_guard = AckInboxGuard(batch_request_id.clone());
+    let inbox_key = ack_inbox_key(&req.extension_id, &batch_request_id);
+    EXT_APPLY_ACK_INBOX.lock().unwrap().insert(inbox_key.clone(), Vec::new());
+    let _inbox_guard = AckInboxGuard(inbox_key);
 
     // One deadline for the whole batch, not per operation.
     let deadline = Instant::now() + std::time::Duration::from_secs(EXT_APPLY_ACK_TIMEOUT_SECS);
@@ -2519,7 +2551,7 @@ pub(super) async fn handle_ext_apply<R: tauri::Runtime>(
         // batch deadline; a missing renderer subscriber manifests as the
         // honest 504 (the /ext/context timeout precedent).
         let verdict = loop {
-            if let Some(verdict) = take_ack_verdict(&batch_request_id, i as u64) {
+            if let Some(verdict) = take_ack_verdict(&req.extension_id, &batch_request_id, i as u64) {
                 break verdict;
             }
             if Instant::now() >= deadline {

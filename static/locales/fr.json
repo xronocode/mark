@@ -92,6 +92,8 @@
       "plantumlConsentMessage": "{count} diagramme(s) PlantUML seraient envoyés à {address} pour rendu — le texte source du diagramme quitte cette machine",
       "plantumlConsentConfirm": "Envoyer à plantuml.com",
       "plantumlConsentCancel": "Garder la source en local",
+      "plantumlFallbackTitle": "Certains diagrammes PlantUML n'ont pas été téléchargés",
+      "plantumlFallbackMessage": "{count} diagramme(s) PlantUML n'ont pas pu être téléchargés depuis plantuml.com, leur texte source est conservé dans l'export Word",
       "pinMismatchTitle": "Export interrompu — le document a changé",
       "pinMismatchMessage": "Le document à exporter a changé (changement d'onglet ou édition) pendant l'attente de l'export — rien n'a été exporté. Relancez l'export.",
       "pinDiskChangedTitle": "Export interrompu — le fichier a changé sur le disque",

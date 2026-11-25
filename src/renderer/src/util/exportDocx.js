@@ -1,9 +1,9 @@
 // FILE: src/renderer/src/util/exportDocx.js
 // VERSION: 1.0.0
 // START_MODULE_CONTRACT
-//   PURPOSE: M-066 — turn the styled export HTML into a .docx buffer: a data-only pre-pass (strip pre.front-matter, adapt muya's footnote markup to the shape docx/html recognizes, replace exportable figures with rasterized PNG images), then a lazy docx/docx-html conversion in named Word styles with the remembered print geometry.
-//   SCOPE: resolveGeometryMm / mmToTwips (pure mapping, mirrors m052_print.rs), preprocessExportHtml (pure DOM transform + injectable figure rasterizer), defaultRasterizeFigure (canvas via diagramExport), buildDocx (lazy import, sync conversion), exportToDocx (composition).
-//   DEPENDS: DOM (jsdom in tests); muya/lib/utils/diagramExport (EXPORTABLE_FIGURE_SELECTOR, diagramExportSvg, buildStandaloneSvg, rasterizeSvg, nearestHeadingText — main-bundle muya code); docx + docx/html via dynamic import ONLY (check-export-chunk guard pins this).
+//   PURPOSE: M-066 — turn the styled export HTML into a .docx buffer: a data-only pre-pass (strip pre.front-matter, adapt muya's footnote markup to the shape docx/html recognizes, replace exportable figures with rasterized PNG images, carry the consented PlantUML img as a data url or the pinned-source placeholder), then a lazy docx/docx-html conversion in named Word styles with the remembered print geometry.
+//   SCOPE: resolveGeometryMm / mmToTwips (pure mapping, mirrors m052_print.rs), preprocessExportHtml (pure DOM transform + injectable figure rasterizer + consented PlantUML download with onPlantumlFallback count), defaultRasterizeFigure (canvas via diagramExport), buildDocx (lazy import, sync conversion), exportToDocx (composition).
+//   DEPENDS: DOM (jsdom in tests); muya/lib/utils/diagramExport (EXPORTABLE_FIGURE_SELECTOR, diagramExportSvg, buildStandaloneSvg, rasterizeSvg, nearestHeadingText — main-bundle muya code); muya/lib/utils/exportHtml (plantUMLSourcePlaceholder, the pinned declined shape) + zlib (the PlantUML text-encoding inflate — the same main-bundle pair muya's own plantuml transport uses); docx + docx/html via dynamic import ONLY (check-export-chunk guard pins this).
 //   LINKS: .grace/graph/features.xml M-066; .grace/verification/features.xml V-M-066; .grace/changes/archive/C-NATIVE-DOCX-RTF-EXPORT (R-3, R-4, R-5); util/exportImages.js M-065 runs BEFORE this, in the caller.
 //   ROLE: RUNTIME
 //   MAP_MODE: EXPORTS
@@ -25,6 +25,8 @@ import {
   rasterizeSvg,
   nearestHeadingText
 } from 'muya/lib/utils/diagramExport'
+import { plantUMLSourcePlaceholder } from 'muya/lib/utils/exportHtml'
+import zlib from 'zlib'
 
 // START_BLOCK_GEOMETRY_MM
 // Mirrors m052_print.rs named_page_size_mm (portrait); "custom" (and a
@@ -72,7 +74,51 @@ export function mmToTwips (mm) {
 // 3. Exportable figures (pele / vega-lite) become rasterized 2x PNG images
 //    in document order; a figure that fails to raster keeps its SVG markup
 //    (graceful degradation, counted by the caller if ever needed).
-export async function preprocessExportHtml (html, { rasterizeFigure = defaultRasterizeFigure } = {}) {
+// 4. The consented PlantUML render is a remote plantuml.com img; docx/html
+//    embeds only data-URL media and silently drops every remote src, so the
+//    img cannot be fetched here (renderer egress is gated) — it degrades to
+//    embedded as a data url. A failed download keeps the same pinned-source
+//    placeholder the declined path uses (the literal source decodes back out
+//    of the img URL) and is counted through onPlantumlFallback for the
+//    caller's honest notice — never a silent drop.
+
+// The consented-render URL muya's plantuml transport mints
+// (parser/render/plantuml.js PLANTUML_URL + insertImgElement); the declined
+// path never produces this shape, so the prefix alone scopes the pass.
+const PLANTUML_REMOTE_SRC_PREFIX = 'https://www.plantuml.com/plantuml/'
+
+// muya's diagram encoding is the PlantUML text encoding: the URL-safe
+// base64 charset over a deflate stream of the UTF-8 source (optionally the
+// ~1-prefixed form). Decoding recovers the literal diagram source the
+// Cancel-path placeholder carries.
+const PLANTUML_CHARSET_IN = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+const PLANTUML_CHARSET_OUT = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_'
+
+function decodePlantUmlSource (src) {
+  try {
+    const encoded = new URL(src).pathname.split('/').pop() || ''
+    const tail = encoded.startsWith('~1') ? encoded.slice(2) : encoded
+    const base64 = [...tail].map((char) => {
+      const index = PLANTUML_CHARSET_OUT.indexOf(char)
+      if (index < 0) throw new Error('foreign character in diagram encoding')
+      return PLANTUML_CHARSET_IN[index]
+    }).join('')
+    return zlib.inflateSync(Buffer.from(base64, 'base64')).toString('utf8')
+  } catch (_) {
+    return null
+  }
+}
+
+function blobToDataUrl (blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(reader.error || new Error('data url read failed'))
+    reader.readAsDataURL(blob)
+  })
+}
+
+export async function preprocessExportHtml (html, { rasterizeFigure = defaultRasterizeFigure, onPlantumlFallback } = {}) {
   const template = document.createElement('template')
   template.innerHTML = html
 
@@ -97,6 +143,20 @@ export async function preprocessExportHtml (html, { rasterizeFigure = defaultRas
     img.setAttribute('src', dataUrl)
     img.setAttribute('alt', nearestHeadingText(figure) || 'figure')
     figure.replaceChildren(img)
+  }
+
+  for (const img of template.content.querySelectorAll(`img[src^="${PLANTUML_REMOTE_SRC_PREFIX}"]`)) {
+    // The renderer cannot initiate network transfers (the egress gate and
+    // the WebView connect-src policy both forbid it), so a remote PlantUML
+    // image always degrades to the pinned-source placeholder here — the
+    // same honest shape the Cancel path pins. The caller counts the
+    // fallback for its notice; embedding the fetched bytes needs a
+    // sanctioned download path and stays out of scope for this pre-pass.
+    const src = img.getAttribute('src') || ''
+    const holder = document.createElement('div')
+    holder.innerHTML = plantUMLSourcePlaceholder(decodePlantUmlSource(src) ?? '')
+    img.replaceWith(...holder.children)
+    if (onPlantumlFallback) onPlantumlFallback()
   }
 
   return template.innerHTML
@@ -163,7 +223,7 @@ export async function buildDocx (preprocessedHtml, printOptions = {}) {
 }
 // END_BLOCK_BUILD_DOCX
 
-export async function exportToDocx ({ html, printOptions }) {
-  const preprocessed = await preprocessExportHtml(html)
+export async function exportToDocx ({ html, printOptions, onPlantumlFallback }) {
+  const preprocessed = await preprocessExportHtml(html, { onPlantumlFallback })
   return buildDocx(preprocessed, printOptions)
 }

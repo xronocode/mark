@@ -2336,8 +2336,25 @@ export const useEditorStore = defineStore('editor', {
 
       try {
         const { exportToDocx } = await import('../util/exportDocx')
-        const bytes = await exportToDocx({ html: content, printOptions })
+        let plantumlFallbacks = 0
+        const bytes = await exportToDocx({
+          html: content,
+          printOptions,
+          // Count only — no diagram text crosses this boundary.
+          onPlantumlFallback: () => { plantumlFallbacks += 1 }
+        })
         await window.fileUtils.writeFile(filePath, bytes, 'binary')
+        // The consented download failed for some diagrams: the Word output
+        // carries their pinned-source placeholders instead of a silent
+        // drop — surface it.
+        if (plantumlFallbacks > 0) {
+          notice.notify({
+            title: i18n.global.t('editor.export.plantumlFallbackTitle'),
+            message: i18n.global.t('editor.export.plantumlFallbackMessage', { count: plantumlFallbacks }),
+            type: 'warning',
+            source: 'export'
+          })
+        }
         this.APPLY_EXPORT_SUCCESS(filePath)
       } catch (e) {
         notice.notify({

@@ -547,3 +547,50 @@ describe('source focus, scroll and composition lifecycle', () => {
     bus.emit('invalidate-image-cache'); expect(cm.invalidateImageCache).toHaveBeenCalledOnce()
   })
 })
+
+// C-EXT-EDIT-PROOF: an ext op routed into the source pane by editor.vue's
+// routeSource carries its verdict channel in `ack`; the pane answers it on
+// every exit — applied after the mutation records, the stable content-free
+// refusal classes before any mutation — so a source-pane edit is never a
+// silent apply + 504. Commands without an ack keep today's behavior.
+describe('source-pane ext verdict routing', () => {
+  const verdict = () => ({ requestId: 'req-source-1', opIndex: 0, extensionId: 'ext-a', emit: vi.fn() })
+  const emitAcked = async (command, payload, ack) => {
+    await bus.emit('split:source-command', { command, payload, ack })
+  }
+
+  it('answers applied when the routed insert mutates the source document', async () => {
+    const cm = mountSource({ markdown: 'alpha\nbeta' })
+    const acked = verdict()
+    await emitAcked('insert', 'XYZ', acked)
+    expect(cm.getValue()).toContain('XYZ')
+    expect(acked.emit).toHaveBeenCalledTimes(1)
+    expect(acked.emit).toHaveBeenCalledWith(acked, true, '')
+  })
+
+  it('answers applied when the routed transform replaces the document', async () => {
+    const cm = mountSource({ markdown: 'one two' })
+    const acked = verdict()
+    await emitAcked('transform', 'whole new document', acked)
+    expect(cm.getValue()).toBe('whole new document')
+    expect(acked.emit).toHaveBeenCalledTimes(1)
+    expect(acked.emit).toHaveBeenCalledWith(acked, true, '')
+  })
+
+  it('answers the targeting refusal on a read-only pane without mutating', async () => {
+    const cm = mountSource({ markdown: 'frozen', locked: true })
+    const acked = verdict()
+    await emitAcked('insert', 'mutation', acked)
+    expect(cm.getValue()).toBe('frozen')
+    expect(acked.emit).toHaveBeenCalledTimes(1)
+    expect(acked.emit).toHaveBeenCalledWith(acked, false, 'targeting_gate_refused')
+  })
+
+  it('keeps ack-less commands exactly as before — no verdict, no refusal', async () => {
+    const cm = mountSource({ markdown: 'plain' })
+    bus.emit.mockClear()
+    await emitAcked('transform', 'no ack here', undefined)
+    expect(cm.getValue()).toBe('no ack here')
+    expect(bus.emit.mock.calls.filter(([name]) => name === 'split:source-edit')).toHaveLength(1)
+  })
+})

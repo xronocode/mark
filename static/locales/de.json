@@ -92,6 +92,8 @@
       "plantumlConsentMessage": "{count} PlantUML-Diagramm(e) würden zum Rendern an {address} gesendet — der Diagramm-Quelltext verlässt diese Maschine",
       "plantumlConsentConfirm": "Zu plantuml.com senden",
       "plantumlConsentCancel": "Quelle lokal behalten",
+      "plantumlFallbackTitle": "Einige PlantUML-Diagramme wurden nicht geladen",
+      "plantumlFallbackMessage": "{count} PlantUML-Diagramm(e) konnten nicht von plantuml.com geladen werden, ihr Quelltext bleibt im Word-Export erhalten",
       "pinMismatchTitle": "Export gestoppt — das Dokument hat sich geändert",
       "pinMismatchMessage": "Das zu exportierende Dokument wurde während des Wartens geändert (Tab-Wechsel oder Bearbeitung) — es wurde nichts exportiert. Starten Sie den Export erneut.",
       "pinDiskChangedTitle": "Export gestoppt — die Datei wurde auf dem Datenträger geändert",

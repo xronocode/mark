@@ -548,9 +548,15 @@ const runSearch = (value = searchState.value, opt = searchState.opt) => {
   editorStore.SEARCH(searchState)
   return searchState
 }
-const handleSourceCommand = async ({ command, payload }) => {
+const handleSourceCommand = async ({ command, payload, ack }) => {
   const cm = editor.value
-  if (!cm || !sourceFocused()) return
+  // C-EXT-EDIT-PROOF: an ext op routed here by editor.vue's routeSource
+  // carries its verdict channel in `ack` ({ requestId, opIndex,
+  // extensionId, emit }). Every exit answers it — applied after the
+  // mutation records, the stable content-free refusal classes before any
+  // mutation — so a source-pane edit is never a silent apply + 504.
+  const answerAck = (applied, reason) => { if (ack) ack.emit(ack, applied, reason) }
+  if (!cm || !sourceFocused()) { answerAck(false, 'targeting_gate_refused'); return }
   if (command === 'focus') {
     cm.getInputField().focus({ preventScroll: true })
     return
@@ -566,7 +572,7 @@ const handleSourceCommand = async ({ command, payload }) => {
     editorStore.SEARCH(searchState)
     return
   }
-  if (cm.getOption('readOnly')) return
+  if (cm.getOption('readOnly')) { answerAck(false, 'targeting_gate_refused'); return }
   bus.emit('split:flush')
   if (command === 'insertAsset') { insertAsset(payload.image, payload.alt); return }
   if (command === 'pasteAsPlainText') {
@@ -584,8 +590,17 @@ const handleSourceCommand = async ({ command, payload }) => {
     return
   }
   if (command === 'transform') {
-    if (cm.somethingSelected()) cm.replaceSelection(payload, 'end', '+input')
-    else cm.replaceRange(payload, { line: 0, ch: 0 }, cm.posFromIndex(cm.getValue().length), '+input')
+    try {
+      if (cm.somethingSelected()) cm.replaceSelection(payload, 'end', '+input')
+      else cm.replaceRange(payload, { line: 0, ch: 0 }, cm.posFromIndex(cm.getValue().length), '+input')
+    } catch (err) {
+      // C-EXT-EDIT-PROOF: a failed apply answers the honest class; a
+      // command without an ack keeps the pre-existing throw behavior.
+      if (!ack) throw err
+      answerAck(false, 'apply_failed')
+      return
+    }
+    answerAck(true, '')
     return
   }
   if (command === 'formatDocument') {
@@ -594,12 +609,24 @@ const handleSourceCommand = async ({ command, payload }) => {
     return
   }
   const result = applySourceCommand(cm.getValue(), currentSelection(), command, payload)
-  if (!result) return
-  if (result.reason) { notice.notify({ title: 'Markdown source', message: result.reason, type: 'info' }); return }
-  cm.operation(() => {
-    cm.replaceRange(result.text, cm.posFromIndex(result.from), cm.posFromIndex(result.to), '+input')
-    cm.setSelection(cm.posFromIndex(result.anchor), cm.posFromIndex(result.head))
-  })
+  if (!result) { answerAck(false, 'targeting_gate_refused'); return }
+  if (result.reason) {
+    notice.notify({ title: 'Markdown source', message: result.reason, type: 'info' })
+    answerAck(false, 'targeting_gate_refused')
+    return
+  }
+  try {
+    cm.operation(() => {
+      cm.replaceRange(result.text, cm.posFromIndex(result.from), cm.posFromIndex(result.to), '+input')
+      cm.setSelection(cm.posFromIndex(result.anchor), cm.posFromIndex(result.head))
+    })
+  } catch (err) {
+    // C-EXT-EDIT-PROOF: see the transform leg — no ack keeps the throw.
+    if (!ack) throw err
+    answerAck(false, 'apply_failed')
+    return
+  }
+  answerAck(true, '')
 }
 const handleSourceSelection = (request) => {
   if (sourceFocused() && editor.value) {
