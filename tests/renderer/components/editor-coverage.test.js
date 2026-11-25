@@ -2380,21 +2380,6 @@ describe('editor.vue — coverage', () => {
     }
   })
 
-  /* ── keyup listener (Escape closes image viewer) ───────────── */
-  it('Escape key hides image viewer', async () => {
-    await mountEditor()
-    const event = new KeyboardEvent('keyup', { key: 'Escape' })
-    document.dispatchEvent(event)
-    // imageViewerVisible should be set to false (it starts as null, then false)
-  })
-
-  it('non-Escape key does not affect image viewer', async () => {
-    await mountEditor()
-    const event = new KeyboardEvent('keyup', { key: 'Enter' })
-    document.dispatchEvent(event)
-    // No throw
-  })
-
   /* ── Muya event: change ────────────────────────────────────── */
   it('Muya change event calls LISTEN_FOR_CONTENT_CHANGE', async () => {
     await mountEditor()

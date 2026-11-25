@@ -27,12 +27,6 @@
       class="editor-component"
       :contenteditable="isReadOnlySurface ? 'false' : 'true'"
     ></div>
-    <div v-show="imageViewerVisible" class="image-viewer">
-      <span class="icon-close" @click="setImageViewerVisible(false)">
-        <chrome-icon name="close" :size="16" aria-hidden="true" />
-      </span>
-      <div ref="imageViewerRef"></div>
-    </div>
     <el-dialog
       v-model="dialogTableVisible"
       :show-close="isShowClose"
@@ -369,7 +363,6 @@
 import { createCompositionFence, translateAndClamp, preserveSourceSyntax } from '@/util/splitDualEdit'
 import { ref, reactive, watch, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import log from 'electron-log'
-// import ViewImage from 'view-image'
 import Muya from 'muya/lib'
 // C-LARGE-DOC-WAVE-A T-004: the T-003 content-free open-path marker names,
 // re-exported from muya's public surface ('muya/lib' — the same entry the
@@ -473,10 +466,6 @@ import { useI18n } from 'vue-i18n'
 
 import 'muya/themes/default.css'
 import '@/assets/themes/codemirror/one-dark.css'
-// import 'view-image/lib/imgViewer.css'
-// C-38 T-006 N4 d: the image-viewer close glyph renders from the drawn
-// chromeIcons set (the assets/icons/close.svg import is gone).
-import { ChromeIcon } from '../icons/chromeIcons.js'
 
 const { t } = useI18n()
 const STANDAR_Y = 320
@@ -578,7 +567,6 @@ const selectionChange = ref(null)
 const editor = ref(null)
 const isShowClose = ref(false)
 const dialogTableVisible = ref(false)
-const imageViewerVisible = ref(null)
 const tableChecker = reactive({
   rows: 4,
   columns: 3
@@ -586,14 +574,12 @@ const tableChecker = reactive({
 
 // Template refs
 const editorRef = ref(null)
-const imageViewerRef = ref(null)
 const rowInput = ref(null)
 
 // Non-reactive variables
 let printer = null
 let spellchecker = null
 let switchLanguageCommand = null
-let imageViewer = null
 
 // M-022 mt-preview-mode: derive preview state from the active tab so
 // the .is-preview class flips reactively when APPLY_PREVIEW_MODE /
@@ -1526,16 +1512,6 @@ const imageAction = async (image, id, alt = '') => {
 
 const imagePathPicker = () => {
   return editorStore.ASK_FOR_IMAGE_PATH()
-}
-
-const keyup = (event) => {
-  if (event.key === 'Escape') {
-    setImageViewerVisible(false)
-  }
-}
-
-const setImageViewerVisible = (status) => {
-  imageViewerVisible.value = status
 }
 
 const switchSpellcheckLanguage = (languageCode) => {
@@ -4222,34 +4198,8 @@ onMounted(() => {
       if (linkSourceMuya.container?.contains(event.target)) {
         jumpClick(data, linkSourceMuya.linkInteraction?.epoch, linkSourceMuya)
       }
-    } else if (formatType === 'image' && ctrlOrMeta) {
-      if (imageViewer) {
-        imageViewer.destroy()
-      }
-
-      // Disabled due to #2120.
-      // imageViewer = new ViewImage(imageViewerRef.value, {
-      //   url: data,
-      //   snapView: true
-      // })
-
-      setImageViewerVisible(true)
     }
   })
-
-  // Disabled due to #2120.
-  // editor.value.on('preview-image', ({ data }) => {
-  //   if (imageViewer) {
-  //     imageViewer.destroy()
-  //   }
-  //
-  //   imageViewer = new ViewImage(imageViewerRef.value, {
-  //     url: data,
-  //     snapView: true
-  //   })
-  //
-  //   setImageViewerVisible(true)
-  // })
 
   editor.value.on('selectionChange', (changes) => {
     if (isMirrorSurface.value) return
@@ -4305,8 +4255,6 @@ onMounted(() => {
   // C-65 T-001: muya fires this only after a real table layout action
   // (drag end with movement, double-click reset, Full width toggle).
   editor.value.on('muya-table-layouts', handleTableLayoutsChange)
-
-  document.addEventListener('keyup', keyup)
 
   setWrapCodeBlocks(wrapCodeBlocks.value)
   setEditorWidth(editorLineWidth.value)
@@ -4398,8 +4346,8 @@ onBeforeUnmount(() => {
     clearAppliedEditorWidth()
   }
 
-  document.removeEventListener('keyup', keyup)
   editor.value.off('change')
+
   editor.value.off('scroll')
   // C-LARGE-DOC-WAVE-A T-004: drop the open-path marker subscriptions
   // before muya is destroyed (real handler references — muya's
@@ -4509,43 +4457,5 @@ onBeforeUnmount(() => {
 .typewriter .editor-component {
   padding-top: calc(50vh - 136px);
   padding-bottom: calc(50vh - 54px);
-}
-
-.image-viewer {
-  position: fixed;
-  backdrop-filter: blur(5px);
-  top: 0;
-  right: 0;
-  left: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  z-index: 11;
-  & .icon-close {
-    z-index: 1000;
-    width: 30px;
-    height: 30px;
-    position: absolute;
-    top: 50px;
-    left: 50px;
-    display: block;
-    & svg {
-      color: #efefef;
-      width: 100%;
-      height: 100%;
-    }
-  }
-}
-
-.iv-container {
-  width: 100%;
-  height: 100%;
-}
-
-.iv-snap-view {
-  opacity: 1;
-  bottom: 20px;
-  right: 20px;
-  top: auto;
-  left: auto;
 }
 </style>

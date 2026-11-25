@@ -191,8 +191,7 @@ const handleSearchResultClick = (searchMatch) => {
             title: t('workspace.fileOpenFailedTitle'),
             message: String(e),
             type: 'error',
-            time: 20000,
-            showConfirm: false
+            time: 20000
           })
         })
       }

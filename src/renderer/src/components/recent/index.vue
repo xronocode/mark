@@ -564,8 +564,7 @@ const restoreSession = async () => {
       title: t('recent.lastSession'),
       message: t('recent.lastSessionEmpty'),
       type: 'warning',
-      time: 6000,
-      showConfirm: false
+      time: 6000
     })
   }
 }

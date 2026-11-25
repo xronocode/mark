@@ -269,9 +269,6 @@ export const useProjectStore = defineStore('project', {
     // Multi-root: array of TreeRoot objects (one per opened folder).
     // Order is insertion order (oldest first).
     projectTrees: [],
-    // Per-root buckets of tree events that arrived before the root was loaded.
-    // Keyed by future canonical pathname; each bucket is a queue of {type, change}.
-    pendingTreeEvents: {},
     // C-MULTI-SOURCE-WORKSPACE: ask-mode dispatcher state.
     // pendingFolderChoice — { pathname, origin } shown by workspaceModeDialog
     // (Add preselected / Replace / Cancel); pendingReplaceConfirm —
@@ -396,8 +393,7 @@ export const useProjectStore = defineStore('project', {
           title: i18n.global.t('workspace.cloudRootHintTitle'),
           type: 'info',
           message: i18n.global.t('workspace.cloudRootHint'),
-          time: 8000,
-          showConfirm: false
+          time: 8000
         })
       }
 
@@ -409,17 +405,6 @@ export const useProjectStore = defineStore('project', {
       }
       layoutStore.SET_LAYOUT(layout)
       layoutStore.DISPATCH_LAYOUT_MENU_ITEMS()
-
-      // Drain pending events for this exact root pathname.
-      const bucket = this.pendingTreeEvents[canonical]
-      if (bucket && bucket.length) {
-        // eslint-disable-next-line no-console
-        console.debug(`[ProjectStore][TreeEvent][REPLAY] root=${canonical} count=${bucket.length}`)
-        for (const event of bucket) {
-          this._processTreeEvent(event.type, event.change)
-        }
-        delete this.pendingTreeEvents[canonical]
-      }
 
       // C-1 fix: subscribe the file-watcher for this root. Backend
       // emits debounced WatchEvents on mt::watch::event; the handler
@@ -862,8 +847,8 @@ export const useProjectStore = defineStore('project', {
 
     /**
      * Synchronously remove a root + tell main to unwatch (real unwatch
-     * since C-2: mt_close_project_root drops the WatchRegistry entries)
-     * + drop pending bucket. Idempotent: closing an unknown path is a
+     * since C-2: mt_close_project_root drops the WatchRegistry entries).
+     * Idempotent: closing an unknown path is a
      * no-op with a NOOP_NOT_FOUND marker.
      */
     async CLOSE_PROJECT(rootPathname) {
@@ -875,7 +860,6 @@ export const useProjectStore = defineStore('project', {
         return
       }
       this.projectTrees.splice(idx, 1)
-      delete this.pendingTreeEvents[canonical]
       // eslint-disable-next-line no-console
       console.debug(`[ProjectStore][CLOSE_PROJECT][REMOVE] path=${canonical} remaining=${this.projectTrees.length}`)
       // C-1 fix: tear down the file-watcher subscription. dispose() is

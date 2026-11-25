@@ -416,8 +416,7 @@ export function createExternalReloadController(deps) {
         title: deps.t('store.editor.errorLoadingTabTitle'),
         message: deps.t('store.editor.errorLoadingTabMessage'),
         type: 'error',
-        time: 20000,
-        showConfirm: false
+        time: 20000
       })
       return
     }

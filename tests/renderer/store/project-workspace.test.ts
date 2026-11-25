@@ -525,7 +525,6 @@ describe('cloud follow-up (fix wave)', () => {
         store.ENQUEUE_TREE_EVENT({ type: 'add', change: { pathname: `/tmp/coalesce/f${i}.md`, name: `f${i}.md` } })
       }
       expect(fold.mock.calls.length).toBeGreaterThan(400)
-      expect(store.pendingTreeEvents['/tmp/coalesce']).toBeUndefined()
     } finally {
       vi.useRealTimers()
     }

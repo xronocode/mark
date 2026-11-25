@@ -1,7 +1,9 @@
 /**
  * Tests for src/renderer/src/node/paths.js
  *
- * Covers: RendererPaths constructor, ripgrepBinaryPath getter, env override
+ * Covers: RendererPaths constructor (the ripgrep binary-path machinery —
+ * MARKTEXT_RIPGREP_PATH override, window.rgPath default, getter — was
+ * removed as dead code; the Tauri search backend never read it)
  */
 
 vi.mock('common/envPaths', () => {
@@ -14,13 +16,9 @@ vi.mock('common/envPaths', () => {
   }
 })
 
-// paths.js evaluates `window.rgPath.replace(...)` at the module top level,
-// so we must use dynamic import after setting window.rgPath in each test.
 describe('node/paths', () => {
   beforeEach(() => {
     vi.resetModules()
-    window.rgPath = '/app/node_modules/vscode-ripgrep/bin/rg'
-    window.electron.process.env = {}
   })
 
   async function loadRendererPaths() {
@@ -39,36 +37,5 @@ describe('node/paths', () => {
     const RendererPaths = await loadRendererPaths()
     const paths = new RendererPaths('/tmp/mt-test')
     expect(paths.userDataPath).toBe('/tmp/mt-test')
-  })
-
-  it('should set ripgrepBinaryPath from window.rgPath with asar unpacked', async () => {
-    window.rgPath = '/app/app.asar/node_modules/vscode-ripgrep/bin/rg'
-    const RendererPaths = await loadRendererPaths()
-    const paths = new RendererPaths('/tmp/mt-test')
-    expect(paths.ripgrepBinaryPath).toBe(
-      '/app/app.asar.unpacked/node_modules/vscode-ripgrep/bin/rg'
-    )
-  })
-
-  it('should use rgPath as-is when no app.asar in path', async () => {
-    window.rgPath = '/usr/local/bin/rg'
-    const RendererPaths = await loadRendererPaths()
-    const paths = new RendererPaths('/tmp/mt-test')
-    expect(paths.ripgrepBinaryPath).toBe('/usr/local/bin/rg')
-  })
-
-  it('should use MARKTEXT_RIPGREP_PATH env override when set', async () => {
-    window.electron.process.env.MARKTEXT_RIPGREP_PATH = '/custom/rg'
-    const RendererPaths = await loadRendererPaths()
-    const paths = new RendererPaths('/tmp/mt-test')
-    expect(paths.ripgrepBinaryPath).toBe('/custom/rg')
-  })
-
-  it('should prefer env override over window.rgPath', async () => {
-    window.rgPath = '/default/rg'
-    window.electron.process.env.MARKTEXT_RIPGREP_PATH = '/override/rg'
-    const RendererPaths = await loadRendererPaths()
-    const paths = new RendererPaths('/tmp/mt-test')
-    expect(paths.ripgrepBinaryPath).toBe('/override/rg')
   })
 })

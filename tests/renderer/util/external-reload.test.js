@@ -943,8 +943,7 @@ describe('applyLoadedChange — committed replacement entry (no admission)', () 
       title: expect.stringContaining('store.editor.errorLoadingTabTitle'),
       message: expect.stringContaining('store.editor.errorLoadingTabMessage'),
       type: 'error',
-      time: 20000,
-      showConfirm: false
+      time: 20000
     })
   })
 

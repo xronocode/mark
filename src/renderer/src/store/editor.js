@@ -714,8 +714,7 @@ export const useEditorStore = defineStore('editor', {
           title: i18n.global.t('dialog.saveFailure'),
           message: msg,
           type: 'error',
-          time: 20000,
-          showConfirm: false
+          time: 20000
         })
         return
       }
@@ -967,8 +966,7 @@ export const useEditorStore = defineStore('editor', {
             title: i18n.global.t('workspace.fileOpenFailedTitle'),
             message: String(e),
             type: 'error',
-            time: 20000,
-            showConfirm: false
+            time: 20000
           })
         }
       }
@@ -1007,8 +1005,7 @@ export const useEditorStore = defineStore('editor', {
             paths: skippedFolders.join(', ')
           }),
           type: 'warning',
-          time: 10000,
-          showConfirm: false
+          time: 10000
         })
       }
       return result
