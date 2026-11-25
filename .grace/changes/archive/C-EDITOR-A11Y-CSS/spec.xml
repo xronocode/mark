@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved">
+<GraceChangeSpec graceVersion="4.0" status="applied">
   <C-EDITOR-A11Y-CSS>
     <Name>Editor accessibility and system typography closeout: visible keyboard focus on every remaining Settings-window control and the chrome system font on the two body-teleported imperative dialogs, with the already-delivered wave findings (quick-settings keyboard support, sheet focus trap, custom-CSS clear) pinned as current-state regressions</Name>
     <Created>2026-11-25</Created>

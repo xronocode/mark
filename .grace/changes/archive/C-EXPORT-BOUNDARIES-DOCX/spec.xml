@@ -1,4 +1,4 @@
-<GraceChangeSpec graceVersion="4.0" status="approved">
+<GraceChangeSpec graceVersion="4.0" status="applied">
   <C-EXPORT-BOUNDARIES-DOCX>
     <Name>Export consent boundaries verified end to end: the docx/html embed-consent and PlantUML-consent gates and the fenced diff baseline get artifact-level e2e pins through the real renderer, holding the C-EXPORT-BOUNDARIES delivery honestly</Name>
     <Created>2026-11-25</Created>

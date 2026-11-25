@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved">
+<GraceChangePlan graceVersion="4.0" status="applied">
   <C-EXPORT-BOUNDARIES-DOCX>
     <Name>Artifact-level e2e consent pins for the export boundaries: embed-consent and PlantUML-consent gates on the html/docx doors, the m031 diff-fence hold-green and the V-M-065/V-M-066 verification deltas – implementation plan</Name>
     <Created>2026-11-25</Created>
