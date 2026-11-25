@@ -1,4 +1,4 @@
-<GraceChangePlan graceVersion="4.0" status="approved">
+<GraceChangePlan graceVersion="4.0" status="applied">
   <C-SURFACE-OWNERSHIP>
     <Name>One surface-ownership answer in editor.vue and one live-document closure volume in editor.js – implementation plan</Name>
     <ChangeRef>C-SURFACE-OWNERSHIP</ChangeRef>
