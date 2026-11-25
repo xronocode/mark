@@ -38,6 +38,11 @@ export default defineConfig({
       // libs (muya/lib/utils path, sequence-diagram-snap fs/path stubs).
       path: 'path-browserify',
       fs: resolve(__dirname, 'src/renderer/src/util/fs-shim.js'),
+      // complexity f-015: bare `zlib` imports otherwise hit vite's
+      // browser-external stub, which throws before any request — muya's
+      // PlantUML transport and the docx PlantUML prepass both share the
+      // real deflate/inflate shim (see _shims/zlib.js).
+      zlib: resolve(__dirname, 'src/renderer/src/_shims/zlib.js'),
       // F-MAIN-ENTRY-DISABLED close (2026-04-29):
       // Build-time replacements for v1.2.3 renderer's Electron-only
       // imports. Real impls in src/renderer/src/_shims/ —

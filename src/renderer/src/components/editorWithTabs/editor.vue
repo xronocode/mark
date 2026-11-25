@@ -164,7 +164,7 @@
 //   ext targeting zone START_BLOCK_EXT_TEXT_OPS stays byte-identical. The
 //   one live-document closure delta of this change lives in the store
 //   file's own CHANGE_SUMMARY entry (editor.js).
-//   2026-11-23 C-EXPORT-DOCUMENT-PIN: handleExport captures one immutable export pin at entry (after flushSplit, before the first consent card) — documentOwner identity, contentRevision, pathname/documentDir, pinned filename plus first-heading fallback, and for a titled document a baseline SHA-256 over the on-disk bytes (crypto.subtle.digest over the ipcFs.readBinary binary bridge — keeping the C-SELF-CONTAINED-HTML-EXPORT no-UTF-8-read invoke-log pin intact; no new dependency, no new IPC); verifyExportPin re-checks the rendered surface identity plus the live tab token/revision after every await that can observe a document change in all four branches (pdf/print pin before their single render and verify before mt_export_pdf/mt_print_webview while still never running either consent gate — the stricter refusal inside their narrower windows is the accepted Goal-4 trade-off); the embed directory and the requestScopeConsent card's {dir} are re-sourced per export from exportPin.documentDir (the two live currentFile re-reads are gone); the dispatches carry the additive optional exportPin; a mismatch raises exactly one localized editor.export.pinMismatch notice plus the count-only [export][pin][BLOCK_EXPORT_PIN_MISMATCH class=identity] marker with no EXPORT dispatch, no embed pass and no gate re-run against another document. Known residual (documented, not closed): content committed to the muya model but not yet synced into tab.markdown can render into the artifact without moving contentRevision — flushSplit covers only the entry moment.
+//   2026-11-23 C-EXPORT-DOCUMENT-PIN: handleExport captures one immutable export pin at entry (after flushSplit, before the first consent card) — documentOwner identity, contentRevision, pathname/documentDir, pinned filename plus first-heading fallback, and for a titled document a baseline SHA-256 over the on-disk bytes (crypto.subtle.digest over the ipcFs.readBinary binary bridge — keeping the C-SELF-CONTAINED-HTML-EXPORT no-UTF-8-read invoke-log pin intact; no new dependency, no new IPC); verifyExportPin re-checks the rendered surface identity plus the live tab token/revision after every await that can observe a document change in all four branches (pdf/print pin before their single render and verify before mt_export_pdf/mt_print_webview while still never running either consent gate — the stricter refusal inside their narrower windows is the accepted Goal-4 trade-off); the embed directory and the requestScopeConsent card's {dir} are re-sourced per export from exportPin.documentDir (the two live currentFile re-reads are gone); the dispatches carry the additive optional exportPin; a mismatch raises exactly one localized editor.export.pinMismatch notice plus the count-only [export][pin][BLOCK_EXPORT_PIN_MISMATCH class=identity] marker with no EXPORT dispatch, no embed pass and no gate re-run against another document. Residual (documented 2026-11-23, closed 2026-11-26 complexity f-002): content committed to the muya model but not yet synced into tab.markdown can no longer render into the artifact silently — the pin freezes the model snapshot (modelMarkdown) and verifyExportPin re-compares the live model against it.
 //   2026-11-22 C-EXT-EDIT-PROOF: every request-tagged ext mutation answers
 //   one ack/nack verdict through the additive renderer-to-backend Tauri
 //   event mt::ext::text_op_ack ({request_id, op_index, applied, reason},
@@ -2438,10 +2438,11 @@ const requestPlantUMLExportConsent = async (diagramCount) => {
 // exactly one localized notice plus the count-only
 // BLOCK_EXPORT_PIN_MISMATCH marker — no dispatch, no embed pass, no gate
 // re-run against another document.
-// Known residual (documented, not closed): content committed to the muya
-// model but not yet synced into tab.markdown can render into the
-// artifact without moving contentRevision — flushSplit covers only the
-// entry moment.
+// Residual closed (2026-11-26, complexity f-002 residual): the pin also
+// freezes the muya model snapshot (modelMarkdown) and verifyExportPin
+// re-compares the live model against it. Content committed to the model
+// but not yet synced into tab.markdown moves no contentRevision, so the
+// model itself — not the tab revision — is the pinned export snapshot.
 // ──────────────────────────────────────────────────────────────────────
 const exportPinDigest = async (pathname) => {
   // Decision (recorded in the contract): the baseline bytes ride the
@@ -2498,6 +2499,10 @@ const captureExportPin = async () => {
     documentDir: pinnedDir,
     filename: tab.filename || '',
     firstHeading,
+    // Residual closure: the export snapshot is the muya model itself.
+    // flushSplit has already drained the split pane at this point, so the
+    // model markdown is the bytes exportStyledHTML would serialize.
+    modelMarkdown: editor.value?.getMarkdown?.() || '',
     baselineDigest,
     baselineStat
   })
@@ -2517,7 +2522,14 @@ const verifyExportPin = (exportPin) => {
       renderedDocumentOwner?.documentToken === exportPin.owner.documentToken)
   const tokenMatch = !!liveOwner && liveOwner.documentToken === exportPin.owner.documentToken
   const revisionMatch = !!tab && (tab.contentRevision || 0) === exportPin.contentRevision
-  if (renderedMatch && tokenMatch && revisionMatch) return true
+  // Residual closure: a model-side commit that never synced into
+  // tab.markdown moves no contentRevision, so the live model is compared
+  // against the pinned snapshot directly. Pins captured before this check
+  // existed carry no modelMarkdown and keep today's behavior.
+  const modelMatch =
+    typeof exportPin.modelMarkdown !== 'string' ||
+    editor.value?.getMarkdown?.() === exportPin.modelMarkdown
+  if (renderedMatch && tokenMatch && revisionMatch && modelMatch) return true
   notice.notify({
     title: t('editor.export.pinMismatchTitle'),
     message: t('editor.export.pinMismatchMessage'),

@@ -103,7 +103,9 @@ function decodePlantUmlSource (src) {
       if (index < 0) throw new Error('foreign character in diagram encoding')
       return PLANTUML_CHARSET_IN[index]
     }).join('')
-    return zlib.inflateSync(Buffer.from(base64, 'base64')).toString('utf8')
+    // The renderer has no Buffer (step-8j); the zlib shim takes the base64
+    // string directly (complexity f-015).
+    return zlib.inflateSync(base64).toString('utf8')
   } catch (_) {
     return null
   }

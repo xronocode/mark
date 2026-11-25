@@ -133,8 +133,12 @@ const tableBlockCtrl = (ContentState) => {
             row.children[column].align = newAlign
           })
         })
-        this.muya.eventCenter.dispatch('stateChange')
+        // One publish stage for every table mutation: the render lands
+        // before the change is published (complexity f-006 — the toolbar
+        // used to publish first, so 'change' listeners saw the stale DOM
+        // while editTable/createTable published after their render).
         this.partialRender()
+        this.muya.eventCenter.dispatch('stateChange')
         break
       }
       case 'delete': {
@@ -150,8 +154,10 @@ const tableBlockCtrl = (ContentState) => {
           end: { key, offset },
           isEdit: true
         }
-        this.muya.eventCenter.dispatch('stateChange')
+        // Same normalized stage as the align branch above: render, then
+        // publish (complexity f-006).
         this.partialRender()
+        this.muya.eventCenter.dispatch('stateChange')
         break
       }
       case 'table': {
@@ -232,8 +238,11 @@ const tableBlockCtrl = (ContentState) => {
             end: { key, offset },
             isEdit: true
           }
-          this.muya.eventCenter.dispatch('stateChange')
+          // Same normalized stage as the align/delete branches: render,
+          // then publish (complexity f-006) — the row/column insert now
+          // publishes at the same stage as editTable.
           this.partialRender()
+          this.muya.eventCenter.dispatch('stateChange')
         }
 
         const reference = getParagraphReference(tableEle, tableEle.id)

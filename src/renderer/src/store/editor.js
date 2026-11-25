@@ -1063,6 +1063,21 @@ export const useEditorStore = defineStore('editor', {
       const newPathname = window.path.join(destDir, filename)
       try {
         await window.fileUtils.move(pathname, newPathname)
+        // The rename flows (RENAME / RENAME_IF_NEEDED) move the same
+        // per-file state — the move-to flow must not leave it parked on
+        // the old directory.
+        moveTableLayoutsEntry(pathname, newPathname).catch(e =>
+          console.warn(`[editor][rename][BLOCK_TABLE_LAYOUTS_MOVE_FAILED] ${e}`)
+        )
+        // C-FILE-POSITION-MEMORY: the remembered position follows the move.
+        moveFilePositionsEntry(pathname, newPathname).catch(e =>
+          console.warn(`[editor][rename][BLOCK_POSITION_MOVE_FAILED] ${e}`)
+        )
+        // C-PAGE-WIDTH-TABLES: the remembered page width — and the pinned
+        // per-document theme inside the same entry — follows the move.
+        movePageWidthEntry(pathname, newPathname).catch(e =>
+          console.warn(`[editor][rename][BLOCK_PAGE_WIDTH_MOVE_FAILED] ${e}`)
+        )
         const moved=this.tabs.find(tab=>tab.id===id && tab.pathname===pathname)
         if(moved) { moved.pathname=newPathname; moved.filename=filename }
         if(this.currentFile.id===id && moved) window.DIRNAME=window.path.dirname(newPathname)

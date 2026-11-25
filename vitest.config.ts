@@ -49,6 +49,9 @@ export default defineConfig({
       main_renderer: resolve(__dirname, 'src/_main_renderer_REMOVED_use_ipc'),
       path: 'path-browserify',
       fs: resolve(__dirname, 'src/renderer/src/util/fs-shim.js'),
+      // Mirror of the vite.config.js zlib alias (complexity f-015): tests
+      // resolve `zlib` through the same browser shim the bundle does.
+      zlib: resolve(__dirname, 'src/renderer/src/_shims/zlib.js'),
       'electron-log/renderer': resolve(__dirname, 'src/renderer/src/_shims/electron-log.js'),
       'electron-log': resolve(__dirname, 'src/renderer/src/_shims/electron-log.js'),
       '@hfelix/electron-localshortcut/src/atom-keymap': resolve(
