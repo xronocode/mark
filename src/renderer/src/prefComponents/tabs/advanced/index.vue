@@ -124,7 +124,7 @@
 
 <script setup>
 // FILE: src/renderer/src/prefComponents/tabs/advanced/index.vue
-// VERSION: 2.0.0
+// VERSION: 2.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Advanced tab of the C-38 Settings window — Images and uploads (insert action, folder chooser, relative-folder rows, no upload (image upload stays retired)), Customise (shortcuts/extensions/custom-CSS sheets) and the destructive Reset with an in-app confirmation, per the N2 IA §3.5 and C-38 decisions 3–4.
 //   SCOPE: Row composition; image folder path field + Choose/Open; the three sheets; reset confirmation driving store RESET_PREFERENCES_TO_DEFAULTS.
@@ -142,6 +142,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-25 v2.0.1: C-EDITOR-A11Y-CSS — the image-folder buttons and
+//     the Reset confirm buttons carry the C-SETTINGS-KEYBOARD-FOCUS canon
+//     outline (2px var(--prefAccent), 1px offset) under :focus-visible;
+//     no other change.
 //   - 2026-10-15 v2.0.0: C-38 T-004 — real Advanced tab: the old Image page's folder logic moves into the new anatomy (image upload stays retired in every edition — no uploader UI), the Keybindings page and the Extensions gallery open as sheets from Customise (decision 4), Custom CSS edits in a sheet, and Reset asks through an in-app dialog.
 //   - (v1.x: C-38 T-003 interim wrapper stacking the old Image/Keybindings/Extensions pages — retired.)
 // END_CHANGE_SUMMARY
@@ -279,6 +283,12 @@ const performReset = async () => {
   box-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.08);
   white-space: nowrap;
 }
+
+/* C-SETTINGS-KEYBOARD-FOCUS canon: keyboard-visible outline only. */
+.pref-tab-page--advanced .pref-image-folder-btn:focus-visible {
+  outline: 2px solid var(--prefAccent);
+  outline-offset: 1px;
+}
 /* END_BLOCK_IMAGE_FOLDER_METRICS */
 
 /* START_BLOCK_RESET_DIALOG_METRICS */
@@ -339,6 +349,13 @@ const performReset = async () => {
   background: var(--prefCtrl, #ffffff);
   color: var(--prefText, #1d1d1f);
   box-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.08);
+}
+
+/* C-SETTINGS-KEYBOARD-FOCUS canon: keyboard-visible outline only; the
+   danger fill stays a background, visually distinct from the ring. */
+.pref-reset-overlay .pref-reset-btn:focus-visible {
+  outline: 2px solid var(--prefAccent);
+  outline-offset: 1px;
 }
 
 .pref-reset-overlay .pref-reset-btn.is-danger {

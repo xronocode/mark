@@ -1,0 +1,455 @@
+<GraceChangePlan graceVersion="4.0" status="approved">
+  <C-EDITOR-A11Y-CSS>
+    <Name>Editor accessibility and system typography closeout: the canon focus outline on the eight remaining Settings-window controls and the chrome system font on the two body-teleported imperative dialogs, with the delivered wave findings pinned as current-state regressions — implementation plan</Name>
+    <Created>2026-11-25</Created>
+    <Spec>C-EDITOR-A11Y-CSS</Spec>
+    <IntentSummary>Draft plan for the approved C-EDITOR-A11Y-CSS closeout (the wave-5 audit open legs F-006/F-008 plus the honest current-state pinning of F-005/F-010/F-011), every code fact re-verified at its cited line on this green-w5d tree (branch spec/editor-a11y-css, rebased on 638c0a7c; the spec-draft-time anchors held with a small upward drift (up to +2 lines): the M-011 card is runtime.xml:2640 and scenario-settings-keyboard-focus is verification/runtime.xml:3585). (1) R-1 FOCUS-CLOSEOUT, failing-first: the global :focus outline kill (src/renderer/src/assets/styles/index.css:230-232) stays byte-identical and each of the eight named Settings-window controls gains exactly outline: 2px solid var(--prefAccent); outline-offset: 1px; inside :focus-visible only, beside the control's own chrome in its owning file — .pref-button (prefComponents/common/buttonRow/index.vue:75-86), .pref-stepper-btn (prefComponents/common/range/index.vue:219-226, the aria-labelled Increase/Decrease buttons at :21/:33), .pref-tab-page--appearance .theme-family-tile (prefComponents/tabs/appearance/index.vue:319-327, the Settings-window twin of the delivered quick-settings tile), .pref-dictionary-remove (prefComponents/tabs/editor/dictionaryList.vue:144-154), .pref-image-folder-btn (prefComponents/tabs/advanced/index.vue:269-281, inside the existing START_BLOCK_IMAGE_FOLDER_METRICS block) and .pref-reset-btn (prefComponents/tabs/advanced/index.vue:331-342, inside START_BLOCK_RESET_DIALOG_METRICS), .pref-custom-css-btn (prefComponents/tabs/advanced/sheets/customCssSheet.vue:112-123) and .pref-keybindings-btn (prefComponents/keybindings/index.vue:301-313) — no JavaScript, no tabindex or role change, no new tokens or wrappers, selected/on/active state staying visually distinct from the outline (the tile's selected ring is a box-shadow, the danger and primary fills are backgrounds) and pointer activation staying outline-free. Proof is failing-first twice over: the new source-walk inventory guard tests/renderer/prefComponents/settings-focus-inventory.test.js (red today on all eight — every interactive element whose style block carries all: unset with no same-file :focus-visible rule; the field-canon allowlist — the textBox .pref-field family, fontTextBox and compound field inputs, the keybindings search field at keybindings :297-299, the image-folder field at advanced :261-263, the CSS textarea at customCssSheet :104-106 and the tabsBar searchPanel field — is asserted non-empty with its per-entry justification so the exemption cannot silently grow; a control fitting neither bucket grows the pin explicitly, never a blanket exemption) and eight real-keyboard checkKeyboardFocus pins in tests/e2e/settings-shell.spec.ts (authored red on the pre-change tree, green after, following the file's theme-loop and toolbar-tab canon at :141-198 with the pointer-first fresh context and Tab-away clearing). (2) R-2 DIALOG-SYSTEM-TYPE, failing-first: .ag-unsaved-close-dialog gains font-family: var(--chromeFontFamily) inside its existing block (unsavedCloseDialog.css:21-31; the overlay is appended to document.body at unsavedCloseDialog.js:96) and .workspace-mode-dialog gains it inside its existing block (workspaceModeDialog.vue:206-217; teleported to body at :2, mounted once at app level, app.vue:46, imported at :173) — mirroring the delivered .el-dialog chrome rule (index.css:583, token at index.css:19) with no font-size or metric change, the FIX-007 float-token parity and the C-MULTI-SOURCE-WORKSPACE anatomy byte-identical otherwise; proof is the two computed-style pins extending tests/e2e/unsaved-dialog-theme.spec.ts on the resolveVar pattern (red today — both dialogs compute the WKWebView default family, not the -apple-system stack; the unsaved leg rides the existing CLOSE_UNSAVED_TAB light boot and dark flow, the workspace leg drives the real chooser flow through the app-level mount). (3) R-3 CURRENT-STATE, honest and green-today: F-005 (quick-settings keyboard), F-010 (sheet focus trap) and F-011 (custom-CSS clear) are already delivered on this base and are only recorded — quick-settings.test.js:204/:221 (Space/Enter with the default prevented), compact-windows-fit.spec.ts:331/:399/:427 (Aa focus+Space, trap wrap, focus restore), theme.test.js:349+ (the C-PREFS-TRUTH clear-path describe), pref-sheet.test.js and pages/common/sheet.test.js — never relabelled as red-first defect detectors; this bundle adds no quick-settings pin and touches no quickSettings, common/sheet, util/theme.js, store/preferences.js or compact-windows-fit.spec.ts file; the single green-today insurance addition is one settings-shell computed check that .pref-sheet-overlay covers the viewport while a sheet is open (the F-010 pointer-block leg, recorded as insurance, not red-first). (4) R-4 governance: the nine touched code files get VERSION bumps and exactly one new CHANGE_SUMMARY line each, pre-existing lines byte-identical — unsavedCloseDialog.css carries no MODULE_CONTRACT (the norm for components/*.css), so its FIX-011 header comment gains the naming line instead of fabricated markers; .grace/graph/runtime.xml gains one SummaryDelta prepended in M-011 and .grace/verification/runtime.xml gains the V-M-011 scenario and Commands lines, each naming C-EDITOR-A11Y-CSS; M-061/V-M-061 receive no delta (read-only adjacency — the delivered quick-settings surface is untouched). Scope discipline: CSS-only product diffs; no store, theme-pipeline or JS behavior change (the C-PREFS-WRITE-TRUTH watcher-replay enumeration stays byte-identical because this change is CSS-only); no el-dialog or index.css:560-584 rework; no i18n string; no release or train action. Execution mode: T-001..T-004 strictly sequential (single-writer discipline; T-001 authors every failing-first pin against the pre-change tree and records the red runs in the bundle evidence, T-002 turns them green with the CSS implementation, T-003 records the honest current-state evidence and the overlay insurance, T-004 lands the graph/verification deltas and the combined-diff audit); no grace-lint command appears in this plan — lint runs only in the external current/target/final phases; BOUNDED REPLAN (execution, 2026-11-25): the settings-shell dictionary e2e leg is unreachable on darwin — showDictionary = !isOsx &amp;&amp; … (prefComponents/tabs/editor/index.vue:236) with isOsx baked by the vite process.platform define, and skips are forbidden by this plan — so the shipped matrix is seven settings-shell keyboard pins; the eighth control keeps CSS coverage through the source-walk inventory guard (runs on every platform, pins the exact outline rule in dictionaryList.vue) and the stop is recorded in evidence/dictionary-e2e-leg-stop.txt; the active change set re-verified at plan time on this rebased tree is C-47 (spec only), C-50 and this change (spec only); C-EXT-DELIVERY-HONESTY and C-SEARCH-ENGINE-PARITY were archived applied on this base after the plan draft (commit 68d932dc) — the spec-draft-time enumeration predates the rebase and is superseded by this observation; writing this draft approves neither the execution plan's implementation, apply/archive, lane departure nor release.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src/renderer/src/assets/styles/index.css</Value>
+        <Value>src/renderer/src/prefComponents/common/buttonRow/index.vue</Value>
+        <Value>src/renderer/src/prefComponents/common/range/index.vue</Value>
+        <Value>src/renderer/src/prefComponents/tabs/appearance/index.vue</Value>
+        <Value>src/renderer/src/prefComponents/tabs/editor/dictionaryList.vue</Value>
+        <Value>src/renderer/src/prefComponents/tabs/advanced/index.vue</Value>
+        <Value>src/renderer/src/prefComponents/tabs/advanced/sheets/customCssSheet.vue</Value>
+        <Value>src/renderer/src/prefComponents/keybindings/index.vue</Value>
+        <Value>src/renderer/src/components/editorWithTabs/unsavedCloseDialog.css</Value>
+        <Value>src/renderer/src/components/editorWithTabs/unsavedCloseDialog.js</Value>
+        <Value>src/renderer/src/components/sideBar/workspaceModeDialog.vue</Value>
+        <Value>src/renderer/src/components/titleBar/quickSettings/index.vue</Value>
+        <Value>src/renderer/src/prefComponents/common/sheet/index.vue</Value>
+        <Value>src/renderer/src/util/theme.js</Value>
+        <Value>src/renderer/src/store/preferences.js</Value>
+        <Value>src/renderer/src/pages/app.vue</Value>
+        <Value>tests/renderer/components/quick-settings.test.js</Value>
+        <Value>tests/renderer/util/theme.test.js</Value>
+        <Value>tests/renderer/prefComponents/pref-sheet.test.js</Value>
+        <Value>tests/renderer/prefComponents/custom-css-sheet.test.js</Value>
+        <Value>tests/renderer/pages/common/sheet.test.js</Value>
+        <Value>tests/renderer/components/sideBar/workspaceModeDialog.test.js</Value>
+        <Value>tests/e2e/settings-shell.spec.ts</Value>
+        <Value>tests/e2e/compact-windows-fit.spec.ts</Value>
+        <Value>tests/e2e/unsaved-dialog-theme.spec.ts</Value>
+        <Value>.grace/graph/runtime.xml</Value>
+        <Value>.grace/verification/runtime.xml</Value>
+      </MustExist>
+      <MustContain>
+        <File>src/renderer/src/assets/styles/index.css</File><Text>:focus {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/assets/styles/index.css</File><Text>font-family: var(--chromeFontFamily);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/common/buttonRow/index.vue</File><Text>.pref-button-item .pref-button {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/common/range/index.vue</File><Text>.pref-range-item .pref-stepper-btn {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/common/range/index.vue</File><Text>aria-label="Increase"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/appearance/index.vue</File><Text>.pref-tab-page--appearance .theme-family-tile {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/editor/dictionaryList.vue</File><Text>.pref-dictionary .pref-dictionary-remove {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/advanced/index.vue</File><Text>.pref-tab-page--advanced .pref-image-folder-btn {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/advanced/index.vue</File><Text>.pref-reset-overlay .pref-reset-btn {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/advanced/index.vue</File><Text>START_BLOCK_IMAGE_FOLDER_METRICS</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/advanced/index.vue</File><Text>START_BLOCK_RESET_DIALOG_METRICS</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/advanced/sheets/customCssSheet.vue</File><Text>.pref-sheet .pref-custom-css-btn {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/keybindings/index.vue</File><Text>.pref-keybindings .pref-keybindings-btn {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/unsavedCloseDialog.css</File><Text>.ag-unsaved-close-dialog {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/unsavedCloseDialog.css</File><Text>.ag-unsaved-close-btn:focus-visible {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/unsavedCloseDialog.js</File><Text>document.body.appendChild(overlay)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/sideBar/workspaceModeDialog.vue</File><Text>&lt;teleport to="body"&gt;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/sideBar/workspaceModeDialog.vue</File><Text>.workspace-mode-dialog {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/sideBar/workspaceModeDialog.vue</File><Text>.workspace-mode-btn:focus-visible {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>role="button"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>@keydown.space.prevent="toggle"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>.quick-settings-btn:focus-visible</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/common/sheet/index.vue</File><Text>ElFocusTrap</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/common/sheet/index.vue</File><Text>.pref-sheet-overlay .pref-sheet-close:focus-visible {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/theme.js</File><Text>existing.textContent = ''</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/store/preferences.js</File><Text>'customCss'</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/pages/app.vue</File><Text>watch(customCss, (value) =&gt; {</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/quick-settings.test.js</File><Text>activates the panel on Space keydown with the default prevented</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/quick-settings.test.js</File><Text>activates the panel on Enter keydown</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/util/theme.test.js</File><Text>addCustomStyle C-PREFS-TRUTH clear path (F-001/F-011)</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/compact-windows-fit.spec.ts</File><Text>shows keyboard focus on the quick-settings Aa button and Space opens the panel</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/compact-windows-fit.spec.ts</File><Text>sheet panel wraps within the sheet panel and never reaches the page behind</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/compact-windows-fit.spec.ts</File><Text>sheet panel restores focus to the invoking control when the sheet closes</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/unsaved-dialog-theme.spec.ts</File><Text>the confirmation uses the dark theme surface in dark mode</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/unsaved-dialog-theme.spec.ts</File><Text>async function resolveVar</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/settings-shell.spec.ts</File><Text>async function checkKeyboardFocus</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/settings-shell.spec.ts</File><Text>test.use({ viewport: { width: 640, height: 620 } })</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/settings-shell.spec.ts</File><Text>shows keyboard focus on the settings toolbar tab</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/runtime.xml</File><Text>SummaryDelta&gt;C-COMPACT-WINDOWS-FIT</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/runtime.xml</File><Text>SummaryDelta&gt;C-SETTINGS-KEYBOARD-FOCUS</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/runtime.xml</File><Text>scenario-settings-keyboard-focus</Text>
+      </MustContain>
+    <MustNotContain><File>src/renderer/src/prefComponents/common/buttonRow/index.vue</File><Text>focus-visible</Text></MustNotContain>
+    <MustNotContain><File>src/renderer/src/prefComponents/common/range/index.vue</File><Text>focus-visible</Text></MustNotContain>
+    <MustNotContain><File>src/renderer/src/prefComponents/tabs/appearance/index.vue</File><Text>focus-visible</Text></MustNotContain>
+    <MustNotContain><File>src/renderer/src/prefComponents/tabs/editor/dictionaryList.vue</File><Text>focus-visible</Text></MustNotContain>
+    <MustNotContain><File>src/renderer/src/prefComponents/tabs/advanced/index.vue</File><Text>focus-visible</Text></MustNotContain>
+    <MustNotContain><File>src/renderer/src/prefComponents/tabs/advanced/sheets/customCssSheet.vue</File><Text>focus-visible</Text></MustNotContain>
+    <MustNotContain><File>src/renderer/src/prefComponents/keybindings/index.vue</File><Text>focus-visible</Text></MustNotContain>
+    <MustNotContain><File>src/renderer/src/components/editorWithTabs/unsavedCloseDialog.css</File><Text>font-family</Text></MustNotContain>
+    <MustNotContain><File>src/renderer/src/components/sideBar/workspaceModeDialog.vue</File><Text>font-family</Text></MustNotContain>
+    <MustNotContain><File>tests/e2e/settings-shell.spec.ts</File><Text>theme-family-tile</Text></MustNotContain>
+    <MustNotContain><File>tests/e2e/settings-shell.spec.ts</File><Text>pref-stepper</Text></MustNotContain>
+    <MustNotContain><File>tests/e2e/settings-shell.spec.ts</File><Text>pref-dictionary</Text></MustNotContain>
+    <MustNotContain><File>tests/e2e/settings-shell.spec.ts</File><Text>pref-reset-btn</Text></MustNotContain>
+    <MustNotContain><File>tests/e2e/settings-shell.spec.ts</File><Text>pref-custom-css-btn</Text></MustNotContain>
+    <MustNotContain><File>tests/e2e/settings-shell.spec.ts</File><Text>pref-keybindings-btn</Text></MustNotContain>
+    <MustNotContain><File>tests/e2e/settings-shell.spec.ts</File><Text>pref-image-folder</Text></MustNotContain>
+    <MustPassCommand>
+      <Command budgetSeconds="120">npx --no-install vitest run tests/renderer/components/quick-settings.test.js tests/renderer/util/theme.test.js</Command>
+    </MustPassCommand>
+    <MustPassCommand>
+      <Command budgetSeconds="1200">npx --no-install playwright test --project=chromium tests/e2e/settings-shell.spec.ts tests/e2e/compact-windows-fit.spec.ts tests/e2e/unsaved-dialog-theme.spec.ts</Command>
+    </MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-011</Module>
+      </MustVerify>
+      <MustExist>
+        <Value>tests/renderer/prefComponents/settings-focus-inventory.test.js</Value>
+      </MustExist>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/common/buttonRow/index.vue</File><Text>.pref-button-item .pref-button:focus-visible</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/common/buttonRow/index.vue</File><Text>outline: 2px solid var(--prefAccent);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/common/buttonRow/index.vue</File><Text>outline-offset: 1px;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/common/range/index.vue</File><Text>.pref-range-item .pref-stepper-btn:focus-visible</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/common/range/index.vue</File><Text>outline: 2px solid var(--prefAccent);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/common/range/index.vue</File><Text>outline-offset: 1px;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/appearance/index.vue</File><Text>.pref-tab-page--appearance .theme-family-tile:focus-visible</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/appearance/index.vue</File><Text>outline: 2px solid var(--prefAccent);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/appearance/index.vue</File><Text>outline-offset: 1px;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/editor/dictionaryList.vue</File><Text>.pref-dictionary .pref-dictionary-remove:focus-visible</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/editor/dictionaryList.vue</File><Text>outline: 2px solid var(--prefAccent);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/editor/dictionaryList.vue</File><Text>outline-offset: 1px;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/advanced/index.vue</File><Text>.pref-tab-page--advanced .pref-image-folder-btn:focus-visible</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/advanced/index.vue</File><Text>.pref-reset-overlay .pref-reset-btn:focus-visible</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/advanced/index.vue</File><Text>outline: 2px solid var(--prefAccent);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/advanced/index.vue</File><Text>outline-offset: 1px;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/advanced/sheets/customCssSheet.vue</File><Text>.pref-sheet .pref-custom-css-btn:focus-visible</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/advanced/sheets/customCssSheet.vue</File><Text>outline: 2px solid var(--prefAccent);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/tabs/advanced/sheets/customCssSheet.vue</File><Text>outline-offset: 1px;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/keybindings/index.vue</File><Text>.pref-keybindings .pref-keybindings-btn:focus-visible</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/keybindings/index.vue</File><Text>outline: 2px solid var(--prefAccent);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/keybindings/index.vue</File><Text>outline-offset: 1px;</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/unsavedCloseDialog.css</File><Text>.ag-unsaved-close-dialog {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/editorWithTabs/unsavedCloseDialog.css</File><Text>font-family: var(--chromeFontFamily);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/sideBar/workspaceModeDialog.vue</File><Text>.workspace-mode-dialog {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/sideBar/workspaceModeDialog.vue</File><Text>font-family: var(--chromeFontFamily);</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/sideBar/workspaceModeDialog.vue</File><Text>.workspace-mode-btn:focus-visible {</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/prefComponents/settings-focus-inventory.test.js</File><Text>all: unset</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/prefComponents/settings-focus-inventory.test.js</File><Text>:focus-visible</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/prefComponents/settings-focus-inventory.test.js</File><Text>flags every all:unset interactive control whose file has no :focus-visible rule</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/prefComponents/settings-focus-inventory.test.js</File><Text>keeps the field-canon allowlist non-empty with its justification</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/settings-shell.spec.ts</File><Text>shows keyboard focus on the row action button</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/settings-shell.spec.ts</File><Text>shows keyboard focus on the numeric stepper button</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/settings-shell.spec.ts</File><Text>shows keyboard focus on the appearance family tile</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/changes/active/C-EDITOR-A11Y-CSS/evidence/dictionary-e2e-leg-stop.txt</File><Text>showDictionary = computed(() =&gt; !isOsx</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/settings-shell.spec.ts</File><Text>shows keyboard focus on the image-folder button</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/settings-shell.spec.ts</File><Text>shows keyboard focus on the reset dialog button</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/settings-shell.spec.ts</File><Text>shows keyboard focus on the custom-CSS sheet button</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/settings-shell.spec.ts</File><Text>shows keyboard focus on the keybindings sheet button</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/settings-shell.spec.ts</File><Text>the sheet overlay covers the viewport while open</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/settings-shell.spec.ts</File><Text>shows keyboard focus on the settings toolbar tab</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/unsaved-dialog-theme.spec.ts</File><Text>the confirmation renders in the chrome system font</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/unsaved-dialog-theme.spec.ts</File><Text>the workspace mode dialog renders in the chrome system font</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/e2e/unsaved-dialog-theme.spec.ts</File><Text>the confirmation uses the dark theme surface in dark mode</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/quick-settings.test.js</File><Text>activates the panel on Space keydown with the default prevented</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/components/quick-settings.test.js</File><Text>activates the panel on Enter keydown</Text>
+      </MustContain>
+      <MustContain>
+        <File>tests/renderer/util/theme.test.js</File><Text>addCustomStyle C-PREFS-TRUTH clear path (F-001/F-011)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/components/titleBar/quickSettings/index.vue</File><Text>.quick-settings-btn:focus-visible</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/prefComponents/common/sheet/index.vue</File><Text>ElFocusTrap</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/util/theme.js</File><Text>existing.textContent = ''</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/assets/styles/index.css</File><Text>:focus {</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/renderer/src/assets/styles/index.css</File><Text>font-family: var(--chromeFontFamily);</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/graph/runtime.xml</File><Text>SummaryDelta&gt;C-EDITOR-A11Y-CSS</Text>
+      </MustContain>
+      <MustContain>
+        <File>.grace/verification/runtime.xml</File><Text>C-EDITOR-A11Y-CSS</Text>
+      </MustContain>
+    <MustNotContain><File>src/renderer/src/assets/styles/index.css</File><Text>*:focus-visible</Text></MustNotContain>
+    <MustNotContain><File>src/renderer/src/assets/styles/index.css</File><Text>outline: revert</Text></MustNotContain>
+    <MustNotContain><File>src/renderer/src/components/editorWithTabs/unsavedCloseDialog.css</File><Text>--prefAccent</Text></MustNotContain>
+    <MustNotContain><File>src/renderer/src/components/sideBar/workspaceModeDialog.vue</File><Text>--prefAccent</Text></MustNotContain>
+    <MustNotContain><File>src/renderer/src/prefComponents/common/sheet/index.vue</File><Text>inset: auto</Text></MustNotContain>
+    <MustPassCommand>
+      <Command budgetSeconds="120">npx --no-install vitest run tests/renderer/prefComponents/settings-focus-inventory.test.js tests/renderer/components/quick-settings.test.js tests/renderer/util/theme.test.js</Command>
+    </MustPassCommand>
+    <MustPassCommand>
+      <Command budgetSeconds="300">npx --no-install vitest run tests/renderer/prefComponents tests/renderer/components/quick-settings.test.js tests/renderer/util/theme.test.js</Command>
+    </MustPassCommand>
+    <MustPassCommand>
+      <Command budgetSeconds="1200">npx --no-install playwright test --project=chromium tests/e2e/settings-shell.spec.ts tests/e2e/unsaved-dialog-theme.spec.ts tests/e2e/compact-windows-fit.spec.ts</Command>
+    </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-011 />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-011 />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/renderer/src/prefComponents/common/buttonRow/index.vue</File>
+      <File>src/renderer/src/prefComponents/common/range/index.vue</File>
+      <File>src/renderer/src/prefComponents/tabs/appearance/index.vue</File>
+      <File>src/renderer/src/prefComponents/tabs/editor/dictionaryList.vue</File>
+      <File>src/renderer/src/prefComponents/tabs/advanced/index.vue</File>
+      <File>src/renderer/src/prefComponents/tabs/advanced/sheets/customCssSheet.vue</File>
+      <File>src/renderer/src/prefComponents/keybindings/index.vue</File>
+      <File>src/renderer/src/components/editorWithTabs/unsavedCloseDialog.css</File>
+      <File>src/renderer/src/components/sideBar/workspaceModeDialog.vue</File>
+      <File>tests/renderer/prefComponents/settings-focus-inventory.test.js</File>
+      <File>tests/e2e/settings-shell.spec.ts</File>
+      <File>tests/e2e/unsaved-dialog-theme.spec.ts</File>
+      <File>.grace/graph/runtime.xml</File>
+      <File>.grace/verification/runtime.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Failing-first evidence on the pre-change tree: the settings-focus-inventory source-walk guard, the eight real-keyboard settings-shell canon-outline pins and the two dialog computed-font pins, each recorded red in the bundle</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Author tests/renderer/prefComponents/settings-focus-inventory.test.js (new file, the prefComponents test canon, ROLE: TEST contract) as a source-walk — read every prefComponents component source, collect interactive elements whose style block carries all: unset, and assert each has a :focus-visible rule in the same file; run it and record it RED on the pre-change tree failing on exactly the eight named controls (buttonRow .pref-button :75-86, range .pref-stepper-btn :219-226, appearance .theme-family-tile :319-327, dictionaryList .pref-dictionary-remove :144-154, advanced .pref-image-folder-btn :269-281 and .pref-reset-btn :331-342, customCssSheet .pref-custom-css-btn :112-123, keybindings .pref-keybindings-btn :301-313 — every one verified at plan time to carry all: unset and no focus-visible text anywhere in the file). The field-canon exemption is a closed allowlist asserted non-empty with its justification (textBox .pref-field and its :focus border-color siblings: textBox/index.vue, fontTextBox, compound field inputs, the keybindings search field :297-299, the advanced image-folder field :261-263, the customCssSheet CSS textarea :104-106, the tabsBar searchPanel field), pinned by the test titles 'flags every all:unset interactive control whose file has no :focus-visible rule' and 'keeps the field-canon allowlist non-empty with its justification'. If the walk flags a ninth control fitting neither bucket, STOP and extend the allowlist or the fix list by name in a bounded scope note — never a blanket exemption, never a weakened assertion.</Criterion>
+          <Criterion>Author the eight settings-shell pins red-first BEFORE any stylesheet edit, following the file's own canon (the theme loop over paper and ink at :141-184, per-tab navigation via .pref-toolbar [data-tab=...], checkKeyboardFocus at :100 with the WebKit Option-Tab fallback recorded, the pointer-first fresh context, Tab-away clearing): 'shows keyboard focus on the row action button' (.pref-tab-page--* .pref-button), 'shows keyboard focus on the numeric stepper button' (.pref-stepper-btn), 'shows keyboard focus on the appearance family tile' (.theme-family-tile), 'shows keyboard focus on the dictionary remove button' (.pref-dictionary-remove), 'shows keyboard focus on the image-folder button' (.pref-image-folder-btn), 'shows keyboard focus on the reset dialog button' (.pref-reset-btn), 'shows keyboard focus on the custom-CSS sheet button' (.pref-custom-css-btn), 'shows keyboard focus on the keybindings sheet button' (.pref-keybindings-btn); run them focused and record the pre-fix missing-outline failures (no :focus-visible match, no computed outline) in the bundle evidence. Real keyboard input only — a synthetic focus() call never replaces reaching the target. The settings-sheet pins route through the open sheet (the custom-CSS and keybindings buttons live inside the shared sheet panel); the reset-dialog pin drives the reset confirm flow to its alertdialog.</Criterion>
+          <Criterion>Author the two dialog computed-font pins red-first in tests/e2e/unsaved-dialog-theme.spec.ts, reusing the file's boot pattern and resolveVar helper: 'the confirmation renders in the chrome system font' (getComputedStyle on .ag-unsaved-close-dialog fontFamily through the real CLOSE_UNSAVED_TAB funnel — the existing light boot plus the existing ink/dark flow — asserting the resolved family is the var(--chromeFontFamily) stack, -apple-system first) and 'the workspace mode dialog renders in the chrome system font' (the same computed assertion on .workspace-mode-dialog, driven through the real workspace Add-or-Replace chooser flow to the app-level mount). CAUTION before authoring the workspace leg: establish the deterministic chooser seeding in the shim harness (the store flow that sets the dialog's mode — C-MULTI-SOURCE-WORKSPACE); if it cannot be summoned deterministically in the harness, STOP for a bounded replan — never fabricate the dialog DOM, never pin a synthetic mount. Run both pins and record the red values (the WKWebView default family, not the -apple-system stack) in the bundle evidence. No successful skip, artificial sleep or disabled retry budget anywhere in this task.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="60">npx --no-install vitest run tests/renderer/prefComponents/settings-focus-inventory.test.js</Command>
+          <Command budgetSeconds="600">npx --no-install playwright test --project=chromium tests/e2e/settings-shell.spec.ts --grep "shows keyboard focus on the"</Command>
+          <Command budgetSeconds="600">npx --no-install playwright test --project=chromium tests/e2e/unsaved-dialog-theme.spec.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>The CSS implementation: the C-SETTINGS-KEYBOARD-FOCUS canon outline on the eight Settings-window selectors and font-family: var(--chromeFontFamily) on the two imperative dialogs, turning every T-001 pin green</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Implement ONLY the eight focus rules, each beside its control's own chrome in its owning file, each exactly outline: 2px solid var(--prefAccent); outline-offset: 1px; inside :focus-visible only: buttonRow/index.vue gains .pref-button-item .pref-button:focus-visible, range/index.vue gains .pref-range-item .pref-stepper-btn:focus-visible, appearance/index.vue gains .pref-tab-page--appearance .theme-family-tile:focus-visible, dictionaryList.vue gains .pref-dictionary .pref-dictionary-remove:focus-visible, advanced/index.vue gains .pref-tab-page--advanced .pref-image-folder-btn:focus-visible (inside START_BLOCK_IMAGE_FOLDER_METRICS) and .pref-reset-overlay .pref-reset-btn:focus-visible (inside START_BLOCK_RESET_DIALOG_METRICS), customCssSheet.vue gains .pref-sheet .pref-custom-css-btn:focus-visible, keybindings/index.vue gains .pref-keybindings .pref-keybindings-btn:focus-visible. No JavaScript, no tabindex or role change, no new tokens or wrappers, no redesign; selected/on/active styling untouched and visually distinct from the outline (the tile's 2.5px selected ring stays a box-shadow, the danger and primary fills stay backgrounds); pointer activation stays outline-free (pinned by the harness's pointer-first fresh context); the text-field controls keep the :focus border-color field canon untouched; index.css is byte-identical (the :230-232 global kill and the :560-584 chrome rule unchanged — no global outline re-enable).</Criterion>
+          <Criterion>Implement ONLY the two font declarations: unsavedCloseDialog.css gains font-family: var(--chromeFontFamily); inside the existing .ag-unsaved-close-dialog block (:21-31) with a one-line comment naming the C-38 T-006 N4a precedent (index.css:583), and workspaceModeDialog.vue gains the same declaration inside the existing .workspace-mode-dialog block (:206-217) — no font-size or metric change, the float tokens and the FIX-007 dark parity byte-identical otherwise, the C-MULTI-SOURCE-WORKSPACE anatomy unchanged; the delivered .workspace-mode-btn:focus-visible (:261-264) and .ag-unsaved-close-btn:focus-visible (:99-102) rules stay byte-identical. Semantic markup synchronized: the seven .vue files carry a patch VERSION bump plus exactly one new CHANGE_SUMMARY line each, all pre-existing lines byte-identical (no new START_BLOCK_/END_BLOCK_ pair is introduced — every new rule joins an existing block beside existing chrome); unsavedCloseDialog.css carries no MODULE_CONTRACT (the components/*.css norm), so its FIX-011 header comment gains one naming line for this change and no markers are fabricated; the two edited test files carry their ROLE: TEST contracts and CHANGE_SUMMARY updates per the test-file canon.</Criterion>
+          <Criterion>Re-run the T-001 matrix green: the inventory walker passes with the allowlist unchanged from its authored state (unless T-001 surfaced a ninth control, in which case that named entry is fixed here too), the eight settings-shell pins pass (focused element matches :focus-visible, computed outline 2px var(--prefAccent) at 1px offset, pointer-first fresh context shows no outline, Tab-away clears, the painted row visibly distinguishes focus), the two computed font pins pass (both dialogs resolve the -apple-system stack in the light boot and the existing dark flow), and the delivered predecessors stay green unchanged: quick-settings.test.js (shell + Space/Enter), theme.test.js (including the clear-path describe), compact-windows-fit.spec.ts, pref-sheet.test.js, pages/common/sheet.test.js, custom-css-sheet.test.js, workspaceModeDialog.test.js, and the pre-existing settings-shell groups (switch/select/segment/textbox, toolbar tab, quick-settings group) byte-identical in meaning. Any pre-existing unrelated failure in these filters is recorded in the bundle evidence rather than silently skipped.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="600">npm run build</Command>
+          <Command budgetSeconds="120">npx --no-install vitest run tests/renderer/prefComponents/settings-focus-inventory.test.js tests/renderer/components/quick-settings.test.js tests/renderer/util/theme.test.js</Command>
+          <Command budgetSeconds="900">npx --no-install playwright test --project=chromium tests/e2e/settings-shell.spec.ts</Command>
+          <Command budgetSeconds="600">npx --no-install playwright test --project=chromium tests/e2e/unsaved-dialog-theme.spec.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Current-state regression evidence, honest and green-today: F-005/F-010/F-011 recorded as delivered with their named pins, the sheet-overlay coverage insurance pin, the F-id mapping re-verified</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Record the three already-delivered wave surfaces as current-state evidence in the bundle, never relabelled as red-first defect detectors (the C-PREFS-WRITE-TRUTH R-3 honesty convention): (a) F-005 — quick-settings.test.js:204 'activates the panel on Space keydown with the default prevented' and :221 'activates the panel on Enter keydown', plus the real-keyboard e2e compact-windows-fit.spec.ts:331 (canon outline on the Aa button, Space opens the panel); (b) F-010 — compact-windows-fit.spec.ts:399 (Tab wrap never reaches the page behind) and :427 (focus restored to the invoking control), with pref-sheet.test.js and pages/common/sheet.test.js; (c) F-011 — theme.test.js:349+ 'addCustomStyle C-PREFS-TRUTH clear path (F-001/F-011)' (an empty save empties style#custom-styles, the theme stylesheets own the cascade again), the reset leg riding RESET_PREFERENCES_TO_DEFAULTS through the same watch(customCss) delivery (preferences.js:515/:1157, app.vue:266-268). This bundle adds NO quick-settings pin and edits NO file under quickSettings/**, common/sheet, util/theme.js, store/preferences.js, app.vue or compact-windows-fit.spec.ts — all read-only, verified by the combined diff in T-004.</Criterion>
+          <Criterion>Add the one green-today insurance pin to tests/e2e/settings-shell.spec.ts: 'the sheet overlay covers the viewport while open' — a computed geometry check that .pref-sheet-overlay's bounding rect covers the viewport while a sheet is open (the inset:0 proof of F-010's pointer-block leg: the dimmed page's buttons are not pointer-reachable either). Authored GREEN on this tree (the overlay is delivered), recorded as insurance evidence, never presented as red-first; purely additive — every pre-existing settings-shell group keeps its title and assertions byte-identically.</Criterion>
+          <Criterion>Re-verify the F-id mapping against the wave-5 findings report at execution start and record it in the bundle: F-005 delivered (C-COMPACT-WINDOWS-FIT R-5/R-3), F-006 partially delivered (.pref-tab toolbar tabs covered at tabsBar/index.vue:180; the eight controls of this change are the open remainder), F-008 partially delivered (.el-dialog family covered at index.css:581; the two imperative dialogs are the open remainder), F-010 delivered (ElFocusTrap plus the pointer-blocking overlay), F-011 delivered (C-PREFS-TRUTH). Run the full floor green: the vitest matrix (inventory, quick-settings, theme, pref-sheet, pages/common/sheet, custom-css-sheet, workspaceModeDialog suites) and the three chromium e2e specs (settings-shell, unsaved-dialog-theme, compact-windows-fit); any pre-existing unrelated failure is recorded, never silently skipped.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="120">npx --no-install vitest run tests/renderer/components/quick-settings.test.js tests/renderer/util/theme.test.js tests/renderer/prefComponents/pref-sheet.test.js tests/renderer/pages/common/sheet.test.js tests/renderer/prefComponents/custom-css-sheet.test.js tests/renderer/components/sideBar/workspaceModeDialog.test.js</Command>
+          <Command budgetSeconds="1200">npx --no-install playwright test --project=chromium tests/e2e/settings-shell.spec.ts tests/e2e/unsaved-dialog-theme.spec.ts tests/e2e/compact-windows-fit.spec.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Governance: the M-011 graph delta and V-M-011 verification delta naming C-EDITOR-A11Y-CSS, the semantic-markup synchronization audit across all touched files, and the combined-diff review proving CSS-only scope</Title>
+        <DependsOn>T-001, T-002, T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Graph delta: .grace/graph/runtime.xml gains exactly one SummaryDelta prepended in the M-011 card (:2640; the delta group sits with its predecessors C-COMPACT-WINDOWS-FIT :2643, C-PREFS-TRUTH :2644, C-SETTINGS-KEYBOARD-FOCUS :2648 — the established prepended-list precedent) naming C-EDITOR-A11Y-CSS with the honest shape: every remaining all:unset Settings-window control (the eight named selectors) carries the C-SETTINGS-KEYBOARD-FOCUS canon outline — 2px solid var(--prefAccent), 1px offset, :focus-visible only — beside its own chrome; the two body-teleported imperative dialogs (unsaved-close, workspace mode) render in the chrome system font via font-family: var(--chromeFontFamily) on their own box selectors; a source-walk inventory guard keeps the all:unset/:focus-visible pairing from regressing; no other module's entry is edited and M-061 (.grace/graph/performance.xml:829) receives NO delta (the quick-settings surface is untouched — read-only adjacency).</Criterion>
+          <Criterion>Verification delta: .grace/verification/runtime.xml V-M-011 (:3348) gains one scenario naming C-EDITOR-A11Y-CSS and the new pins, following the scenario-settings-keyboard-focus canon (:3585): the settings-focus-inventory source-walk guard (red on the pre-change eight, green after, the field-canon allowlist asserted non-empty with justification), the eight real-keyboard checkKeyboardFocus routes inside the Settings window (canon outline computed, pointer-first no-outline, Tab-away clears, value/geometry/selection/write invariance), the two computed chrome font pins (unsaved-close through CLOSE_UNSAVED_TAB in the light boot and the ink/dark flow, workspace mode through the real chooser flow), the sheet-overlay viewport-coverage insurance check, and the recorded current-state pins (quick-settings Space/Enter, compact trap trio, theme.js clear path) staying green as delivered; the V-M-011 Commands list gains tests/renderer/prefComponents/settings-focus-inventory.test.js and tests/e2e/unsaved-dialog-theme.spec.ts; the XML must parse after the edit.</Criterion>
+          <Criterion>Combined-diff audit: the bundle diff touches exactly the ObservedWriteScope files and nothing else — every product diff is CSS-only (no template or script line changes in the seven .vue files beyond VERSION/CHANGE_SUMMARY/comment lines; unsavedCloseDialog.css diff is the font-family declaration, its one-line comment and the header naming line; workspaceModeDialog.vue diff is style-block and contract comments only), index.css and every read-only file (quickSettings/**, common/sheet/index.vue, util/theme.js, store/preferences.js, app.vue, compact-windows-fit.spec.ts, quick-settings.test.js, theme.test.js, pref-sheet.test.js, pages/common/sheet.test.js, custom-css-sheet.test.js) are undiffed, no locale file changed, no new dependency, IPC or preference key; the F-005/F-010/F-011 honesty statement and the T-001 red-run records ride the bundle evidence. No version change, release, tag or publication is authorized; grace lint runs only in the external current/target/final phases and no self-referential lint command appears in this plan.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command budgetSeconds="30">python3 -c "import xml.etree.ElementTree as ET; ET.parse('.grace/graph/runtime.xml'); ET.parse('.grace/verification/runtime.xml')"</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+    <AcceptanceVerification>
+      <Criterion>Focus closeout (spec R-1, AC-1): the inventory guard tests/renderer/prefComponents/settings-focus-inventory.test.js is authored first and recorded RED on the pre-change tree failing on exactly the eight named all:unset controls, and the eight settings-shell checkKeyboardFocus pins are authored red the same way (no :focus-visible rule, no computed outline); after the fix every one is green — real Tab (the checkKeyboardFocus canon, WebKit Option-Tab fallback recorded, never a synthetic focus()) reaches .pref-button, .pref-stepper-btn, .pref-tab-page--appearance .theme-family-tile, .pref-dictionary-remove, .pref-image-folder-btn, .pref-reset-btn, .pref-custom-css-btn and .pref-keybindings-btn inside the Settings window and each shows exactly outline: 2px solid var(--prefAccent) at 1px offset while :focus-visible, with value, geometry, selection and preference-write counts invariant, the pointer-first fresh context outline-free, Tab-away clearing the outline and the painted row visibly distinguishing focus; the tile's selected 2.5px box-shadow ring and the danger/primary fills stay visually distinct from the outline; the existing switch/select/segment/tabsBar/sheet-close coverage keeps passing byte-identically; the global index.css:230-232 kill and the :560-584 chrome rule are byte-identical (no global rule re-enable, no new selector in the shared chrome list).</Criterion>
+      <Criterion>Inventory guard durability (spec AC-2): the source-walk assertion covers every prefComponents component source, the field-canon allowlist is asserted non-empty with its per-entry justification (textBox .pref-field, fontTextBox and compound inputs, the keybindings search field, the advanced image-folder field, the customCssSheet textarea, the searchPanel field), and the guard stays green forever after as the class regression guard; a control fitting neither bucket grows the pin explicitly by name (bounded scope note), never a blanket exemption or a weakened assertion.</Criterion>
+      <Criterion>Dialog typography (spec R-2, AC-3): both computed-font pins are recorded red on the pre-change tree (the WKWebView default family, not the -apple-system stack) and green after — .ag-unsaved-close-dialog through the real CLOSE_UNSAVED_TAB funnel in the light boot and the existing ink/dark flow, .workspace-mode-dialog through the real chooser flow to the app-level mount — each resolving the var(--chromeFontFamily) stack; every other computed token of the FIX-007 surface (background, border, title, action colours) and the existing dark-theme pins keep passing; the C-MULTI-SOURCE-WORKSPACE anatomy and the float tokens are byte-identical otherwise; no font-size or metric declaration changed; the delivered .el-dialog chrome rule (index.css:583) is untouched and gained no new selector.</Criterion>
+      <Criterion>Current-state honesty (spec R-3, AC-4): the delivered pins are green-today and green after, named as current-state evidence and never relabelled red-first — quick-settings.test.js:204/:221, compact-windows-fit.spec.ts:331/:399/:427, theme.test.js:349+ clear-path describe, pref-sheet.test.js, pages/common/sheet.test.js; no new quick-settings pin exists in the bundle; the combined diff shows no edit to quickSettings/**, common/sheet/index.vue, util/theme.js, store/preferences.js, app.vue, index.css or compact-windows-fit.spec.ts; the single insurance addition (the sheet-overlay viewport-coverage computed check) is green-today and recorded as insurance; the F-id mapping (F-005/F-010/F-011 delivered, F-006/F-008 partially delivered with the open remainder fixed here) is re-verified against the wave-5 findings report at execution start and recorded in the bundle.</Criterion>
+      <Criterion>Governance and gates (spec R-4, Constraints/AffectedAreas): the seven touched .vue components carry patch VERSION bumps and exactly one new CHANGE_SUMMARY line each with all pre-existing lines byte-identical, and no new START_BLOCK_/END_BLOCK_ pair was introduced (every new rule joined an existing block); unsavedCloseDialog.css carries no fabricated MODULE_CONTRACT — its FIX-011 header comment gained the naming line per the components/*.css norm; .grace/graph/runtime.xml carries exactly one new M-011 SummaryDelta naming C-EDITOR-A11Y-CSS and .grace/verification/runtime.xml carries the V-M-011 scenario plus the Commands additions, both XMLs parsing; M-061/V-M-061 are untouched; the MustPassCommand matrix is green — the vitest inventory+quick-settings+theme floor, the broader prefComponents floor, and the three-spec chromium e2e set (settings-shell, unsaved-dialog-theme, compact-windows-fit) — with any pre-existing unrelated failure recorded rather than skipped; the ObservedWriteScope exhaustively matches the combined diff; no i18n change, no new dependency, IPC or preference key, no tabindex/role change; grace lint runs only in the external current/target/final phases and no self-referential grace-lint command appears in this plan; no implementation before the spec and this plan are explicitly approved; no release authorization.</Criterion>
+    </AcceptanceVerification>
+  </C-EDITOR-A11Y-CSS>
+</GraceChangePlan>

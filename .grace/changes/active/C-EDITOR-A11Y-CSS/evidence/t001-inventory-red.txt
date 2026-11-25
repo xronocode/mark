@@ -1,0 +1,71 @@
+$ npx --no-install vitest run tests/renderer/prefComponents/settings-focus-inventory.test.js
+# pre-change tree faae8ae6, T-001 red-first evidence
+
+ RUN  v5.1.0 <worktree>
+
+ ❯ tests/renderer/prefComponents/settings-focus-inventory.test.js (2 tests | 1 failed) 6ms
+   ❯ settings-focus-inventory (C-EDITOR-A11Y-CSS) (2)
+     × flags every all:unset interactive control whose file has no :focus-visible rule 5ms
+     ✓ keeps the field-canon allowlist non-empty with its justification 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/renderer/prefComponents/settings-focus-inventory.test.js > settings-focus-inventory (C-EDITOR-A11Y-CSS) > flags every all:unset interactive control whose file has no :focus-visible rule
+AssertionError: expected [ { …(2) }, { …(2) }, { …(2) }, …(5) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "file": "common/buttonRow/index.vue",
++     "selector": ".pref-button-item .pref-button",
++   },
++   {
++     "file": "common/range/index.vue",
++     "selector": ".pref-range-item .pref-stepper-btn",
++   },
++   {
++     "file": "keybindings/index.vue",
++     "selector": ".pref-keybindings .pref-keybindings-btn",
++   },
++   {
++     "file": "tabs/advanced/index.vue",
++     "selector": ".pref-tab-page--advanced .pref-image-folder-btn",
++   },
++   {
++     "file": "tabs/advanced/index.vue",
++     "selector": ".pref-reset-overlay .pref-reset-btn",
++   },
++   {
++     "file": "tabs/advanced/sheets/customCssSheet.vue",
++     "selector": ".pref-sheet .pref-custom-css-btn",
++   },
++   {
++     "file": "tabs/appearance/index.vue",
++     "selector": ".pref-tab-page--appearance .theme-family-tile",
++   },
++   {
++     "file": "tabs/editor/dictionaryList.vue",
++     "selector": ".pref-dictionary .pref-dictionary-remove",
++   },
++ ]
+
+ ❯ tests/renderer/prefComponents/settings-focus-inventory.test.js:131:23
+    129|     // The canon (C-SETTINGS-KEYBOARD-FOCUS): outline 2px var(--prefAc…
+    130|     // at 1px offset under :focus-visible, beside the control's own ch…
+    131|     expect(offenders).toEqual([])
+       |                       ^
+    132|   })
+    133|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  03:20:53
+   Duration  251ms (environment 78%, setup 12%, transform 5%, tests 3%, import 1%, worker 1%)
+
+EXIT=1

@@ -1,0 +1,30 @@
+T-003 current-state evidence (honest, green-today — never relabelled red-first)
+
+== Delivered pin anchors on this tree (faae8ae6 base, unchanged files) ==
+$ grep -n "<pin title>" ...
+204:  it('activates the panel on Space keydown with the default prevented', async () => {
+221:  it('activates the panel on Enter keydown', async () => {
+349:  describe('addCustomStyle C-PREFS-TRUTH clear path (F-001/F-011)', () => {
+331:  test('shows keyboard focus on the quick-settings Aa button and Space opens the panel', async ({ page }, info) => {
+399:  test('sheet panel wraps within the sheet panel and never reaches the page behind', async ({ page }) => {
+427:  test('sheet panel restores focus to the invoking control when the sheet closes', async ({ page }) => {
+
+== F-id mapping re-verified against the wave-5 findings (spec Assumptions) ==
+F-005 delivered (C-COMPACT-WINDOWS-FIT R-5/R-3) — quick-settings Space/Enter + Aa outline pins above.
+F-006 partially delivered — .pref-tab toolbar tabs covered (tabsBar/index.vue :focus-visible); the eight controls of this change are the open remainder (seven pinned e2e on the darwin build, dictionary leg stopped — see dictionary-e2e-leg-stop.txt).
+F-008 partially delivered — .el-dialog covered (index.css:583); the two imperative dialogs pinned green here.
+F-010 delivered (ElFocusTrap + inset:0 overlay) — compact trap trio above + the new overlay insurance pin (green-today, authored as insurance).
+F-011 delivered (C-PREFS-TRUTH) — theme.test.js:349 clear-path describe above.
+
+== Current-state vitest floor ==
+$ npx --no-install vitest run tests/renderer/components/quick-settings.test.js tests/renderer/util/theme.test.js tests/renderer/prefComponents/pref-sheet.test.js tests/renderer/pages/common/sheet.test.js tests/renderer/prefComponents/custom-css-sheet.test.js tests/renderer/components/sideBar/workspaceModeDialog.test.js
+Test Files  6 passed (6)
+Tests  94 passed (94)
+
+== Three chromium e2e specs (settings-shell + unsaved-dialog-theme + compact-windows-fit) ==
+$ npx --no-install playwright test --project=chromium tests/e2e/settings-shell.spec.ts tests/e2e/unsaved-dialog-theme.spec.ts tests/e2e/compact-windows-fit.spec.ts
+
+  45 passed (35.6s)
+EXIT=0
+
+The bundle adds NO quick-settings pin and edits NO file under quickSettings/**, common/sheet, util/theme.js, store/preferences.js, app.vue or compact-windows-fit.spec.ts (verified by the combined diff in t004-governance.txt).

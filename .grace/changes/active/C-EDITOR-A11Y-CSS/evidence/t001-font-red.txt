@@ -1,0 +1,80 @@
+$ npx --no-install playwright test --project=chromium tests/e2e/unsaved-dialog-theme.spec.ts
+# pre-change tree faae8ae6, T-001 red-first evidence: all three new pins red, the delivered dark-surface pin green
+# every red shows the inherited body stack (Open Sans...), not the chrome var(--chromeFontFamily) -apple-system stack:
+(node:92329) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+(node:92360) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  ✓  1 [chromium] › tests/e2e/unsaved-dialog-theme.spec.ts:40:3 › unsaved-changes dialog theme (FIX-007) › the confirmation uses the dark theme surface in dark mode (1.3s)
+  ✘  2 [chromium] › tests/e2e/unsaved-dialog-theme.spec.ts:109:5 › imperative dialog chrome font (C-EDITOR-A11Y-CSS) › the confirmation renders in the chrome system font in paper (1.3s)
+(node:92400) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  ✘  3 [chromium] › tests/e2e/unsaved-dialog-theme.spec.ts:109:5 › imperative dialog chrome font (C-EDITOR-A11Y-CSS) › the confirmation renders in the chrome system font in ink (1.3s)
+(node:92436) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  ✘  4 [chromium] › tests/e2e/unsaved-dialog-theme.spec.ts:161:3 › imperative dialog chrome font (C-EDITOR-A11Y-CSS) › the workspace mode dialog renders in the chrome system font (398ms)
+
+
+  1) [chromium] › tests/e2e/unsaved-dialog-theme.spec.ts:109:5 › imperative dialog chrome font (C-EDITOR-A11Y-CSS) › the confirmation renders in the chrome system font in paper 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"[7m-apple-system, \"system-ui\", \"Segoe UI Variable Text\", \"Segoe UI\", system-ui, \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Noto Sans\"[27m, sans-serif"[39m
+    Received: [31m"[7m\"Open Sans\", \"Clear Sans\", \"Helvetica Neue\", Helvetica, Arial[27m, sans-serif"[39m
+
+      154 |         resolveVar(page, '--chromeFontFamily', 'font')
+      155 |       ])
+    > 156 |       expect(dialogFamily).toBe(chromeFamily)
+          |                            ^
+      157 |       expect(dialogFamily).toContain('-apple-system')
+      158 |     })
+      159 |   }
+        at <worktree>/tests/e2e/unsaved-dialog-theme.spec.ts:156:28
+
+    Error Context: test-results/unsaved-dialog-theme-imper-84106-chrome-system-font-in-paper-chromium/error-context.md
+
+  2) [chromium] › tests/e2e/unsaved-dialog-theme.spec.ts:109:5 › imperative dialog chrome font (C-EDITOR-A11Y-CSS) › the confirmation renders in the chrome system font in ink 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"[7m-apple-system, \"system-ui\", \"Segoe UI Variable Text\", \"Segoe UI\", system-ui, \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Noto Sans\"[27m, sans-serif"[39m
+    Received: [31m"[7m\"Open Sans\", \"Clear Sans\", \"Helvetica Neue\", Helvetica, Arial[27m, sans-serif"[39m
+
+      154 |         resolveVar(page, '--chromeFontFamily', 'font')
+      155 |       ])
+    > 156 |       expect(dialogFamily).toBe(chromeFamily)
+          |                            ^
+      157 |       expect(dialogFamily).toContain('-apple-system')
+      158 |     })
+      159 |   }
+        at <worktree>/tests/e2e/unsaved-dialog-theme.spec.ts:156:28
+
+    Error Context: test-results/unsaved-dialog-theme-imper-2fcba-e-chrome-system-font-in-ink-chromium/error-context.md
+
+  3) [chromium] › tests/e2e/unsaved-dialog-theme.spec.ts:161:3 › imperative dialog chrome font (C-EDITOR-A11Y-CSS) › the workspace mode dialog renders in the chrome system font 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"[7m-apple-system, \"system-ui\", \"Segoe UI Variable Text\", \"Segoe UI\", system-ui, \"Segoe UI\", Roboto, \"Noto Sans\", Ubuntu, Cantarell, \"Noto Sans\"[27m, sans-serif"[39m
+    Received: [31m"[7m\"Open Sans\", \"Clear Sans\", \"Helvetica Neue\", Helvetica, Arial[27m, sans-serif"[39m
+
+      225 |       resolveVar(page, '--chromeFontFamily', 'font')
+      226 |     ])
+    > 227 |     expect(dialogFamily).toBe(chromeFamily)
+          |                          ^
+      228 |     expect(dialogFamily).toContain('-apple-system')
+      229 |   })
+      230 | })
+        at <worktree>/tests/e2e/unsaved-dialog-theme.spec.ts:227:26
+
+    Error Context: test-results/unsaved-dialog-theme-imper-63398-s-in-the-chrome-system-font-chromium/error-context.md
+
+  3 failed
+    [chromium] › tests/e2e/unsaved-dialog-theme.spec.ts:109:5 › imperative dialog chrome font (C-EDITOR-A11Y-CSS) › the confirmation renders in the chrome system font in paper 
+    [chromium] › tests/e2e/unsaved-dialog-theme.spec.ts:109:5 › imperative dialog chrome font (C-EDITOR-A11Y-CSS) › the confirmation renders in the chrome system font in ink 
+    [chromium] › tests/e2e/unsaved-dialog-theme.spec.ts:161:3 › imperative dialog chrome font (C-EDITOR-A11Y-CSS) › the workspace mode dialog renders in the chrome system font 
+  1 passed (5.6s)
+EXIT=1

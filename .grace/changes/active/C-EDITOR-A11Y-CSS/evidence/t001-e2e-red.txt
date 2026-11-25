@@ -1,0 +1,59 @@
+$ npx --no-install playwright test --project=chromium tests/e2e/settings-shell.spec.ts --grep "shows keyboard focus on the"
+# pre-change tree faae8ae6 (dist rebuilt honestly after npm ci), T-001 red-first evidence
+# 16 failed = the 8 new pins x paper/ink; 2 passed = the delivered toolbar-tab pins (their target already carries the canon rule)
+# HONESTY NOTE: of the 16, the dictionary remove button pin failed at its SETUP step
+# (expect .pref-dictionary-row toHaveCount(2) -> Received 0): the custom dictionary is
+# non-macOS-only (showDictionary = !isOsx && ...) and isOsx is folded at build time, so
+# the control never renders on the darwin build. Its red is a setup failure, NOT the
+# outline assertion — see dictionary-e2e-leg-stop.txt. The other seven pins failed red
+# on exactly the computed-outline assertion as planned.
+# representative failing assertion (paper-row-action-button):
+    Error: paper-row-action-button
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 4[39m
+    [31m+ Received  + 4[39m
+
+    [2m  Object {[22m
+    [32m-   "color": "rgb(0, 122, 255)",[39m
+    [32m-   "offset": "1px",[39m
+    [32m-   "style": "solid",[39m
+    [32m-   "width": "2px",[39m
+    [31m+   "color": "rgb(29, 29, 31)",[39m
+    [31m+   "offset": "0px",[39m
+    [31m+   "style": "none",[39m
+
+      124 |   expect.soft(focusedImage.equals(beforeImage), `${label}: the painted row must visibly distinguish focus`).toBe(false)
+      125 |   await page.keyboard.press('Tab')
+      126 |   const away = await focusState(target, anchorSel)
+        at checkKeyboardFocus (<worktree>/tests/e2e/settings-shell.spec.ts:123:42)
+        at <worktree>/tests/e2e/settings-shell.spec.ts:250:5
+
+    Error: paper-row-action-button: the painted row must visibly distinguish focus
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/settings-shell-shows-keybo-2b28d-indings-sheet-button-in-ink-chromium/error-context.md
+
+  16 failed
+    [chromium] › tests/e2e/settings-shell.spec.ts:244:3 › shows keyboard focus on the row action button in paper 
+    [chromium] › tests/e2e/settings-shell.spec.ts:253:3 › shows keyboard focus on the numeric stepper button in paper 
+    [chromium] › tests/e2e/settings-shell.spec.ts:262:3 › shows keyboard focus on the appearance family tile in paper 
+    [chromium] › tests/e2e/settings-shell.spec.ts:272:3 › shows keyboard focus on the dictionary remove button in paper 
+    [chromium] › tests/e2e/settings-shell.spec.ts:286:3 › shows keyboard focus on the image-folder button in paper 
+    [chromium] › tests/e2e/settings-shell.spec.ts:295:3 › shows keyboard focus on the reset dialog button in paper 
+    [chromium] › tests/e2e/settings-shell.spec.ts:308:3 › shows keyboard focus on the custom-CSS sheet button in paper 
+    [chromium] › tests/e2e/settings-shell.spec.ts:321:3 › shows keyboard focus on the keybindings sheet button in paper 
+    [chromium] › tests/e2e/settings-shell.spec.ts:244:3 › shows keyboard focus on the row action button in ink 
+    [chromium] › tests/e2e/settings-shell.spec.ts:253:3 › shows keyboard focus on the numeric stepper button in ink 
+    [chromium] › tests/e2e/settings-shell.spec.ts:262:3 › shows keyboard focus on the appearance family tile in ink 
+    [chromium] › tests/e2e/settings-shell.spec.ts:272:3 › shows keyboard focus on the dictionary remove button in ink 
+    [chromium] › tests/e2e/settings-shell.spec.ts:286:3 › shows keyboard focus on the image-folder button in ink 
+    [chromium] › tests/e2e/settings-shell.spec.ts:295:3 › shows keyboard focus on the reset dialog button in ink 
+    [chromium] › tests/e2e/settings-shell.spec.ts:308:3 › shows keyboard focus on the custom-CSS sheet button in ink 
+    [chromium] › tests/e2e/settings-shell.spec.ts:321:3 › shows keyboard focus on the keybindings sheet button in ink 
+  2 passed (23.3s)
+EXIT=0

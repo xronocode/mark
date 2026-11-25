@@ -73,7 +73,7 @@
 
 <script setup>
 // FILE: src/renderer/src/prefComponents/keybindings/index.vue
-// VERSION: 2.0.0
+// VERSION: 2.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: The keyboard-shortcuts editor (C-38 T-004) — the same KeybindingConfigurator table/logic the old page owned, now rendered as the body of the Advanced › Customise sheet with its own search field and the Settings palette.
 //   SCOPE: Search filtering (description + accelerator), the el-table with edit/reset/unbind, save/restore-defaults footer, debug dump; key capture stays in key-input-dialog.
@@ -92,6 +92,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-25 v2.0.1: C-EDITOR-A11Y-CSS — the sheet action buttons carry
+//     the C-SETTINGS-KEYBOARD-FOCUS canon outline (2px var(--prefAccent),
+//     1px offset) under :focus-visible; the search field keeps its :focus
+//     border-color canon.
 //   - 2026-10-15 v2.0.0: C-38 T-004 — page becomes the shortcuts-sheet body: h4 page title removed (the sheet carries the title), search field added, buttons/table restyled to the Settings palette; every configurator action and its vm API stay unchanged.
 //   - (v1.x: standalone /preference/keybindings page — retired with the 9-route rail.)
 // END_CHANGE_SUMMARY
@@ -310,6 +314,12 @@ const dumpKeyboardInformation = () => {
   color: var(--prefText, #1d1d1f);
   box-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.08);
   margin-top: 10px;
+}
+
+/* C-SETTINGS-KEYBOARD-FOCUS canon: keyboard-visible outline only. */
+.pref-keybindings .pref-keybindings-btn:focus-visible {
+  outline: 2px solid var(--prefAccent);
+  outline-offset: 1px;
 }
 
 .pref-keybindings .pref-keybindings-btn + .pref-keybindings-btn {

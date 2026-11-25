@@ -27,7 +27,7 @@
 
 <script setup>
 // FILE: src/renderer/src/prefComponents/tabs/advanced/sheets/customCssSheet.vue
-// VERSION: 1.0.0
+// VERSION: 1.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: The Custom CSS sheet (C-38 T-004) — a textarea over the customCss preference with an explicit Save (the key keeps its name and its apply-on-top-of-theme behaviour in util/theme.addCustomStyle).
 //   SCOPE: Draft editing (opened with the stored value, discarded on close without Save) and the SET_SINGLE_PREFERENCE write.
@@ -43,6 +43,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   LAST_CHANGE: [v1.0.1 - 2026-11-25 C-EDITOR-A11Y-CSS: the sheet's Close/Save buttons carry the C-SETTINGS-KEYBOARD-FOCUS canon outline (2px var(--prefAccent), 1px offset) under :focus-visible.]
 //   LAST_CHANGE: [v1.0.0 - 2026-10-15 C-38 T-004: the old Theme page's inline textarea becomes this sheet, opened from Advanced › Customise «Edit…»; explicit Save replaces change-to-apply.]
 // END_CHANGE_SUMMARY
 
@@ -120,6 +121,13 @@ const save = () => {
   background: var(--prefCtrl, #ffffff);
   color: var(--prefText, #1d1d1f);
   box-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.08);
+}
+
+/* C-SETTINGS-KEYBOARD-FOCUS canon: keyboard-visible outline only; the
+   primary Save fill stays a background, visually distinct from the ring. */
+.pref-sheet .pref-custom-css-btn:focus-visible {
+  outline: 2px solid var(--prefAccent);
+  outline-offset: 1px;
 }
 
 .pref-sheet .pref-custom-css-btn.is-primary {

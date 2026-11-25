@@ -24,7 +24,7 @@
 
 <script setup>
 // FILE: src/renderer/src/prefComponents/common/buttonRow/index.vue
-// VERSION: 1.0.0
+// VERSION: 1.0.1
 // START_MODULE_CONTRACT
 //   PURPOSE: Settings button row (C-38 T-003) — label + optional help left, a mockup push button right (plain or destructive).
 //   SCOPE: Button rendering and click dispatch (onClick function prop, mirroring the onChange convention of the other controls).
@@ -39,6 +39,9 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-25 v1.0.1: C-EDITOR-A11Y-CSS — the push button carries the
+//     C-SETTINGS-KEYBOARD-FOCUS canon outline (2px var(--prefAccent), 1px
+//     offset) under :focus-visible; no other change.
 //   - 2026-10-15 v1.0.0: C-38 T-003 — new control for T-004 action rows (updates, shortcuts, extensions, reset); danger variant renders the destructive red.
 // END_CHANGE_SUMMARY
 
@@ -83,6 +86,12 @@ const handleClick = () => {
   background: var(--prefCtrl, #ffffff);
   color: var(--prefText, #1d1d1f);
   box-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.08);
+}
+
+/* C-SETTINGS-KEYBOARD-FOCUS canon: keyboard-visible outline only. */
+.pref-button-item .pref-button:focus-visible {
+  outline: 2px solid var(--prefAccent);
+  outline-offset: 1px;
 }
 
 .pref-button-item.pref-os-win .pref-button {
