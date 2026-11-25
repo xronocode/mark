@@ -266,20 +266,6 @@ describe('store/project', () => {
       )
     })
 
-    it('drains pending tree events for the canonical pathname', async () => {
-      const store = await loadStore()
-      // Pre-seed pending bucket BEFORE ADD_PROJECT.
-      store.pendingTreeEvents['/foo'] = [
-        { type: 'addDir', change: { pathname: '/foo/sub' } },
-        { type: 'add', change: { pathname: '/foo/x.md', isMarkdown: true } }
-      ]
-      store.ADD_PROJECT('/foo')
-      expect(addDirectorySpy).toHaveBeenCalledTimes(1)
-      expect(addFileSpy).toHaveBeenCalledTimes(1)
-      // Bucket cleared after drain.
-      expect(store.pendingTreeEvents['/foo']).toBeUndefined()
-    })
-
     it('C-1: subscribes ipcWatch and stores disposer; CLOSE_PROJECT calls it', async () => {
       const dispose = vi.fn()
       ipcWatchSubscribeMock.mockResolvedValueOnce(dispose)
@@ -647,13 +633,11 @@ describe('store/project', () => {
   // ─── CLOSE_PROJECT ───────────────────────────────────────────────
 
   describe('CLOSE_PROJECT', () => {
-    it('removes the matching root and clears pending bucket', async () => {
+    it('removes the matching root', async () => {
       const store = await loadStore()
       store.ADD_PROJECT('/foo')
-      store.pendingTreeEvents['/foo'] = []
       await store.CLOSE_PROJECT('/foo')
       expect(store.projectTrees).toHaveLength(0)
-      expect(store.pendingTreeEvents['/foo']).toBeUndefined()
     })
 
     it('NOOP_NOT_FOUND: closing an unknown root is a no-op', async () => {

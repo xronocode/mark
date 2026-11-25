@@ -153,8 +153,5 @@ describe('main.js — app creation flow', () => {
 
     // Services registered as global properties
     expect(mockApp.config.globalProperties.$notification).toBeDefined()
-
-    // Axios registered as $http global property
-    expect(mockApp.config.globalProperties.$http).toBeDefined()
   })
 })

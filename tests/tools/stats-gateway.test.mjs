@@ -425,11 +425,11 @@ describe('tools/stats-gateway — renderer egress delta scan (baseline-true)', (
       // C-56 remote image-copy fetch + blob fetches (editor.vue) — the
       // named pre-existing allowlist from the plan.
       'src/renderer/src/components/editorWithTabs/editor.vue',
-      // The dormant, globally-registered axios client (zero call sites).
-      'src/renderer/src/axios/index.js',
       // The remaining blob-URL fetches / fetch stubs of the "blob-URL
       // fetches" category the plan names (a window fetch shim and the
-      // locale loader's commented-out legacy fetch).
+      // locale loader's commented-out legacy fetch). The dormant axios
+      // client (src/renderer/src/axios/index.js) that the original plan
+      // also allowed is gone — removed as dead code.
       'src/renderer/src/_shims/install-window-globals.js',
       'src/renderer/src/i18n/localeLoader.js'
     ]

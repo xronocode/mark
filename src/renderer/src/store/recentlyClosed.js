@@ -142,8 +142,7 @@ export const useRecentlyClosedStore = defineStore('recentlyClosed', {
           title: i18n.global.t('recent.recentlyClosed.title'),
           message: i18n.global.t('recent.recentlyClosed.unverifiedNotice', { name: entry.filename || entry.pathname }),
           type: 'warning',
-          time: 6000,
-          showConfirm: false
+          time: 6000
         })
         console.info(
           // Basename only in markers — the repo logging convention keeps
@@ -159,8 +158,7 @@ export const useRecentlyClosedStore = defineStore('recentlyClosed', {
           title: i18n.global.t('recent.recentlyClosed.title'),
           message: i18n.global.t('recent.recentlyClosed.missingNotice', { name: entry.filename || entry.pathname }),
           type: 'warning',
-          time: 6000,
-          showConfirm: false
+          time: 6000
         })
         console.info(
           `[RecentlyClosed][REOPEN_ONE][BLOCK_REOPEN_MISSING] file=${entry.filename || entry.pathname.split('/').pop()}`
@@ -241,8 +239,7 @@ export const useRecentlyClosedStore = defineStore('recentlyClosed', {
           title: i18n.global.t('recent.recentlyClosed.title'),
           message: i18n.global.t('recent.recentlyClosed.someMissingNotice', { count: missing }),
           type: 'warning',
-          time: 6000,
-          showConfirm: false
+          time: 6000
         })
       }
       if (unverifiedEntries.length > 0) {
@@ -250,8 +247,7 @@ export const useRecentlyClosedStore = defineStore('recentlyClosed', {
           title: i18n.global.t('recent.recentlyClosed.title'),
           message: i18n.global.t('recent.recentlyClosed.someUnverifiedNotice', { count: unverifiedEntries.length }),
           type: 'warning',
-          time: 6000,
-          showConfirm: false
+          time: 6000
         })
       }
       console.info(

@@ -1,12 +1,11 @@
 // MUST be the FIRST import: installs window.fileUtils / window.electron /
-// window.path / window.commandExists / window.i18nUtils / window.rgPath
+// window.path / window.commandExists / window.i18nUtils
 // so v1.2.3-ported renderer code resolves these globals at script-eval
 // time. Closes F-MAIN-ENTRY-DISABLED. See _shims/install-window-globals.js.
 import './_shims/install-window-globals'
 import { createApp } from 'vue'
 import { createRouter, createWebHashHistory } from 'vue-router'
 import bootstrapRenderer from './bootstrap'
-import axios from './axios'
 import pinia from './store'
 // C-38 T-006 N4 b: root platform class for the per-OS chrome accent
 // fallbacks in assets/styles/index.css (reads the shim lazily).
@@ -92,9 +91,6 @@ const router = createRouter({
 app.use(router)
 app.use(pinia)
 app.use(i18nPlugin)
-
-// Configure axios globally
-app.config.globalProperties.$http = axios
 
 // Register services globally
 services.forEach((s) => {

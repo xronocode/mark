@@ -1,6 +1,6 @@
 // START_MODULE_CONTRACT
 //   PURPOSE: Install the v1.2.3 window.* contextBridge surface (electron,
-//            fileUtils, path, commandExists, i18nUtils, rgPath) by
+//            fileUtils, path, commandExists, i18nUtils) by
 //            proxying through M-013-B @/ipc/runtime so renderer code
 //            ported from mark-electron@v1.2.3 transfers without changes.
 //            This is the closing piece of F-MAIN-ENTRY-DISABLED.
@@ -65,7 +65,7 @@
 // END_MODULE_CONTRACT
 // START_MODULE_MAP
 //   MAP_MODE: SIDE_EFFECT — installs window.* globals on import; exports nothing.
-//   window.electron / window.fileUtils / window.path / window.commandExists / window.i18nUtils / window.rgPath — the installed surface.
+//   window.electron / window.fileUtils / window.path / window.commandExists / window.i18nUtils — the installed surface.
 // END_MODULE_MAP
 //
 import * as posixPath from 'path-browserify'
@@ -571,16 +571,6 @@ const i18nUtils = {
   loadTranslations: (locale) => loadLocaleTable(locale)
 }
 
-// ─── window.rgPath ──────────────────────────────────────────────────
-// v1 stored the absolute path to the bundled @vscode/ripgrep binary;
-// renderer's RipgrepDirectorySearcher spawned it via child_process.
-// Tauri side: M-004 search runs in-process via ignore + regex (NO rg
-// shell-out). The renderer's RipgrepDirectorySearcher has been fully
-// replaced by @/ipc/runtime ipcSearch.RipgrepDirectorySearcher which
-// doesn't read window.rgPath at all. Provide a non-empty placeholder
-// so any defensive `if (!window.rgPath) throw` checks pass.
-const rgPath = '/ipc-routed/rg'
-
 // ─── image loader (blob: URL bridge) ────────────────────────────────
 // CSP blocks file:// in img-src. Read image bytes via IPC, return a
 // blob: URL the webview can display. Consumed by muya's loadImageAsync.
@@ -617,8 +607,6 @@ if (typeof window !== 'undefined') {
   window.commandExists = commandExists
   // eslint-disable-next-line no-undef
   window.i18nUtils = i18nUtils
-  // eslint-disable-next-line no-undef
-  window.rgPath = rgPath
   // eslint-disable-next-line no-undef
   window.__markImageLoader = __markImageLoader
   // eslint-disable-next-line no-console

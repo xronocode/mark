@@ -15,8 +15,8 @@
  *      ;(invoke as any).mockResolvedValueOnce({ data: 42 })
  *
  * 2. Window-shim globals (window.fileUtils / window.path / window.electron
- *    / window.marktext / window.commandExists / window.i18nUtils /
- *    window.rgPath) are installed before EACH test by `installWindowGlobals`,
+ *    / window.marktext / window.commandExists / window.i18nUtils)
+ *    are installed before EACH test by `installWindowGlobals`,
  *    invoked from the global `beforeEach`. Tests don't have to call
  *    anything to get them. Override per-test by re-assigning fields:
  *
@@ -270,7 +270,6 @@ export function installWindowGlobals() {
 
   w.commandExists = { exists: vi.fn(async (_cmd: string) => false) }
   w.i18nUtils = { loadTranslations: vi.fn(async (_locale: string) => ({})) }
-  w.rgPath = '/ipc-routed/rg'
   w.marktext = { env: { type: 'editor', windowId: 1, debug: false, paths: { userDataPath: '/tmp/mt-test' } } }
 }
 
