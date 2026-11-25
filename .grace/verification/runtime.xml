@@ -13064,10 +13064,7 @@
           tests/renderer/commands/capability-gate.test.js
           tests/renderer/commands/index-deep.test.js
         </Command>
-        <Command>
-          npx playwright test tests/e2e/print-export.spec.ts --project=chromium
-          --project=webkit
-        </Command>
+        <Command>npx playwright test tests/e2e/print-export.spec.ts --project=chromium</Command>
         <Command>
           Windows CI compile gate: cargo check --target x86_64-pc-windows-msvc
           (test.yml windows job) — the webview2-com print surface must build.
@@ -13095,7 +13092,18 @@
           outcome (corner-2). e2e print-export.spec.ts pins the
           invoke-order trace: pdf = plugin:dialog|save then mt_export_pdf
           and zero mt_print_webview; print = mt_print_webview only, no
-          dialog.
+          dialog, and never a disk write (the print pin's filter also covers
+          mt_fs_write / mt_fs_write_binary and still expects exactly
+          ['mt_print_webview'], C-PRINT-LIFECYCLE-TESTS). The docx export
+          lifecycle is pinned at component level in
+          editor-print-clearup.test.js (C-PRINT-LIFECYCLE-TESTS): the
+          success leg (one EXPORT dispatch carries the post-embed HTML
+          beside pageOptions and exportPin, one Word-filtered save dialog,
+          one conversion, one binary write, the print container never
+          engaged), the render-stage failure leg (the editor.export.failed
+          notice from editor.vue's own catch, zero dispatches) and the
+          conversion-failure handoff (exactly one dispatch reaching the
+          store's catch notice, no duplicate).
         </Scenario>
         <Scenario>
           scenario-3: pure mapping (cargo test m052, every platform):

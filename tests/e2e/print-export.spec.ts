@@ -1,20 +1,28 @@
-/**
- * print-export.spec.ts — C-61 (split Print and Export to PDF).
- *
- * Invoke-order traces against the real renderer + tauri shim:
- *
- *   Print (⌘P / File › Print… via the menu bridge):
- *     - mt_print_webview is invoked,
- *     - NO export-settings dialog ever opens (R-1),
- *     - the styled print container is in the DOM when the panel opens.
- *
- *   Export to PDF (File › Export to PDF…):
- *     - plugin:dialog|save → mt_export_pdf with remembered pageOptions,
- *     - no export-settings dialog mounts,
- *     - mt_print_webview is NEVER invoked (R-2/R-6),
- *     - cancelling the save dialog writes nothing and notifies nobody
- *       (corner-2) and clears the print container.
- */
+// FILE: tests/e2e/print-export.spec.ts
+// START_MODULE_CONTRACT
+//   PURPOSE: C-61 (split Print and Export to PDF) invoke-order traces
+//            against the real renderer + tauri shim. Print (⌘P / File ›
+//            Print… via the menu bridge): mt_print_webview is invoked, NO
+//            export-settings dialog ever opens (R-1), the styled print
+//            container is in the DOM when the panel opens. Export to PDF
+//            (File › Export to PDF…): plugin:dialog|save → mt_export_pdf
+//            with remembered pageOptions, no export-settings dialog mounts,
+//            mt_print_webview is NEVER invoked (R-2/R-6), cancelling the
+//            save dialog writes nothing and notifies nobody (corner-2) and
+//            clears the print container. C-PRINT-LIFECYCLE-TESTS extends
+//            the print trace with the zero-disk-write lifecycle filter:
+//            the recorded invoke subset stays exactly the print invocation
+//            with mt_fs_write / mt_fs_write_binary asserted absent.
+//   SCOPE: Invoke-order and zero-disk-write assertions over the print/export seams; no product code.
+//   DEPENDS: @playwright/test; fixtures tauri-shim (installTauriShim) and helpers (bootEditor, openFileTab).
+//   LINKS: .grace/changes/archive/C-61; .grace/verification/runtime.xml V-M-052; C-PRINT-LIFECYCLE-TESTS.
+//   ROLE: TEST
+//   MAP_MODE: LOCALS
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   DOC - the single-tab document text every scenario opens.
+// END_MODULE_MAP
 
 import { test, expect } from '@playwright/test'
 import { installTauriShim } from './fixtures/tauri-shim'
@@ -22,6 +30,7 @@ import { bootEditor, openFileTab } from './fixtures/helpers'
 
 const DOC = '# Print export spec\n\nbody with **bold** text\n'
 
+// START_BLOCK_PRINT_EXPORT_LIFECYCLE
 test.describe('print and export-to-pdf flows (C-61)', () => {
   test.beforeEach(async ({ page }) => {
     await installTauriShim(page)
@@ -64,9 +73,13 @@ test.describe('print and export-to-pdf flows (C-61)', () => {
     // the print/export surface: unrelated background invokes like
     // recent-add must not break the order trace.)
     const log = await page.evaluate(() => (window as any).__invokeLog)
+    // C-PRINT-LIFECYCLE-TESTS: the fs-write commands ride the same filter,
+    // so the equality below proves the exact order AND that the print
+    // flow never writes a file (zero mt_fs_write / mt_fs_write_binary).
     const relevant = log.filter(
       (c: string) =>
-        c === 'mt_print_webview' || c === 'mt_export_pdf' || c === 'plugin:dialog|save'
+        c === 'mt_print_webview' || c === 'mt_export_pdf' || c === 'plugin:dialog|save' ||
+        c === 'mt_fs_write' || c === 'mt_fs_write_binary'
     )
     expect(relevant).toEqual(['mt_print_webview'])
   })
@@ -145,3 +158,4 @@ test.describe('print and export-to-pdf flows (C-61)', () => {
     expect(relevant).toEqual(['plugin:dialog|save'])
   })
 })
+// END_BLOCK_PRINT_EXPORT_LIFECYCLE

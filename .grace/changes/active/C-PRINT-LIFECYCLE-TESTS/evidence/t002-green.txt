@@ -1,0 +1,10 @@
+# T-002 green evidence (2026-11-25)
+
+## Environment note (recorded honestly, per plan discipline)
+The first run of the lane failed at bootEditor for ALL THREE pins (and for the untouched export-document-pin.spec.ts lane as well): the fresh worktree had no dist/ build, so `npm run preview` served nothing bootable. Fix: `npm run build` (exit 0) – environment setup only, no source, config or assertion change. Second run green.
+
+## $ npx --no-install playwright test tests/e2e/print-export.spec.ts --project=chromium
+  ✓  1 [chromium] › tests/e2e/print-export.spec.ts:31:3 › print and export-to-pdf flows (C-61) › Print goes straight to mt_print_webview — no settings dialog (889ms)
+  ✓  2 [chromium] › tests/e2e/print-export.spec.ts:79:3 › print and export-to-pdf flows (C-61) › Export to PDF: save dialog → mt_export_pdf with no settings dialog or print panel (922ms)
+  ✓  3 [chromium] › tests/e2e/print-export.spec.ts:122:3 › print and export-to-pdf flows (C-61) › Export to PDF with a cancelled save dialog writes nothing and clears the container (corner-2) (1.1s)
+  3 passed (3.6s)
