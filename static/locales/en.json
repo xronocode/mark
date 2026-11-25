@@ -93,6 +93,8 @@
       "plantumlConsentMessage": "{count} PlantUML diagram(s) would be sent to {address} for rendering — the diagram source text leaves this machine",
       "plantumlConsentConfirm": "Send to plantuml.com",
       "plantumlConsentCancel": "Keep source local",
+      "plantumlFallbackTitle": "Some PlantUML diagrams were not downloaded",
+      "plantumlFallbackMessage": "{count} PlantUML diagram(s) could not be downloaded from plantuml.com, so their source text is kept in the Word export",
       "pinMismatchTitle": "Export stopped — the document changed",
       "pinMismatchMessage": "The document being exported changed (a tab switch or an edit) while the export was waiting — nothing was exported. Start the export again.",
       "pinDiskChangedTitle": "Export stopped — the file changed on disk",

@@ -21,6 +21,17 @@
 // END_MODULE_MAP
 
 // START_CHANGE_SUMMARY
+//   - 2026-11-26 integration-acks fix: honest timeout verdicts — a request
+//     that times out inside the client's own budget answers the new
+//     InvokeErrorKind::RequestTimeout (http_status stays None) with the
+//     bounded message naming the timeout, the budget and the UNDETERMINED
+//     outcome ("the extension may still apply the request") — the pristine
+//     code folded the timeout into RequestFailed's anonymous "request
+//     failed: {e}" whose Display carries no timeout hint, leaving the
+//     caller unable to tell a clean refusal from a possibly-applied edit.
+//     No retry on timeout (re-sending a possibly-applied edit is not this
+//     layer's decision); the request path, retry policy on 503/429/connect,
+//     idempotency key and success path are unchanged.
 //   - 2026-11-23 C-EXT-DELIVERY-HONESTY T-004: bounded, sanitized invoke
 //     errors — every InvokeError.message is clamped under the named
 //     INVOKE_MESSAGE_MAX_CHARS = 400 by bound_message at every construction
@@ -118,6 +129,11 @@ pub enum InvokeErrorKind {
     CapabilityNotFound,
     /// HTTP request failed (network, timeout, etc.).
     RequestFailed,
+    /// C-EXT-DELIVERY-HONESTY: the request timed out inside the client's
+    /// own budget — the outcome is UNDETERMINED (the extension may still
+    /// receive and apply the request), so this is its own verdict class
+    /// naming the timeout, never an anonymous request failure.
+    RequestTimeout,
     /// Extension returned a non-2xx status code.
     BadStatus,
     /// Response body could not be parsed as JSON.
@@ -309,6 +325,29 @@ pub async fn invoke_extension(
                     // bounded pause.
                     tokio::time::sleep(Duration::from_millis(INVOKE_DEFAULT_RETRY_WAIT_MS)).await;
                     continue;
+                }
+                // C-EXT-DELIVERY-HONESTY: a timeout is an UNDETERMINED
+                // verdict, its own class — the request budget expired while
+                // the extension may still receive and apply the request, so
+                // the message must name the timeout, the bound and the
+                // undetermined outcome instead of the anonymous request
+                // failure (whose Display carries no timeout hint). No
+                // retry: re-sending a possibly-applied edit is not ours to
+                // decide here.
+                if e.is_timeout() {
+                    safe_eprintln!(
+                        "[ExtHost][invoke][BLOCK_REQUEST_TIMEOUT id={} cap={capability} bound_secs={}]",
+                        manifest.id,
+                        timeout.as_secs()
+                    );
+                    return Err(InvokeError {
+                        kind: InvokeErrorKind::RequestTimeout,
+                        http_status: None,
+                        message: bound_message(format!(
+                            "request timed out after {}s: outcome undetermined (the extension may still apply the request)",
+                            timeout.as_secs()
+                        )),
+                    });
                 }
                 return Err(InvokeError {
                     kind: InvokeErrorKind::RequestFailed,

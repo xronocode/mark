@@ -961,9 +961,13 @@ const guardReadOnlyClick = event => {
 const handleRichFocus = () => focusSplit('rich')
 const handleRichCompositionStart = () => richComposition.arm()
 const handleRichCompositionEnd = () => { if (richComposition.release()) scheduleFollowSync(true) }
-const routeSource = (command, payload) => {
+// C-EXT-EDIT-PROOF: an ext op routed to the source pane carries its verdict
+// correlation in `ack` ({ requestId, opIndex, extensionId, emit }) — the
+// source surface answers the backend channel through it (applied verdict or
+// honest refusal), so a source-pane edit is never a silent apply + 504.
+const routeSource = (command, payload, ack) => {
   if (!sourceFocused()) return false
-  bus.emit('split:source-command', { command, payload })
+  bus.emit('split:source-command', { command, payload, ack })
   return true
 }
 const focusedCopyData = () => {
@@ -3594,15 +3598,19 @@ const extBindingMatchesRendered = ({ documentId, documentGeneration }) =>
  * without a requestId behaves exactly as before — no ack. Reasons are
  * stable content-free classes: "targeting_gate_refused" for any
  * pre-mutation refusal and "apply_failed" for a Muya failure — never raw
- * error text.
+ * error text. The emitting extension's identity rides along as
+ * extension_id (absent on request-less events), so the backend namespaces
+ * its verdict inbox per extension and parallel batches can never consume
+ * another extension's ack.
  */
-const emitTextOpAck = async ({ requestId, opIndex }, applied, reason) => {
+const emitTextOpAck = async ({ requestId, opIndex, extensionId }, applied, reason) => {
   if (requestId == null) return
   try {
     const { emit: tauriEmit } = await import('@tauri-apps/api/event')
     await tauriEmit('mt::ext::text_op_ack', {
       request_id: requestId,
       op_index: opIndex,
+      extension_id: extensionId,
       applied,
       reason
     })
@@ -3621,25 +3629,25 @@ const emitTextOpAck = async ({ requestId, opIndex }, applied, reason) => {
  * provided markdown content. Muya's insertParagraph('after', text, true)
  * inserts a block after the currently focused block.
  */
-const handleExtTextInsert = ({ text, requestId, opIndex, documentId, documentGeneration }) => {
+const handleExtTextInsert = ({ text, requestId, opIndex, extensionId, documentId, documentGeneration }) => {
   if (!extBindingMatchesRendered({ documentId, documentGeneration })) {
     // eslint-disable-next-line no-console
     console.warn('[Editor][BLOCK_EXT_TARGETING_MISMATCH op=insert]')
-    emitTextOpAck({ requestId, opIndex }, false, 'targeting_gate_refused')
+    emitTextOpAck({ requestId, opIndex, extensionId }, false, 'targeting_gate_refused')
     return
   }
-  if (routeSource('insert', text)) return
+  if (routeSource('insert', text, { requestId, opIndex, extensionId, emit: emitTextOpAck })) return
   if (!editor.value || typeof text !== 'string') return
   try {
     editor.value.insertParagraph('after', text, true)
     // C-EXT-EDIT-PROOF: the applied ack follows the Muya call, never precedes it.
-    emitTextOpAck({ requestId, opIndex }, true, '')
+    emitTextOpAck({ requestId, opIndex, extensionId }, true, '')
     // eslint-disable-next-line no-console
     console.log(`[Editor][BLOCK_EXT_TEXT_INSERT_OK len=${text.length}]`)
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('[Editor][BLOCK_EXT_TEXT_INSERT_FAILED]', err)
-    emitTextOpAck({ requestId, opIndex }, false, 'apply_failed')
+    emitTextOpAck({ requestId, opIndex, extensionId }, false, 'apply_failed')
   }
 }
 
@@ -3651,17 +3659,17 @@ const handleExtTextInsert = ({ text, requestId, opIndex, documentId, documentGen
  * Strategy: get the current selection, use Muya's replace mechanism to
  * substitute the selected text. If nothing is selected, insert at cursor.
  */
-const handleExtTextTransform = ({ text, requestId, opIndex, documentId, documentGeneration }) => {
+const handleExtTextTransform = ({ text, requestId, opIndex, extensionId, documentId, documentGeneration }) => {
   // C-SEC-EDIT-TARGETING: gate BEFORE the selection/replace branch and
   // before the whole-document setMarkdown fallback below — that fallback
   // is the dangerous path for a mis-targeted apply.
   if (!extBindingMatchesRendered({ documentId, documentGeneration })) {
     // eslint-disable-next-line no-console
     console.warn('[Editor][BLOCK_EXT_TARGETING_MISMATCH op=transform]')
-    emitTextOpAck({ requestId, opIndex }, false, 'targeting_gate_refused')
+    emitTextOpAck({ requestId, opIndex, extensionId }, false, 'targeting_gate_refused')
     return
   }
-  if (typeof text === 'string' && routeSource('transform', text)) return
+  if (typeof text === 'string' && routeSource('transform', text, { requestId, opIndex, extensionId, emit: emitTextOpAck })) return
   if (!editor.value || typeof text !== 'string') return
   try {
     const selection = editor.value.getSelection()
@@ -3677,13 +3685,13 @@ const handleExtTextTransform = ({ text, requestId, opIndex, documentId, document
       editor.value.setMarkdown(text)
     }
     // C-EXT-EDIT-PROOF: the applied ack follows the Muya call, never precedes it.
-    emitTextOpAck({ requestId, opIndex }, true, '')
+    emitTextOpAck({ requestId, opIndex, extensionId }, true, '')
     // eslint-disable-next-line no-console
     console.log(`[Editor][BLOCK_EXT_TEXT_TRANSFORM_OK len=${text.length} hadSelection=${!!(selection && selection.selectedText)}]`)
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('[Editor][BLOCK_EXT_TEXT_TRANSFORM_FAILED]', err)
-    emitTextOpAck({ requestId, opIndex }, false, 'apply_failed')
+    emitTextOpAck({ requestId, opIndex, extensionId }, false, 'apply_failed')
   }
 }
 
@@ -3695,20 +3703,20 @@ const handleExtUndo = ({ extensionId, requestId, opIndex, documentId, documentGe
   if (!extBindingMatchesRendered({ documentId, documentGeneration })) {
     // eslint-disable-next-line no-console
     console.warn('[Editor][BLOCK_EXT_TARGETING_MISMATCH op=undo]')
-    emitTextOpAck({ requestId, opIndex }, false, 'targeting_gate_refused')
+    emitTextOpAck({ requestId, opIndex, extensionId }, false, 'targeting_gate_refused')
     return
   }
   if (!editor.value) return
   try {
     handleUndo()
     // C-EXT-EDIT-PROOF: the applied ack follows the Muya call, never precedes it.
-    emitTextOpAck({ requestId, opIndex }, true, '')
+    emitTextOpAck({ requestId, opIndex, extensionId }, true, '')
     // eslint-disable-next-line no-console
     console.log(`[Editor][BLOCK_EXT_UNDO_OK ext=${extensionId}]`)
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('[Editor][BLOCK_EXT_UNDO_FAILED]', err)
-    emitTextOpAck({ requestId, opIndex }, false, 'apply_failed')
+    emitTextOpAck({ requestId, opIndex, extensionId }, false, 'apply_failed')
   }
 }
 

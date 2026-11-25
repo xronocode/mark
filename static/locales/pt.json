@@ -92,6 +92,8 @@
       "plantumlConsentMessage": "{count} diagrama(s) PlantUML seriam enviados a {address} para renderização — o texto fonte do diagrama sai desta máquina",
       "plantumlConsentConfirm": "Enviar ao plantuml.com",
       "plantumlConsentCancel": "Manter o código localmente",
+      "plantumlFallbackTitle": "Alguns diagramas PlantUML não foram baixados",
+      "plantumlFallbackMessage": "{count} diagrama(s) PlantUML não puderam ser baixados de plantuml.com, por isso o texto-fonte é mantido na exportação do Word",
       "pinMismatchTitle": "Exportação interrompida — o documento mudou",
       "pinMismatchMessage": "O documento sendo exportado mudou (uma troca de aba ou uma edição) enquanto a exportação aguardava — nada foi exportado. Inicie a exportação novamente.",
       "pinDiskChangedTitle": "Exportação interrompida — o arquivo mudou no disco",

@@ -92,6 +92,8 @@
       "plantumlConsentMessage": "{count} 個 PlantUML 圖表將被送到 {address} 進行渲染——圖表原始碼會離開本機",
       "plantumlConsentConfirm": "傳送到 plantuml.com",
       "plantumlConsentCancel": "在本機保留原始碼",
+      "plantumlFallbackTitle": "部分 PlantUML 圖未能下載",
+      "plantumlFallbackMessage": "{count} 個 PlantUML 圖無法從 plantuml.com 下載，Word 匯出中保留了其原始碼",
       "pinMismatchTitle": "匯出已停止 — 文件已變更",
       "pinMismatchMessage": "在匯出等待期間，正在匯出的文件發生了變更（切換分頁或編輯）— 未匯出任何內容。請重新開始匯出。",
       "pinDiskChangedTitle": "匯出已停止 — 磁碟上的檔案已變更",

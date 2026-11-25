@@ -18,6 +18,21 @@
 // END_MODULE_MAP
 
 // START_CHANGE_SUMMARY
+//   - 2026-11-26 integration-acks fix pins: failing-first —
+//     ext_apply_same_key_across_extensions_keeps_distinct_acks (two
+//     fixtures post parallel same-client-key batches; the delayed ack
+//     responder install_delayed_ack_responder holds extension A's verdict
+//     while extension B's batch starts, answers and tears its inbox entry
+//     down — the pristine client-key-only inbox loses A's verdict slot and
+//     answers 504, the namespaced inbox answers both 200) and
+//     invoke_timeout_names_an_undetermined_verdict (serve_silent holds the
+//     connection past the client budget; the pristine code folded the
+//     timeout into RequestFailed's anonymous message, the fix answers
+//     RequestTimeout naming the timeout and the undetermined outcome — the
+//     pin's pristine baseline was the compile error naming the missing
+//     verdict class). install_ack_responder forwards extension_id exactly
+//     like the renderer's emitTextOpAck; the expectAck companion asserts
+//     the additive extension_id field.
 //   - 2026-11-23 C-EXT-GALLERY-STATE CI fix: the discover payload pin's
 //     fixture lands in the scan root the canonical identifier resolves on
 //     the running platform (the legacy $HOME/.config/mark/extensions
@@ -1810,7 +1825,10 @@ type AckScript = Arc<Mutex<std::collections::HashMap<u64, Option<(bool, String)>
 /// C-EXT-EDIT-PROOF: the renderer-side ack responder beside the
 /// mt::ext::context_request responder. It watches the batch's mt::text::op
 /// events and, per the script, answers mt::ext::text_op_ack
-/// {request_id, op_index, applied, reason}; silence is the default, so all
+/// {request_id, op_index, applied, reason} with the emitting extension's
+/// identity riding along (the renderer's emitTextOpAck forwards
+/// extension_id the same way, so the production resolution can namespace
+/// the verdict inbox); silence is the default, so all
 /// verdict legs (200/409/504) are drivable headlessly.
 fn install_ack_responder(f: &IncomingFixture, script: AckScript) {
     let handle = f.app.handle().clone();
@@ -1824,6 +1842,7 @@ fn install_ack_responder(f: &IncomingFixture, script: AckScript) {
             handle.emit("mt::ext::text_op_ack", serde_json::json!({
                 "request_id": request_id,
                 "op_index": op_index,
+                "extension_id": payload["extension_id"],
                 "applied": applied,
                 "reason": reason,
             })).unwrap();
@@ -1842,6 +1861,35 @@ fn ack_script(entries: &[(u64, bool, &str)]) -> AckScript {
     Arc::new(Mutex::new(entries.iter()
         .map(|(index, applied, reason)| (*index, Some((*applied, (*reason).to_string()))))
         .collect::<std::collections::HashMap<_, _>>()))
+}
+
+/// The parallel-batch pin's responder: answers op `op_index` applied:true
+/// only after `delay_ms`, modeling a slow renderer surface — the window in
+/// which a second extension's same-key batch can start, answer and tear
+/// down its inbox entry while this batch is still pending.
+fn install_delayed_ack_responder(f: &IncomingFixture, op_index: u64, delay_ms: u64) {
+    let handle = f.app.handle().clone();
+    f.app.listen("mt::text::op", move |event| {
+        let payload: serde_json::Value = serde_json::from_str(event.payload()).unwrap();
+        if payload["payload"]["op_index"].as_u64() != Some(op_index) { return };
+        let request_id = payload["payload"]["request_id"].as_str().map(str::to_string);
+        let Some(request_id) = request_id else { return };
+        let extension_id = payload["extension_id"].as_str().map(str::to_string);
+        let delayed_handle = handle.clone();
+        tokio::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
+            delayed_handle.emit("mt::ext::text_op_ack", serde_json::json!({
+                "request_id": request_id,
+                "op_index": op_index,
+                "extension_id": extension_id,
+                "applied": true,
+                "reason": "",
+            })).unwrap();
+        });
+    });
+    f.app.listen("mt::ext::text_op_ack", |event| {
+        super::live_server::resolve_text_op_ack(event.payload());
+    });
 }
 
 /// Drive /ext/apply with a raw JSON request body — wire-faithful: the
@@ -2089,6 +2137,46 @@ async fn ext_apply_keyless_applies_once() {
     assert_eq!(body_b["applied"], true);
     assert!(body_a.get("duplicate").is_none(), "a keyless post holds no dedup promise: {body_a}");
     assert_eq!(f.events.lock().unwrap().len(), 2, "each keyless post emits its batch exactly once");
+}
+
+#[tokio::test]
+async fn ext_apply_same_key_across_extensions_keeps_distinct_acks() {
+    // Two extensions post parallel batches carrying the SAME client request
+    // key. The verdict inbox is namespaced by extension identity, so the
+    // fast batch's completion (its own ack, then its inbox teardown) can
+    // never consume or erase the slow batch's pending verdict slot: A
+    // answers its own delayed ack 200, B answers its own immediate ack 200
+    // — a client-key-only inbox answers A with the 504 of a lost verdict.
+    let a = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    let b = incoming_fixture_caps(true, &["context.read", "text.edit"]);
+    assert_eq!(context_fixture(&a, &a.token).await, StatusCode::OK);
+    assert_eq!(context_fixture(&b, &b.token).await, StatusCode::OK);
+    // A's renderer surface is slow; B's answers immediately.
+    install_delayed_ack_responder(&a, 0, 500);
+    install_ack_responder(&b, ack_script(&[(0, true, "")]));
+    let request_a = {
+        let mut request = bound_apply_request(&a, serde_json::json!([
+            {"op_type": "insert_at_cursor", "content": "extension a edit"}
+        ])).await;
+        request["request_id"] = serde_json::json!("shared-client-key");
+        request
+    };
+    let request_b = {
+        let mut request = bound_apply_request(&b, serde_json::json!([
+            {"op_type": "insert_at_cursor", "content": "extension b edit"}
+        ])).await;
+        request["request_id"] = serde_json::json!("shared-client-key");
+        request
+    };
+    let (result_a, result_b) = tokio::join!(apply_raw(&a, &a.token, request_a), apply_raw(&b, &b.token, request_b));
+    let (status_a, body_a) = result_a;
+    let (status_b, body_b) = result_b;
+    assert_eq!(status_a, StatusCode::OK, "the slow batch answers its own verdict: {}", body_a);
+    assert_eq!(status_b, StatusCode::OK, "the fast batch answers its own verdict: {}", body_b);
+    assert_eq!(body_a["applied"], true);
+    assert_eq!(body_b["applied"], true);
+    assert_eq!(a.events.lock().unwrap().len(), 1, "each batch emits exactly its own op");
+    assert_eq!(b.events.lock().unwrap().len(), 1, "each batch emits exactly its own op");
 }
 // END_BLOCK_EXT_APPLY_VERDICT_TESTS
 
@@ -3111,6 +3199,66 @@ async fn invoke_honest_loopback_ok() {
     assert!(request.starts_with("POST /invoke "));
     assert!(request.to_ascii_lowercase().contains("authorization: bearer dummy-fixture-bearer"));
     assert!(request.contains("dummy body"));
+}
+
+/// Accept and hold: the connection opens but no answer is ever written
+/// inside the held window — the honest timeout fixture (the client's own
+/// request budget fires first).
+fn serve_silent(listener: std::net::TcpListener, hold_ms: u64) -> std::thread::JoinHandle<()> {
+    use std::io::Read;
+    listener.set_nonblocking(true).unwrap();
+    std::thread::spawn(move || {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_millis(hold_ms);
+        let mut stream = loop {
+            match listener.accept() {
+                Ok((stream, _)) => break stream,
+                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                    if std::time::Instant::now() >= deadline { return; }
+                    std::thread::sleep(std::time::Duration::from_millis(5));
+                },
+                Err(e) => panic!("fixture accept failed: {e}"),
+            }
+        };
+        // Held open, never answered (the accepted stream inherits the
+        // listener's non-blocking mode — back to blocking reads).
+        stream.set_nonblocking(false).unwrap();
+        let _ = stream.set_read_timeout(Some(std::time::Duration::from_millis(hold_ms)));
+        let mut buf = [0u8; 4096];
+        loop {
+            match stream.read(&mut buf) {
+                Ok(0) | Err(_) => return,
+                Ok(_) => {
+                    if std::time::Instant::now() >= deadline { return; }
+                }
+            }
+        }
+    })
+}
+
+#[tokio::test]
+async fn invoke_timeout_names_an_undetermined_verdict() {
+    // An edit invoke whose extension never answers inside its own budget
+    // must return an EXPLICIT undetermined verdict — the error names the
+    // timeout and states the outcome is undetermined (the extension may
+    // still receive and apply the request) — never an anonymous request
+    // failure a caller could read as "nothing happened".
+    let listener = fixture_listener("INVOKE_TIMEOUT");
+    let mut manifest = test_manifest("timeout-invoke-fixture");
+    manifest.discovery.base_url = format!("http://{}", listener.local_addr().unwrap());
+    manifest.invoke.timeout_secs = 1;
+    let server = serve_silent(listener, 3000);
+    let error = super::invoke::invoke_extension(&manifest, "text.insert", serde_json::json!({"text":"dummy body"}), Some("dummy-bearer"))
+        .await.unwrap_err();
+    server.join().unwrap();
+    assert!(matches!(error.kind, InvokeErrorKind::RequestTimeout), "the timeout is its own verdict class: {:?}", error.kind);
+    assert_eq!(error.http_status, None, "a timeout never carries an HTTP status");
+    assert!(error.message.contains("timed out"), "the message names the timeout: {}", error.message);
+    assert!(error.message.contains("undetermined"), "the message states the undetermined outcome: {}", error.message);
+    assert!(
+        error.message.chars().count() <= INVOKE_MESSAGE_MAX_CHARS,
+        "the timeout verdict stays bounded: {}",
+        error.message
+    );
 }
 
 #[tokio::test]

@@ -92,6 +92,8 @@
       "plantumlConsentMessage": "{count}件のPlantUMLダイアグラムがレンダリングのため{address}へ送信されます — ダイアグラムのソーステキストがこのマシンから出ていきます",
       "plantumlConsentConfirm": "plantuml.comへ送信",
       "plantumlConsentCancel": "ソースをローカルに残す",
+      "plantumlFallbackTitle": "一部のPlantUML図をダウンロードできませんでした",
+      "plantumlFallbackMessage": "{count}件のPlantUML図をplantuml.comからダウンロードできず、Word出力にはソーステキストが保持されます",
       "pinMismatchTitle": "エクスポートを停止しました — ドキュメントが変更されました",
       "pinMismatchMessage": "エクスポートの待機中に、エクスポート対象のドキュメントが変更されました（タブの切り替えまたは編集）— 何もエクスポートされていません。エクスポートをやり直してください。",
       "pinDiskChangedTitle": "エクスポートを停止しました — ディスク上のファイルが変更されました",

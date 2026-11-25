@@ -94,6 +94,8 @@
       "plantumlConsentMessage": "{count} диаграмм(ы) PlantUML будут отправлены на {address} для рендеринга — исходный текст диаграмм покидает этот компьютер",
       "plantumlConsentConfirm": "Отправить на plantuml.com",
       "plantumlConsentCancel": "Оставить исходник локально",
+      "plantumlFallbackTitle": "Некоторые диаграммы PlantUML не удалось загрузить",
+      "plantumlFallbackMessage": "{count} диаграмм(ы) PlantUML не удалось загрузить с plantuml.com, в экспорте Word сохранён их исходный текст",
       "pinMismatchTitle": "Экспорт остановлен — документ изменился",
       "pinMismatchMessage": "Экспортируемый документ изменился (переключение вкладки или правка), пока экспорт ждал — ничего не экспортировано. Запустите экспорт заново.",
       "pinDiskChangedTitle": "Экспорт остановлен — файл изменился на диске",

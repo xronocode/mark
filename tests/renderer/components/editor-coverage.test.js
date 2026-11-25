@@ -3266,11 +3266,15 @@ describe('editor.vue — coverage', () => {
     // (foreign/stale/null/absent binding, no rendered identity, the diff
     // guard), and no ack at all for a request-less event.
 
-    const expectAck = (requestId, opIndex, applied, reason) => {
+    const expectAck = (requestId, opIndex, applied, reason, extensionId) => {
       expect(tauriEventEmitMock).toHaveBeenCalledTimes(1)
       expect(tauriEventEmitMock).toHaveBeenCalledWith('mt::ext::text_op_ack', {
         request_id: requestId,
         op_index: opIndex,
+        // C-EXT-EDIT-PROOF: the additive extension identity — present on
+        // events that carry one, absent otherwise (the verdict inbox is
+        // namespaced by it on the backend).
+        ...(extensionId !== undefined ? { extension_id: extensionId } : {}),
         applied,
         reason
       })
@@ -3333,7 +3337,7 @@ describe('editor.vue — coverage', () => {
       expect(mockEditorInstance.undo).toHaveBeenCalledTimes(1)
       await flushPromises()
       expect(order).toEqual(['mutate', 'ack'])
-      expectAck('apply-order-undo', 3, true, '')
+      expectAck('apply-order-undo', 3, true, '', 'ext-acked')
       wrapper.unmount()
     })
 
@@ -3376,7 +3380,7 @@ describe('editor.vue — coverage', () => {
         getBusHandler('ext-undo')({ extensionId: 'ext-null', requestId: 'apply-nack-null', opIndex: 2, documentId: null, documentGeneration: null })
         await flushPromises()
         expectNoMutation()
-        expectAck('apply-nack-null', 2, false, 'targeting_gate_refused')
+        expectAck('apply-nack-null', 2, false, 'targeting_gate_refused', 'ext-null')
       } finally {
         warnSpy.mockRestore()
         wrapper.unmount()
@@ -3424,6 +3428,49 @@ describe('editor.vue — coverage', () => {
       await flushPromises()
       expect(mockEditorInstance.insertParagraph).toHaveBeenCalledTimes(1)
       expect(tauriEventEmitMock).not.toHaveBeenCalled()
+      wrapper.unmount()
+    })
+
+    it('a source-focused ext op routes the verdict correlation to the source pane instead of a silent apply', async () => {
+      const wrapper = await mountEditor()
+      clearMutationSpies()
+      const identity = renderedIdentity()
+      // The split session is source-focused: routeSource owns the mutation,
+      // so the rich surface must not apply and the verdict context (request
+      // id, op index, extension identity, the emit entry point) must ride
+      // the split:source-command event for the source pane to answer.
+      editorStore.currentFile.splitSession = { unified: true, focused: 'source' }
+      getBusHandler('ext-text-insert')({ text: 'source edit', requestId: 'apply-source-insert', opIndex: 0, extensionId: 'ext-source', documentId: identity.documentId, documentGeneration: identity.documentGeneration })
+      await flushPromises()
+      expect(mockEditorInstance.insertParagraph).not.toHaveBeenCalled()
+      const routed = busMock.emit.mock.calls.find(([name]) => name === 'split:source-command')
+      expect(routed).toBeTruthy()
+      const [, routedPayload] = routed
+      expect(routedPayload.command).toBe('insert')
+      expect(routedPayload.payload).toBe('source edit')
+      expect(routedPayload.ack).toMatchObject({ requestId: 'apply-source-insert', opIndex: 0, extensionId: 'ext-source' })
+      expect(typeof routedPayload.ack.emit).toBe('function')
+      // editor.vue itself answers nothing here — the source pane owns the verdict.
+      expect(tauriEventEmitMock).not.toHaveBeenCalled()
+      wrapper.unmount()
+    })
+
+    it('an applied ack carries the emitting extension identity for the verdict inbox namespacing', async () => {
+      const wrapper = await mountEditor()
+      clearMutationSpies()
+      const identity = renderedIdentity()
+      tauriEventEmitMock.mockClear()
+      getBusHandler('ext-text-insert')({ text: 'inserted', requestId: 'apply-ident-insert', opIndex: 2, extensionId: 'ext-named', documentId: identity.documentId, documentGeneration: identity.documentGeneration })
+      await flushPromises()
+      expect(mockEditorInstance.insertParagraph).toHaveBeenCalledTimes(1)
+      expect(tauriEventEmitMock).toHaveBeenCalledTimes(1)
+      expect(tauriEventEmitMock).toHaveBeenCalledWith('mt::ext::text_op_ack', {
+        request_id: 'apply-ident-insert',
+        op_index: 2,
+        extension_id: 'ext-named',
+        applied: true,
+        reason: ''
+      })
       wrapper.unmount()
     })
   })

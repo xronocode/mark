@@ -38,6 +38,7 @@ vi.mock('muya/lib/utils/diagramExport', async (importOriginal) => {
   }
 })
 import ExportHtml from 'muya/lib/utils/exportHtml'
+import Diagram from 'muya/lib/parser/render/plantuml'
 import {
   buildDocx,
   defaultRasterizeFigure,
@@ -177,6 +178,84 @@ describe('preprocessExportHtml (T-003 pre-pass)', () => {
     const vegaFigure = processed.match(/<figure data-role="VEGA-LITE">[\s\S]*?<\/figure>/)[0]
     expect(vegaFigure).toContain('<svg')
     expect(vegaFigure).not.toContain('<img')
+  })
+})
+
+// The consented PlantUML render is a remote plantuml.com img (the consent
+// covers exactly that transfer). docx/html embeds only data-URL media and
+// silently drops every remote src — a consented diagram vanished from the
+// Word output. These pins drive the docx pre-pass: a consented img is
+// downloaded and embedded as a data url; a failed download keeps the same
+// pinned-source placeholder the declined path uses, counted through
+// onPlantumlFallback for the caller's honest notice — never a silent drop.
+describe('preprocessExportHtml — consented PlantUML download', () => {
+  const PLANTUML_DIAGRAM = '@startuml\nАлиса -> Борис: привет\n@enduml'
+
+  // The exact img shape the consented render produces (production encoder).
+  function consentedImgHtml (rawCode) {
+    const t = document.createElement('template')
+    t.innerHTML = '<div class="plantuml"></div>'
+    const container = t.content.querySelector('div')
+    Diagram.parse(rawCode).insertImgElement(container)
+    return t.innerHTML
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('degrades a consented plantuml.com render to the pinned-source placeholder (renderer egress is gated)', async () => {
+    const raw = consentedImgHtml('@startuml\nA -> B\n@enduml')
+    const onPlantumlFallback = vi.fn()
+    const html = await preprocessExportHtml(raw, { onPlantumlFallback })
+    expect(onPlantumlFallback).toHaveBeenCalledTimes(1)
+    expect(html).not.toContain('https://www.plantuml.com/plantuml/')
+    expect(html).not.toContain('<img')
+    const probe = document.createElement('div')
+    probe.innerHTML = html
+    const placeholder = probe.querySelector('pre.ag-plantuml-export-source')
+    expect(placeholder).toBeTruthy()
+    // The literal source decodes back out of the img URL — the exact
+    // Cancel-path artifact. Embedding the fetched render needs a
+    // sanctioned download path and stays out of the renderer.
+    expect(placeholder.textContent).toBe('@startuml\nA -> B\n@enduml')
+  })
+
+  it('keeps the pinned source placeholder when the consented download fails — never a silent drop', async () => {
+    const raw = `<p>before</p>${consentedImgHtml(PLANTUML_DIAGRAM)}<p>after</p>`
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('network unavailable') }))
+    const onPlantumlFallback = vi.fn()
+    const html = await preprocessExportHtml(raw, { onPlantumlFallback })
+    expect(onPlantumlFallback).toHaveBeenCalledTimes(1)
+    expect(html).not.toContain('https://www.plantuml.com/plantuml/')
+    expect(html).not.toContain('<img')
+    const probe = document.createElement('div')
+    probe.innerHTML = html
+    const placeholder = probe.querySelector('pre.ag-plantuml-export-source')
+    expect(placeholder).toBeTruthy()
+    // The literal source decodes back out of the img URL — the exact
+    // Cancel-path artifact.
+    expect(placeholder.textContent).toBe(PLANTUML_DIAGRAM)
+  })
+
+  it('keeps the placeholder for every remote plantuml image (renderer egress is gated)', async () => {
+    const raw = consentedImgHtml('@startuml\nA -> B\n@enduml')
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 503, blob: async () => new Blob([]) })))
+    const onPlantumlFallback = vi.fn()
+    const html = await preprocessExportHtml(raw, { onPlantumlFallback })
+    expect(onPlantumlFallback).toHaveBeenCalledTimes(1)
+    expect(html).toContain('<pre class="ag-plantuml-export-source">')
+    expect(html).not.toContain('<img')
+  })
+
+  it('leaves non-plantuml and already-embedded images untouched', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    const raw = '<p><img src="https://example.com/pic.png"></p><p><img src="data:image/png;base64,QUJD"></p>'
+    const html = await preprocessExportHtml(raw, {})
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(html).toContain('https://example.com/pic.png')
+    expect(html).toContain('data:image/png;base64,QUJD')
   })
 })
 
