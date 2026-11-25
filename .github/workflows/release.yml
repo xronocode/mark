@@ -1,5 +1,5 @@
 # FILE: .github/workflows/release.yml
-# VERSION: 3.11.0
+# VERSION: 3.12.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Admit only an approved annotated release tag, build and sign its exact Ready seal, then stage one digest-verified draft release and expose it only after the owner approves the synchronous release environment gate.
 #   SCOPE: Named-test manual unsigned QA handoffs plus tag-only readiness, signing, notarization, artifact verification, owner-gated draft-first publication, and downstream Homebrew handoff.
@@ -20,6 +20,7 @@
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-11-25 v3.12.0 CICD-GUARD-FIXES: F-003 renames the tag-lane admission check to release/readiness-tag — the authorize-tag job and the release-governance.yml readiness job both reported release/readiness, so a branch-build run and a tag run shared one required-context name and context resolution was ambiguous; the branch lane and the strict payload admission keep release/readiness unchanged. F-008 injects the tag version into the prerelease build override — a prerelease DMG is named from the tag while the strict metadata preflight that pins tag=metadata on the stable lane is skipped, so the beta bundle kept the repo base version; the override now carries the tag version and tag↔version parity holds for prereleases too. The stable lane's text is byte-identical.
 #   - 2026-11-22 v3.11.0 C-RELEASE-SIGN-STAGED-SET: fix two execution defects in the staged handoff — the macOS sign job converts the re-packaged DMG into its work dir and replaces the staged copy (hdiutil convert refuses an existing output and the verify step's copy had already occupied the destination), the Windows smoke screenshot moves outside the staged dir (RUNNER_TEMP\smoke), the Windows stage step receipts every staged file, and both Windows uploads name their files so an unreceipted or unexpected file can neither reach the sign job nor ride the signed set; tests/tools/sign-staged-handoff.test.mjs executes the extracted handoff shells against synthetic staged sets and was red on the pre-fix text.
 #   - 2026-11-22 v3.10.0 C-RELEASE-CASK-SIGNED-DIGEST: publish-cask resolves the Homebrew cask digest only from the signed macOS release artifact — the job downloads exactly mark-macos-arm64-release by name into its own path, addresses the .sha256 sidecar by that explicit artifact path (the unconstrained find/head selection over the all-artifact staged tree is gone), and coherence-checks the sidecar against a fresh hash of the signed DMG beside it, failing closed on [ReleaseCask][publish-cask][BLOCK_RELEASE_CASK_DIGEST_MISMATCH] before any cask mutation; the cask still carries the sidecar value per B2CR-3 and the prerelease skip stays byte-identical.
 #   - 2026-11-22 v3.9.0 C-RELEASE-SIGNING-SPLIT: split the privileged build job into an unsigned build and a digest-gated sign job — build drops its environment, id-token/attestations and every secrets reference, installs with npm ci --ignore-scripts plus the single approved install-script exception (esbuild), builds unsigned bundles (updater artifacts disabled per the release-tauri.yml precedent) staged with a SHA-256 receipt sidecar per artifact, and the new sign job — the sole holder of the release-signing environment, the APPLE_*/TAURI_SIGNING_* secrets and the OIDC attestation authority — verifies every staged digest against those receipts before any signing step (BLOCK_SIGN_DIGEST_MISMATCH), re-signs the staged macOS bundle without rebuilding, notarizes and staples it, signs the Tauri updater archives for both platforms, composes the signed feed fragments, moves the SLSA provenance and keyless cosign over the signed set, and prepare-publication is needs-chained on sign so publication is never upstream of signing; the prerelease lane and every tag path outside the split keep byte-identical behavior.
@@ -104,7 +105,7 @@ permissions: {}
 
 jobs:
   authorize-tag:
-    name: release/readiness
+    name: release/readiness-tag
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
@@ -208,10 +209,11 @@ jobs:
       # required contexts derived from
       # .github/release-governance.json rulesets.main.requiredChecks, pinned
       # here in the workflow source instead of read from the config so the
-      # gate cannot silently drift with a config edit. release/readiness is
-      # excluded because it is the tag-time check of this very workflow and
-      # cannot pre-exist on the beta commit — requiring it here would
-      # deadlock the lane.
+      # gate cannot silently drift with a config edit. release/readiness-tag
+      # is excluded because it is the tag-time check of this very workflow
+      # and cannot pre-exist on the beta commit — requiring it here would
+      # deadlock the lane. F-003 renamed this lane so the tag-time check no
+      # longer collides with the branch-lane release/readiness.
       - name: gate prerelease required checks
         if: steps.identity.outputs.prerelease == 'true'
         env:
@@ -534,6 +536,30 @@ jobs:
             }
           }
           JSON
+
+      # F-008: a prerelease tag names the shipped bundle
+      # (Mark_<VER>_aarch64.dmg) while the strict metadata preflight that
+      # proves tag = repo metadata on the stable lane is skipped here — so
+      # without this override the beta bundle kept the repo's base version.
+      # Inject the tag version into the same override config the tauri build
+      # consumes (the prepare-qa-artifacts.mjs config-merge precedent) so the
+      # packaged app, installer and updater identity match the tag exactly as
+      # they do on a stable build, whose admitted metadata already equals it.
+      - name: inject prerelease version override
+        if: needs.authorize-tag.outputs.prerelease == 'true'
+        env:
+          TAG: ${{ steps.resolve_tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          VER="${TAG#v}"
+          node -e '
+            const fs = require("fs");
+            const [configPath, version] = process.argv.slice(1);
+            const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+            config.version = version;
+            fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
+          ' "$RUNNER_TEMP/unsigned-build.config.json" "$VER"
+          cat "$RUNNER_TEMP/unsigned-build.config.json"
 
       - name: tauri build (macOS unsigned bundle)
         if: runner.os == 'macOS'

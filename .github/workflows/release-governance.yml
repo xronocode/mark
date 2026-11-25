@@ -1,5 +1,5 @@
 # FILE: .github/workflows/release-governance.yml
-# VERSION: 1.5.0
+# VERSION: 1.6.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Expose the stable release/governance and docs-security required checks for ordinary pull requests and main without demanding a frozen release train.
 #   SCOPE: Read-only Conventional title/admission, repository governance, schema, focused regression validation and the committed-range leak scan over a digest-verified pinned Gitleaks binary; an optional push-main job uses one dedicated secret to reconcile the non-authoritative public Project mirror.
@@ -12,11 +12,12 @@
 # START_MODULE_MAP
 #   governance - Read-only stable aggregate check used by the main ruleset.
 #   readiness - Repository-only train/material identity check recorded on each candidate payload for later strict tag admission.
-#   docs-security - Always-on committed-range leak scan (security_gate.py scan-diff) over the pull-request diff — the same deterministic rules as the local gate, so docs-only lanes keep leak protection.
+#   docs-security - Always-on committed-range leak scan (security_gate.py scan-diff) over the pull-request diff or, on a push to main, the real previous commit (event before SHA, origin/main~1 fallback) — the same deterministic rules as the local gate, so docs-only lanes keep leak protection.
 #   project-mirror - Non-required push-main reconciliation isolated to its dedicated Project token.
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-11-25 v1.6.0 CICD-GUARD-FIXES F-002: the docs-security committed-range scan no longer goes vacuous on a push to main — a resolved scan base step picks the real previous commit (github.event.before when it is a verified ancestor of HEAD, origin/main~1 otherwise) instead of origin/main, which on a push event equals HEAD and made scan-diff compute an empty merge base; pull requests keep origin/main. The Gitleaks install and scan rules are unchanged.
 #   - 2026-11-21 C-SEC-GITLEAKS-CHECKSUM: download the pinned Gitleaks v8.30.1 archive to a temporary file, verify it against the committed GITLEAKS_SHA256 digest with sha256sum --check --strict before any extraction or execution, and fail the docs-security job closed on mismatch (F-011, F-005).
 #   - 2026-11-12 C-RELEASE-ACTION-REFERENCES: verify privileged action commits and metadata using the existing read-only governance token.
 #   - 2026-11-09 v1.4.0: add the always-on docs-security job (owner instruction) — tools/security_gate.py scan-diff over origin/main..HEAD with a pinned Gitleaks binary, applying the local gate's exposure and secret rules to every pull-request diff so the docs-only CI lane cannot bypass leak review.
@@ -77,8 +78,35 @@ jobs:
           rm -f "$archive"
           gitleaks version
 
+      # F-002 (docs-security empty range after a main update): on a push
+      # event origin/main IS HEAD, so scan-diff origin/main resolved a merge
+      # base equal to HEAD and scanned an empty committed range. The base
+      # must be the real previous commit: github.event.before for an
+      # ordinary fast-forward push, with an origin/main~1 fallback when the
+      # event omits it, zeroes it, or names a non-ancestor (forced push).
+      # Pull requests keep origin/main.
+      - name: resolve committed scan range base
+        id: scan_base
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" != push ]; then
+            echo "base=origin/main" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -n "$BEFORE_SHA" ] \
+            && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ] \
+            && git rev-parse --verify --quiet "$BEFORE_SHA^{commit}" > /dev/null \
+            && git merge-base --is-ancestor "$BEFORE_SHA" HEAD; then
+            echo "base=$BEFORE_SHA" >> "$GITHUB_OUTPUT"
+          else
+            echo "base=origin/main~1" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: committed-range exposure and secret scan
-        run: python3 tools/security_gate.py scan-diff origin/main
+        run: python3 tools/security_gate.py scan-diff "${{ steps.scan_base.outputs.base }}"
 
   governance:
     name: release/governance
