@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-governance.test.js
-// VERSION: 2.6.0
+// VERSION: 2.7.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the ordinary release/governance check, Conventional SemVer admission, the payload-open merge window, immutable action references, and staged control configuration.
 //   SCOPE: Pure negative fixtures plus checked-in repository integration; no GitHub API or setting mutation.
@@ -46,6 +46,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-25 v2.7.0 CICD-GUARD-FIXES: pin the F-003 check-name split — the tag-lane admission check reports release/readiness-tag, no release.yml job keeps the branch lane's exact release/readiness name, the governance readiness job and the strict/ruleset release/readiness consumers stay on the branch-lane context, and the prerelease exclusion comment names the renamed tag-time check.
 //   - 2026-11-22 v2.6.0 C-RELEASE-SIGN-STAGED-SET: pin the staged handoff — the macOS repackage converts into the sign work dir and replaces the occupied destination atomically, the Windows screenshot lives outside the staged dir, the Windows stage receipts every staged file, both Windows uploads name their files, and the digest guard now covers the macOS and Windows verify steps symmetrically — with red controls restoring the direct convert, the in-staged-dir screenshot, the exe-only receipt and a wildcard upload, and Windows-verify mutations rejected by the symmetric guard.
 //   - 2026-11-22 v2.5.0 C-RELEASE-CASK-SIGNED-DIGEST: pin the publish-cask signed-digest contract — the download step names exactly mark-macos-arm64-release with its own path, the sidecar and signed DMG are addressed by explicit artifact paths with no unconstrained find/head selection, the coherence check fails closed on BLOCK_RELEASE_CASK_DIGEST_MISMATCH before any cask mutation, and the B2CR-3 sidecar-sourcing policy stays — with red controls rejecting the broad unnamed download, a removed coherence check or marker, a reintroduced unconstrained find, and a swallowed comparison.
 //   - 2026-11-22 v2.4.0 C-RELEASE-SIGNING-SPLIT: boundary-guard freeze of the pre-split signing boundary named by release-build-scripts-share-signing-job (environment/id-token/attestations and the APPLE_*/TAURI_* secrets confined to the build job's two tauri-action steps, manual-build and docs-security secret-free and environment-free, plain npm ci in build), then the consciously widened post-split pins landed with each workflow edit — sign job sole holder of the release-signing environment, id-token/attestations and the signing secrets with the verify-staged-artifact-digests step failing on BLOCK_SIGN_DIGEST_MISMATCH before any signing, build stripped of all signing material with the ignore-scripts install, the single esbuild allowlist entry and per-artifact SHA-256 receipts, prepare-publication needs-chained on sign, and prerelease-lane equivalence — with red controls rejecting secrets or id-token outside the holder, a plain npm ci or a second allowlist entry, sign-before-verify or a swallowed mismatch exit, a needs list without sign, and prerelease-condition divergence.
@@ -958,6 +959,35 @@ describe('release governance', () => {
       '  publish-cask:'
     ])
     expect(() => assertPrereleaseGateWiring(releaseWorkflow)).not.toThrow()
+  })
+
+  it('names the tag-lane admission check distinctly from the branch-lane release/readiness', () => {
+    // F-003: the release.yml authorize-tag job (tag runs) and the
+    // release-governance.yml readiness job (branch/PR/main runs) both
+    // reported release/readiness, so one check name resolved to two
+    // different admission checks. The tag lane is renamed; the branch lane
+    // and the payload-time strict admission keep release/readiness.
+    expect(authorizeTagJob).toContain('name: release/readiness-tag')
+    // No release.yml job keeps the branch lane's exact name (the tag lane's
+    // new name must not collide with it either).
+    expect(releaseWorkflow).not.toMatch(/^    name: release\/readiness\s*$/m)
+    // The branch lane keeps its name in the governance workflow.
+    expect(governanceWorkflow).toMatch(/^  readiness:\r?\n    name: release\/readiness\s*$/m)
+    // The main ruleset and the strict payload admission both consume the
+    // branch-lane context (a payload commit carries the release-governance
+    // readiness run, never the tag-run check), so they stay unchanged and
+    // unambiguous now that the tag lane reports differently.
+    for (const entry of governanceConfig.strictRequiredChecks) {
+      if (entry.name.startsWith('release/readiness')) expect(entry.name).toBe('release/readiness')
+    }
+    for (const entry of governanceConfig.rulesets.main.requiredChecks) {
+      if (entry.context.startsWith('release/readiness'))
+        expect(entry.context).toBe('release/readiness')
+    }
+    // The prerelease collection comment names the renamed tag-lane check as
+    // the excluded tag-time check.
+    expect(authorizeTagJob).toContain('release/readiness-tag')
+    expect(authorizeTagJob).toContain('cannot pre-exist on the beta commit')
   })
 
   it('fails closed on red, cancelled, missing, stale and ambiguous prerelease checks at the seal', () => {

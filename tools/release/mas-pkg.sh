@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # FILE: tools/release/mas-pkg.sh
-# VERSION: 1.1.0
+# VERSION: 1.2.0
 # START_MODULE_CONTRACT
 #   PURPOSE: C-15 T-M6 — sign the MAS app build with Apple Distribution +
 #            Entitlements.plist, wrap into an App Store .pkg via
 #            productbuild signed with Mac Installer Distribution.
-#   SCOPE: codesign + productbuild + pkgutil --check-signature; no upload
-#          (Transporter/upload is a separate human step).
+#   SCOPE: codesign + productbuild + pkgutil --check-signature + a mandatory
+#          functional boot smoke of the exact packaged bundle; no upload
+#          (Transporter/upload is a separate human step and runs only after
+#          the smoke has confirmed the build).
 #   DEPENDS: release MAS bundle (tools/build-mas.sh — npx tauri build
 #            --config src-tauri/tauri.mas.conf.json --features app-store),
 #            both distribution identities in the login keychain.
@@ -16,7 +18,7 @@
 # END_MODULE_CONTRACT
 #
 # START_MODULE_MAP
-#   main - sign app, build signed pkg, verify signatures, print artifact path
+#   main - sign app, build signed pkg, verify signatures, boot-smoke the packaged app, print artifact path
 # END_MODULE_MAP
 
 set -euo pipefail
@@ -38,7 +40,7 @@ say() { printf '%s\n' "$*" >&2; }
 # metadata was removed so the profile inherits from tauri.conf.json). No
 # signing identity, entitlements, capability list or upload step changed.
 
-say "== 1/3 signing app =="
+say "== 1/4 signing app =="
 
 # ASC requirement 90869: arm64-only builds must declare macOS >= 12.0.
 /usr/libexec/PlistBuddy -c "Delete :LSMinimumSystemVersion" "$APP/Contents/Info.plist" >/dev/null 2>&1 || true
@@ -66,12 +68,36 @@ codesign --force --deep --sign "$APP_IDENTITY" \
 codesign --verify --deep --strict "$APP"
 say "app signature OK"
 
-say "== 2/3 building pkg =="
+say "== 2/4 building pkg =="
 rm -f "$PKG"
 productbuild --component "$APP" /Applications \
   --sign "$PKG_IDENTITY" "$PKG"
 
-say "== 3/3 verifying pkg =="
+say "== 3/4 verifying pkg =="
 pkgutil --check-signature "$PKG"
+
+# F-001: the signature proves the bytes, not that the build boots. The
+# admission procedure fails closed until the exact packaged bundle is
+# confirmed to launch on this machine — a sandbox/profile failure or a
+# startup crash stops the procedure here instead of at App Store review, and
+# no upload can proceed on an unconfirmed build.
+say "== 4/4 functional smoke of the packaged build =="
+APP_BIN="$APP/Contents/MacOS/mark"
+if [ ! -x "$APP_BIN" ]; then
+  say "[MasPkg][functional-smoke][BLOCK_MAS_SMOKE_NOT_BOOTED] $APP_BIN missing or not executable"
+  exit 1
+fi
+"$APP_BIN" &
+SMOKE_PID=$!
+sleep 5
+if ! kill -0 "$SMOKE_PID" 2>/dev/null; then
+  wait "$SMOKE_PID" 2>/dev/null || true
+  say "[MasPkg][functional-smoke][BLOCK_MAS_SMOKE_NOT_BOOTED] packaged app process exited within 5s of launch"
+  exit 1
+fi
+say "functional smoke OK — packaged app alive after 5s (pid $SMOKE_PID)"
+kill "$SMOKE_PID" 2>/dev/null || true
+wait "$SMOKE_PID" 2>/dev/null || true
+
 say "artifact: $PKG ($(du -h "$PKG" | cut -f1))"
 say "next: upload via Transporter or 'xcrun altool --upload-app'"
