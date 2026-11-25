@@ -42,11 +42,13 @@
 //   assertSplitPrereleaseEquivalence - red-control validator for prerelease-lane equivalence.
 //   assertCaskSignedDigest - comment-blind red-control validator for the publish-cask signed-digest contract.
 //   assertSignStagedHandoff - comment-blind red-control validator for the staged-handoff collision and receipt contract.
+//   assertRepublishChannelVerification - comment-blind red-control validator for the republish update-channel contract (guard-audit integration f-007).
 //   crlfLiteral - turns a literal workflow fragment into a CRLF-tolerant regex (escaped, with \\r?\\n for its line breaks) for comment-blind pins and red controls.
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
 //   - 2026-11-25 v2.7.0 CICD-GUARD-FIXES: pin the F-003 check-name split — the tag-lane admission check reports release/readiness-tag, no release.yml job keeps the branch lane's exact release/readiness name, the governance readiness job and the strict/ruleset release/readiness consumers stay on the branch-lane context, and the prerelease exclusion comment names the renamed tag-time check.
+//   - 2026-11-26 guard-audit integration f-007: pin the republish update-channel verification — the already-published branch of the publish job carries a prerelease-correct, fail-closed assertion that releases/latest points at the republished tag (stable) or has not advanced to it (prerelease), with the per-tag concurrency group kept — and red controls reject a removed step or a flipped step condition.
 //   - 2026-11-22 v2.6.0 C-RELEASE-SIGN-STAGED-SET: pin the staged handoff — the macOS repackage converts into the sign work dir and replaces the occupied destination atomically, the Windows screenshot lives outside the staged dir, the Windows stage receipts every staged file, both Windows uploads name their files, and the digest guard now covers the macOS and Windows verify steps symmetrically — with red controls restoring the direct convert, the in-staged-dir screenshot, the exe-only receipt and a wildcard upload, and Windows-verify mutations rejected by the symmetric guard.
 //   - 2026-11-22 v2.5.0 C-RELEASE-CASK-SIGNED-DIGEST: pin the publish-cask signed-digest contract — the download step names exactly mark-macos-arm64-release with its own path, the sidecar and signed DMG are addressed by explicit artifact paths with no unconstrained find/head selection, the coherence check fails closed on BLOCK_RELEASE_CASK_DIGEST_MISMATCH before any cask mutation, and the B2CR-3 sidecar-sourcing policy stays — with red controls rejecting the broad unnamed download, a removed coherence check or marker, a reintroduced unconstrained find, and a swallowed comparison.
 //   - 2026-11-22 v2.4.0 C-RELEASE-SIGNING-SPLIT: boundary-guard freeze of the pre-split signing boundary named by release-build-scripts-share-signing-job (environment/id-token/attestations and the APPLE_*/TAURI_* secrets confined to the build job's two tauri-action steps, manual-build and docs-security secret-free and environment-free, plain npm ci in build), then the consciously widened post-split pins landed with each workflow edit — sign job sole holder of the release-signing environment, id-token/attestations and the signing secrets with the verify-staged-artifact-digests step failing on BLOCK_SIGN_DIGEST_MISMATCH before any signing, build stripped of all signing material with the ignore-scripts install, the single esbuild allowlist entry and per-artifact SHA-256 receipts, prepare-publication needs-chained on sign, and prerelease-lane equivalence — with red controls rejecting secrets or id-token outside the holder, a plain npm ci or a second allowlist entry, sign-before-verify or a swallowed mismatch exit, a needs list without sign, and prerelease-condition divergence.
@@ -654,6 +656,48 @@ function assertSignStagedHandoff(source) {
     throw new Error('upload (staged): the -release-staged artifact name changed')
   if (!/^ +name: mark-\$\{\{ matrix\.platform\.name \}\}-release\r?$/m.test(signedUpload))
     throw new Error('upload (signed): the -release artifact name changed')
+}
+
+// Guard-audit integration f-007 comment-blind red-control validator for
+// the republish update-channel contract, mirroring the
+// assertCaskSignedDigest / assertSignStagedHandoff precedent: it reads
+// only the in-memory source string (no network, no tracked-file edits).
+// A republish of an already-published release skips the final mutation
+// step, so the publish job must carry the prerelease-correct channel
+// verification for exactly that branch — the release state asserted and
+// releases/latest either advanced to the tag (stable) or proven NOT
+// advanced (prerelease), each failing closed with its distinct marker —
+// and the per-tag concurrency group stays.
+function assertRepublishChannelVerification(source) {
+  const publish = source.split(/^  publish-cask:/m)[0].split(/^  publish:/m)[1]
+  if (!publish) throw new Error('publish job is missing from release.yml')
+  const split = publish.split(/- name: verify update channel on republish/)
+  if (split.length < 2)
+    throw new Error('publish: the "verify update channel on republish" step is missing')
+  const step = split[1].split(/\r?\n      - name:/)[0]
+  if (!step.includes("if: steps.draft.outputs.already_published == 'true'"))
+    throw new Error('republish verification is not gated to the already-published branch')
+  if (!step.includes('[ReleasePublish][republish][BLOCK_RELEASE_LATEST_ADVANCED]'))
+    throw new Error(
+      'republish verification (stable): the BLOCK_RELEASE_LATEST_ADVANCED marker is missing'
+    )
+  if (!step.includes('[ReleasePublish][republish][BLOCK_RELEASE_PRERELEASE_NOT_LATEST]'))
+    throw new Error(
+      'republish verification (prerelease): the BLOCK_RELEASE_PRERELEASE_NOT_LATEST marker is missing'
+    )
+  if (!/^ *exit 1$/m.test(step) && (step.match(/exit 1/g) || []).length < 2)
+    throw new Error('republish verification does not exit nonzero')
+  if (/\|\| true|\|\| echo|set \+e/.test(step))
+    throw new Error('republish verification exit can be swallowed')
+  // The republish branch verifies the channel against the SAME tag the
+  // job publishes and the same prerelease lane output.
+  if (!step.includes('TAG: ${{ needs.build.outputs.tag }}'))
+    throw new Error('republish verification does not consume the job TAG')
+  if (!step.includes('PRERELEASE: ${{ needs.authorize-tag.outputs.prerelease }}'))
+    throw new Error('republish verification does not consume the PRERELEASE output')
+  // The per-tag concurrency group stays.
+  if (!/group: release-\$\{\{ github\.ref \}\}/.test(source))
+    throw new Error('the per-tag release concurrency group moved or changed')
 }
 
 // Deterministic check-run fixtures for the fail-closed matrix: raw API
@@ -1396,6 +1440,29 @@ describe('release governance', () => {
         )
       )
     ).toThrow(/skip condition/)
+  })
+
+  it('verifies the update channel when republishing an already-released version', () => {
+    // Guard-audit integration f-007: the already-published branch skips
+    // the final mutation step, so releases/latest could silently stay on
+    // an older tag. The republish branch must instead assert the channel
+    // state fail-closed (stable: releases/latest == TAG; prerelease:
+    // != TAG) with the per-tag concurrency kept. Red controls mutate only
+    // the in-memory workflow source: dropping the step, or gating it to
+    // the wrong branch, must be rejected.
+    expect(() => assertRepublishChannelVerification(releaseWorkflow)).not.toThrow()
+    const withoutStep = releaseWorkflow.replace(
+      /- name: verify update channel on republish[\s\S]*?(?=\r?\n  publish-cask:)/,
+      ''
+    )
+    expect(() => assertRepublishChannelVerification(withoutStep)).toThrow(/step is missing/)
+    const flippedGate = releaseWorkflow.replace(
+      "if: steps.draft.outputs.already_published == 'true'",
+      "if: steps.draft.outputs.already_published != 'true'"
+    )
+    expect(() => assertRepublishChannelVerification(flippedGate)).toThrow(
+      /not gated to the already-published branch/
+    )
   })
 
   it('concentrates signing material in the sign job workflow-wide', () => {

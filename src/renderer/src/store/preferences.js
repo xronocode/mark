@@ -180,6 +180,14 @@ const bootDirtyKeys = new Set()
 // calls from remounts never stack duplicate listeners).
 let systemLanguageListenersBound = false
 
+// Guard audit f-008: the build-capabilities install guard, keyed by the
+// store instance (a WeakMap so a fresh Pinia instance — a fresh webview
+// or a fresh test store — always starts uninstalled). bootstrap-ipc fires
+// FETCH_BUILD_MODE as the canonical boot fetch and the app shell awaits
+// it again in the C-48 startup chain; the guard makes both entries share
+// one mt_build_mode round-trip instead of racing two.
+const buildModeInstallGuards = new WeakMap()
+
 // START_BLOCK_EXPERIMENTAL_SESSION_STATE
 // C-LARGE-DOC-WAVE-A T-004 (R-4): the experimental progressive-mount
 // surface is LOCAL, DEFAULT-OFF and SESSION-LATCHED — it never persists.
@@ -606,17 +614,35 @@ export const usePreferencesStore = defineStore('preferences', {
   actions: {
     // C-15 T-M5: query the backend once at boot; failures keep the
     // fail-open desktop defaults (dev shims, older binaries).
+    // Guard audit f-008: once the capabilities are installed the guard
+    // early-returns the settled answer, so the bootstrap floating fetch
+    // and the app shell's awaited second entry share one round-trip. A
+    // failed install (rejection or non-object answer) leaves the guard
+    // open, so the next caller retries — the C-38 T-003 review tolerance.
     async FETCH_BUILD_MODE() {
-      try {
-        const { invoke } = await import('@tauri-apps/api/core')
-        const capabilities = await invoke('mt_build_mode')
-        // C-38 T-003 review: a non-object answer (dev shim, older binary)
-        // keeps the defaults too — Settings reads capabilities.* directly.
-        if (capabilities && typeof capabilities === 'object') {
-          this.buildCapabilities = capabilities
-        }
-      } catch {
-        // keep defaults
+      if (!buildModeInstallGuards.has(this)) {
+        buildModeInstallGuards.set(
+          this,
+          (async () => {
+            try {
+              const { invoke } = await import('@tauri-apps/api/core')
+              const capabilities = await invoke('mt_build_mode')
+              // C-38 T-003 review: a non-object answer (dev shim, older
+              // binary) keeps the defaults too — Settings reads
+              // capabilities.* directly.
+              if (capabilities && typeof capabilities === 'object') {
+                this.buildCapabilities = capabilities
+                return true
+              }
+            } catch {
+              // keep defaults
+            }
+            return false
+          })()
+        )
+      }
+      if (!(await buildModeInstallGuards.get(this))) {
+        buildModeInstallGuards.delete(this)
       }
     },
     SET_USER_PREFERENCE(preference) {
@@ -814,6 +840,11 @@ export const usePreferencesStore = defineStore('preferences', {
     // attempt: the rollback is a direct state restore, and the watcher
     // replay it triggers is a declarative, idempotent re-assertion of the
     // restored value (a failed write broadcasts nothing cross-window).
+    // Guard audit f-003: the restore runs only while the store still
+    // holds the value this attempt wrote — a key re-edited while the
+    // write was in flight is owned by the later write, so the stale
+    // refusal skips the restore and logs the distinct
+    // BLOCK_PREFS_WRITE_ROLLBACK_SUPERSEDED marker instead.
     async SET_SINGLE_PREFERENCE({ type, value }) {
       if (type === 'defaultEncoding' && !getEncodingCapability(value)?.supported) {
         notice.notify({ source:'settings', severity:'error', title:t('fileFormat.title'),
@@ -839,12 +870,22 @@ export const usePreferencesStore = defineStore('preferences', {
         await invoke('mt_prefs_set', { key: type, value })
         console.log(`[ipc][prefs_set][BLOCK_INVOKE_OK key=${type}]`)
       } catch (e) {
-        this[type] = previousValue
-        if (type === 'language') {
-          setLanguage(previousValue)
+        // Guard audit f-003: roll back only while the store still holds
+        // the value THIS attempt wrote. A later write owns the slot — its
+        // own optimistic apply and boot-dirty mark stand, and restoring
+        // this attempt's pre-write value would clobber the user's
+        // confirmed re-edit. The failed attempt itself still surfaces the
+        // localized notice and answers false.
+        if (this[type] === value) {
+          this[type] = previousValue
+          if (type === 'language') {
+            setLanguage(previousValue)
+          }
+          bootDirtyKeys.delete(type)
+          console.error(`[PREFERENCES][BLOCK_PREFS_WRITE_ROLLED_BACK key=${type}]`)
+        } else {
+          console.error(`[PREFERENCES][BLOCK_PREFS_WRITE_ROLLBACK_SUPERSEDED key=${type}]`)
         }
-        bootDirtyKeys.delete(type)
-        console.error(`[PREFERENCES][BLOCK_PREFS_WRITE_ROLLED_BACK key=${type}]`)
         console.error(`[ipc][prefs_set][BLOCK_INVOKE_FAILED key=${type}]`, e)
         notice.notify({ source: 'settings', severity: 'error',
           title: t('preferences.writeFailure.title'),

@@ -16,6 +16,16 @@
 //   STATUS:  Phase-B5b initial — bridge emit helpers.
 //
 // CHANGE_SUMMARY:
+//   - 2026-11-26 C-EXT-DELIVERY-HONESTY recovery evidence (guard audit,
+//     integration f-005 follow-up): the cfg(test)-only emit-failure
+//     injection seam grows a doc_patch twin — the DOC_PATCH_EMIT_INJECTION
+//     flag plus the arm_doc_patch_emit_injection helper, scoped to the
+//     arming fixture's own app handle exactly like the doc_open seam — so
+//     the documented patch recovery (an emit failure stays log-only and
+//     the NEXT patch emission carries the full rebuilt document) has a
+//     test pin. Consulted by emit_doc_patch only; emit_doc_open,
+//     emit_doc_close and emit_context_request stay byte-identical, and
+//     the seam compiles out of release builds.
 //   - 2026-11-23 C-EXT-DELIVERY-HONESTY T-001: cfg(test)-only emit-failure
 //     injection seam for doc_open — the DOC_OPEN_EMIT_INJECTION flag plus
 //     the arm_doc_open_emit_injection helper; when armed, emit_doc_open
@@ -91,6 +101,32 @@ pub fn arm_doc_open_emit_injection<R: tauri::Runtime>(app: &AppHandle<R>, armed:
     }
 }
 
+/// C-EXT-DELIVERY-HONESTY recovery evidence (guard audit, integration
+/// f-005 follow-up): test-only doc_patch emit-failure injection flag. Same
+/// scoping rules as DOC_OPEN_EMIT_INJECTION: managed as state on the
+/// arming fixture's OWN app handle (a production app never manages this
+/// state and a concurrently running test fixture never sees it),
+/// cfg(test) — compiled out of release builds, the shared state (the
+/// main.rs LiveServerState literal) is untouched. Consulted by
+/// emit_doc_patch only.
+#[cfg(test)]
+#[derive(Default)]
+pub struct DOC_PATCH_EMIT_INJECTION(pub std::sync::atomic::AtomicBool);
+
+/// C-EXT-DELIVERY-HONESTY recovery evidence: arm or disarm the test-only
+/// doc_patch emit-failure injection on the given app handle. cfg(test)
+/// helper — invisible in release builds.
+#[cfg(test)]
+pub fn arm_doc_patch_emit_injection<R: tauri::Runtime>(app: &AppHandle<R>, armed: bool) {
+    use tauri::Manager;
+    if app.try_state::<DOC_PATCH_EMIT_INJECTION>().is_none() {
+        app.manage(DOC_PATCH_EMIT_INJECTION::default());
+    }
+    if let Some(flag) = app.try_state::<DOC_PATCH_EMIT_INJECTION>() {
+        flag.0.store(armed, std::sync::atomic::Ordering::Relaxed);
+    }
+}
+
 /// Emit a live-update event to the frontend.
 ///
 /// The event name `mt::live::update` follows the project convention
@@ -156,6 +192,20 @@ pub fn emit_doc_patch<R: tauri::Runtime>(
     section: &str,
     revision: u64,
 ) -> Result<(), String> {
+    // C-EXT-DELIVERY-HONESTY recovery evidence: test-only injection — fail
+    // BEFORE any app.emit call when the seam is armed on THIS app handle
+    // (release builds never see the check at all). Mirrors the doc_open
+    // seam; the handler's documented log-and-recover behavior (the next
+    // patch emission carries the full document) stays byte-identical.
+    #[cfg(test)]
+    {
+        use tauri::Manager;
+        if let Some(flag) = app.try_state::<DOC_PATCH_EMIT_INJECTION>() {
+            if flag.0.load(std::sync::atomic::Ordering::Relaxed) {
+                return Err("injected doc_patch emit failure (test)".to_string());
+            }
+        }
+    }
     emit_live_update(app, LiveUpdate {
         update_type: "doc_patch".to_string(),
         payload: serde_json::json!({
