@@ -217,10 +217,13 @@ describe('draft asset inventory execution gate (integration f-006)', () => {
         // The manifest exists beside the asset dir and hashes exactly those
         // nine names.
         const manifest = readFileSync(`${assets}.sha256`, 'utf8')
+        // coreutils sha256sum marks binary-mode lines with a leading '*'
+        // before the filename (Windows Git Bash hashes in binary mode) —
+        // the marker is notation, not part of the name.
         const manifestNames = manifest
           .trim()
           .split('\n')
-          .map((line) => line.split(/\s+/)[1])
+          .map((line) => line.split(/\s+/)[1].replace(/^\*/, ''))
           .sort()
         expect(manifestNames).toEqual(assetNames(assets))
       } finally {
