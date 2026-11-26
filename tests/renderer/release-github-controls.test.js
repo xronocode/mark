@@ -305,7 +305,7 @@ describe('release GitHub trust boundaries', () => {
     expect(source).toContain('REGISTER_APP_WITH_LAUNCH_SERVICES=NO SKIP_INSTALL=YES')
     expect(source).toContain('CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=')
     expect(JSON.stringify(job)).not.toMatch(/secrets\.|environment|pluginkit|lsregister|tauri build/)
-    expect(job.steps.find(step => step.uses?.startsWith('actions/setup-node@')).with['node-version']).toBe('22')
+    expect(job.steps.find(step => step.uses?.startsWith('actions/setup-node@')).with['node-version-file']).toBe('.nvmrc')
   })
 
   it.each([false, true])('executes the aggregate shell without masking failed or cancelled jobs (docs=%s)', docsOnly => {
