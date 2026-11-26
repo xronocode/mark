@@ -327,13 +327,13 @@ test.describe('export consent gates gate the saved artifact (C-EXPORT-BOUNDARIES
   // the renderDiagram catch writes '< Invalid Diagram >' — the consented
   // artifact carries the error text instead of the promised plantuml.com
   // img. Verified 2026-11-25: dist/assets/plantuml-*.js imports
-  // __vite-browser-external for its zlib binding (stub exports {}), and
-  // the probed artifact contains 'Invalid Diagram'. Fixing it needs a
-  // production change (browser deflate for Diagram.encode) — outside this
-  // verification-scoped change. test.fail() keeps the pin executable: it
-  // passes only while the regression exists and flips red the moment the
-  // consented render heals, forcing re-scope.
-  test.fail('plantuml consent: the card names the remote address and count before render; Confirm yields exactly one plantuml.com reference', async ({ page }) => {
+  // HEALED 2026-11-26 (guard-complexity-wave, f-015): the browser zlib
+  // binding now resolves to a working deflate implementation
+  // (src/renderer/src/_shims/zlib.js + the vite/zvitest alias), so the
+  // consented PlantUML render produces the plantuml.com reference and
+  // this pin passes for real. The test.fail() marker is removed — the
+  // assertion runs as an ordinary regression pin again.
+  test('plantuml consent: the card names the remote address and count before render; Confirm yields exactly one plantuml.com reference', async ({ page }) => {
     await page.addInitScript(() => {
       const w = window as any
       w.__written = []
