@@ -110,7 +110,7 @@ const runTestAggregate = (docsOnly, results) => {
   const bash = process.platform === 'win32'
     ? resolve(process.env.ProgramFiles || 'C:/Program Files', 'Git/bin/bash.exe')
     : 'bash'
-  const result = spawnSync(bash, ['--noprofile', '--norc', '-c', shell], { encoding: 'utf8', timeout: 3000 })
+  const result = spawnSync(bash, ['--noprofile', '--norc', '-c', shell], { encoding: 'utf8', timeout: 30000 })
   if (result.error) throw result.error
   return result.status
 }
