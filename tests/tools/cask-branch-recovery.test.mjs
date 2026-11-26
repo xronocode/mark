@@ -16,8 +16,8 @@
 //   recorded API calls to the fixture; every fixture lives in a per-test
 //   temp tree; no network, no GitHub mutation outside the fixture.
 //   DEPENDS: Vitest; yaml (lockfile devDependency); node:child_process/fs/os/
-//   path/url built-ins; bash and git, skipped with an explicit reason where
-//   absent.
+//   path/url built-ins; bash (Git Bash resolved explicitly on Windows) and
+//   git, skipped with an explicit reason where absent.
 //   LINKS: .github/workflows/release.yml publish-cask; C-RELEASE-CASK-SIGNED-DIGEST.
 //   ROLE: TEST
 //   MAP_MODE: LOCALS
@@ -28,12 +28,14 @@
 //   caskSteps - the publish-cask job's step list from the parsed workflow.
 //   caskStep - the publish-cask "open cask bump PR" step (its run text is executed verbatim).
 //   caskStepRun - the publish-cask "open cask bump PR" step's run text (executed verbatim).
+//   resolveBash - the gate's bash: Git Bash resolved explicitly on Windows (the release-github-controls precedent), plain bash elsewhere.
+//   posixPath - converts per-test roots and shim fixture paths to POSIX-flavored drive paths (C:/...) so backslashes never ride verbatim shell text.
 //   FIXED_ROOTS - the declared substitutions: the step's fixed /tmp/tap and /tmp/release-stage become per-test roots, failing loudly on drift.
 //   substituteFixedRoots - the two declared substitutions (/tmp/tap, /tmp/release-stage become per-test roots), failing loudly when a step expected to carry them does not and when a step not expected to does.
 //   makeTapFixture - one bare tap origin (Casks/mark.rb seeded) plus its clone target; returns { origin, tapDir }.
 //   plantOrphanBranch - pushes bump/<cask>-<ver> straight to the bare origin without a PR — the exact orphan a killed run leaves.
-//   writeGhShim - the PATH shim that answers the step's gh calls from fixture files and records pr create/merge.
-//   runCaskStep - spawns bash -c over the substituted step text with the workflow's env mapping and the shim dir on PATH.
+//   writeGhShim - the PATH shim that answers the step's gh calls from POSIX-flavored fixture paths and records pr create/merge.
+//   runCaskStep - spawns the resolved bash (--noprofile --norc -c) over the substituted step text with the workflow's env mapping and the shim dir on PATH.
 //   sha256File - hex SHA-256 of a fixture file (the step coherence-checks the sidecar against it).
 //   repoRoot - repository root resolved from this file's location.
 //   hostHasBash - one-time probe gating the shell cases.
@@ -52,13 +54,20 @@
 //   falls through to the fresh create, so the idempotent rerun documented in
 //   the job comment completes the handoff end-to-end and flips the gate
 //   green while the fresh-branch and already-open controls stay pinned.
+//   - 2026-11-26 guard-warn-wave: the gate runs on windows-latest — the
+//   resolved bash is Git Bash (the release-github-controls precedent) and
+//   per-test roots and shim fixture paths cross into the verbatim shell
+//   text as POSIX-flavored drive paths (C:/...), because backslash temp
+//   paths make coreutils sha256sum print the escaped digest form (\DIGEST)
+//   that tripped BLOCK_RELEASE_CASK_DIGEST_MISMATCH, and bash eats
+//   backslashes as escapes in the unquoted cd/clone words.
 // END_CHANGE_SUMMARY
 
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { delimiter, dirname, join, resolve } from 'node:path'
+import { delimiter, dirname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
@@ -73,6 +82,21 @@ const caskStep = caskSteps.find((candidate) => candidate && candidate.name === '
 if (!caskStep || typeof caskStep.run !== 'string' || caskStep.run.trim() === '')
   throw new Error('release.yml publish-cask has no "open cask bump PR" run: shell text')
 const caskStepRun = () => caskStep.run
+
+// WINDOWS EXEC PATH (the release-github-controls precedent): the gate
+// resolves Git Bash explicitly on Windows so it never lands on a WSL bash
+// that cannot address C:/ fixture paths; absent Git Bash, the probe below
+// reports the honest skip.
+const resolveBash = () =>
+  process.platform === 'win32'
+    ? resolve(process.env.ProgramFiles || 'C:/Program Files', 'Git/bin/bash.exe')
+    : 'bash'
+// Backslash temp paths cannot ride verbatim shell text: bash eats them as
+// escapes in unquoted words (find: 'C:Users...' — no such file) and
+// coreutils sha256sum prints the escaped digest form (\DIGEST) for any
+// backslash-named file, so per-test roots cross into the step as
+// POSIX-flavored drive paths (C:/...), valid on Git Bash and POSIX alike.
+const posixPath = (value) => value.split(sep).join('/')
 
 // SUBSTITUTION RULE (pinned): the two fixed roots the step hardcodes — its
 // tap clone /tmp/tap and its artifact stage /tmp/release-stage — become
@@ -90,13 +114,14 @@ const substituteFixedRoots = (script, replacements) => {
       throw new Error(`the step was expected to carry ${literal} but carries none — workflow markup drifted`)
     if (!expects && carries)
       throw new Error(`the step unexpectedly carries ${literal} — extend the declared substitution`)
-    if (carries && replacements[literal]) text = text.split(literal).join(replacements[literal])
+    if (carries && replacements[literal])
+      text = text.split(literal).join(posixPath(replacements[literal]))
   }
   return text
 }
 
 const hostHasBash = (() => {
-  const probe = spawnSync('bash', ['-c', 'true'], { encoding: 'utf8', timeout: 5000 })
+  const probe = spawnSync(resolveBash(), ['-c', 'true'], { encoding: 'utf8', timeout: 5000 })
   return !probe.error && probe.status === 0
 })()
 const hostHasGit = (() => {
@@ -155,6 +180,10 @@ const plantOrphanBranch = (tempRoot, origin, branch) => {
 // The gh PATH shim: dispatch the step's recorded API calls to fixture files,
 // record pr create/merge, never touch the network.
 const writeGhShim = (tempRoot, { origin, prListJson, prTitle, prBranch }) => {
+  // The shim script is shell text — its fixture paths ride POSIX-flavored,
+  // same as the substituted step roots.
+  const shimRoot = posixPath(tempRoot)
+  const shimOrigin = posixPath(origin)
   const shimDir = join(tempRoot, 'shims')
   mkdirSync(shimDir, { recursive: true })
   writeFileSync(join(tempRoot, 'pr-list.json'), prListJson)
@@ -171,15 +200,15 @@ const writeGhShim = (tempRoot, { origin, prListJson, prTitle, prBranch }) => {
     join(shimDir, 'gh'),
     `#!/bin/sh
 # gh shim: answer the cask step's calls from the fixture, record mutations.
-LOG="${tempRoot}/gh-calls.log"
+LOG="${shimRoot}/gh-calls.log"
 case "$1 $2" in
   "auth setup-git")
     exit 0 ;;
   "repo clone")
-    git clone "${origin}" "$4" --depth 1 >>"$LOG" 2>&1
+    git clone "${shimOrigin}" "$4" --depth 1 >>"$LOG" 2>&1
     exit $? ;;
   "pr list")
-    cat "${tempRoot}/pr-list.json"
+    cat "${shimRoot}/pr-list.json"
     exit 0 ;;
   "pr create")
     echo "pr create $*" >> "$LOG"
@@ -189,7 +218,7 @@ case "$1 $2" in
     if printf '%s' "\$*" | grep -q -- '--jq'; then
       echo 7
     else
-      cat "${tempRoot}/pr-open.json"
+      cat "${shimRoot}/pr-open.json"
     fi
     exit 0 ;;
   "pr merge")
@@ -206,7 +235,7 @@ esac
 }
 
 const runCaskStep = ({ script, tempRoot, shimDir, tag, releaseStage }) =>
-  spawnSync('bash', ['-c', script], {
+  spawnSync(resolveBash(), ['--noprofile', '--norc', '-c', script], {
     encoding: 'utf8',
     cwd: tempRoot,
     env: {

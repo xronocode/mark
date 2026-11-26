@@ -18,8 +18,8 @@
 //   per-test roots; every fixture lives in a per-test temp tree; no network,
 //   no gh calls, no repository mutation outside the temp tree.
 //   DEPENDS: Vitest; yaml (lockfile devDependency); node:child_process/fs/os/
-//   path/url built-ins; bash and sha256sum, skipped with an explicit reason
-//   where absent.
+//   path/url built-ins; bash (Git Bash resolved explicitly on Windows) and
+//   sha256sum, skipped with an explicit reason where absent.
 //   LINKS: .github/workflows/release.yml prepare-publication + publish;
 //   C-RELEASE-SIGN-STAGED-SET execution-gate precedent.
 //   ROLE: TEST
@@ -31,10 +31,12 @@
 //   inventoryScript - the "assemble exact asset inventory" run text (executed verbatim).
 //   reconcileScript - the publish "reconcile and verify draft or exact public release" run text (structurally pinned).
 //   sealScript - the "seal publication bundle" run text (structurally pinned).
+//   resolveBash - the gate's bash: Git Bash resolved explicitly on Windows (the release-github-controls precedent), plain bash elsewhere.
+//   posixPath - converts per-test roots to POSIX-flavored drive paths (C:/...) so backslashes never ride verbatim shell text.
 //   FIXED_ROOTS - the declared substitution literals (/tmp/release-stage, /tmp/release-assets), each required to appear in the executed step.
 //   substituteFixedRoots - the two declared substitutions (/tmp/release-stage, /tmp/release-assets become per-test roots), failing loudly on drift.
 //   makeStageFixture - a synthetic release-stage tree holding the signed macOS set (and optionally the Windows set) with a composed latest.json.
-//   runInventory - spawns bash -c over the substituted inventory text under TAG/WINDOWS_RELEASE.
+//   runInventory - spawns the resolved bash (--noprofile --norc -c) over the substituted inventory text under TAG/WINDOWS_RELEASE.
 //   assetNames - sorted file names of one directory.
 //   repoRoot - repository root resolved from this file's location.
 //   hostHasBash - one-time probe gating the shell cases.
@@ -52,12 +54,18 @@
 //   exists anywhere, so the fail-closed case exits zero; the workflow fix
 //   relocates the manifest beside the body, gates every asset non-empty at
 //   the inventory and at the emission point, and flips the gate green.
+//   - 2026-11-26 guard-warn-wave: the gate runs on windows-latest — the
+//   resolved bash is Git Bash (the release-github-controls precedent) and
+//   the two per-test roots cross into the verbatim step text as
+//   POSIX-flavored drive paths (C:/...), because bash eats backslash temp
+//   paths as escapes in the unquoted find/assignment words (find:
+//   'C:Users...': No such file or directory).
 // END_CHANGE_SUMMARY
 
 import { spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { delimiter, dirname, join, resolve } from 'node:path'
+import { delimiter, dirname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
@@ -78,6 +86,20 @@ const inventoryScript = () => findStepRun('prepare-publication', 'assemble exact
 const reconcileScript = () => findStepRun('publish', 'reconcile and verify draft or exact public release')
 const sealScript = () => findStepRun('prepare-publication', 'seal publication bundle')
 
+// WINDOWS EXEC PATH (the release-github-controls precedent): the gate
+// resolves Git Bash explicitly on Windows so it never lands on a WSL bash
+// that cannot address C:/ fixture paths; absent Git Bash, the probe below
+// reports the honest skip.
+const resolveBash = () =>
+  process.platform === 'win32'
+    ? resolve(process.env.ProgramFiles || 'C:/Program Files', 'Git/bin/bash.exe')
+    : 'bash'
+// Backslash temp paths cannot ride verbatim shell text: bash eats them as
+// escapes in the unquoted find/assignment words (find: 'C:Users...' — no
+// such file), so per-test roots cross into the step as POSIX-flavored
+// drive paths (C:/...), valid on Git Bash and POSIX alike.
+const posixPath = (value) => value.split(sep).join('/')
+
 // SUBSTITUTION RULE (pinned): the two fixed roots the inventory hardcodes
 // become per-test roots. A missing literal fails loudly (markup drift) and
 // so does an unexpected one.
@@ -88,13 +110,13 @@ const substituteFixedRoots = (script, replacements) => {
     const carries = text.includes(literal)
     if (!carries)
       throw new Error(`the step was expected to carry ${literal} but carries none — workflow markup drifted`)
-    if (replacements[literal]) text = text.split(literal).join(replacements[literal])
+    if (replacements[literal]) text = text.split(literal).join(posixPath(replacements[literal]))
   }
   return text
 }
 
 const hostHasBash = (() => {
-  const probe = spawnSync('bash', ['-c', 'true'], { encoding: 'utf8', timeout: 5000 })
+  const probe = spawnSync(resolveBash(), ['-c', 'true'], { encoding: 'utf8', timeout: 5000 })
   return !probe.error && probe.status === 0
 })()
 const hostHasSha256sum = (() => {
@@ -144,7 +166,7 @@ const makeStageFixture = (tempRoot, { windows = false, emptyLatest = false } = {
 }
 
 const runInventory = ({ script, tempRoot, stage, assets, windowsRelease }) =>
-  spawnSync('bash', ['-c', script], {
+  spawnSync(resolveBash(), ['--noprofile', '--norc', '-c', script], {
     encoding: 'utf8',
     cwd: tempRoot,
     env: {
