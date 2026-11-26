@@ -1374,7 +1374,8 @@ jobs:
           set -euo pipefail
           VER="${TAG#v}"
           PUB_DATE=$(git show -s --format=%cI "$TAG^{commit}")
-          mapfile -t FRAGS < <(find /tmp/release-stage -name latest-platform.json | sort)
+          FRAGS=()
+          while IFS= read -r frag; do FRAGS+=("$frag"); done < <(find /tmp/release-stage -name latest-platform.json | sort)
           [ "${#FRAGS[@]}" -gt 0 ]
           jq -s --arg ver "$VER" --arg tag "$TAG" --arg date "$PUB_DATE" \
             '{version:$ver, notes:("See release notes at https://github.com/xronocode/mark/releases/tag/"+$tag), pub_date:$date, platforms:(map(.platforms) | add)}' \
@@ -1395,7 +1396,8 @@ jobs:
           mkdir -p "$ASSETS"
           copy_one() {
             NAME=$1
-            mapfile -t MATCHES < <(find /tmp/release-stage -type f -name "$NAME")
+            MATCHES=()
+            while IFS= read -r match; do MATCHES+=("$match"); done < <(find /tmp/release-stage -type f -name "$NAME")
             [ "${#MATCHES[@]}" = 1 ] || { echo "::error::expected exactly one $NAME"; exit 1; }
             cp "${MATCHES[0]}" "$ASSETS/$NAME"
           }
