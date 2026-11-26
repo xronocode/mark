@@ -12,8 +12,7 @@ name = "mark"
 path = "src/main.rs"
 
 [features]
-default = ["updater"]
-updater = []
+default = []
 # M-069: web inspector in a release build is an explicit opt-in; any build
 # that has it (debug included) shows the DEV chevron on the app icon.
 devtools = ["tauri/devtools"]

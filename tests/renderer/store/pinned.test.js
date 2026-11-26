@@ -119,6 +119,24 @@ describe('store/pinned.js (C-51 T-002)', () => {
     expect(pinned.pinnedFiles).toEqual(['/tmp/x.md'])
   })
 
+  // Guard audit fe f-019: the in-memory pin kept on a persistence refusal
+  // (the degraded-backend contract above) must not look saved — the store
+  // surfaces exactly one localized warning so the row's pin mark never
+  // masquerades as a persisted change.
+  it('a persistence refusal surfaces a localized warning (guard audit fe f-019)', async () => {
+    invoke.mockImplementation(async (cmd) => {
+      if (cmd === 'mt_prefs_set') throw new Error('degraded')
+      return undefined
+    })
+    const { default: notify } = await import('@/services/notification')
+    const pinned = usePinnedStore()
+    await pinned.PIN_FILE('/tmp/x.md')
+    expect(pinned.pinnedFiles).toEqual(['/tmp/x.md'])
+    expect(notify.notify).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'warning', source: 'pinned' })
+    )
+  })
+
   it('SIDEBAR::pin-file toggles the project store active item (tree context menu path)', async () => {
     const bus = (await import('@/bus')).default
     const { useProjectStore } = await import('@/store/project')

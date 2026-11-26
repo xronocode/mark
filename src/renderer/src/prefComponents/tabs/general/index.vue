@@ -138,7 +138,7 @@
 
 <script setup>
 // FILE: src/renderer/src/prefComponents/tabs/general/index.vue
-// VERSION: 2.4.0
+// VERSION: 2.5.0
 // START_MODULE_CONTRACT
 //   PURPOSE: General tab of the C-38 Settings window — macOS default-handler group, Startup (Finder preview mode, C-69 session restore), Language, Files and saving (autosave + delay in seconds, encoding, line endings, show-all-files tree switch) and Updates (C-66 automatic-check switch + manual check) per the N2 IA §3.1.
 //   SCOPE: Row composition over the shared controls; seconds↔milliseconds conversion for autoSaveDelay; updater command dispatch; default-handler bindings; treeShowAllFiles switch binding (C-51 T-001); autoCheckUpdates switch binding (C-66 T-003).
@@ -161,6 +161,10 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-26 v2.5.0: guard audit fe f-004 — the offered update snapshot
+//     is consumed by the install click: when the shared signed flow settles
+//     without a relaunch, the row invalidates the stale «Install» offer and
+//     re-checks fresh instead of re-offering the consumed answer.
 //   - 2026-10-19 v2.4.0: C-69 T-002 — «Reopen the last session on launch» bool row in Startup (default on).
 //   - 2026-10-19 v2.3.0: fix — the update check reports in the row (checking / up to date / available + Install / failed) instead of a toast that covered the button; no double check.
 //   - 2026-10-19 v2.2.0: C-66 T-003 — «Check for updates
@@ -283,8 +287,17 @@ const checkForUpdates = async () => {
     } catch (e) {
       console.error('[preferences][general][BLOCK_CHECK_UPDATE_DISPATCH_FAILED]', e)
       updateState.value = 'failed'
+      return
     }
-    return
+    // Guard audit fe f-004: the offered snapshot is consumed — the flow
+    // settled without a relaunch (its own fresh re-check found nothing,
+    // the prepare step cancelled, or it failed), so the stale «Install»
+    // offer must not survive it. Invalidate the snapshot and re-check
+    // fresh: the row then reports the feed, never the consumed answer,
+    // and a re-click cannot re-run prepare + the network check against
+    // stale data (the checking guard refuses while the re-check is live).
+    updateStatus.value = null
+    return checkForUpdates()
   }
   updateState.value = 'checking'
   try {

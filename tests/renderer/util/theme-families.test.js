@@ -43,9 +43,6 @@ vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: (key) => key }),
   createI18n: vi.fn(() => ({ global: { locale: { value: 'en' } } }))
 }))
-vi.mock('@/util/markdownToHtml', () => ({
-  default: vi.fn(async (md) => `<article>${md}</article>`)
-}))
 vi.mock('element-plus', () => ({
   ElMessage: { success: vi.fn(), error: vi.fn() }
 }))

@@ -277,7 +277,7 @@ const handleImageAction = ({ id, result, alt }) => {
     editor.value.setValue(newValue)
     const match = /(!\[.*\]\(.*\))/.exec(oldLine)
     if (!match) {
-      // t('editor.sourceCode.imageStructureDeletedComment')
+      // The image markup vanished from the line — nothing to re-measure.
       return
     }
     const range = {

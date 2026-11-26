@@ -180,6 +180,39 @@ describe('tabs/general — C-38 T-004 content', () => {
     expect(installSignedUpdate).toHaveBeenCalledWith(status)
   })
 
+  // Guard audit fe f-004: the offered mt_updater_check snapshot is consumed
+  // by the install click — the shared flow settled without a relaunch (its
+  // own fresh re-check found nothing, cancelled, or failed), so the row must
+  // not keep offering «Install 10.0.0» from the stale answer. The click
+  // invalidates the snapshot and runs a fresh check; a further click never
+  // re-runs the consumed offer.
+  it('a settled install click invalidates the stale offer and re-checks fresh (guard audit fe f-004)', async () => {
+    const staleStatus = { currentVersion: '9.9.9', available: true, latestVersion: '10.0.0' }
+    const freshStatus = { currentVersion: '9.9.9', available: false }
+    invokeMock.mockImplementation(async (cmd) => (cmd === 'mt_updater_check' ? staleStatus : null))
+    wrapper = mountTab()
+    await flushPromises()
+    const row = () => wrapper.findAllComponents('.row-button').at(-1)
+    await row().props('onClick')()
+    await flushPromises()
+    expect(row().text()).toContain('preferences.general.updates.available')
+    // The feed meanwhile withdrew the release: the flow's own re-check
+    // settles without installing.
+    invokeMock.mockImplementation(async (cmd) => (cmd === 'mt_updater_check' ? freshStatus : null))
+    await row().props('onClick')()
+    await flushPromises()
+    expect(installSignedUpdate).toHaveBeenCalledTimes(1)
+    // A fresh mt_updater_check ran after the install settled, and the row
+    // reports the fresh answer — never the consumed «available» offer.
+    expect(invokeMock.mock.calls.filter((c) => c[0] === 'mt_updater_check')).toHaveLength(2)
+    expect(row().text()).toContain('preferences.general.updates.upToDate')
+    // A further click re-checks; the consumed offer is not resurrected.
+    await row().props('onClick')()
+    await flushPromises()
+    expect(installSignedUpdate).toHaveBeenCalledTimes(1)
+    expect(invokeMock.mock.calls.filter((c) => c[0] === 'mt_updater_check')).toHaveLength(3)
+  })
+
   it('a feed error or a thrown check reports «failed» in the row', async () => {
     invokeMock.mockImplementation(async (cmd) => (cmd === 'mt_updater_check'
       ? { currentVersion: '9.9.9', available: false, statusNote: 'update check failed: offline' }

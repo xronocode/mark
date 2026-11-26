@@ -59,10 +59,6 @@
       "columns": "열",
       "rows": "행"
     },
-    "sourceCode": {
-      "cursorNullComment": "커서 null 주석",
-      "imageStructureDeletedComment": "이미지 구조 삭제 주석"
-    },
     "delete": "삭제",
     "input-footnote-definition": "각주 정의 입력",
     "print": {
@@ -1653,7 +1649,9 @@
     "taglineTail": "",
     "copyPath": "경로 복사",
     "removeTooltip": "이 목록에서만 제거됩니다. 파일은 디스크에 그대로 남습니다.",
-    "newButton": "새 문서"
+    "newButton": "새 문서",
+    "writeFailedTitle": "기록이 업데이트되지 않았습니다",
+    "writeFailedBody": "변경을 저장하지 못했습니다 — 최근 목록은 그대로 유지됩니다."
   },
   "tableToolbar": {
     "allColumns": "전체 {total}개 열",
@@ -1754,6 +1752,10 @@
       "settings": "설정",
       "search": "검색",
       "toc": "목차"
+    },
+    "pinned": {
+      "writeFailedTitle": "핀 저장 안 됨",
+      "writeFailedBody": "핀 목록을 저장하지 못했습니다 — 변경 사항은 이 창에 유지되며 다음 핀 동작 때 다시 시도됩니다."
     }
   },
   "rollback": {

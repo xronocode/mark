@@ -59,10 +59,6 @@
       "columns": "列",
       "rows": "行"
     },
-    "sourceCode": {
-      "cursorNullComment": "光标位置无注释",
-      "imageStructureDeletedComment": "图片结构注释已删除"
-    },
     "delete": "删除",
     "input-footnote-definition": "输入脚注定义",
     "print": {
@@ -1653,7 +1649,9 @@
     "taglineTail": "",
     "copyPath": "复制路径",
     "removeTooltip": "只是从这个列表移除，文件仍保留在磁盘上。",
-    "newButton": "新建"
+    "newButton": "新建",
+    "writeFailedTitle": "历史未更新",
+    "writeFailedBody": "无法保存更改 — 最近使用列表保持原样。"
   },
   "tableToolbar": {
     "allColumns": "全部 {total} 列",
@@ -1754,6 +1752,10 @@
       "settings": "设置",
       "search": "搜索",
       "toc": "目录"
+    },
+    "pinned": {
+      "writeFailedTitle": "固定未保存",
+      "writeFailedBody": "无法保存固定列表 — 更改保留在此窗口中，并将在下一次固定操作时重试。"
     }
   },
   "rollback": {

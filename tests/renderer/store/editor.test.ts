@@ -13,7 +13,7 @@
  * Pitfall mitigations from Phase-3 setup notes:
  *   #2 — bus singleton: mocked at module level so listener state can't leak
  *   #4 — editor.js transitively imports muya via deps; we mock direct
- *        deps (commands, util/markdownToHtml, util/pdf, util/dompurify)
+ *        deps (commands, util/pdf, util/dompurify)
  *        so the muya runtime never loads. editor.js itself does NOT
  *        import muya directly, so per-module mocks of `../commands` and
  *        sibling stores are sufficient.

@@ -59,10 +59,6 @@
       "columns": "Spalten",
       "rows": "Zeilen"
     },
-    "sourceCode": {
-      "cursorNullComment": "Cursor-Null-Kommentar",
-      "imageStructureDeletedComment": "Bildstruktur-gelöscht-Kommentar"
-    },
     "delete": "löschen",
     "input-footnote-definition": "Fußnotendefinition eingeben",
     "print": {
@@ -1655,7 +1651,9 @@
     "taglineTail": "es.",
     "copyPath": "Pfad kopieren",
     "removeTooltip": "Entfernt den Eintrag nur aus dieser Liste. Die Datei bleibt auf der Festplatte.",
-    "newButton": "Neu"
+    "newButton": "Neu",
+    "writeFailedTitle": "Verlauf nicht aktualisiert",
+    "writeFailedBody": "Die Änderung konnte nicht gespeichert werden — die Liste der Neuesten bleibt, wie sie war."
   },
   "tableToolbar": {
     "allColumns": "alle {total} Spalten",
@@ -1759,6 +1757,10 @@
       "settings": "Einstellungen",
       "search": "Suchen",
       "toc": "Inhaltsverzeichnis"
+    },
+    "pinned": {
+      "writeFailedTitle": "Pin nicht gespeichert",
+      "writeFailedBody": "Die Pin-Liste konnte nicht gespeichert werden — die Änderung bleibt in diesem Fenster erhalten und wird bei der nächsten Pin-Aktion erneut versucht."
     }
   },
   "rollback": {
