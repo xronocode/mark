@@ -1,5 +1,5 @@
 // FILE: src-tauri/src/m068_rollback.rs
-// VERSION: 1.3.0
+// VERSION: 1.4.0
 // START_MODULE_CONTRACT
 //   PURPOSE: M-068 mt-rollback. One-step updater rollback (C-UPDATER-
 //            ROLLBACK): snapshot the running version before every
@@ -48,6 +48,23 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-26 v1.4.0 complexity f-009: the snapshot suitability rules
+//     stop living per phase — the static rules validate() and
+//     staging_reuse_criterion() used to compute in parallel (schema,
+//     semver, platform, snapshot/bundle derivation, digest shapes) are
+//     now ONE shared predicate
+//     (RollbackManifest::static_suitability_mismatch), and the reuse
+//     gate's private digest re-verification is gone in favor of the
+//     promotion paths' one readback (verify_artifact_digests). The
+//     version relation stays per-phase on purpose — the mirrored inverse
+//     (live must differ from the running version; staging must equal it)
+//     is what makes one gate's acceptance the other's rejection, so the
+//     criterion still cannot route through load_valid_live. Behavior is
+//     pinned unchanged by the existing reuse/recopy/validation suites
+//     plus the new suitability_predicate gate; one fail-closed
+//     tightening falls out of the shared predicate: a Windows staging
+//     manifest carrying a bundle digest without a staged bundle now
+//     wipes and re-prepares instead of being reusable.
 //   - 2026-11-23 v1.3.0 C-UPDATER-NET-BOUNDS T-004/T-005: prepare
 //     becomes idempotent — the root-explicit prepare_inner_at(root,
 //     bundle) seam (the load_valid_live_at convention) is the new
@@ -281,59 +298,83 @@ pub struct RollbackManifest {
 }
 
 impl RollbackManifest {
-    /// Strict validation (spec R-3): unknown schema, non-strict-semver
-    /// version, platform mismatch, staged paths escaping the set,
-    /// derivation mismatch, or a recorded version equal to the running
-    /// one (the failed-attempt state) all render the set invalid —
-    /// invalid always behaves exactly like missing. The snapshot file
-    /// itself must also open and parse as a valid preferences object
-    /// (T-002 C-UPDATER-REVIEW-FIXES): an unparsable or non-object
-    /// snapshot is no-set, so the surface gates (the Help item, the
-    /// CLI exit-7 voice) stop advertising a restore that cannot
-    /// complete and no restore path ever runs m005's empty-map
-    /// fallback against live settings. One shared call for the surface
-    /// gates and the restore paths; on failure the structured support
-    /// marker names the data-root path.
-    pub fn validate(&self, base: &Path, running: &str) -> Result<(), String> {
+    /// The single static suitability predicate (complexity f-009): every
+    /// rule a snapshot manifest must satisfy on its own — current schema,
+    /// strict-semver recorded version, running platform, derivation-
+    /// consistent snapshot/bundle names, no injected path material, and
+    /// 64-hex digest shapes — computed ONCE here instead of being
+    /// restated per phase. Both gates run it: the live-set gate
+    /// ([`RollbackManifest::validate`]) and the staging-reuse gate
+    /// ([`staging_reuse_criterion`]). The version relation to the
+    /// running version stays per-phase — it is the mirrored inverse that
+    /// makes one gate's acceptance the other's rejection (live must
+    /// differ; staging must equal). Some(reason) = unsuitable, with the
+    /// same reason voice validate() has always produced.
+    fn static_suitability_mismatch(&self) -> Option<String> {
         if self.schema != MANIFEST_SCHEMA {
-            return Err(format!("unknown schema {}", self.schema));
+            return Some(format!("unknown schema {}", self.schema));
         }
         if !strict_semver(&self.previous_version) {
-            return Err(format!("non-strict semver {:?}", self.previous_version));
+            return Some(format!("non-strict semver {:?}", self.previous_version));
         }
         if self.platform != platform_key() {
-            return Err(format!(
+            return Some(format!(
                 "platform mismatch manifest={} running={}",
                 self.platform,
                 platform_key()
             ));
         }
-        if self.previous_version == running {
-            return Err("recorded version equals the running version".to_string());
-        }
         // Derivation consistency: the staged bundle name must match the
         // recorded version exactly — injected path/URL material dies here.
         if let Some(name) = &self.staged_bundle {
             if name.as_str() != staged_bundle_name(&self.previous_version) {
-                return Err(format!("staged bundle name disagrees with derivation: {name}"));
+                return Some(format!("staged bundle name disagrees with derivation: {name}"));
             }
             if name.contains("..") || name.contains('/') || name.contains('\\') {
-                return Err("staged bundle name carries path material".to_string());
+                return Some("staged bundle name carries path material".to_string());
             }
             if self.bundle_sha256.as_deref().unwrap_or("").len() != 64 {
-                return Err("staged bundle without a 64-hex digest".to_string());
+                return Some("staged bundle without a 64-hex digest".to_string());
             }
         } else if self.bundle_sha256.is_some() {
-            return Err("digest present without a staged bundle".to_string());
+            return Some("digest present without a staged bundle".to_string());
         }
         if self.prefs_snapshot != prefs_snapshot_name() {
-            return Err(format!(
+            return Some(format!(
                 "prefs snapshot name disagrees with derivation: {}",
                 self.prefs_snapshot
             ));
         }
         if self.prefs_sha256.as_deref().unwrap_or("").len() != 64 {
-            return Err("prefs snapshot without a 64-hex digest".to_string());
+            return Some("prefs snapshot without a 64-hex digest".to_string());
+        }
+        None
+    }
+
+    /// Strict validation (spec R-3): the shared static suitability
+    /// predicate above, staged paths escaping the set, an unparsable or
+    /// non-object snapshot (T-002 C-UPDATER-REVIEW-FIXES), or a recorded
+    /// version equal to the running one (the failed-attempt state) all
+    /// render the set invalid — invalid always behaves exactly like
+    /// missing. The snapshot file itself must also open and parse as a
+    /// valid preferences object: an unparsable or non-object snapshot is
+    /// no-set, so the surface gates (the Help item, the CLI exit-7
+    /// voice) stop advertising a restore that cannot complete and no
+    /// restore path ever runs m005's empty-map fallback against live
+    /// settings. One shared call for the surface gates and the restore
+    /// paths; on failure the structured support marker names the
+    /// data-root path.
+    pub fn validate(&self, base: &Path, running: &str) -> Result<(), String> {
+        // The shared static predicate — the consolidation of the rules
+        // this method and the staging-reuse gate used to compute in
+        // parallel (complexity f-009).
+        if let Some(reason) = self.static_suitability_mismatch() {
+            return Err(reason);
+        }
+        // The live-set version relation: the rollback-to-self guard (the
+        // mirrored inverse of the staging-reuse requirement).
+        if self.previous_version == running {
+            return Err("recorded version equals the running version".to_string());
         }
         // Path containment: everything the manifest names must live
         // inside `base` (the live set directory).
@@ -478,11 +519,14 @@ fn now_secs() -> u64 {
 }
 
 /// The reuse-first criterion (C-UPDATER-NET-BOUNDS R-5): the staged set
-/// provably belongs to the currently running version — the staging
-/// manifest parses with the current schema, previous_version equals the
-/// running version, the platform matches, and the recorded digests
-/// re-verify against the staged files (the same readback discipline as
-/// the prepare digest check). Some(manifest) = reuse; None = wipe and
+/// provably belongs to the currently running version. Complexity f-009:
+/// the rules are no longer restated here — the gate runs the one shared
+/// static suitability predicate (see
+/// [`RollbackManifest::static_suitability_mismatch`]) with the mirrored
+/// version relation applied (previous_version must EQUAL the running
+/// version), then re-verifies the recorded digests against the staged
+/// files through the promotion paths' one readback predicate
+/// ([`verify_artifact_digests`]). Some(manifest) = reuse; None = wipe and
 /// re-prepare. Deliberately NOT routed through load_valid_live: its
 /// validate() rejects previous_version == running for the live set (the
 /// rollback-to-self guard) precisely because a staging set of the
@@ -492,49 +536,32 @@ fn now_secs() -> u64 {
 fn staging_reuse_criterion(staging: &Path) -> Option<RollbackManifest> {
     let raw = std::fs::read_to_string(manifest_path(staging)).ok()?;
     let m: RollbackManifest = serde_json::from_str(&raw).ok()?;
-    if m.schema != MANIFEST_SCHEMA {
+    if m.static_suitability_mismatch().is_some() {
         return None;
     }
     if m.previous_version != current_version() {
         return None;
     }
-    if m.platform != platform_key() {
-        return None;
-    }
-    if m.prefs_snapshot != prefs_snapshot_name() {
-        return None;
-    }
-    // The recorded prefs digest re-verifies against the staged prefs
-    // file.
-    let prefs_sha = sha256_file(&staging.join(prefs_snapshot_name())).ok()?;
-    if m.prefs_sha256.as_deref() != Some(prefs_sha.as_str()) {
-        return None;
-    }
+    // Platform-shape rule (per-phase, not part of the shared predicate):
+    // macOS staging of the running app must carry the staged bundle;
+    // Windows staging is version-only — a manifest carrying a staged
+    // bundle name is foreign there. Either way: wipe and re-prepare.
     #[cfg(target_os = "macos")]
     {
-        let name = m.staged_bundle.clone()?;
-        // Derivation consistency: the staged bundle name must match the
-        // recorded version exactly.
-        if name != staged_bundle_name(&m.previous_version) {
-            return None;
-        }
-        // The recorded bundle digest re-verifies against the staged
-        // binary (the .app tree hash would include Info.plist churn;
-        // the binary is what boots).
-        let bin = staging.join(&name).join("Contents").join("MacOS").join("mark");
-        let bundle_sha = sha256_file(&bin).ok()?;
-        if m.bundle_sha256.as_deref() != Some(bundle_sha.as_str()) {
+        if m.staged_bundle.is_none() {
             return None;
         }
     }
     #[cfg(not(target_os = "macos"))]
     {
-        // Windows staging is version-only: a manifest carrying a staged
-        // bundle name is foreign here — wipe and re-prepare.
         if m.staged_bundle.is_some() {
             return None;
         }
     }
+    // The recorded digests re-verify against the staged bytes through
+    // the one shared readback (the prefs snapshot always; the staged
+    // bundle's load-bearing binary when the manifest names one).
+    verify_artifact_digests(staging, &m).ok()?;
     Some(m)
 }
 
@@ -2922,6 +2949,85 @@ mod rollback_core {
                 "{case}: the recopy path must not produce a live/ set"
             );
         }
+    }
+
+    #[test]
+    fn suitability_predicate_is_shared_by_both_gates() {
+        // complexity f-009: the live-set gate and the staging-reuse gate
+        // run ONE static suitability predicate with mirrored version
+        // relations. Every static defect the live gate rejects, the
+        // reuse gate rejects too (wipe + re-prepare), and an intact
+        // set splits the gates exactly along the version relation.
+        let root = TempDir::new().unwrap();
+        let staging = root.path().join(STAGING_DIR);
+        let base = stage_running_version_set(&staging, "running-binary");
+
+        // The intact running-version set: reuse accepts it, the live
+        // gate rejects the same set under the rollback-to-self guard,
+        // and accepts it against any other running version.
+        let m: RollbackManifest = base.clone();
+        assert!(
+            staging_reuse_criterion(&staging).is_some(),
+            "intact set must be reusable"
+        );
+        let err = m
+            .validate(&staging, current_version().as_str())
+            .unwrap_err();
+        assert!(err.contains("equals the running version"), "got {err}");
+        assert!(m.validate(&staging, "9.9.9").is_ok());
+
+        // Static defects: each must be rejected by BOTH gates (the reuse
+        // gate wipes and re-prepares).
+        let cases: [(&str, Box<dyn Fn(&mut RollbackManifest)>); 6] = [
+            ("schema", Box::new(|m: &mut RollbackManifest| m.schema = 99)),
+            (
+                "platform",
+                Box::new(|m: &mut RollbackManifest| m.platform = "other-platform".to_string()),
+            ),
+            (
+                "prefs_snapshot_name",
+                Box::new(|m: &mut RollbackManifest| {
+                    m.prefs_snapshot = "other-snapshot.json".to_string()
+                }),
+            ),
+            (
+                "prefs_digest_shape",
+                Box::new(|m: &mut RollbackManifest| m.prefs_sha256 = Some("zz".to_string())),
+            ),
+            (
+                "bundle_derivation",
+                Box::new(|m: &mut RollbackManifest| {
+                    m.staged_bundle = Some("../../etc/passwd".to_string());
+                    m.bundle_sha256 = Some("b".repeat(64));
+                }),
+            ),
+            (
+                "digest_without_bundle",
+                Box::new(|m: &mut RollbackManifest| {
+                    m.staged_bundle = None;
+                    m.bundle_sha256 = Some("b".repeat(64));
+                }),
+            ),
+        ];
+        for (case, mutate) in cases {
+            let mut m: RollbackManifest = base.clone();
+            mutate(&mut m);
+            write_manifest(&staging, &m);
+            let err = m
+                .validate(&staging, current_version().as_str())
+                .unwrap_err();
+            assert!(!err.is_empty(), "{case}: the live gate must reject");
+            assert!(
+                staging_reuse_criterion(&staging).is_none(),
+                "{case}: the reuse gate must wipe and re-prepare too"
+            );
+        }
+
+        // Restore the intact set: the reuse decision still carries the
+        // manifest (the criterion's Some value is what prepare reuses).
+        write_manifest(&staging, &base);
+        let reused = staging_reuse_criterion(&staging).expect("intact set must be reusable");
+        assert_eq!(reused.previous_version, base.previous_version);
     }
 }
 

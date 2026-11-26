@@ -1,5 +1,5 @@
 # FILE: .github/workflows/test.yml
-# VERSION: 1.11.0
+# VERSION: 1.12.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Run renderer/backend unit tests and browser regressions before integration.
 #   SCOPE: Push/PR/manual test jobs, browser installation and aggregate status; no release publication.
@@ -11,6 +11,14 @@
 # START_MODULE_MAP
 # END_MODULE_MAP
 # START_CHANGE_SUMMARY
+#   - 2026-11-26 v1.12.0 GUARD-WARN-WAVE: cicd f-006 keeps main runs
+#     uninterrupted — cancel-in-progress becomes the ref expression so
+#     superseded branch/PR runs stay cancellable while a main merge-commit
+#     run is never cancelled in progress and its completed job work survives
+#     (tests/tools/test-workflow-concurrency.test.mjs pins the policy);
+#     cicd f-005 resolves every setup-node step from the repo-level .nvmrc
+#     so the checks lane and the release build share one exact runtime
+#     (tests/tools/node-version-pin.test.mjs pins the source of truth).
 #   - 2026-11-15 C-CI-RUST-TEST-ARTIFACT-LIFECYCLE-EXECVE: preserve the full Cargo gate while recording/reaping/removing exact test executables before cache save.
 #   - 2026-11-15 C-CARGO-WORKSPACE-CACHE: cache the root workspace target in a distinct platform-preserving namespace.
 #   - 2026-11-13 v1.11.0: collect Playwright failure evidence from its actual test-results output, including first-failure stream ownership traces; retain the existing gates and deadlines.
@@ -66,7 +74,10 @@ on:
 
 concurrency:
   group: test-${{ github.ref }}
-  cancel-in-progress: true
+  # cicd f-006: superseded branch/PR runs stay cancellable, but a main
+  # run is never cancelled in progress — cancelling checks on main must
+  # not discard already-completed job work of the superseded run.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -118,7 +129,7 @@ jobs:
       - name: setup node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '22'
+          node-version-file: .nvmrc
           cache: npm
 
       - name: npm ci
@@ -239,7 +250,7 @@ jobs:
       - name: setup node for Rust test lifecycle
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: '22'
+          node-version-file: .nvmrc
 
       - name: cargo test
         working-directory: src-tauri
@@ -280,7 +291,7 @@ jobs:
       - name: setup node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '22'
+          node-version-file: .nvmrc
           cache: npm
 
       - name: npm ci
@@ -362,7 +373,7 @@ jobs:
       - name: setup node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '22'
+          node-version-file: .nvmrc
       - name: verify actual native preview boundary
         run: node tools/check-quicklook.mjs
       - name: build isolated unsigned preview extension

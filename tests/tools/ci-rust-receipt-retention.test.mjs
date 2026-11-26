@@ -11,7 +11,9 @@
 // START_MODULE_MAP
 //   patterns - Exact positive JSON receipt patterns below the runner temporary root.
 //   receiptStep - Exact existing-pin evidence-only collector.
-//   nodeStep - Existing pinned Node22 setup for the lane's original Cargo call.
+//   nodeStep - Existing pinned Node22 setup for the ci/lane lanes' original Cargo call.
+//   nodeStepNvmrc - cicd f-005: test.yml's lifecycle setup resolving its runtime from .nvmrc.
+//   expectedNodeStep - the per-file node-step shape (test.yml reads .nvmrc; ci/lane keep '22').
 //   workflows - Original cohort AST identities and exact unchanged Cargo selections.
 //   readWorkflow - Parse the actual checked-in workflow.
 //   validateWorkflow - Validate additions before removing only them for a complete AST inverse.
@@ -22,6 +24,11 @@
 //   roots - Owned inert fixture roots removed after every case.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   - 2026-11-26 cicd f-005: test.yml's lifecycle setup resolves its Node
+//     runtime from the repo-level .nvmrc (one exact runtime shared with
+//     release.yml), so the per-file nodeStep pin and the complete test.yml
+//     AST digest move to the new honest state; ci.yml/lane.yml keep their
+//     own '22' steps and their digests are unchanged.
 //   - C-QA-CORE-EVIDENCE-PORTABILITY: retain renderer fixture metadata and preserve the original complete workflow digest through a strict inverse.
 //   - 2026-11-16 C-CI-RUST-RECEIPT-RETENTION: actual workflow and JSON-only receipt selection controls; hosted acceptance remains separate.
 // END_CHANGE_SUMMARY
@@ -53,6 +60,16 @@ const nodeStep = {
   uses: 'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020',
   with: { 'node-version': '22' }
 }
+// cicd f-005: test.yml's lifecycle setup resolves the runtime from the
+// repo-level .nvmrc (the shared source of truth with release.yml); the
+// ci.yml/lane.yml lanes keep their own '22' restatement — the two shapes
+// are pinned per file, not silently unified.
+const nodeStepNvmrc = {
+  name: 'setup node for Rust test lifecycle',
+  uses: 'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020',
+  with: { 'node-version-file': '.nvmrc' }
+}
+const expectedNodeStep = file => (file === 'test.yml' ? nodeStepNvmrc : nodeStep)
 const qaEvidenceRoot = '${{ runner.temp }}/mark-qa-core-evidence-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}'
 const qaReceiptStep = {
   name: 'upload QA core fixture receipts',
@@ -78,7 +95,7 @@ function restoreQaRendererEvidence(projected) {
 const workflows = [
   { file: 'ci.yml', job: 'test', digest: 'e62b37f440a719603591115773049437e68990da95b0993c3a12813640543654',
     calls: [{ name: 'Cargo test', run: 'node tools/run-rust-tests.mjs' }, { name: 'Fixture validation', run: 'node tools/run-rust-tests.mjs embedded_fixture_parses_and_matches_registered' }] },
-  { file: 'test.yml', job: 'backend-unit', digest: '0e0700b6be9e36d963a4ff5d23f4555adea106002f1a4f28d79b1033771849e4',
+  { file: 'test.yml', job: 'backend-unit', digest: '1712312fc7ab346c80bc41e6bc206e68c43910088b47a69bf05d46902e29aa71',
     calls: [{ name: 'cargo test', 'working-directory': 'src-tauri', run: 'node ../tools/run-rust-tests.mjs --bin mark' }] },
   { file: 'lane.yml', job: 'test', digest: '7d42522c2477650b2cc0ea51594f579c4786ade2213083f798bf53c352394496',
     calls: [{ name: 'Cargo test', run: 'node tools/run-rust-tests.mjs' }] }
@@ -89,7 +106,7 @@ function validateWorkflow(actual, config) {
   expect(steps.filter(step => step.name === receiptStep.name)).toEqual([receiptStep])
   expect(steps.at(-1)).toEqual(receiptStep)
   for (const call of config.calls) expect(steps.find(step => step.name === call.name)).toEqual(call)
-  expect(steps.filter(step => step.name === nodeStep.name)).toEqual([nodeStep])
+  expect(steps.filter(step => step.name === expectedNodeStep(config.file).name)).toEqual([expectedNodeStep(config.file)])
   let restored = steps.filter(step => step.name !== receiptStep.name)
   if (config.file === 'lane.yml') {
     restored = restored.filter(step => step.name !== nodeStep.name).map(step => step.name === 'Cargo test' ? { ...step, run: 'cargo test' } : step)
