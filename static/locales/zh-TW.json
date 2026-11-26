@@ -59,10 +59,6 @@
       "columns": "欄",
       "rows": "列"
     },
-    "sourceCode": {
-      "cursorNullComment": "游標空值註解",
-      "imageStructureDeletedComment": "圖片結構已刪除註解"
-    },
     "delete": "刪除",
     "input-footnote-definition": "輸入腳註定義",
     "print": {
@@ -1661,7 +1657,9 @@
     "taglineTail": "",
     "copyPath": "複製路徑",
     "removeTooltip": "只會從此列表移除，檔案仍保留在磁碟上。",
-    "newButton": "新增"
+    "newButton": "新增",
+    "writeFailedTitle": "歷史未更新",
+    "writeFailedBody": "無法儲存變更 — 最近使用清單保持原樣。"
   },
   "tableToolbar": {
     "allColumns": "全部 {total} 欄",
@@ -1762,6 +1760,10 @@
       "settings": "設定",
       "search": "搜尋",
       "toc": "目錄"
+    },
+    "pinned": {
+      "writeFailedTitle": "釘選未儲存",
+      "writeFailedBody": "無法儲存釘選清單 — 變更保留在此視窗中，並將在下一次釘選動作時重試。"
     }
   },
   "rollback": {

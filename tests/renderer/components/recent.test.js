@@ -16,6 +16,7 @@
 //   __ipcRecentMock - ipcRecent double (M-017 remove/insert).
 //   __ipcFsMock - ipcFs double (stat for mtime + missing-path drop-off).
 //   __busMock - bus double; captures the 'mt::native-drag' subscription.
+//   __notifyMock - notification double (the fe f-020 write-failure warning).
 //   __projectStoreMock - project store double (recent folders).
 //   __editorStoreMock - editor store double (recent files, session).
 //   __recentlyClosedMock - recently-closed store double (FIX-009 recovery block).
@@ -146,6 +147,11 @@ vi.mock('@/ipc/runtime', () => ({
 
 const __busMock = { emit: vi.fn(), on: vi.fn(), off: vi.fn() }
 vi.mock('@/bus', () => ({ default: __busMock }))
+
+// Guard audit fe f-020: the write-failure warning rides the shared
+// notification stack (the preferences write-truth precedent).
+const __notifyMock = vi.fn()
+vi.mock('@/services/notification', () => ({ default: { notify: __notifyMock } }))
 
 const __projectStoreMock = {
   ASK_FOR_OPEN_PROJECT: vi.fn(),
@@ -562,6 +568,54 @@ describe('recent/index.vue welcome screen (C-46)', () => {
     expect(__ipcRecentMock.insert).not.toHaveBeenCalled()
     // The visible row comes back (it was on screen), storage untouched.
     expect(wrapper.findAll('.row-name').map((n) => n.text())).toEqual(['a.md', 'b.md'])
+  })
+
+  // ── Guard audit fe f-020: a refused write never presents the removal ──
+  // The write-truth rule (C-PREFS-WRITE-TRUTH precedent): when the
+  // persistence write rejects, the in-memory removal is rolled back, the
+  // removed-toast with its Undo offer never appears, and one localized
+  // warning names the failed history update instead.
+
+  it('a refused file-remove keeps the row and reports the failure (guard audit fe f-020)', async () => {
+    const wrapper = await hydrateWith({ files: ['/p/a.md', '/p/b.md'] })
+    __ipcRecentMock.remove.mockRejectedValueOnce(new Error('disk refused'))
+    await wrapper.findAll('.row-remove')[1].trigger('click')
+    await flushPromises()
+    // The row stays — the removal never became truth on disk.
+    expect(wrapper.findAll('.row-name').map((n) => n.text())).toEqual(['a.md', 'b.md'])
+    expect(wrapper.find('.undo-toast').exists()).toBe(false)
+    expect(__notifyMock).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'warning', source: 'recent' })
+    )
+  })
+
+  it('a refused folder-remove keeps the row and reports the failure (guard audit fe f-020)', async () => {
+    const wrapper = await hydrateWith({ folders: ['/p/one', '/p/two'] })
+    __projectStoreMock.SET_RECENT_FOLDERS.mockRejectedValueOnce(new Error('disk refused'))
+    await wrapper.findAll('.recent-list')[1].findAll('.row-remove')[1].trigger('click')
+    await flushPromises()
+    expect(wrapper.findAll('.recent-list')[1].findAll('.row-name').map((n) => n.text()))
+      .toEqual(['one', 'two'])
+    expect(wrapper.find('.undo-toast').exists()).toBe(false)
+    expect(__notifyMock).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'warning', source: 'recent' })
+    )
+  })
+
+  it('a refused undo keeps the restored row and reports the failure (guard audit fe f-020)', async () => {
+    const wrapper = await hydrateWith({ files: ['/p/a.md', '/p/b.md'] })
+    __ipcRecentMock.remove.mockResolvedValueOnce(1)
+    await wrapper.findAll('.row-remove')[1].trigger('click')
+    await flushPromises()
+    __ipcRecentMock.insert.mockRejectedValueOnce(new Error('disk refused'))
+    await wrapper.find('.toast-undo').trigger('click')
+    await flushPromises()
+    // The visible list is restored…
+    expect(wrapper.findAll('.row-name').map((n) => n.text())).toEqual(['a.md', 'b.md'])
+    // …but the user learns the restore did not persist.
+    expect(__notifyMock).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'warning', source: 'recent' })
+    )
   })
 
   // ── context menu ────────────────────────────────────────────────

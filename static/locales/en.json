@@ -59,10 +59,6 @@
       "columns": "Columns",
       "rows": "Rows"
     },
-    "sourceCode": {
-      "cursorNullComment": "Cursor null comment",
-      "imageStructureDeletedComment": "Image structure deleted comment"
-    },
     "delete": "delete",
     "input-footnote-definition": "Input footnote definition",
     "print": {
@@ -1671,7 +1667,9 @@
     "taglineTail": "it.",
     "copyPath": "Copy path",
     "removeTooltip": "Removes it from this list. The file stays on disk.",
-    "newButton": "New"
+    "newButton": "New",
+    "writeFailedTitle": "History not updated",
+    "writeFailedBody": "The change could not be saved — the recent list stays as it was."
   },
   "tableToolbar": {
     "allColumns": "all {total} columns",
@@ -1778,6 +1776,10 @@
       "settings": "Settings",
       "search": "Search",
       "toc": "Table of Contents"
+    },
+    "pinned": {
+      "writeFailedTitle": "Pin not saved",
+      "writeFailedBody": "The pinned list could not be saved — the change is kept in this window and retries on the next pin action."
     }
   },
   "rollback": {

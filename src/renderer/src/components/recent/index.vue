@@ -589,6 +589,22 @@ const showToast = (payload) => {
 // the path was not stored); the undo insert puts the entry back exactly
 // there so the order is restored, and skips the insert when nothing was
 // removed from storage.
+//
+// Guard audit fe f-020: a rejected write never presents the removal
+// (the C-PREFS-WRITE-TRUTH rollback shape) — the in-memory splice is
+// restored, the removed-toast with its Undo offer never appears, and
+// exactly one localized warning names the failed history update next to
+// the existing console marker. The same warning covers a refused undo:
+// the visible list is restored but the stored list was not.
+const notifyHistoryWriteFailure = () => {
+  notice.notify({
+    source: 'recent',
+    type: 'warning',
+    title: t('recent.writeFailedTitle'),
+    message: t('recent.writeFailedBody')
+  })
+}
+
 const removeRecentFile = async (entry) => {
   const index = recentFiles.value.findIndex((f) => f.path === entry.path)
   if (index < 0) return
@@ -600,6 +616,9 @@ const removeRecentFile = async (entry) => {
     if (typeof removedAt === 'number') persistedIndex = removedAt
   } catch (e) {
     console.warn('[Recent][removeRecentFile][BLOCK_RECENT_REMOVED] persisted=false', e)
+    recentFiles.value = snapshot
+    notifyHistoryWriteFailure()
+    return
   }
   showToast({
     kind: 'file',
@@ -625,6 +644,9 @@ const removeRecentFolder = async (entry) => {
     await projectStore.SET_RECENT_FOLDERS(storedSnapshot.filter((p) => p !== entry.path))
   } catch (e) {
     console.warn('[Recent][removeRecentFolder][BLOCK_RECENT_REMOVED] persisted=false', e)
+    recentFolders.value = snapshot
+    notifyHistoryWriteFailure()
+    return
   }
   showToast({
     kind: 'folder',
@@ -648,6 +670,7 @@ const undoRemove = async () => {
       await ipcRecent.insert(entry.path, entry.index)
     } catch (e) {
       console.warn('[Recent][undoRemove][BLOCK_RECENT_UNDONE] persisted=false', e)
+      notifyHistoryWriteFailure()
     }
   } else {
     recentFolders.value = entry.snapshot
@@ -656,6 +679,7 @@ const undoRemove = async () => {
       await projectStore.SET_RECENT_FOLDERS(entry.storedSnapshot)
     } catch (e) {
       console.warn('[Recent][undoRemove][BLOCK_RECENT_UNDONE] persisted=false', e)
+      notifyHistoryWriteFailure()
     }
   }
 }

@@ -56,6 +56,15 @@
 //     the fixed unconditional sleeps are gone. The loopback-only binding,
 //     no-proxy, no-redirect, redirect-not-followed contract, capability
 //     check, URL validation and the InvokeRequest wire body are unchanged.
+//   - 2026-11-26 guard audit integration f-009 / fe f-011: the honest
+//     Retry-After — the header parses integer seconds AND the IMF-fixdate
+//     HTTP-date form (retry_after_requested, fixture-pinned); an indicated
+//     pause over INVOKE_RETRY_MAX_WAIT is never answered with an early
+//     retry (the audited premature-retry defect): the 503/429 becomes the
+//     final BadStatus verdict through the shared finalize_bad_status arm.
+//     A missing or unparsable header keeps the short default pause; the
+//     loopback-only binding, no-proxy/no-redirect contract, idempotency
+//     key, capability check and success path are unchanged.
 //   - 2026-11-09 C-SEC-AUDIT-FIXES T-005: parsed loopback recipients and no redirect/proxy escape.
 // END_CHANGE_SUMMARY
 
@@ -156,19 +165,97 @@ struct InvokeRequest<'a> {
 // END_BLOCK_INVOKE_REQUEST
 
 // START_BLOCK_INVOKE
-/// C-EXT-EDIT-PROOF: read the retry-after header (integer seconds) and
-/// sleep the honored value clamped to INVOKE_RETRY_MAX_WAIT — a hostile or
-/// broken header can never stall the invoke; a missing or unparsable
-/// header falls back to the short default pause (itself bounded by the
-/// ceiling).
-fn retry_after_wait(headers: &reqwest::header::HeaderMap) -> Duration {
-    let requested = headers
-        .get("retry-after")
-        .and_then(|value| value.to_str().ok())
-        .and_then(|value| value.trim().parse::<u64>().ok())
-        .map(Duration::from_secs)
-        .unwrap_or(Duration::from_millis(INVOKE_DEFAULT_RETRY_WAIT_MS));
-    requested.min(INVOKE_RETRY_MAX_WAIT)
+/// Guard audit integration f-009 / fe f-011: read the Retry-After header
+/// honestly — integer seconds OR the IMF-fixdate HTTP-date form — and
+/// answer with the requested wait relative to `now` (saturated at zero for
+/// a date already in the past). None = absent or unparsable, where the
+/// caller falls back to the short default pause. The indicated wait is
+/// NEVER clamped into an early retry: waits beyond INVOKE_RETRY_MAX_WAIT
+/// end the retry budget instead (the extension explicitly asked for a
+/// longer pause than the bounded budget can honor).
+fn retry_after_wait(headers: &reqwest::header::HeaderMap) -> Option<Duration> {
+    let value = headers.get("retry-after")?.to_str().ok()?;
+    retry_after_requested(value, std::time::SystemTime::now())
+}
+
+/// Pure Retry-After value parser (fixture-pinned): integer seconds first,
+/// then the IMF-fixdate HTTP-date; the obsolete RFC 850 / asctime forms
+/// fall through to None (the short default pause).
+pub(crate) fn retry_after_requested(value: &str, now: std::time::SystemTime) -> Option<Duration> {
+    let trimmed = value.trim();
+    if let Ok(secs) = trimmed.parse::<u64>() {
+        return Some(Duration::from_secs(secs));
+    }
+    let epoch = http_date_epoch_secs(trimmed)?;
+    let now_secs = now
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()?
+        .as_secs() as i64;
+    let wait_secs = (epoch - now_secs).max(0);
+    Some(Duration::from_secs(wait_secs as u64))
+}
+
+/// Parse the IMF-fixdate form ("Sun, 06 Nov 1994 08:49:37 GMT") into Unix
+/// epoch seconds. Month names are matched case-sensitively per RFC 7231;
+/// anything else returns None.
+fn http_date_epoch_secs(value: &str) -> Option<i64> {
+    const MONTHS: [(&str, u32); 12] = [
+        ("Jan", 1), ("Feb", 2), ("Mar", 3), ("Apr", 4), ("May", 5), ("Jun", 6),
+        ("Jul", 7), ("Aug", 8), ("Sep", 9), ("Oct", 10), ("Nov", 11), ("Dec", 12),
+    ];
+    let rest = value.split_once(',').map(|(_, r)| r.trim_start()).unwrap_or(value);
+    let mut parts = rest.split_whitespace();
+    let day: u32 = parts.next()?.parse().ok()?;
+    let month_name = parts.next()?;
+    let month = MONTHS.iter().find(|(name, _)| *name == month_name)?.1;
+    let year: i64 = parts.next()?.parse().ok()?;
+    let mut clock = parts.next()?.split(':');
+    let hour: i64 = clock.next()?.parse().ok()?;
+    let minute: i64 = clock.next()?.parse().ok()?;
+    let second: i64 = clock.next()?.parse().ok()?;
+    if !parts.next()?.eq_ignore_ascii_case("gmt") {
+        return None;
+    }
+    Some(days_from_civil(year, month, day) * 86400 + hour * 3600 + minute * 60 + second)
+}
+
+/// Howard Hinnant's days_from_civil — days since 1970-01-01 from a civil date.
+fn days_from_civil(y: i64, m: u32, d: u32) -> i64 {
+    let y = if m <= 2 { y - 1 } else { y };
+    let era = if y >= 0 { y } else { y - 399 } / 400;
+    let yoe = y - era * 400;
+    let m_shift = if m > 2 { m - 3 } else { m + 9 } as i64;
+    let doy = (153 * m_shift + 2) / 5 + d as i64 - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    era * 146097 + doe - 719468
+}
+
+/// The final BadStatus verdict for a non-2xx response — shared by the
+/// ordinary arm and the f-009 over-ceiling no-retry branch.
+async fn finalize_bad_status(
+    resp: reqwest::Response,
+    manifest: &ExtensionManifest,
+    capability: &str,
+) -> InvokeError {
+    let status = resp.status();
+    let body_text = resp.text().await.unwrap_or_default();
+    safe_eprintln!(
+        "[ExtHost][invoke][BLOCK_BAD_STATUS id={} cap={capability} status={status}]",
+        manifest.id
+    );
+    // C-EXT-DELIVERY-HONESTY: the foreign body is
+    // control-neutralized before composition and the whole
+    // message clamped under INVOKE_MESSAGE_MAX_CHARS with the
+    // original-size truncation marker; http_status lets the
+    // renderer mapping answer without any body fragment.
+    InvokeError {
+        kind: InvokeErrorKind::BadStatus,
+        http_status: Some(status.as_u16()),
+        message: bound_message(format!(
+            "HTTP {status}: {}",
+            sanitize_foreign_body(&body_text)
+        )),
+    }
 }
 
 /// Invoke an extension capability via HTTP POST. Retries once on 503 and
@@ -267,53 +354,66 @@ pub async fn invoke_extension(
                 return Ok(json);
             }
             Ok(resp) if resp.status().as_u16() == 503 && attempt == 0 => {
-                let wait = retry_after_wait(resp.headers());
-                safe_eprintln!(
-                    "[ExtHost][invoke][BLOCK_503_RETRY id={} cap={capability} wait_ms={}]",
-                    manifest.id,
-                    wait.as_millis()
-                );
-                // Honored, bounded pause before retry.
-                tokio::time::sleep(wait).await;
-                continue;
+                match retry_after_wait(resp.headers()) {
+                    // Honored, bounded pause before retry.
+                    Some(wait) if wait <= INVOKE_RETRY_MAX_WAIT => {
+                        safe_eprintln!(
+                            "[ExtHost][invoke][BLOCK_503_RETRY id={} cap={capability} wait_ms={}]",
+                            manifest.id,
+                            wait.as_millis()
+                        );
+                        tokio::time::sleep(wait).await;
+                        continue;
+                    }
+                    // Guard audit f-009: the extension indicated a longer
+                    // pause than the bounded budget can honor — retrying
+                    // early would arrive before the extension is ready, so
+                    // the 503 becomes the final verdict.
+                    Some(_) => {
+                        return Err(finalize_bad_status(resp, manifest, capability).await);
+                    }
+                    // Missing or unparsable header: the short default pause.
+                    None => {
+                        safe_eprintln!(
+                            "[ExtHost][invoke][BLOCK_503_RETRY id={} cap={capability} wait_ms={INVOKE_DEFAULT_RETRY_WAIT_MS}]",
+                            manifest.id
+                        );
+                        tokio::time::sleep(Duration::from_millis(INVOKE_DEFAULT_RETRY_WAIT_MS)).await;
+                        continue;
+                    }
+                }
             }
             Ok(resp) if resp.status().as_u16() == 429 && attempt == 0 => {
-                let wait = retry_after_wait(resp.headers());
-                safe_eprintln!(
-                    "[ExtHost][invoke][BLOCK_429_RETRY id={} cap={capability} wait_ms={}]",
-                    manifest.id,
-                    wait.as_millis()
-                );
-                // Honored, bounded pause; 429 joins the existing
-                // single-retry budget (attempt count stays two).
-                tokio::time::sleep(wait).await;
-                continue;
+                match retry_after_wait(resp.headers()) {
+                    // Honored, bounded pause; 429 joins the existing
+                    // single-retry budget (attempt count stays two).
+                    Some(wait) if wait <= INVOKE_RETRY_MAX_WAIT => {
+                        safe_eprintln!(
+                            "[ExtHost][invoke][BLOCK_429_RETRY id={} cap={capability} wait_ms={}]",
+                            manifest.id,
+                            wait.as_millis()
+                        );
+                        tokio::time::sleep(wait).await;
+                        continue;
+                    }
+                    // Guard audit f-009: an indicated pause over the ceiling
+                    // is never answered with an early retry — the 429
+                    // becomes the final verdict and the caller decides.
+                    Some(_) => {
+                        return Err(finalize_bad_status(resp, manifest, capability).await);
+                    }
+                    None => {
+                        safe_eprintln!(
+                            "[ExtHost][invoke][BLOCK_429_RETRY id={} cap={capability} wait_ms={INVOKE_DEFAULT_RETRY_WAIT_MS}]",
+                            manifest.id
+                        );
+                        tokio::time::sleep(Duration::from_millis(INVOKE_DEFAULT_RETRY_WAIT_MS)).await;
+                        continue;
+                    }
+                }
             }
             Ok(resp) => {
-                let status = resp.status();
-                let body_text = resp.text().await.unwrap_or_default();
-                safe_eprintln!(
-                    "[ExtHost][invoke][BLOCK_BAD_STATUS id={} cap={capability} status={status}]",
-                    manifest.id
-                );
-                // C-EXT-DELIVERY-HONESTY: the foreign body is
-                // control-neutralized before composition and the whole
-                // message clamped under INVOKE_MESSAGE_MAX_CHARS with the
-                // original-size truncation marker; http_status lets the
-                // renderer mapping answer without any body fragment.
-                return Err(InvokeError {
-                    kind: InvokeErrorKind::BadStatus,
-                    http_status: Some(status.as_u16()),
-                    // C-EXT-DELIVERY-HONESTY: the foreign body is
-                    // control-neutralized before composition and the whole
-                    // message clamped under INVOKE_MESSAGE_MAX_CHARS with the
-                    // original-size truncation marker; http_status lets the
-                    // renderer mapping answer without any body fragment.
-                    message: bound_message(format!(
-                        "HTTP {status}: {}",
-                        sanitize_foreign_body(&body_text)
-                    )),
-                });
+                return Err(finalize_bad_status(resp, manifest, capability).await);
             }
             Err(e) => {
                 safe_eprintln!(

@@ -59,10 +59,6 @@
       "columns": "Colonnes",
       "rows": "Lignes"
     },
-    "sourceCode": {
-      "cursorNullComment": "Commentaire de curseur nul",
-      "imageStructureDeletedComment": "Commentaire de structure d'image supprimée"
-    },
     "delete": "supprimer",
     "input-footnote-definition": "Saisir la définition de note de bas de page",
     "print": {
@@ -1657,7 +1653,9 @@
     "taglineTail": "au résultat.",
     "copyPath": "Copier le chemin",
     "removeTooltip": "Le retire uniquement de cette liste. Le fichier reste sur le disque.",
-    "newButton": "Nouveau"
+    "newButton": "Nouveau",
+    "writeFailedTitle": "Historique non mis à jour",
+    "writeFailedBody": "La modification n’a pas pu être enregistrée — la liste des récents reste inchangée."
   },
   "tableToolbar": {
     "allColumns": "toutes les {total} colonnes",
@@ -1763,6 +1761,10 @@
       "settings": "Paramètres",
       "search": "Rechercher",
       "toc": "Table des matières"
+    },
+    "pinned": {
+      "writeFailedTitle": "Pin non enregistré",
+      "writeFailedBody": "La liste des épingles n’a pas pu être enregistrée — la modification est conservée dans cette fenêtre et sera retentée à la prochaine action d’épinglage."
     }
   },
   "rollback": {

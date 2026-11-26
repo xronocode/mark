@@ -3409,15 +3409,56 @@ async fn invoke_retries_429_once_honoring_retry_after() {
     );
 }
 
+// ── Guard audit integration f-009 / fe f-011: the honest Retry-After ──
+// The audited defect: Mark read only integer seconds, clamped every wait
+// to the 2 s ceiling and ignored the HTTP-date form — so the extension
+// received the retry EARLIER than the indicated pause. The honest
+// contract: the IMF-fixdate form parses and is honored, and an indicated
+// wait over the ceiling is never answered with an early retry (the 429
+// becomes the final verdict — the caller sees the status and decides).
+
+/// IMF-fixdate formatter for the fixture (the inverse of the production
+/// parser, written out in the test so the pin is not self-referential).
+fn imf_fixdate(t: std::time::SystemTime) -> String {
+    let secs = t.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() as i64;
+    let days = secs.div_euclid(86400);
+    let rem = secs.rem_euclid(86400);
+    let (y, m, d) = civil_from_days(days);
+    const WDAYS: [&str; 7] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const MONTHS: [&str; 12] = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    let wday = (days + 4).rem_euclid(7) as usize; // 1970-01-01 was a Thursday
+    format!(
+        "{}, {:02} {} {} {:02}:{:02}:{:02} GMT",
+        WDAYS[wday], d, MONTHS[(m - 1) as usize], y, rem / 3600, (rem % 3600) / 60, rem % 60
+    )
+}
+
+/// Howard Hinnant's civil_from_days — the date half of the fixture formatter.
+fn civil_from_days(z: i64) -> (i64, u32, u32) {
+    let z = z + 719468;
+    let era = if z >= 0 { z } else { z - 146096 } / 146097;
+    let doe = z - era * 146097;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
+    let m = (if mp < 10 { mp + 3 } else { mp - 9 }) as u32;
+    (if m <= 2 { y + 1 } else { y }, m, d)
+}
+
 #[tokio::test]
-async fn invoke_retry_after_over_ceiling_waits_no_longer_than_ceiling() {
-    let listener = fixture_listener("INVOKE_429_CEILING");
-    let mut manifest = test_manifest("ceiling-invoke-fixture");
+async fn invoke_http_date_retry_after_is_honored() {
+    let listener = fixture_listener("INVOKE_429_DATE");
+    let mut manifest = test_manifest("date-retry-invoke-fixture");
     manifest.discovery.base_url = format!("http://{}", listener.local_addr().unwrap());
     manifest.invoke.timeout_secs = 5;
-    // A hostile Retry-After of 30 s must be clamped to the named ceiling.
+    // The extension answers with an IMF-fixdate pause of ~1 s (inside the
+    // ceiling): the retry must honor the parsed date, not fall back to the
+    // short default pause (the audited «does not parse the date» gap).
+    let requested = std::time::SystemTime::now() + std::time::Duration::from_secs(1);
     let server = serve_scripted(listener, vec![
-        ("429 Too Many Requests", "retry-after: 30\r\n".to_string(), "slow down"),
+        ("429 Too Many Requests", format!("retry-after: {}\r\n", imf_fixdate(requested)), "slow down"),
         ("200 OK", String::new(), r#"{"fixture":"ok"}"#),
     ], 8000);
     let started = std::time::Instant::now();
@@ -3425,19 +3466,73 @@ async fn invoke_retry_after_over_ceiling_waits_no_longer_than_ceiling() {
         .await.unwrap();
     assert_eq!(result["fixture"], "ok");
     let requests = server.join().unwrap();
-    assert_eq!(requests.len(), 2, "the clamped 429 was still retried once");
+    assert_eq!(requests.len(), 2, "the in-ceiling date pause was retried once");
     let elapsed = started.elapsed();
-    // The named ceiling: INVOKE_RETRY_MAX_WAIT = Duration::from_millis(2000)
-    // (pinned by the plan; the implementation declares the same constant).
-    let ceiling = std::time::Duration::from_millis(2000);
     assert!(
-        elapsed >= ceiling - std::time::Duration::from_millis(100),
-        "the honored wait fills up to the ceiling: {elapsed:?} vs {ceiling:?}"
+        elapsed >= std::time::Duration::from_millis(900),
+        "the IMF-fixdate Retry-After was parsed and honored (not the 500 ms default): {elapsed:?}"
     );
+}
+
+#[tokio::test]
+async fn invoke_retry_after_over_ceiling_is_not_retried_early() {
+    let listener = fixture_listener("INVOKE_429_NO_EARLY");
+    let mut manifest = test_manifest("no-early-retry-invoke-fixture");
+    manifest.discovery.base_url = format!("http://{}", listener.local_addr().unwrap());
+    manifest.invoke.timeout_secs = 5;
+    // The extension asked for 30 s: a retry after the 2 s ceiling would
+    // arrive before the extension is ready — the audited defect. The 429
+    // becomes the final verdict instead.
+    let server = serve_scripted(listener, vec![
+        ("429 Too Many Requests", "retry-after: 30\r\n".to_string(), "slow down"),
+    ], 3000);
+    let started = std::time::Instant::now();
+    let result = super::invoke::invoke_extension(&manifest, "text.insert", serde_json::json!({"text":"dummy body"}), Some("dummy-fixture-bearer"))
+        .await.unwrap_err();
+    let requests = server.join().unwrap();
+    assert_eq!(requests.len(), 1, "an over-ceiling Retry-After is never answered with an early retry");
+    assert_eq!(result.http_status, Some(429), "the caller sees the 429 verdict");
+    let elapsed = started.elapsed();
     assert!(
-        elapsed < ceiling + std::time::Duration::from_millis(1100),
-        "a Retry-After over the ceiling never stalls the invoke: {elapsed:?} vs {ceiling:?}"
+        elapsed < std::time::Duration::from_millis(1000),
+        "no premature retry waits out even the ceiling: {elapsed:?}"
     );
+}
+
+// Pure parser pins: integer seconds, the IMF-fixdate form (future and
+// past) and the unparsable fallback.
+#[test]
+fn retry_after_parses_integer_seconds() {
+    let now = std::time::SystemTime::now();
+    assert_eq!(
+        super::invoke::retry_after_requested("5", now),
+        Some(std::time::Duration::from_secs(5))
+    );
+}
+
+#[test]
+fn retry_after_parses_imf_fixdate_and_saturates_past_dates() {
+    let now = std::time::SystemTime::now();
+    let future = now + std::time::Duration::from_secs(30);
+    let wait = super::invoke::retry_after_requested(&imf_fixdate(future), now)
+        .expect("the IMF-fixdate form parses");
+    assert!(
+        wait >= std::time::Duration::from_secs(28) && wait <= std::time::Duration::from_secs(30),
+        "the parsed date wait is relative to now: {wait:?}"
+    );
+    let past = now - std::time::Duration::from_secs(3600);
+    assert_eq!(
+        super::invoke::retry_after_requested(&imf_fixdate(past), now),
+        Some(std::time::Duration::from_secs(0)),
+        "a date already in the past means retry now, never a negative wait"
+    );
+}
+
+#[test]
+fn retry_after_unparsable_value_is_none() {
+    let now = std::time::SystemTime::now();
+    assert_eq!(super::invoke::retry_after_requested("soon", now), None);
+    assert_eq!(super::invoke::retry_after_requested("", now), None);
 }
 // END_BLOCK_LOOPBACK_URL_TESTS
 

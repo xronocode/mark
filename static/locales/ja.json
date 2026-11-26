@@ -59,10 +59,6 @@
       "columns": "列",
       "rows": "行"
     },
-    "sourceCode": {
-      "cursorNullComment": "カーソルnullコメント",
-      "imageStructureDeletedComment": "画像構造削除コメント"
-    },
     "delete": "削除",
     "input-footnote-definition": "脚注定義を入力",
     "print": {
@@ -1653,7 +1649,9 @@
     "taglineTail": "",
     "copyPath": "パスをコピー",
     "removeTooltip": "このリストから削除するだけです。ファイルはディスクに残ります。",
-    "newButton": "新規"
+    "newButton": "新規",
+    "writeFailedTitle": "履歴を更新できませんでした",
+    "writeFailedBody": "変更を保存できませんでした — 最近のリストは元のままです。"
   },
   "tableToolbar": {
     "allColumns": "全 {total} 列",
@@ -1754,6 +1752,10 @@
       "settings": "設定",
       "search": "検索",
       "toc": "目次"
+    },
+    "pinned": {
+      "writeFailedTitle": "ピンを保存できませんでした",
+      "writeFailedBody": "ピンリストを保存できませんでした — 変更はこのウィンドウ内に保持され、次のピン操作時に再試行されます。"
     }
   },
   "rollback": {

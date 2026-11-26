@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/store/pinned.js
-// VERSION: 1.0.0
+// VERSION: 1.1.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pinia store for the Pinned sidebar section (C-51 T-002) — a persisted, user-ordered list of absolute file paths pinned from the tree or tab context menu.
 //   SCOPE: pinnedFiles state, isPinned getter, LOAD_PINNED_FILES hydration, PIN_FILE / UNPIN_FILE / TOGGLE_PIN mutations, MOVE_PINNED drag reorder; persistence through ipcPrefs key `pinnedFiles`.
@@ -15,13 +15,19 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.0.0 - 2026-10-16 C-51 T-002: initial store. New pins
+//   LAST_CHANGE: v1.1.0 - 2026-11-26 guard audit fe f-019: a persistence
+//   refusal no longer looks saved — _persist surfaces exactly one localized
+//   warning (sideBar.pinned.writeFailed*, all ten locales) next to the
+//   existing console marker; the in-memory keep-and-retry contract is
+//   unchanged.
+//   v1.0.0 - 2026-10-16 C-51 T-002: initial store. New pins
 //   append at the end of the list (drag to reorder); paths are stored
 //   verbatim (absolute, as pinned) and sanitized on load.
 // END_CHANGE_SUMMARY
 
 import { defineStore } from 'pinia'
 import { ipcPrefs } from '../ipc/runtime'
+import notice from '../services/notification'
 
 export const PINNED_FILES_KEY = 'pinnedFiles'
 
@@ -70,6 +76,16 @@ export const usePinnedStore = defineStore('pinned', {
         // In-memory state already mutated; persistence retries on the
         // next pin/unpin/reorder.
         console.error('[PinnedStore][_persist][BLOCK_PERSIST_FAILED]', e)
+        // Guard audit fe f-019: the kept in-memory mutation must not look
+        // saved — one localized warning makes the refusal visible (the
+        // row's pin mark stays honest about the un-persisted change).
+        const { t } = await import('../i18n')
+        notice.notify({
+          source: 'pinned',
+          type: 'warning',
+          title: t('sideBar.pinned.writeFailedTitle'),
+          message: t('sideBar.pinned.writeFailedBody')
+        })
       }
     },
 
