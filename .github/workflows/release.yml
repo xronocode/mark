@@ -1,5 +1,5 @@
 # FILE: .github/workflows/release.yml
-# VERSION: 3.12.0
+# VERSION: 3.13.0
 # START_MODULE_CONTRACT
 #   PURPOSE: Admit only an approved annotated release tag, build and sign its exact Ready seal, then stage one digest-verified draft release and expose it only after the owner approves the synchronous release environment gate.
 #   SCOPE: Named-test manual unsigned QA handoffs plus tag-only readiness, signing, notarization, artifact verification, owner-gated draft-first publication, and downstream Homebrew handoff.
@@ -20,6 +20,7 @@
 # END_MODULE_MAP
 #
 # START_CHANGE_SUMMARY
+#   - 2026-11-26 v3.13.0 GUARD-WARN-WAVE: cicd f-005 points every setup-node step at the repo-level .nvmrc (one exact runtime for checks and packaging instead of per-job '22' restatements). cicd f-009 makes the cask handoff recoverable — a bump branch pushed by a killed run carries no PR in any state (--state all proved it), so the rerun deletes the orphan branch and completes the fresh create instead of hard-failing on "cask branch exists without the exact PR"; the fresh and already-open paths are untouched (tests/tools/cask-branch-recovery.test.mjs executes the step against a synthetic tap). integration f-006 keeps the draft asset set exact — the digest manifest is written beside the body instead of inside the asset dir it used to leak from, every inventory asset must be non-empty at the assemble gate, and the publish upload loop refuses an empty asset before any draft mutation (tests/tools/draft-asset-inventory.test.mjs executes the inventory shell). The prerelease lane text is byte-identical.
 #   - 2026-11-25 v3.12.0 CICD-GUARD-FIXES: F-003 renames the tag-lane admission check to release/readiness-tag — the authorize-tag job and the release-governance.yml readiness job both reported release/readiness, so a branch-build run and a tag run shared one required-context name and context resolution was ambiguous; the branch lane and the strict payload admission keep release/readiness unchanged. F-008 injects the tag version into the prerelease build override — a prerelease DMG is named from the tag while the strict metadata preflight that pins tag=metadata on the stable lane is skipped, so the beta bundle kept the repo base version; the override now carries the tag version and tag↔version parity holds for prereleases too. The stable lane's text is byte-identical.
 #   - 2026-11-22 v3.11.0 C-RELEASE-SIGN-STAGED-SET: fix two execution defects in the staged handoff — the macOS sign job converts the re-packaged DMG into its work dir and replaces the staged copy (hdiutil convert refuses an existing output and the verify step's copy had already occupied the destination), the Windows smoke screenshot moves outside the staged dir (RUNNER_TEMP\smoke), the Windows stage step receipts every staged file, and both Windows uploads name their files so an unreceipted or unexpected file can neither reach the sign job nor ride the signed set; tests/tools/sign-staged-handoff.test.mjs executes the extracted handoff shells against synthetic staged sets and was red on the pre-fix text.
 #   - 2026-11-22 v3.10.0 C-RELEASE-CASK-SIGNED-DIGEST: publish-cask resolves the Homebrew cask digest only from the signed macOS release artifact — the job downloads exactly mark-macos-arm64-release by name into its own path, addresses the .sha256 sidecar by that explicit artifact path (the unconstrained find/head selection over the all-artifact staged tree is gone), and coherence-checks the sidecar against a fresh hash of the signed DMG beside it, failing closed on [ReleaseCask][publish-cask][BLOCK_RELEASE_CASK_DIGEST_MISMATCH] before any cask mutation; the cask still carries the sidecar value per B2CR-3 and the prerelease skip stays byte-identical.
@@ -126,7 +127,7 @@ jobs:
       - name: setup Node 22
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '22'
+          node-version-file: .nvmrc
           cache: npm
 
       - name: derive and validate immutable identity
@@ -302,7 +303,7 @@ jobs:
       - name: setup Node 22
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '22'
+          node-version-file: .nvmrc
           cache: npm
       - name: setup Rust
         uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec
@@ -441,7 +442,7 @@ jobs:
       - name: setup node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '22'
+          node-version-file: .nvmrc
           cache: npm
 
       - name: setup rust
@@ -994,7 +995,7 @@ jobs:
       - name: setup node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '22'
+          node-version-file: .nvmrc
           cache: npm
 
       # The local Tauri CLI is required for the updater signatures; the
@@ -1373,7 +1374,8 @@ jobs:
           set -euo pipefail
           VER="${TAG#v}"
           PUB_DATE=$(git show -s --format=%cI "$TAG^{commit}")
-          mapfile -t FRAGS < <(find /tmp/release-stage -name latest-platform.json | sort)
+          FRAGS=()
+          while IFS= read -r frag; do FRAGS+=("$frag"); done < <(find /tmp/release-stage -name latest-platform.json | sort)
           [ "${#FRAGS[@]}" -gt 0 ]
           jq -s --arg ver "$VER" --arg tag "$TAG" --arg date "$PUB_DATE" \
             '{version:$ver, notes:("See release notes at https://github.com/xronocode/mark/releases/tag/"+$tag), pub_date:$date, platforms:(map(.platforms) | add)}' \
@@ -1394,7 +1396,8 @@ jobs:
           mkdir -p "$ASSETS"
           copy_one() {
             NAME=$1
-            mapfile -t MATCHES < <(find /tmp/release-stage -type f -name "$NAME")
+            MATCHES=()
+            while IFS= read -r match; do MATCHES+=("$match"); done < <(find /tmp/release-stage -type f -name "$NAME")
             [ "${#MATCHES[@]}" = 1 ] || { echo "::error::expected exactly one $NAME"; exit 1; }
             cp "${MATCHES[0]}" "$ASSETS/$NAME"
           }
@@ -1414,7 +1417,20 @@ jobs:
               copy_one "$NAME"
             done
           fi
-          (cd "$ASSETS" && sha256sum -- * > release-assets.sha256)
+          # integration f-006: every inventory asset must carry real content —
+          # a zero-byte file is a broken handoff, not a releasable asset.
+          # Fail closed here, before the owner-approval gate.
+          for FILE in "$ASSETS"/*; do
+            if [ ! -s "$FILE" ]; then
+              echo "::error::inventory asset is empty: $(basename "$FILE")"
+              exit 1
+            fi
+          done
+          # integration f-006: the digest manifest is publication bookkeeping,
+          # not release content — it lives beside the body, outside the asset
+          # dir, so the draft receives exactly the named inventory (pre-fix it
+          # sat inside and shipped as an extra draft asset).
+          (cd "$ASSETS" && sha256sum -- * > "${ASSETS}.sha256")
           jq -e --arg version "$VER" '.version == $version and (.platforms["darwin-aarch64"] != null)' "$ASSETS/latest.json" >/dev/null
 
       - name: render reviewed release body without write credentials
@@ -1482,7 +1498,7 @@ jobs:
       - name: seal publication bundle
         run: |
           set -euo pipefail
-          (cd /tmp && sha256sum release-body.md release-assets/* > publication.sha256)
+          (cd /tmp && sha256sum release-body.md release-assets.sha256 release-assets/* > publication.sha256)
 
       - name: upload publication bundle
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -1556,6 +1572,13 @@ jobs:
           if [ "$ALREADY_PUBLISHED" = false ]; then
             for FILE in "$ASSETS"/*; do
               NAME=$(basename "$FILE")
+              # integration f-006: fail closed at the emission point — an
+              # empty asset never reaches the draft (the publication digest
+              # pins the bytes upstream; this guards the emission itself).
+              if [ ! -s "$FILE" ]; then
+                echo "::error::[ReleasePublish][publish][BLOCK_RELEASE_EMPTY_ASSET] $NAME is empty"
+                exit 1
+              fi
               ASSET_ID=$(gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets?per_page=100" --paginate --jq ".[] | select(.name == \"$NAME\") | .id")
               if [ -n "$ASSET_ID" ]; then
                 gh api -H 'Accept: application/octet-stream' "repos/$GITHUB_REPOSITORY/releases/assets/$ASSET_ID" > "/tmp/server-$NAME"
@@ -1579,7 +1602,8 @@ jobs:
             [ -n "$ASSET_URL" ] || { echo "::error::asset missing from readback: $NAME"; exit 1; }
             gh api -H 'Accept: application/octet-stream' "$ASSET_URL" > "/tmp/release-readback/$NAME"
           done < /tmp/expected-assets.txt
-          (cd /tmp/release-readback && sha256sum -c release-assets.sha256)
+          # integration f-006: the relocated manifest (beside the body).
+          (cd /tmp/release-readback && sha256sum -c "${ASSETS}.sha256")
           cmp "$ASSETS/latest.json" /tmp/release-readback/latest.json
           echo "already_published=$ALREADY_PUBLISHED" >> "$GITHUB_OUTPUT"
 
@@ -1783,9 +1807,15 @@ jobs:
             [ "$PR_STATE" = OPEN ]
             echo "exact cask PR already open for $TAG"
           elif [ "$COUNT" = 0 ]; then
+            # cicd f-009: a previous run may have pushed the bump branch and
+            # died before `gh pr create`. COUNT = 0 means no PR in ANY state
+            # carries this head (`--state all` already proved it), so the
+            # branch is an orphan of this same bot flow — delete it and fall
+            # through to the fresh create below, so the documented idempotent
+            # rerun (`gh run rerun --failed`) completes the handoff
+            # end-to-end instead of stalling here forever.
             if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
-              echo "::error::cask branch exists without the exact PR"
-              exit 1
+              git push origin --delete "$BRANCH"
             fi
             git checkout -b "$BRANCH"
 

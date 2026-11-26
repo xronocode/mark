@@ -8,7 +8,9 @@
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 // START_MODULE_MAP
-//   nodeStep - Exact already-approved Node22 action identity.
+//   nodeStep - Exact already-approved Node22 action identity (ci/lane lanes).
+//   nodeStepNvmrc - cicd f-005: test.yml's lifecycle setup resolving its runtime from .nvmrc.
+//   expectedNodeStep - the per-job node-step shape (backend-unit reads .nvmrc; ci/lane keep '22').
 //   receiptStep - Exact JSON-only collector validated before inverse removal.
 //   baselineDigests - Full AST fingerprints of the reviewed cache delivery baseline.
 //   digest - Stable complete AST fingerprint without a private-commit history dependency.
@@ -18,6 +20,11 @@
 //   restoreQaEvidence - Preserve the original complete workflow oracle after validating only the QA additions.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
+//   - 2026-11-26 cicd f-005: test.yml's lifecycle setup resolves its Node
+//     runtime from the repo-level .nvmrc (one exact runtime shared with
+//     release.yml), so the backend-unit nodeStep pin and the test.yml
+//     baseline digest move to the new honest state; ci.yml/lane.yml keep
+//     their own '22' steps and digests unchanged.
 //   - C-CI-NATIVE-EVIDENCE-COMPATIBILITY: compose exact renderer metadata additions with the unchanged original Rust workflow digest.
 //   - 2026-11-16 C-CI-RUST-RECEIPT-RETENTION: retain exact prior AST gates with validated receipt collection and original lane baseline.
 //   - 2026-11-15 C-CI-RUST-TEST-ARTIFACT-LIFECYCLE-EXECVE: complete workflow preservation controls.
@@ -32,6 +39,15 @@ const nodeStep = {
   uses: 'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020',
   with: { 'node-version': '22' }
 }
+// cicd f-005: test.yml's lifecycle setup resolves its runtime from the
+// repo-level .nvmrc (one exact runtime shared with release.yml); the
+// ci.yml/lane.yml lanes keep their own '22' restatement.
+const nodeStepNvmrc = {
+  name: 'setup node for Rust test lifecycle',
+  uses: 'actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020',
+  with: { 'node-version-file': '.nvmrc' }
+}
+const expectedNodeStep = job => (job === 'backend-unit' ? nodeStepNvmrc : nodeStep)
 const receiptStep = {
   name: 'upload Rust lifecycle receipts',
   if: 'always()',
@@ -44,7 +60,7 @@ const receiptStep = {
   }
 }
 const baselineDigests = {
-  'test.yml': 'baa56ae42c11c292b44f61f5b321e2329df3e741274a3a9986f1d2edc9ff6100',
+  'test.yml': '2b5f6fc76e5b8638aebff75a5d16c5bbfc071afc8a0078382697e4389b773a61',
   'ci.yml': '81fafd6cc3286490cd38b3a25dc829a9cfda05d6e424df1bc2eacd230d52b228',
   'lane.yml': '7d42522c2477650b2cc0ea51594f579c4786ade2213083f798bf53c352394496'
 }
@@ -70,8 +86,8 @@ const lifecycleProjection = (workflow, job, replacements) => {
   const result = structuredClone(workflow)
   if (job === 'backend-unit') restoreQaEvidence(result)
   const steps = result.jobs[job].steps
-  const added = steps.filter(step => step.name === nodeStep.name)
-  expect(added).toEqual([nodeStep])
+  const added = steps.filter(step => step.name === expectedNodeStep(job).name)
+  expect(added).toEqual([expectedNodeStep(job)])
   expect(steps.filter(step => step.name === receiptStep.name)).toEqual([receiptStep])
   result.jobs[job].steps = steps.filter(step => step.name !== nodeStep.name && step.name !== receiptStep.name).map(step => {
     const old = replacements[step.run]

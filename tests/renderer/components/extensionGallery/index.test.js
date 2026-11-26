@@ -69,6 +69,26 @@ describe('ExtensionGallery – extended coverage', () => {
 
   // ── Refresh ──────────────────────────────────────────────────
 
+  it('a refresh cycle issues one list IPC — the discover payload feeds the list', async () => {
+    // fe f-007: mt_ext_discover already returns the registered list in its
+    // Ok payload (DiscoverReport.extensions), so a refresh cycle must not
+    // issue a second mt_ext_list IPC for the same data — one IPC list call
+    // per refresh cycle, landed through the same guarded path as mount.
+    const wrapper = await mountComponent([SAMPLE_EXT])
+    invokeMock.mockClear()
+    invokeMock.mockResolvedValueOnce({
+      extensions: [SAMPLE_EXT, { ...SAMPLE_EXT, id: 'ext2', name: 'Ext2' }],
+      failed_manifests: []
+    })
+    await wrapper.find('.gallery-refresh-btn').trigger('click')
+    await flushPromises()
+    // The whole cycle is a single IPC call — the discover — and its payload
+    // landed (two cards visible, no second fetch).
+    expect(invokeMock).toHaveBeenCalledTimes(1)
+    expect(invokeMock).toHaveBeenCalledWith('mt_ext_discover')
+    expect(wrapper.findAll('.ext-card').length).toBe(2)
+  })
+
   it('refresh calls discover then re-fetches list', async () => {
     const wrapper = await mountComponent([SAMPLE_EXT])
     invokeMock.mockResolvedValueOnce(undefined) // discover
@@ -231,15 +251,15 @@ describe('ExtensionGallery – extended coverage', () => {
   it('scan_failure_notice_survives_the_list_fetch', async () => {
     // C-EXT-GALLERY-STATE: a discover Ok payload carrying failed_manifests
     // renders the distinct localized notice and the notice SURVIVES the
-    // successful list fetch that follows; the next failure-free refresh
-    // (an absent failed_manifests field means no notice) replaces it with
-    // nothing.
+    // list landing that follows in the same payload (fe f-007: the discover
+    // payload is the one list fetch of the cycle); the next failure-free
+    // refresh (an absent failed_manifests field means no notice) replaces
+    // it with nothing.
     const wrapper = await mountComponent([SAMPLE_EXT])
     invokeMock.mockResolvedValueOnce({
       extensions: [SAMPLE_EXT],
       failed_manifests: [{ path: '/fixture/broken.json', kind: 'parse' }]
-    }) // refresh: discover with scan failures
-    invokeMock.mockResolvedValueOnce([SAMPLE_EXT]) // refresh: list succeeds
+    }) // refresh: discover with scan failures — its payload is the list
     await wrapper.find('.gallery-refresh-btn').trigger('click')
     await flushPromises()
     const notice = wrapper.find('.gallery-notice')
@@ -247,7 +267,6 @@ describe('ExtensionGallery – extended coverage', () => {
     expect(notice.text()).toContain('could not be read or parsed')
 
     invokeMock.mockResolvedValueOnce({ extensions: [SAMPLE_EXT] }) // next refresh: discover, no failures
-    invokeMock.mockResolvedValueOnce([SAMPLE_EXT]) // next refresh: list
     await wrapper.find('.gallery-refresh-btn').trigger('click')
     await flushPromises()
     expect(wrapper.find('.gallery-notice').exists()).toBe(false)

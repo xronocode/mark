@@ -116,12 +116,21 @@
 //   scanFailures - Scan-failure notice state from the discover payload.
 //   fetchGeneration - Monotonic list-fetch generation guarding the display.
 //   toggling - Per-extension enable/disable progress.
+//   landList - The single landing path for every fetched list (fe f-007).
 //   fetchExtensions - Read the registered extension list.
 //   refresh - Discover extensions and refresh the list.
 //   toggleExtension - Apply an enable/disable action and refresh visible state.
 // END_MODULE_MAP
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: 2026-11-23 C-EXT-GALLERY-STATE T-005 - The gallery
+//   LAST_CHANGE: 2026-11-26 fe f-007 - A refresh cycle stops fetching the
+//   list twice: mt_ext_discover already returns the registered list in its
+//   Ok payload, so the payload lands through the new shared landList path
+//   (display, revoke-pending proof and the list-owned error rule once for
+//   mount, refresh and the fallbacks) under the same monotonic generation
+//   guard, and the redundant second mt_ext_list IPC is gone; a payload
+//   without a usable list and a failed discovery keep the explicit
+//   mt_ext_list fetch.
+//   2026-11-23 C-EXT-GALLERY-STATE T-005 - The gallery
 //   display stops trusting arrival order: every list fetch carries a
 //   monotonic fetchGeneration and lands only when still newest (a late
 //   stale snapshot mutates nothing — no list, no error clearing, no
@@ -173,6 +182,24 @@ const scanFailures = ref(false)
 // START_BLOCK_IPC
 
 /**
+ * The single landing path for every fetched list (fe f-007): display,
+ * revoke-pending proof and the list-owned error rule live here once.
+ * C-EXT-TRUST-COHERENCE: an enabled listing proves the extension is
+ * not revoke-pending anymore. Guard audit f-006: never wipe a
+ * discovery-failure notice here.
+ */
+const landList = (list) => {
+  extensions.value = list
+  for (const ext of list) {
+    if (ext.enabled) revokePendingIds.delete(ext.id)
+  }
+  if (errorSource !== 'discover') {
+    error.value = ''
+    errorSource = ''
+  }
+}
+
+/**
  * Fetch the list of registered extensions from the backend.
  * Calls mt_ext_list (normalized from mt::ext::list).
  * C-EXT-GALLERY-STATE: the fetch is generation-guarded — a resolved list
@@ -189,17 +216,7 @@ const fetchExtensions = async () => {
       console.log(`[ExtGallery][BLOCK_LIST_STALE generation=${generation} newest=${fetchGeneration}]`)
       return
     }
-    extensions.value = list
-    // C-EXT-TRUST-COHERENCE: an enabled listing proves the extension is
-    // not revoke-pending anymore.
-    for (const ext of list) {
-      if (ext.enabled) revokePendingIds.delete(ext.id)
-    }
-    // Guard audit f-006: never wipe a discovery-failure notice here.
-    if (errorSource !== 'discover') {
-      error.value = ''
-      errorSource = ''
-    }
+    landList(list)
     // eslint-disable-next-line no-console
     console.log(`[ExtGallery][BLOCK_LIST_OK count=${list.length}]`)
   } catch (err) {
@@ -220,25 +237,45 @@ const fetchExtensions = async () => {
  * Then refresh the list. C-EXT-GALLERY-STATE: the discover Ok payload
  * feeds the distinct scan-failure notice through a tolerant reader — an
  * absent or undefined failed_manifests field means no notice; the notice
- * survives the awaited list fetch and is replaced only by the next
- * discovery's outcome (fetchExtensions never touches it).
+ * is replaced only by the next discovery's outcome. fe f-007: the same
+ * payload already carries the registered list, so a refresh cycle issues
+ * ONE IPC list call — the payload lands through the shared guarded path
+ * and no second mt_ext_list is issued for the same data. The tolerant
+ * fallback (a payload without a usable list) and the discover-failure
+ * path keep the explicit mt_ext_list fetch.
  */
 const refresh = async () => {
   loading.value = true
   error.value = ''
   errorSource = ''
+  const generation = ++fetchGeneration
   try {
     const report = await invoke('mt_ext_discover')
     scanFailures.value = Array.isArray(report?.failed_manifests) && report.failed_manifests.length > 0
     // eslint-disable-next-line no-console
     console.log(`[ExtGallery][BLOCK_DISCOVER_OK scanFailures=${scanFailures.value}]`)
+    if (Array.isArray(report?.extensions)) {
+      if (generation !== fetchGeneration) {
+        // eslint-disable-next-line no-console
+        console.log(`[ExtGallery][BLOCK_LIST_STALE generation=${generation} newest=${fetchGeneration}]`)
+      } else {
+        landList(report.extensions)
+        // eslint-disable-next-line no-console
+        console.log(`[ExtGallery][BLOCK_LIST_OK count=${report.extensions.length}]`)
+      }
+    } else {
+      // Tolerant fallback: a payload without a usable list (an undefined
+      // report or a missing extensions field) keeps the explicit
+      // mt_ext_list fetch.
+      await fetchExtensions()
+    }
   } catch (err) {
     error.value = String(err)
     errorSource = 'discover'
     // eslint-disable-next-line no-console
     console.error('[ExtGallery][BLOCK_DISCOVER_FAILED]', err)
+    await fetchExtensions()
   }
-  await fetchExtensions()
   loading.value = false
 }
 
