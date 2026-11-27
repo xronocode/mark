@@ -1243,7 +1243,7 @@
       },
       "rollback": {
         "title": "One-step rollback",
-        "text": "Every update keeps a snapshot; Roll Back in Help returns to it with your settings."
+        "text": "Updates from Mark's built-in updater keep a snapshot; Roll Back in Help restores it."
       }
     }
   },

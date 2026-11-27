@@ -1233,7 +1233,7 @@
       },
       "rollback": {
         "title": "Reversão em um passo",
-        "text": "Cada atualização guarda um instantâneo; Roll Back na ajuda o restaura."
+        "text": "O atualizador do Mark guarda um instantâneo; Roll Back na ajuda o restaura."
       }
     }
   },

@@ -19,9 +19,10 @@ the section to the live release as described in the
   print options.
 
 **Updates can be undone**
-- Every update snapshots the previous version and its settings first.
-  Help › Roll Back to Mark… restores both in one step, and the version you
-  left is not offered again until a newer release ships.
+- Every update installed through Mark's built-in updater snapshots the
+  previous version and its settings first. Help › Roll Back to Mark… restores
+  both in one step, and the version you left is not offered again until a
+  newer release ships.
 - If an update ever breaks startup, the same restore runs from the terminal
   before the app boots (`mark --rollback`, `--yes` for scripts). A failed
   snapshot cancels the update; the snapshot takes over only after the new

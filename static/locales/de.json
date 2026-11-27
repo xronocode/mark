@@ -1232,7 +1232,7 @@
       },
       "rollback": {
         "title": "Rückgang in einem Schritt",
-        "text": "Jedes Update hält einen Snapshot; Roll Back im Hilfemenü stellt ihn her."
+        "text": "Updates über Marks integrierten Updater halten einen Snapshot; Roll Back stellt ihn her."
       }
     }
   },

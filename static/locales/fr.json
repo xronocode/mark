@@ -1233,7 +1233,7 @@
       },
       "rollback": {
         "title": "Retour en arrière en un pas",
-        "text": "Chaque mise à jour garde un instantané ; Roll Back dans l'aide le restaure."
+        "text": "La mise à jour intégrée de Mark garde un instantané ; Roll Back dans l'aide le restaure."
       }
     }
   },

@@ -48,8 +48,8 @@ The App Store build and the Homebrew/download build are the same editor with a f
   text, and table modes do what they say.
 - **Modes in the title bar.** Diff, Split and Source are one click away as
   title-bar chips, and View › Standard View is the one-click reset.
-- **Updates can be undone.** Every update keeps a snapshot of the previous
-  version and your settings; Help › Roll Back to Mark… returns to it in one
+- **Updates can be undone.** Every update installed through Mark's built-in
+  updater keeps a snapshot of the previous version and your settings; Help › Roll Back to Mark… returns to it in one
   step, and a broken update still restores from the terminal before the app
   boots.
 - **Pick up where you left off.** Every file remembers its scroll position and

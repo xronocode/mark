@@ -63,8 +63,8 @@ themes — plus two Windows repairs: menu shortcuts and saving work again.
   survive closing and reopening a tab, reopening the file, quitting and
   relaunching, and renaming. A caret moved only by the arrow keys survives tab
   switching too.
-- Updates can be undone in one step. Every update snapshots the previous
-  version and its settings first; Help › Roll Back to Mark… restores both, and
+- Updates can be undone in one step. Every update installed through Mark's
+  built-in updater snapshots the previous version and its settings first; Help › Roll Back to Mark… restores both, and
   the version you left is not offered again until a newer release ships. If an
   update ever breaks startup, the same restore runs from the terminal before
   the app boots (`mark --rollback`, `--yes` for scripts). A failed snapshot
