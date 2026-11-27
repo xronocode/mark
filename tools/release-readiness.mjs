@@ -53,6 +53,7 @@
 //   checkIdentity - Serialize one required-check identity without ambiguity.
 //   validateRequiredCheckPolicy - Pin the train check set to non-seal governance configuration.
 //   git - Run one read-only Git query in the target repository.
+//   gitRaw - Like git, but returns stdout verbatim for NUL-delimited path reads.
 //   isAncestor - Probe one ancestry claim, reading merge-base exit status 1 as not-an-ancestor.
 //   validateRequiredChecks - Match exact successful required checks to the payload SHA.
 //   validateSealSpan - Prove every commit between payload and seal touches only bookkeeping paths.
