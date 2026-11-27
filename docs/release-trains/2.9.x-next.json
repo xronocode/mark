@@ -3068,10 +3068,266 @@
           "automatic": [
             {
               "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
-              "result": "statusCheckRollup of PR #366 head 6988f3f9f0bee1354d75a27fcb61ad6230a59e35 (merge commit 21abfa3a): 22 success, 0 failed, 0 cancelled, 1 skipped (release/project-mirror) — recorded 2026-11-27",
+              "result": "statusCheckRollup of PR #366 head 6988f3f9f0bee1354d75a27fcb61ad6230a59e35 (merge commit 21abfa3a): 22 success, 0 failed, 0 cancelled, 1 skipped (release/project-mirror); the merge commit itself carries one failed check-run, Analyze (swift) — recorded 2026-11-27",
               "date": "2026-11-27",
               "build": "6988f3f9f0bee1354d75a27fcb61ad6230a59e35",
               "evidence": "https://github.com/xronocode/mark/pull/366"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-EXT-DELIVERY-HONESTY",
+        "summary": "Honest extension delivery — bounded sanitized invoke errors and honest live-open endpoint publication.",
+        "state": "queued",
+        "commits": [
+          "23cc2f4f9ed7625e770f02bd6c513959e8a8329d",
+          "cecc7cc55be7b4fd1e2ad7d2e13326495aef6a44"
+        ],
+        "pullRequest": null,
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "statusCheckRollup of PR #344 head e72f52531003304eee318ae1dd236e5293923bab (merge commit 23cc2f4f): 22 success, 0 failed, 0 cancelled, 1 skipped (release/project-mirror) — recorded 2026-11-27",
+              "date": "2026-11-27",
+              "build": "e72f52531003304eee318ae1dd236e5293923bab",
+              "evidence": "https://github.com/xronocode/mark/pull/344"
+            },
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "statusCheckRollup of PR #345 head f70eea79b94079a3ee49f6311cc1ecf89b591f50 (merge commit cecc7cc5): 22 success, 0 failed, 0 cancelled, 1 skipped (release/project-mirror) — recorded 2026-11-27",
+              "date": "2026-11-27",
+              "build": "f70eea79b94079a3ee49f6311cc1ecf89b591f50",
+              "evidence": "https://github.com/xronocode/mark/pull/345"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-SEARCH-ENGINE-PARITY",
+        "summary": "Project search parity — one flag source, explicit case mode, gitignore only inside git, UTF-8-safe truncation.",
+        "state": "queued",
+        "commits": [
+          "db3e26c75c7988d8f337af95e55a68e334902a41"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/346",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "statusCheckRollup of PR #346 head 0fe278eefd741e69641e7ed3655d12f18c7d5b27 (merge commit db3e26c7): 27 success, 2 failed, 9 cancelled, 2 skipped — recorded as-is; hosted CI at the merge commit db3e26c7 itself: 18 success, 1 failure (status check), 2 cancelled (renderer e2e playwright macos-15, QuickLook native boundary macos-15); no fully-green claim is made for the PR-head rollup or the merge commit — recorded 2026-11-27",
+              "date": "2026-11-27",
+              "build": "0fe278eefd741e69641e7ed3655d12f18c7d5b27",
+              "evidence": "https://github.com/xronocode/mark/pull/346"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-SURFACE-OWNERSHIP",
+        "summary": "One owner for editor surface answers; the live document closes as one unit.",
+        "state": "queued",
+        "commits": [
+          "21f8627e99a11081b32af34aa23cf26cd0cc517e"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/348",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "statusCheckRollup of PR #348 head b4ca5a3f44067044a4155a61825102d843208f03 (merge commit 21f8627e): 21 success, 0 failed, 0 cancelled, 1 skipped (release/project-mirror) — recorded 2026-11-27",
+              "date": "2026-11-27",
+              "build": "b4ca5a3f44067044a4155a61825102d843208f03",
+              "evidence": "https://github.com/xronocode/mark/pull/348"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-MUYA-MODEL-SURGERY",
+        "summary": "Document model written only after image action confirms; task conversion stops list surgery.",
+        "state": "queued",
+        "commits": [
+          "65619fadd88843426e4c2c8f656a49762e4663fe"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/351",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "statusCheckRollup of PR #351 head c8b12455985e1dad5e254bfc8b3665f3ca52d02e (merge commit 65619fad): 20 success, 0 failed, 0 cancelled, 1 neutral, 1 skipped (release/project-mirror) — one check-run stays neutral; no fully-green claim is made for this rollup — recorded 2026-11-27",
+              "date": "2026-11-27",
+              "build": "c8b12455985e1dad5e254bfc8b3665f3ca52d02e",
+              "evidence": "https://github.com/xronocode/mark/pull/351"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-EDITOR-A11Y-CSS",
+        "summary": "Settings-window focus rings and dialog font parity.",
+        "state": "queued",
+        "commits": [
+          "9b386c43c057d221886c0844fee844677833f07d"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/354",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "statusCheckRollup of PR #354 head 253306ebf03ce1cb7b152c55814da4f25b4e5ea8 (merge commit 9b386c43): 22 success, 0 failed, 0 cancelled, 1 skipped (release/project-mirror) — recorded 2026-11-27",
+              "date": "2026-11-27",
+              "build": "253306ebf03ce1cb7b152c55814da4f25b4e5ea8",
+              "evidence": "https://github.com/xronocode/mark/pull/354"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-EXT-ACK-HONESTY",
+        "summary": "Extension edit acks honest, timeouts name the undetermined outcome, remote PlantUML degrades docx honestly.",
+        "state": "queued",
+        "commits": [
+          "e51290568f59187a790566a399ca3031fbf3734a"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/361",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "statusCheckRollup of PR #361 head 88f779850659fe0babb7c618c5541e83bb59cc0a (merge commit e5129056): 22 success, 0 failed, 0 cancelled, 1 skipped (release/project-mirror) — recorded 2026-11-27",
+              "date": "2026-11-27",
+              "build": "88f779850659fe0babb7c618c5541e83bb59cc0a",
+              "evidence": "https://github.com/xronocode/mark/pull/361"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-LATE-REFUSAL-HONESTY",
+        "summary": "Late prefs refusals keep confirmed values, the gallery scan-failure notice survives, check-update is single-flight and capabilities install is idempotent.",
+        "state": "queued",
+        "commits": [
+          "4eae0dfc670ca713f9b1bfe6a3fbc36d7b2249d4"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/362",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "statusCheckRollup of PR #362 head 2b6cc7290b2f0961d72424c9c72590042967c705 (merge commit 4eae0dfc): 28 success, 2 failed, 8 cancelled, 2 skipped — recorded as-is; hosted CI at the merge commit 4eae0dfc itself: 18 success, 3 failures (status check, renderer unit ubuntu-latest, renderer e2e playwright macos-15); no fully-green claim is made for the PR-head rollup or the merge commit — recorded 2026-11-27",
+              "date": "2026-11-27",
+              "build": "2b6cc7290b2f0961d72424c9c72590042967c705",
+              "evidence": "https://github.com/xronocode/mark/pull/362"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-MOVE-AND-SNAPSHOT-CONSISTENCY",
+        "summary": "Move-to transfers the moved file's state, muya publishes state after render, export snapshot drift pinned.",
+        "state": "queued",
+        "commits": [
+          "cb7350f4721b1dc7cd8fd5d6feca323d8f463e96"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/363",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "statusCheckRollup of PR #363 head 5c4ba1d561736b205fa62a3eedb34addd2eb401f (merge commit cb7350f4): 20 success, 1 failed, 1 neutral, 1 skipped (release/project-mirror) — the failure and the neutral check-run are recorded as-is; no fully-green claim is made for this rollup; hosted CI at the merge commit cb7350f4 is fully green (21 success) — recorded 2026-11-27",
+              "date": "2026-11-27",
+              "build": "5c4ba1d561736b205fa62a3eedb34addd2eb401f",
+              "evidence": "https://github.com/xronocode/mark/pull/363"
             }
           ],
           "manual": [],
@@ -4661,6 +4917,111 @@
               "date": "2026-11-27",
               "build": "5ffcf4a38dafc1eac839bb0c22e958982fd59056",
               "evidence": "https://github.com/xronocode/mark/pull/338"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-PRINT-LIFECYCLE-TESTS",
+        "summary": "Docx lifecycle pins, zero-disk-write export e2e, honest webkit drop.",
+        "state": "queued",
+        "commits": [
+          "3d72dafa4957502348c2b27db01fb3897b1c7038"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/355",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "statusCheckRollup of PR #355 head bd22fec8bebd55e830d7b4d45fcfebe311116005 (merge commit 3d72dafa): 21 success, 0 failed, 0 cancelled, 1 skipped (release/project-mirror) — recorded 2026-11-27",
+              "date": "2026-11-27",
+              "build": "bd22fec8bebd55e830d7b4d45fcfebe311116005",
+              "evidence": "https://github.com/xronocode/mark/pull/355"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-EXPORT-BOUNDARIES-DOCX",
+        "summary": "Consent-card artifact pins for html and docx doors.",
+        "state": "queued",
+        "commits": [
+          "599151bc7cb188ee32b263b9d57ab82d44bdeabb"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/357",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "statusCheckRollup of PR #357 head 6bce41e06e24d924c9d3dc44b1bda3aa22f953cc (merge commit 599151bc): 22 success, 0 failed, 0 cancelled, 1 skipped (release/project-mirror) — recorded 2026-11-27",
+              "date": "2026-11-27",
+              "build": "6bce41e06e24d924c9d3dc44b1bda3aa22f953cc",
+              "evidence": "https://github.com/xronocode/mark/pull/357"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-POST-BETA-OPS-WAVE",
+        "summary": "Post-beta operational wave — dependency bumps, CI/test hardening, governance archives and dead-code removal for the post-beta window: wrangler bump (PR #337), cargo-patch bump (PR #339), trash bump (PR #340), npm-root-minor bump (PR #342), QA fixture CI (PR #347), governance archives (PRs #349, #352, #358, #359), windows-safe tests (PR #353), release-lane hardening (PR #360), dead-code removal (PR #364) and CI consolidation (PR #365).",
+        "state": "queued",
+        "commits": [
+          "1713225ea858ce339f5653838bfb0051dc198a7b",
+          "638c0a7cccd1425a1dfcf93a2eef065815392fbb",
+          "1aa95602c844ebf5d131cfdeed5d407399eb3a1b",
+          "878c0a24d13d9b67bf83a44e84c8d53243bb6bea",
+          "67979502b33458468de929ef11c70a5711f371eb",
+          "68d932dc9ea81addcc54e24d09107c179dc038e8",
+          "1a720d53ec822892e82eda4c1a6a3b97dd9b56cf",
+          "f1fb6f507cacb3cd3f966e3ca68bde4770358d89",
+          "d93d9fef129be5b460e01baff79364b4f27a42d3",
+          "aa0b4e84a7a8375a0842d2d59fa125b12e1488ae",
+          "7a050dcc3911cdd04589cb84eb9ac466ed78d200",
+          "d81929341ef7d1ec3294cebb7e9256f111876b23",
+          "e1a3c4fafee3860e7943eb99ead638f4186a7835"
+        ],
+        "pullRequest": null,
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "Per-merge hosted CI plus a check-run audit of all 13 member PR heads (2026-11-27): #337 22 success, 1 skipped; #339 15 success, 1 neutral, 1 skipped; #340 21 success, 1 skipped; #342 21 success, 1 skipped; #347 27 success, 2 failed, 7 cancelled, 2 skipped; #349 12 success, 6 skipped; #352 27 success, 1 failed, 5 cancelled, 14 skipped; #353 29 success, 2 failed, 7 cancelled, 2 skipped; #358 12 success, 6 skipped; #359 12 success, 6 skipped; #360 22 success, 1 skipped; #364 21 success, 1 skipped; #365 22 success, 1 skipped. The #347, #352 and #353 PR-head rollups carry failures and cancellations. Merge-commit CI: #352 (1a720d53) and #353 (f1fb6f50) fully green at 21 success each; the #347 merge commit 67979502 itself carries 18 success, 1 failure (status check) and 2 cancellations (QuickLook native boundary macos-15, renderer e2e playwright macos-15). No fully-green claim is made for those three rollups or for #339, whose head carries one neutral check-run — recorded 2026-11-27",
+              "date": "2026-11-27",
+              "build": "1713225ea858ce339f5653838bfb0051dc198a7b",
+              "evidence": "https://github.com/xronocode/mark/compare/1713225ea858ce339f5653838bfb0051dc198a7b...e1a3c4fafee3860e7943eb99ead638f4186a7835"
             }
           ],
           "manual": [],
