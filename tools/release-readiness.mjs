@@ -2,7 +2,7 @@
 // VERSION: 2.2.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Validate the release-train authority, separating protocol-backed early admission from complete owner acceptance required by Ready/Released and strict release checks; fail closed on lifecycle, membership, accounting, ledger or identity drift.
-//   SCOPE: Read one public train JSON document and every lane train, validate their deterministic repository-only invariants, prove the current train's human ledger and README pointer carry the admitted items, and prove the checked-in Project schema covers every train file; online check-run proof and publication remain workflow concerns.
+//   SCOPE: Read one public train JSON document and every lane train, validate their deterministic repository-only invariants, prove the current train's human ledger and README pointer carry the admitted items, and prove the checked-in Project schema covers every train file; the strict previous-release boundary proves a rewritten post-release history through its recorded non-product historyRewrite delta; online check-run proof and publication remain workflow concerns.
 //   DEPENDS: Node.js fs, path, and url standard-library modules; tools/release-train.mjs; docs/release-trains/*.json; .github/release-governance.json.
 //   LINKS: M-046
 //   ROLE: SCRIPT
@@ -19,7 +19,7 @@
 //   validateLaneTrainManifest - Validates a lane train (td-N): lane lifecycle, membership, accounting from the lane base, and carrier admission once Merged.
 //   validateLaneTrainLedger - Rejects drift between a lane's JSON authority and its always-complete Markdown ledger.
 //   validateLaneTrains - Validates every checked-in lane train and ledger.
-//   validateStrictRepositoryState - Proves payload/seal/tag/check-run identity from repository and supplied API evidence.
+//   validateStrictRepositoryState - Proves payload/seal/tag/check-run identity from repository and supplied API evidence, including a rewritten previous-release boundary through its recorded non-product historyRewrite delta.
 //   runReleaseReadiness - Runs the offline gate and emits its stable success marker.
 //   TRAIN_SCHEMA_VERSION - Exact supported train-document schema.
 //   RELEASE_STATES - Complete release lifecycle state set.
@@ -34,6 +34,8 @@
 //   SEAL_PATH_PATTERNS - Release-bookkeeping paths a payload-to-seal commit may touch.
 //   isSealPath - Test one path against the bookkeeping allowlist.
 //   GOVERNANCE_CONFIG_PATH - Non-seal strict check policy authority.
+//   PRODUCT_PREFIXES - Product path prefixes a previous-release rewrite delta may never touch.
+//   PRODUCT_FILES - Product files a previous-release rewrite delta may never touch.
 //   TRAIN_FILE_PATTERN - Grammar of one train document file name.
 //   LEDGER_HISTORY_LINE - Grammar of one dated history bullet in a train ledger.
 //   escapeRegex - Escape one literal token for a RegExp.
@@ -51,6 +53,7 @@
 //   checkIdentity - Serialize one required-check identity without ambiguity.
 //   validateRequiredCheckPolicy - Pin the train check set to non-seal governance configuration.
 //   git - Run one read-only Git query in the target repository.
+//   isAncestor - Probe one ancestry claim, reading merge-base exit status 1 as not-an-ancestor.
 //   validateRequiredChecks - Match exact successful required checks to the payload SHA.
 //   validateSealSpan - Prove every commit between payload and seal touches only bookkeeping paths.
 //   optionValue - Read one named command-line option.
@@ -59,6 +62,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-23 C-RELEASE-REWRITE-BOUNDARY: the strict previous-release boundary gains previousRelease.historyRewrite — when the bootstrap commit differs from the tagged release commit and its tree differs, { date, deltaPaths } must equal the tag-to-bootstrap diff exactly and stay outside PRODUCT_PREFIXES/PRODUCT_FILES; equal-commit and same-tree boundaries stay byte-identical and reject any historyRewrite field, and the ancestry failure answers bootstrap=not-ancestor directly.
 //   - 2026-11-09 C-STABILIZE-TRAIN-ADMISSION: early admission requires explicit testing protocol when owner acceptance is pending; Ready/Released and every strict entry point retain complete owner acceptance and reject negative verdicts.
 //   - 2026-10-30 v2.2.0: lane trains — every td-N document is validated on each run (lane lifecycle Collecting/Frozen/Merged/Aborted, accounting from lane.baseSha through lane.headSha, always-complete ledger covering operational items too); a Merged lane must be carried by its product train as one item holding the merge commit and every lane commit.
 //   - 2026-10-27 v2.1.0: fail closed on bookkeeping drift — the current train's ledger must carry a heading and a commit for every admitted item and at least one dated history bullet per lifecycle transition; current.json and the README "Current train" line must name the same train; the checked-in Project Train field must offer an option for every train document.
@@ -120,6 +124,17 @@ const SEAL_PATH_PATTERNS = [
 ]
 const isSealPath = (pathname) => SEAL_PATH_PATTERNS.some((pattern) => pattern.test(pathname))
 const GOVERNANCE_CONFIG_PATH = '.github/release-governance.json'
+// A previous-release history rewrite may never move product paths: the
+// recorded delta between the tagged release tree and the current-history
+// bootstrap commit must stay inside bookkeeping, site and test territory.
+const PRODUCT_PREFIXES = ['src/', 'src-tauri/', 'static/', 'mark-quicklook/']
+const PRODUCT_FILES = [
+  'package.json',
+  'package-lock.json',
+  'Cargo.toml',
+  'Cargo.lock',
+  'rust-toolchain.toml'
+]
 const TRAIN_FILE_PATTERN = /^(\d+\.\d+\.(?:x|\d+))-next\.json$/
 const LEDGER_HISTORY_LINE = /^- \d{4}-\d{2}-\d{2}\b/
 const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -689,6 +704,28 @@ const git = (workspaceRoot, ...args) => {
   }
 }
 
+// `git merge-base --is-ancestor` answers "not an ancestor" with exit status 1
+// and no output; the shared git() helper treats every non-zero status as a
+// failed identity query, so this probe reads the status itself and keeps
+// MT_RELEASE_GIT_IDENTITY_INVALID for genuinely broken queries.
+const isAncestor = (workspaceRoot, from, to) => {
+  try {
+    execFileSync('git', ['merge-base', '--is-ancestor', from, to], {
+      cwd: workspaceRoot,
+      encoding: 'utf8'
+    })
+    return true
+  } catch (error) {
+    if (error.status !== 1) {
+      fail(
+        'MT_RELEASE_GIT_IDENTITY_INVALID',
+        `command=merge-base;status=${error.status ?? 'unknown'}`
+      )
+    }
+    return false
+  }
+}
+
 const validateRequiredChecks = (manifest, checks, payloadSha) => {
   const expected = manifest.requiredChecks ?? []
   if (!Array.isArray(checks)) {
@@ -737,7 +774,7 @@ const validateSealSpan = (root, payload, seal) => {
 // END_BLOCK_VALIDATE_SEAL_SPAN
 
 // START_CONTRACT: validateStrictRepositoryState
-//   PURPOSE: Prove the exact classified payload, a metadata-only seal span, fresh screenshot review, required checks, and tag/checkout identity before packaging.
+//   PURPOSE: Prove the exact classified payload, a metadata-only seal span, fresh screenshot review, required checks, and tag/checkout identity before packaging; prove a rewritten previous-release boundary through its recorded non-product historyRewrite delta.
 //   INPUTS: { workspaceRoot: string - repository root, manifest: object - validated train, options: object - tag, payload, seal, head, checks }
 //   OUTPUTS: { object - strict release identity and accounted commit count }
 //   SIDE_EFFECTS: Runs read-only git identity/diff queries and reads the screenshot manifest.
@@ -774,14 +811,69 @@ export const validateStrictRepositoryState = (
     )
   }
   const previousTagTree = git(root, 'rev-parse', `${manifest.previousRelease.tag}^{tree}`)
-  const bootstrapTree = git(root, 'rev-parse', `${manifest.previousRelease.bootstrapSha}^{tree}`)
-  if (
-    previousTagTree !== manifest.previousRelease.tree ||
-    bootstrapTree !== manifest.previousRelease.tree
-  ) {
+  if (previousTagTree !== manifest.previousRelease.tree) {
     fail('MT_RELEASE_PREVIOUS_BOUNDARY_INVALID', 'tree=drift')
   }
-  if (git(root, 'merge-base', '--is-ancestor', manifest.previousRelease.bootstrapSha, payload) !== '') {
+  const bootstrapTree = git(root, 'rev-parse', `${manifest.previousRelease.bootstrapSha}^{tree}`)
+  const rewrittenBoundary =
+    manifest.previousRelease.bootstrapSha !== manifest.previousRelease.commit &&
+    bootstrapTree !== manifest.previousRelease.tree
+  if (!rewrittenBoundary) {
+    if (manifest.previousRelease.historyRewrite !== undefined) {
+      fail('MT_RELEASE_PREVIOUS_BOUNDARY_INVALID', 'historyRewrite=unexpected')
+    }
+    if (bootstrapTree !== manifest.previousRelease.tree) {
+      fail('MT_RELEASE_PREVIOUS_BOUNDARY_INVALID', 'tree=drift')
+    }
+  } else {
+    // Main's history was rewritten after the previous release shipped, so the
+    // tagged tree is not an ancestor state of the current-history bootstrap
+    // commit; the recorded delta must prove that gap exactly.
+    const historyRewrite = manifest.previousRelease.historyRewrite
+    if (!historyRewrite || typeof historyRewrite !== 'object' || Array.isArray(historyRewrite)) {
+      fail('MT_RELEASE_PREVIOUS_BOUNDARY_INVALID', 'historyRewrite=missing')
+    }
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(historyRewrite.date ?? '') ||
+      !Number.isFinite(Date.parse(historyRewrite.date)) ||
+      new Date(historyRewrite.date).toISOString().slice(0, 10) !== historyRewrite.date
+    ) {
+      fail('MT_RELEASE_PREVIOUS_BOUNDARY_INVALID', 'historyRewrite=date')
+    }
+    const { deltaPaths } = historyRewrite
+    if (
+      !Array.isArray(deltaPaths) ||
+      deltaPaths.length === 0 ||
+      deltaPaths.some((pathname) => typeof pathname !== 'string' || !pathname.trim())
+    ) {
+      fail('MT_RELEASE_PREVIOUS_BOUNDARY_INVALID', 'historyRewrite=deltaPaths')
+    }
+    const delta = git(
+      root,
+      'diff',
+      '--name-only',
+      manifest.previousRelease.commit,
+      manifest.previousRelease.bootstrapSha
+    ).split('\n').filter(Boolean)
+    if (
+      delta.length !== deltaPaths.length ||
+      delta.some((pathname, index) => pathname !== deltaPaths[index])
+    ) {
+      fail('MT_RELEASE_PREVIOUS_BOUNDARY_INVALID', 'rewrite=delta-drift')
+    }
+    const productPath = deltaPaths.find(
+      (pathname) =>
+        PRODUCT_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||
+        PRODUCT_FILES.includes(pathname)
+    )
+    if (productPath) {
+      fail(
+        'MT_RELEASE_PREVIOUS_BOUNDARY_INVALID',
+        `rewrite=product-drift;path=${productPath}`
+      )
+    }
+  }
+  if (!isAncestor(root, manifest.previousRelease.bootstrapSha, payload)) {
     fail('MT_RELEASE_PREVIOUS_BOUNDARY_INVALID', 'bootstrap=not-ancestor')
   }
   if (git(root, 'merge-base', '--is-ancestor', payload, seal) !== '') {
