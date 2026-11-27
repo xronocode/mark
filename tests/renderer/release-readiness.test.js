@@ -19,7 +19,7 @@
 //   testingProtocol - Explicit actual evidence and unverified manual scope for an admission fixture.
 //   admissionFixture - Valid lifecycle fixture with pending owner acceptance and complete admission evidence.
 //   STRICT_CHECKS - Immutable strict check policy fixture.
-//   strictRepository - Build a previous-tag/bootstrap/payload/seal repository with an annotated tag; the seal span can be several bookkeeping commits, a merge commit, or carry a reverted product change; an opt-in default-off history-rewrite bootstrap records the tag-to-bootstrap delta after the release.
+//   strictRepository - Build a previous-tag/bootstrap/payload/seal repository with an annotated tag; the seal span can be several bookkeeping commits, a merge commit, or carry a reverted product change; an opt-in default-off history-rewrite bootstrap records the tag-to-bootstrap delta after the release, with modes for default non-product, product-prefix, product-file, quoted-product, vite-config and rename deltas.
 //   strictOptions - Default strict identity options for one strict repository.
 //   rejectedWith - Assert one stable release-readiness failure code.
 //   SHA_D - Deterministic lane merge-commit fixture.
@@ -30,6 +30,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-27 C-RELEASE-REWRITE-BOUNDARY: rewrite fixtures record their delta with the production `diff --no-renames --name-only -z` decode-and-sort read, and new regressions prove a rename into src/, a quoted special-character product path and a vite.config.js-only rewrite all classify as product drift.
 //   - 2026-11-23 C-RELEASE-REWRITE-BOUNDARY: rewritten previous-release fixtures — a matching non-product delta passes strict validation, extra/missing/reordered deltaPaths fails delta-drift, product prefix/file entries fail product-drift, missing/bad-date/non-list historyRewrite fails, a same-tree bootstrap stays valid without historyRewrite and rejects a present one, and the legacy tree/bootstrap negative controls keep failing.
 //   - 2026-11-09 C-STABILIZE-TRAIN-ADMISSION: protocol-backed early admission, missing evidence rejection, legacy acceptance compatibility and strict/Ready/Released negative-verdict gates.
 //   - 2026-10-31 v2.3.0: the empty-lane-discovery test moves from the live checkout to a temp workspace — after the first lane departure main legitimately carries td-N documents, so the live tree must not be asserted lane-free.
@@ -175,6 +176,11 @@ const strictRepository = ({
   const root = mkdtempSync(resolve(tmpdir(), 'mark-readiness-'))
   const git = (...args) =>
     execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim()
+  // Verbatim stdout for the NUL-delimited rewrite-delta read, mirroring the
+  // production gitRaw read: a leading or trailing space in the first or last
+  // path must survive.
+  const gitRaw = (...args) =>
+    execFileSync('git', args, { cwd: root, encoding: 'utf8' })
   const write = (path, value) => {
     mkdirSync(dirname(resolve(root, path)), { recursive: true })
     writeFileSync(resolve(root, path), value)
@@ -185,32 +191,61 @@ const strictRepository = ({
   write('baseline.txt', 'baseline\n')
   git('add', 'baseline.txt')
   git('commit', '-m', 'chore: baseline')
+  if (historyRewrite === 'rename') {
+    // A non-product file in the tagged tree that the rewrite will rename
+    // into product territory.
+    write('site/legacy.js', 'legacy bytes\n')
+    git('add', 'site/legacy.js')
+    git('commit', '-m', 'chore(site): legacy asset')
+  }
   const baseline = git('rev-parse', 'HEAD')
   const baselineTree = git('rev-parse', 'HEAD^{tree}')
   git('tag', '-a', 'v1.0.0', baseline, '-m', 'v1.0.0')
   // Opt-in default-off history-rewrite bootstrap: after the annotated tag a
   // rewritten main no longer carries the tagged tree, mirroring the real
-  // v2.8.2-to-main situation. The negative 'product-*' modes let a product
-  // prefix path or a product file ride the recorded delta itself.
-  const rewrittenPaths = historyRewrite === 'product-prefix'
-    ? ['site/index.html', 'src/product.js']
-    : historyRewrite === 'product-file'
-      ? ['package.json', 'site/index.html']
-      : historyRewrite
-        ? ['.github/workflows/site.yml', 'site/index.html', 'tests/release-boundary.md']
-        : null
+  // v2.8.2-to-main situation. The negative modes let a product prefix path,
+  // a product file, a quoted special-character path, vite.config.js, a rename
+  // into product territory or a leading-space bookkeeping path ride the
+  // recorded delta itself.
+  const rewrittenPaths = ({
+    rename: [],
+    'product-prefix': ['site/index.html', 'src/product.js'],
+    'product-file': ['package.json', 'site/index.html'],
+    'product-quoted': ['src/сборка.js'],
+    'product-vite-config': ['vite.config.js'],
+    'leading-space': [' release-note.md', 'site/index.html']
+  })[historyRewrite] ?? (historyRewrite
+    ? ['.github/workflows/site.yml', 'site/index.html', 'tests/release-boundary.md']
+    : null)
   let rewriteDeltaPaths = null
   let bootstrap
   if (rewrittenPaths) {
+    if (historyRewrite === 'rename') {
+      // Identical bytes on both sides so stock rename detection collapses
+      // the pair into one path; the production --no-renames diff must
+      // surface both sides again.
+      write('src/renamed.js', 'legacy bytes\n')
+      git('rm', '-q', 'site/legacy.js')
+    }
     for (const rewrittenPath of rewrittenPaths) {
       write(rewrittenPath, `rewritten ${rewrittenPath}\n`)
     }
     git('add', '.')
     git('commit', '-m', 'chore(site): post-release territory rewrite')
     bootstrap = git('rev-parse', 'HEAD')
-    rewriteDeltaPaths = git('diff', '--name-only', baseline, bootstrap)
-      .split('\n')
+    // Mirror the production read: NUL-delimited, no rename pairing, decoded
+    // then sorted, so the recorded delta matches what the gate classifies.
+    rewriteDeltaPaths = gitRaw(
+      'diff',
+      '--no-renames',
+      '--name-only',
+      '-z',
+      baseline,
+      bootstrap
+    )
+      .split('\0')
       .filter(Boolean)
+      .sort()
   } else {
     git('commit', '--allow-empty', '-m', 'fix(release): bootstrap equivalent previous tree')
     bootstrap = git('rev-parse', 'HEAD')
@@ -771,6 +806,47 @@ describe('strict release identity', () => {
       code: 'MT_RELEASE_PREVIOUS_BOUNDARY_INVALID',
       message: expect.stringContaining('rewrite=product-drift')
     }))
+  }, 30000)
+
+  it('rejects a rename into product territory as product drift on both rename sides', () => {
+    const state = strictRepository({ historyRewrite: 'rename' })
+    expect(state.rewriteDeltaPaths).toEqual(['site/legacy.js', 'src/renamed.js'])
+    expect(() =>
+      validateStrictRepositoryState(state.root, state.manifest, strictOptions(state))
+    ).toThrow(expect.objectContaining({
+      code: 'MT_RELEASE_PREVIOUS_BOUNDARY_INVALID',
+      message: expect.stringContaining('rewrite=product-drift;path=src/renamed.js')
+    }))
+  }, 30000)
+
+  it('decodes a quoted special-character product path and rejects it as product drift', () => {
+    const state = strictRepository({ historyRewrite: 'product-quoted' })
+    expect(state.rewriteDeltaPaths).toEqual(['src/сборка.js'])
+    expect(() =>
+      validateStrictRepositoryState(state.root, state.manifest, strictOptions(state))
+    ).toThrow(expect.objectContaining({
+      code: 'MT_RELEASE_PREVIOUS_BOUNDARY_INVALID',
+      message: expect.stringContaining('rewrite=product-drift;path=src/сборка.js')
+    }))
+  }, 30000)
+
+  it('rejects a vite.config.js-only rewrite as product drift instead of bookkeeping', () => {
+    const state = strictRepository({ historyRewrite: 'product-vite-config' })
+    expect(state.rewriteDeltaPaths).toEqual(['vite.config.js'])
+    expect(() =>
+      validateStrictRepositoryState(state.root, state.manifest, strictOptions(state))
+    ).toThrow(expect.objectContaining({
+      code: 'MT_RELEASE_PREVIOUS_BOUNDARY_INVALID',
+      message: expect.stringContaining('rewrite=product-drift;path=vite.config.js')
+    }))
+  }, 30000)
+
+  it('accepts a rewritten boundary whose first delta path carries a leading space', () => {
+    const state = strictRepository({ historyRewrite: 'leading-space' })
+    expect(state.rewriteDeltaPaths[0]).toBe(' release-note.md')
+    expect(() =>
+      validateStrictRepositoryState(state.root, state.manifest, strictOptions(state))
+    ).not.toThrow()
   }, 30000)
 
   it.each([
