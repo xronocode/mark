@@ -1243,7 +1243,7 @@
       },
       "rollback": {
         "title": "One-step rollback",
-        "text": "Updates from Mark's built-in updater keep a snapshot; Roll Back in Help restores it."
+        "text": "Updates from the built-in updater keep a snapshot; Roll Back in Help restores it."
       }
     }
   },
