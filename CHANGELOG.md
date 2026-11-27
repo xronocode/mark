@@ -57,6 +57,8 @@ themes — plus two Windows repairs: menu shortcuts and saving work again.
 - Menus that open from the table row and column drag pills keep every label on
   one line in all ten languages.
 
+- Every control in the Settings window shows a visible keyboard-focus ring,
+  and its dialogs use the same interface font as the rest of the window.
 ### Product mechanics
 
 - Every file remembers where you stopped: the scroll position and the caret
@@ -106,6 +108,19 @@ themes — plus two Windows repairs: menu shortcuts and saving work again.
   naming the key and the reason; switching themes no longer overwrites a
   manually set page width, and clearing custom CSS really clears it.
 
+- The editor surface keeps a single owner for the state it reports about the
+  document, and the live document closes as one unit instead of piece by
+  piece.
+- A hardening pass on preferences, the gallery and the updater: a late
+  refusal no longer rolls back values you already confirmed, the gallery's
+  scan-failure notice survives a successful list refresh (which now runs
+  once), checking for updates cannot double-fire, and installing the same
+  capability twice changes nothing the second time.
+- Feedback you can trust, continued: a failed pin or undo says so instead of
+  failing silently, a refused save reports the refusal, the Settings install
+  row invalidates an offer once it is consumed, and the updater reads
+  Retry-After exactly (whole seconds or an IMF date) and settles on a final
+  verdict once the retry ceiling is passed.
 ### Content rendering
 
 - Export to Word: the File menu, the tab context menu and the export command
@@ -157,6 +172,13 @@ themes — plus two Windows repairs: menu shortcuts and saving work again.
   and HTML in one row under the statistics, wired to the same commands as
   File › Export.
 
+- The document model is written only after an image action actually
+  confirms, and converting between task and regular list items no longer
+  rewrites the surrounding list.
+- Moving a file to another folder keeps the editor state it had, pins and
+  scroll position included; the rendered pane publishes a save's state
+  change at the same point after every render; and the snapshot behind an
+  export no longer drifts from the live document.
 ### Folder work
 
 - Searching no longer steals your Find queries, editor selections or keyboard
@@ -168,6 +190,9 @@ themes — plus two Windows repairs: menu shortcuts and saving work again.
   complete — searches no longer end early or drop later folders.
 - Search failures say so instead of showing "No results found".
 
+- Project search behaves the same everywhere: the case option does exactly
+  what it says, .gitignore rules apply everywhere, including outside git repositories,
+  and long result lines truncate cleanly without cutting a character in half.
 ### AI/agents
 
 - Disabling an extension revokes its live access immediately, and paired
@@ -187,6 +212,14 @@ themes — plus two Windows repairs: menu shortcuts and saving work again.
 - Each extension streaming session carries a size and rate budget; a push
   beyond the cap is refused with a clear message.
 
+- Errors from an extension invocation are bounded and sanitized, so a
+  failing extension shows a short, honest message instead of leaking
+  internals.
+- Extension answers stay honest: an edit reports what actually happened
+  instead of a blanket success, a timed-out request says the outcome is
+  unknown rather than guessed, and a PlantUML diagram fetched from a remote
+  renderer ships in the Word export as a readable placeholder instead of
+  failing silently.
 ### Breadth
 
 - On Windows and Linux, all 22 menu keyboard shortcuts respond again — Ctrl+S
@@ -224,24 +257,29 @@ Change ids behind the bullets above, per category in bullet order.
   FIX-IMAGE-ACTION-CATALOG, FIX-SHELL-CHROME-FONT, C-SETTINGS-KEYBOARD-FOCUS,
   C-SETTINGS-WINDOW-RESTORE, FIX-SIDEBAR-BOLD-CONFLICT,
   FIX-IMAGE-TOOLBAR-RESIDUE, C-TABLE-DIALOG-CREATION-VERIFICATION,
-  C-QUICKLOOK-SYNTAX-THEME, C-COMPACT-WINDOWS-FIT, C-TABLE-BAR-MENU-OVERLAP.
+  C-QUICKLOOK-SYNTAX-THEME, C-COMPACT-WINDOWS-FIT, C-TABLE-BAR-MENU-OVERLAP,
+  C-EDITOR-A11Y-CSS.
 - Product mechanics: C-FILE-POSITION-MEMORY, C-UPDATER-ROLLBACK, FIX-020,
   C-UPDATER-REVIEW-FIXES, C-RENDER-REVIEW-FIXES, C-SAVE-CLOSE-DATA-SAFETY,
   C-MD-LINK-TABS, FIX-EMOJI-TIMESTAMPS, C-METADATA-SAVE-SAFETY,
   C-SOURCE-HISTORY-OWNERSHIP, C-SPLIT-SAVE-AUTHORITY, C-AUTOSAVE-DEFAULT-ON,
-  C-EXTERNAL-RELOAD-OPERATION, C-SESSION-WRITE-ATOMICITY, C-PREFS-TRUTH.
+  C-EXTERNAL-RELOAD-OPERATION, C-SESSION-WRITE-ATOMICITY, C-PREFS-TRUTH,
+  C-SURFACE-OWNERSHIP, C-LATE-REFUSAL-HONESTY, C-HONEST-FAILURE-NOTICES.
 - Content rendering: C-NATIVE-DOCX-RTF-EXPORT, C-COMMONMARK-EMPHASIS,
   DEPS-PELE-1-10, C-PAGE-WIDTH-TABLES-768, C-PAGE-WIDTH-TABLES,
   C-TABLE-SEQUENTIAL-RESIZE, C-TABLE-FITTED-RESET,
   FIX-NATIVE-PDF-DESTINATION, C-MUYA-CURRENT-MODEL-EXPORT,
   C-EXPORT-SETTINGS-SECTION-RECOVERY, C-PASTE-ASCII-TABLES,
   C-TABLE-LAYOUT-COMPLETION, C-PELE-HTML-POSTPROCESS, C-EXPORT-BOUNDARIES,
-  C-EXPORT-SINGLE-PAGE, C-DOC-POPOVER-EXPORT-HUB.
+  C-EXPORT-SINGLE-PAGE, C-DOC-POPOVER-EXPORT-HUB,
+  C-MUYA-MODEL-SURGERY, C-MOVE-AND-SNAPSHOT-CONSISTENCY.
 - Folder work: C-HOSTED-VALIDATION-RECOVERY, C-SIDEBAR-MOVE-FILE,
-  C-SEARCH-SESSION-COMPLETION, C-SEARCH-ERROR-VISIBILITY.
+  C-SEARCH-SESSION-COMPLETION, C-SEARCH-ERROR-VISIBILITY,
+  C-SEARCH-ENGINE-PARITY.
 - AI/agents: C-SEC-STREAM-AUTH, C-SEC-STREAM-TABS,
   FIX-EXTENSION-THEME-TOKENS, C-SEC-STREAM-SCOPE, C-SEC-PAIR-REBIND,
-  C-SEC-EDIT-TARGETING, C-SEC-EXT-GRANT-BOUND, C-STREAM-BUDGET.
+  C-SEC-EDIT-TARGETING, C-SEC-EXT-GRANT-BOUND, C-STREAM-BUDGET,
+  C-EXT-DELIVERY-HONESTY, C-EXT-ACK-HONESTY.
 - Breadth: C-WINDOWS-MENU-ACCELERATORS, C-WINDOWS-SAVE-PIPELINE,
   C-STABILIZE-29, C-SEC-LINK-OPEN, C-QUICKLOOK-CONTENT-BOUNDARY,
   FIX-LARGE-DOCUMENT-EMPTY-GUARD, FIX-022, FIX-023, C-SEC-SAVE-HANDLE,
