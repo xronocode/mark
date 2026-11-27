@@ -1075,7 +1075,7 @@
   },
   "whatsNew": {
     "title": "Novidades",
-    "also": "Além disso: cada chamada de impressão do macOS agora é verificada com a API real do sistema",
+    "also": "Também: salvamento automático, temas GitHub, central de notificações, lugar memorizado, Windows corrigido.",
     "seeEverything": "Ver todas as novidades",
     "eyebrow": "Mark {version}",
     "v2_4_0": {
@@ -1216,6 +1216,24 @@
       "changelog": {
         "title": "Todas as versões num só lugar",
         "text": "«Ver todas as novidades» abre esta versão no registo de alterações do site do Mark."
+      }
+    },
+    "v2_9_0": {
+      "word": {
+        "title": "Exportar para Word",
+        "text": "A exportação grava um .docx real com estilos Word, tabelas, notas e equações."
+      },
+      "pages": {
+        "title": "Largura de página por documento",
+        "text": "O botão Aa da barra de título abre o painel; os modos de tabela dizem a verdade."
+      },
+      "modes": {
+        "title": "Modos na barra de título",
+        "text": "Diff, dividido e código a um clique, direto na barra de título."
+      },
+      "rollback": {
+        "title": "Reversão em um passo",
+        "text": "Cada atualização guarda um instantâneo; Roll Back na ajuda o restaura."
       }
     }
   },

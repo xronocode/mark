@@ -1,5 +1,5 @@
 // FILE: tests/renderer/whatsNew/content.test.js
-// VERSION: 1.5.0
+// VERSION: 1.6.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Pin the What's New release content — exactly four ordered
 //            current release-draft items, every locale table (all 10)
@@ -28,7 +28,8 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.5.0 - 2026-10-25 the footer link opens the release's website changelog section; every release date matches its CHANGELOG heading.
+//   LAST_CHANGE: v1.6.0 - 2026-11-22 the release-draft pins move to the four-card 2.9.0 sheet (word, pages, modes, rollback); the 2.5.0 block stops riding WHATS_NEW_MAX_ITEMS so the historical pin keeps its own length.
+//   PREV: v1.5.0 - 2026-10-25 the footer link opens the release's website changelog section; every release date matches its CHANGELOG heading.
 //   PREV: v1.4.0 - 2026-10-20 derive the current release identity from the newest sheet so normalization never rewrites historical test text.
 //   PREV: v1.3.0 - 2026-10-20 release 2.6.0 draft: pin the four
 //   accepted-train items, their ten-locale matrix, layout limits, stable
@@ -78,7 +79,7 @@ const ITEM_KEY_ORDER = ['export', 'look', 'print', 'images']
 describe('whatsNew/data — the 2.5.0 content table', () => {
   it('ships exactly the four 2.5.0 items with icon, titleKey and textKey', () => {
     const items = WHATS_NEW_CONTENT['2.5.0']
-    expect(items).toHaveLength(WHATS_NEW_MAX_ITEMS)
+    expect(items).toHaveLength(4)
     expect(items.map((i) => i.titleKey.replace('whatsNew.v2_5_0.', '').replace('.title', '')))
       .toEqual(ITEM_KEY_ORDER)
     for (const item of items) {
@@ -220,13 +221,16 @@ describe('whatsNew 2.5.3 sheet', () => {
 // END_BLOCK_CONTENT_2_5_3
 
 // START_BLOCK_CONTENT_2_5_4
-// Release 2.8.2 draft: the «See everything new» link opens the website
-// changelog — one item.
-const RELEASE_DRAFT_ITEM_KEYS = ['changelog']
+// Release 2.9.0 draft: Export to Word, the titlebar page-width button and
+// honest table modes, titlebar mode chips and one-step rollback — four
+// items; autosave, themes/notices, reading positions and the Windows
+// repairs live in the «Also» line.
+const RELEASE_DRAFT_ITEM_KEYS = ['word', 'pages', 'modes', 'rollback']
 
 describe('current release-draft sheet', () => {
   it('ships the four accepted-train items in order with distinct one-char icons', () => {
     const items = getWhatsNewItems(RELEASE_DRAFT_VERSION)
+    expect(items).toHaveLength(WHATS_NEW_MAX_ITEMS)
     expect(items.map((i) => i.titleKey.replace(`whatsNew.${RELEASE_DRAFT_LOCALE_KEY}.`, '').replace('.title', '')))
       .toEqual(RELEASE_DRAFT_ITEM_KEYS)
     for (const item of items) {
@@ -248,7 +252,10 @@ describe('current release-draft sheet', () => {
         expect(`${title} ${text}`, `${code}: vue-i18n syntax`).not.toMatch(/[{}|@]/)
       }
       expect(table.whatsNew.also.length, `${code}: also`).toBeLessThanOrEqual(120)
-      expect(section.changelog.text, `${code}: changelog names Mark`).toContain('Mark')
+      expect(section.word.text, `${code}: word names Word`).toContain('Word')
+      expect(`${section.word.title} ${section.word.text}`, `${code}: word keeps .docx`).toContain('.docx')
+      expect(section.pages.text, `${code}: pages names the Aa button`).toContain('Aa')
+      expect(section.rollback.text, `${code}: rollback keeps Roll Back`).toContain('Roll Back')
     }
   })
 

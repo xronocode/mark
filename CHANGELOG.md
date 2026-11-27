@@ -6,6 +6,248 @@ All notable changes to Mark. The format follows [Keep a Changelog](https://keepa
 
 <!-- #region releases -->
 
+## [2.9.0] - 2026-11-22
+
+Export to Word, page width as a per-document setting, one-step update rollback,
+files that remember where you stopped reading, title-bar mode chips and GitHub
+themes — plus two Windows repairs: menu shortcuts and saving work again.
+
+### UI polish
+
+- GitHub and GitHub Dark join the theme families as the 17th pair: GitHub's own
+  light and dark palettes with matching code highlighting. They appear wherever
+  themes do — the theme list, the View › Theme menu, the command palette and
+  Settings.
+- One notification system: every notice renders as a severity-styled card in a
+  single stack in the bottom-right corner. At most three cards are visible with
+  a counter for the rest, errors stay until dismissed, hovering pauses the
+  dismissal timer, and Esc closes the topmost card. Selecting text in a card
+  copies it, a palette command replays everything shown during the session, and
+  the update banner and the per-file message strip use the same cards.
+- Active-mode chips sit in the title bar's right cluster and show at a glance
+  whether Diff, Split or Source is on; the two-group menu switches views and
+  writing modes, and Standard is the full reset.
+- View › Standard View performs the same one-click full reset from the menu and
+  the command palette.
+- The Mark window can be moved by the header of the fullscreen table viewer.
+- Both panes of a ⌘D comparison follow theme changes and stay readable in dark
+  appearance.
+- Active project-search options use the shared window accent.
+- The shared active-tab underline stays visible in the Graphite and One Dark
+  themes.
+- Settings search matches the two supported image actions.
+- Notices and the What's New sheet use the shared interface font; document
+  typography is unchanged.
+- Keyboard focus is visible on shared Settings and quick-settings controls
+  without changing values or layout.
+- Reopening Settings brings the window back to the front, and Word export
+  notices can open the export settings.
+- Cmd/Ctrl+B applies bold in the editor; the toggle-sidebar shortcut moves to
+  Shift+Cmd/B, so one shortcut no longer shadows the other.
+- Closing the last tab clears leftover image overlays: the floating image
+  toolbar and its resize handles no longer linger over the home screen.
+- The table-creation dialog puts the cursor in the rows field as soon as it
+  opens, so typing works immediately.
+- Quick Look code previews follow the system light and dark appearance, with
+  readable syntax colors on the light background.
+- At compact window sizes the quick-settings panel fits its space with one
+  scroll region, five more controls show the visible keyboard-focus outline,
+  modal sheets keep focus inside, and the title-bar "Aa" button works from the
+  keyboard.
+- Menus that open from the table row and column drag pills keep every label on
+  one line in all ten languages.
+
+### Product mechanics
+
+- Every file remembers where you stopped: the scroll position and the caret
+  survive closing and reopening a tab, reopening the file, quitting and
+  relaunching, and renaming. A caret moved only by the arrow keys survives tab
+  switching too.
+- Updates can be undone in one step. Every update snapshots the previous
+  version and its settings first; Help › Roll Back to Mark… restores both, and
+  the version you left is not offered again until a newer release ships. If an
+  update ever breaks startup, the same restore runs from the terminal before
+  the app boots (`mark --rollback`, `--yes` for scripts). A failed snapshot
+  cancels the update, and the snapshot only takes over after the new version
+  actually starts.
+- Cut and copy recover from a stale selection: Cmd+X, Cmd+C and the Edit menu
+  work again after a leftover table-cell or image selection — before, they
+  stayed silent until an app restart.
+- Rollback and update hardening: every restore path verifies before it changes
+  anything, the macOS app swap keeps the previous version until the new one is
+  confirmed in place, and a completed restore that could not relaunch reports
+  that instead of success.
+- Feedback you can trust: a failing notification action says so instead of
+  failing silently, a rollback confirmation cannot fail silently, the copy
+  pulse appears only after text really reached the clipboard, and a boot after
+  a rollback that skipped restoring preferences tells you once.
+- A grouped save or close that is cancelled, blocked or fails keeps complete
+  snapshots of every owned document and all tabs open.
+- Double-click follows a rendered link, word selection and hover tools stay
+  stable while editing, and local text links open in tabs of the current
+  window.
+- Typing a clock time like 12:30 stays text; supported numeric and alphabetic
+  emoji still convert.
+- A save writes the text and the file format as one coherent, strictly
+  validated version, and opening reads the file's actual metadata.
+- Undo, redo and selections in Source view stay with their document across tab
+  switches and reopenings.
+- Split-view edits on the rendered pane are saved even when the retained
+  Source preference is enabled.
+- Autosave is on by default: every change reaches disk without Cmd+S. An
+  explicitly saved "off" keeps it off.
+- External changes follow one rule: a clean tab silently skips an identical
+  reload, a tab with edits is replaced only after confirmation, and permission
+  problems are reported instead of failing silently.
+- The session profile is written as one unit, so a crash can no longer leave
+  it half-written, and closing a window no longer interrupts a save in
+  progress.
+- Invalid settings values are repaired once at startup with a plain notice
+  naming the key and the reason; switching themes no longer overwrites a
+  manually set page width, and clearing custom CSS really clears it.
+
+### Content rendering
+
+- Export to Word: the File menu, the tab context menu and the export command
+  write real .docx files — native Word heading styles, tables with per-column
+  alignment, hyperlinks, task checkboxes, real footnotes and native equations.
+  Figures export at 2x quality, and page geometry follows your remembered
+  print options.
+- Bold and italic follow CommonMark pairing: nested bold italic, asterisk runs
+  and stray markers render exactly as GitHub renders them, in the editor and
+  in exports.
+- Diagrams ride a newer Pele engine: labels support sub, sup, code and kbd;
+  text like List<T> is no longer eaten by label parsing; long CJK labels wrap
+  between characters instead of stretching the diagram; wrapped lines sit
+  closer together; %% comments no longer swallow the preceding character; and
+  every rendered diagram is valid XML, which the export paths rely on.
+- The default writing column is an honest 768 px of text: the out-of-the-box
+  column and a manually set 768 px are now pixel-identical.
+- Page width becomes a per-document setting: a quick-settings panel in the
+  title bar with Page, View and Tables tabs, View-menu presets and palette
+  commands. Table modes say what they do: Auto sizes to content, Fit page fits
+  the text column (and says so honestly when it does not fit), Full width
+  takes the whole window. Column sizes survive everything, and the old
+  pretend-fit is gone.
+- Dragging table borders one after another keeps your earlier column choices
+  in a fitted table.
+- Double-clicking a resized column border keeps the fitted table inside its
+  frame.
+- PDF exports on macOS land exactly where you chose in the save dialog, with
+  the page geometry you selected.
+- HTML exports stay in sync with the current document model.
+- Export options live in Settings, and PDF, HTML and Word exports open the
+  save dialog directly.
+- Pasting a plain-text table from a terminal (box-drawing or aligned)
+  converts it into a Markdown pipe table; pipes and backslashes inside cells
+  are escaped, and real Markdown tables paste unchanged.
+- A finished table resize is always processed in the same order, whichever
+  handle you dragged, so saved column widths no longer depend on the drag.
+- Exported HTML post-processes diagrams exactly like the live editor, so pie
+  and kanban diagrams in exports match what you see.
+- Exports tell you what they include: images from outside the exported area
+  are embedded only after a consent card naming the files, declined links are
+  skipped and counted so the result notice stays honest, and diagram sources
+  that cannot render ship as readable fenced placeholders.
+- The Export settings window is one scrollable page — page setup, styling,
+  content options and running heads — with one-click margin presets, plain
+  header and footer fields, a Reset button, and it opens with the options you
+  used last time.
+- The document popover under the file name gets a quick-export row: PDF, Word
+  and HTML in one row under the statistics, wired to the same commands as
+  File › Export.
+
+### Folder work
+
+- Searching no longer steals your Find queries, editor selections or keyboard
+  copy/paste.
+- Files move between sidebar folders by drag-and-drop or cut and paste; open
+  tabs follow the file, and table layouts, reading positions and page widths
+  travel with it.
+- A multi-folder search delivers every folder's results before it reports
+  complete — searches no longer end early or drop later folders.
+- Search failures say so instead of showing "No results found".
+
+### AI/agents
+
+- Disabling an extension revokes its live access immediately, and paired
+  extensions cannot reach each other's sessions.
+- Live updates stay with their own tab across switches, closure, resync and
+  local saves.
+- Extension cards and the live-session indicator stay readable in the
+  selected theme.
+- Extension routes are scoped to granted permissions: reading context,
+  applying edits and inserting text each need their own approval.
+- Re-pairing an extension that already holds a live secret requires proving
+  the old secret or an explicit trust reset.
+- Extension edits apply only to the document version they were prepared
+  against; stale edits are refused.
+- An enabled extension's rights are fixed by what you approved in the pairing
+  dialog, even if its manifest later claims more.
+- Each extension streaming session carries a size and rate budget; a push
+  beyond the cap is refused with a clear message.
+
+### Breadth
+
+- On Windows and Linux, all 22 menu keyboard shortcuts respond again — Ctrl+S
+  saves, Ctrl+N opens a file, the view-mode chords work; macOS is unchanged.
+- Saving works on Windows: the security check rejected every Windows path as
+  outside the sandbox; it now compares paths the way Windows writes them, and
+  saves land on disk.
+- A stabilization pass on editing and recovery: unsaved edits survive an
+  external reload, shared-history two-pane editing and reading gestures are
+  complete, and rough spots in tables, the title bar and checkboxes are
+  repaired; approved security findings are closed.
+- Links to executables and ambiguous document types are refused; Markdown,
+  image and PDF links keep working.
+- Quick Look previews show raw HTML as text and block remote content, document
+  navigation and new windows; Markdown previews keep highlighting and
+  embedded images.
+- Opening very large documents avoids repeated redundant work.
+- Ruby-annotation previews pass through the same HTML sanitizer as HTML
+  blocks, so inline HTML in a ruby block can no longer run code when HTML
+  rendering is enabled.
+- If a macOS access bookmark fails to save, the library keeps working and
+  pending access is recovered.
+- A symlink swap between validation and saving is denied instead of writing
+  outside the allowed area.
+- The Windows Help-menu rollback no longer crashes: the restore runs off the
+  interface task and every network step carries a deadline.
+
+### References
+
+Change ids behind the bullets above, per category in bullet order.
+
+- UI polish: C-GITHUB-THEME, C-NOTIFICATION-SYSTEM, C-TITLEBAR-MODE-CHIPS,
+  FIX-021, C-VIEWER-WINDOW-DRAG, FIX-DIFF-THEME-SYNC,
+  FIX-PROJECT-SEARCH-ACCENT, FIX-SHARED-ACTIVE-TAB-MARKER,
+  FIX-IMAGE-ACTION-CATALOG, FIX-SHELL-CHROME-FONT, C-SETTINGS-KEYBOARD-FOCUS,
+  C-SETTINGS-WINDOW-RESTORE, FIX-SIDEBAR-BOLD-CONFLICT,
+  FIX-IMAGE-TOOLBAR-RESIDUE, C-TABLE-DIALOG-CREATION-VERIFICATION,
+  C-QUICKLOOK-SYNTAX-THEME, C-COMPACT-WINDOWS-FIT, C-TABLE-BAR-MENU-OVERLAP.
+- Product mechanics: C-FILE-POSITION-MEMORY, C-UPDATER-ROLLBACK, FIX-020,
+  C-UPDATER-REVIEW-FIXES, C-RENDER-REVIEW-FIXES, C-SAVE-CLOSE-DATA-SAFETY,
+  C-MD-LINK-TABS, FIX-EMOJI-TIMESTAMPS, C-METADATA-SAVE-SAFETY,
+  C-SOURCE-HISTORY-OWNERSHIP, C-SPLIT-SAVE-AUTHORITY, C-AUTOSAVE-DEFAULT-ON,
+  C-EXTERNAL-RELOAD-OPERATION, C-SESSION-WRITE-ATOMICITY, C-PREFS-TRUTH.
+- Content rendering: C-NATIVE-DOCX-RTF-EXPORT, C-COMMONMARK-EMPHASIS,
+  DEPS-PELE-1-10, C-PAGE-WIDTH-TABLES-768, C-PAGE-WIDTH-TABLES,
+  C-TABLE-SEQUENTIAL-RESIZE, C-TABLE-FITTED-RESET,
+  FIX-NATIVE-PDF-DESTINATION, C-MUYA-CURRENT-MODEL-EXPORT,
+  C-EXPORT-SETTINGS-SECTION-RECOVERY, C-PASTE-ASCII-TABLES,
+  C-TABLE-LAYOUT-COMPLETION, C-PELE-HTML-POSTPROCESS, C-EXPORT-BOUNDARIES,
+  C-EXPORT-SINGLE-PAGE, C-DOC-POPOVER-EXPORT-HUB.
+- Folder work: C-HOSTED-VALIDATION-RECOVERY, C-SIDEBAR-MOVE-FILE,
+  C-SEARCH-SESSION-COMPLETION, C-SEARCH-ERROR-VISIBILITY.
+- AI/agents: C-SEC-STREAM-AUTH, C-SEC-STREAM-TABS,
+  FIX-EXTENSION-THEME-TOKENS, C-SEC-STREAM-SCOPE, C-SEC-PAIR-REBIND,
+  C-SEC-EDIT-TARGETING, C-SEC-EXT-GRANT-BOUND, C-STREAM-BUDGET.
+- Breadth: C-WINDOWS-MENU-ACCELERATORS, C-WINDOWS-SAVE-PIPELINE,
+  C-STABILIZE-29, C-SEC-LINK-OPEN, C-QUICKLOOK-CONTENT-BOUNDARY,
+  FIX-LARGE-DOCUMENT-EMPTY-GUARD, FIX-022, FIX-023, C-SEC-SAVE-HANDLE,
+  C-WIN-ROLLBACK-PANIC.
+
+
 ## [2.8.2] - 2026-10-24
 
 The "See everything new" link in What's New now opens this changelog.

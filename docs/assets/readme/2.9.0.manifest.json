@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "1.0.0",
+  "releaseVersion": "2.9.0",
+  "payloadSha": null,
+  "captureCommand": "README_SHOTS=1 npx playwright test tests/e2e/readme-shots.spec.ts --project=chromium",
+  "captureState": "fresh-reviewed",
+  "review": {
+    "reviewer": "agent-zcode (owner-requested release preparation)",
+    "reviewedAt": "2026-11-22",
+    "scenarios": [
+      "01-agents and 08-dark: the plan document with its Steps table, launch checklist and open questions; the sidebar lists Recent, Pinned, Opened files and the atlas folder tree; the title bar shows the outline icon, the Aa quick-settings button and the theme toggle, readable in light and dark.",
+      "03-diagrams: the release flowchart and the hours-by-activity donut render with readable labels and theme colours; no error placeholder.",
+      "05-viewer: the fullscreen viewer is zoomed on the release-pipeline flowchart with sharp labels and no broken shapes.",
+      "07-home: the welcome screen shows the Mark headline, the Open File, Add Folder and New actions, three recent files and one recent folder.",
+      "Method: each recaptured image keeps the 2880x1800 size and differs from the 2.8.2 set in 2.6 to 3.4 percent of pixels; the decisive regions were read from enlarged crops with a vision model.",
+      "cover.png, cover-dark.png, 04-copy.png and 06-split.png are byte-identical to the reviewed 2.8.2 set: composed brand illustrations from C-42 with no capture spec, still showing the earlier window chrome without the quick-settings button and the mode chips."
+    ]
+  },
+  "freezeRequirement": "Satisfied from the final payload before the Ready seal.",
+  "images": [
+    {
+      "path": "docs/assets/readme/cover.png",
+      "sha256": "ce5bcc1ef2db7910c38416b62a58d2178a3d7b6e695d5e753c95339569f69448"
+    },
+    {
+      "path": "docs/assets/readme/cover-dark.png",
+      "sha256": "70a1ec52eca75b8a22fcb7a74b57ecdc01079515e883147c31f06b1d8244b270"
+    },
+    {
+      "path": "docs/assets/readme/01-agents.png",
+      "sha256": "7f4fc46cbd899598f7e68408ed71ca13138dfed543fb910871747605daa33331"
+    },
+    {
+      "path": "docs/assets/readme/03-diagrams.png",
+      "sha256": "f828403e3e2bcc88206d8250c2fc95853e02427df040017bc0f18bcfb505e984"
+    },
+    {
+      "path": "docs/assets/readme/04-copy.png",
+      "sha256": "2b31145af792f7f9a5dc34aa9abf03a540d0bb5228177384c5214ca0a2d182ad"
+    },
+    {
+      "path": "docs/assets/readme/05-viewer.png",
+      "sha256": "eaf8251420e4d25cc4d850afea4bcd65529f09e038d56b6f13ef74daf2601794"
+    },
+    {
+      "path": "docs/assets/readme/06-split.png",
+      "sha256": "6f790e5cadb137ec3aebfdfb225c6e827f4e37232fc84b89a279ddf01680b9b2"
+    },
+    {
+      "path": "docs/assets/readme/07-home.png",
+      "sha256": "b8bf60300654a5df3d07e795b024171115bd28fcf7957b53b2b662aaafdc0dcb"
+    },
+    {
+      "path": "docs/assets/readme/08-dark.png",
+      "sha256": "a161014e1d82592beb13903cc404d1f2491da902a30e5744bc14ef32ddc17eac"
+    }
+  ],
+  "version": null
+}

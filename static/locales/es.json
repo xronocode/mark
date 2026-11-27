@@ -1074,7 +1074,7 @@
   },
   "whatsNew": {
     "title": "Novedades",
-    "also": "Además: cada llamada de impresión de macOS ahora se comprueba contra la API real del sistema",
+    "also": "Además: autoguardado, temas GitHub, centro de notificaciones, los archivos recuerdan tu lugar, Windows corregido.",
     "seeEverything": "Ver todas las novedades",
     "eyebrow": "Mark {version}",
     "v2_4_0": {
@@ -1215,6 +1215,24 @@
       "changelog": {
         "title": "Todas las versiones en un lugar",
         "text": "«Ver todas las novedades» abre esta versión en el registro de cambios del sitio de Mark."
+      }
+    },
+    "v2_9_0": {
+      "word": {
+        "title": "Exportar a Word",
+        "text": "La exportación escribe un .docx real con estilos Word, tablas, notas y ecuaciones."
+      },
+      "pages": {
+        "title": "Ancho de página por documento",
+        "text": "El botón Aa de la barra de título abre el panel; los modos de tabla son honestos."
+      },
+      "modes": {
+        "title": "Modos en la barra de título",
+        "text": "Diff, dividido y fuente a un clic, directamente en la barra de título."
+      },
+      "rollback": {
+        "title": "Reversión en un paso",
+        "text": "Cada actualización guarda una instantánea; Roll Back en Ayuda la restaura."
       }
     }
   },

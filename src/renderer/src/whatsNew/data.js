@@ -1,5 +1,5 @@
 // FILE: src/renderer/src/whatsNew/data.js
-// VERSION: 1.7.0
+// VERSION: 1.8.0
 // START_MODULE_CONTRACT
 //   PURPOSE: C-48/C-53 What's New sheet content — per-release entries
 //            (max 4 items, icon + i18n title/text keys) keyed by the
@@ -33,7 +33,12 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
-//   LAST_CHANGE: v1.7.0 - 2026-10-25 «See everything new» opens the
+//   LAST_CHANGE: v1.8.0 - 2026-11-22 release 2.9.0 draft: the sheet shows
+//   the four 2.9.0 items (Word export, the titlebar page-width button and
+//   honest table modes, titlebar mode chips, one-step rollback) and the
+//   «Also» line names autosave, themes/notices, reading positions and the
+//   Windows repairs.
+//   PREV: v1.7.0 - 2026-10-25 «See everything new» opens the
 //   release's section of the website changelog (version → release date →
 //   heading anchor) instead of a GitHub release page.
 //   PREV: v1.6.0 - 2026-10-20 release 2.6.0 draft: the sheet shows
@@ -80,6 +85,28 @@ export const WHATS_NEW_MAX_ITEMS = 4
 // ◐ theme, ✳ new types, ⤓ lighter. Text lives in the locale tables
 // under whatsNew.v2_4_0.* so each language ships its own copy.
 export const WHATS_NEW_CONTENT = {
+  '2.9.0': [
+    {
+      icon: '⎘',
+      titleKey: 'whatsNew.v2_9_0.word.title',
+      textKey: 'whatsNew.v2_9_0.word.text'
+    },
+    {
+      icon: '◫',
+      titleKey: 'whatsNew.v2_9_0.pages.title',
+      textKey: 'whatsNew.v2_9_0.pages.text'
+    },
+    {
+      icon: '☰',
+      titleKey: 'whatsNew.v2_9_0.modes.title',
+      textKey: 'whatsNew.v2_9_0.modes.text'
+    },
+    {
+      icon: '↺',
+      titleKey: 'whatsNew.v2_9_0.rollback.title',
+      textKey: 'whatsNew.v2_9_0.rollback.text'
+    }
+  ],
   '2.8.2': [
     {
       icon: '☰',
@@ -218,6 +245,7 @@ export const WHATS_NEW_ALSO_KEY = 'whatsNew.also'
 export const WHATS_NEW_SEE_EVERYTHING_KEY = 'whatsNew.seeEverything'
 export const WHATS_NEW_CHANGELOG_URL = 'https://mark.xronocode.com/changelog'
 export const WHATS_NEW_RELEASE_DATES = {
+  '2.9.0': '2026-11-22',
   '2.8.2': '2026-10-24',
   '2.8.1': '2026-10-23',
   '2.8.0': '2026-10-23',

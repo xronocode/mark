@@ -1,5 +1,5 @@
 // FILE: tests/renderer/release-preflight.test.js
-// VERSION: 2.24.0
+// VERSION: 2.25.0
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify exact release metadata/tag consistency, unprivileged candidate packaging, production workflow gates, updater-feed release classification, and Homebrew artifact routing for M-046.
 //   SCOPE: Pure mismatch tests, current-workspace integration, CLI marker evidence, and static dry-run/production workflow assertions.
@@ -10,7 +10,7 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   consistentEvidence - Complete v2.8.2 version fixture.
+//   consistentEvidence - Complete v2.9.0 version fixture.
 //   workspaceRoot - GRACE 4 synchronized symbol
 // END_MODULE_MAP
 //
@@ -74,22 +74,22 @@ import {
 
 const workspaceRoot = resolve(import.meta.dirname, '../..')
 const consistentEvidence = {
-  packageJson: '2.8.2',
-  packageLock: '2.8.2',
-  packageLockRoot: '2.8.2',
-  cargoWorkspace: '2.8.2',
-  cargoLockMark: '2.8.2',
-  tauriConfig: '2.8.2'
+  packageJson: '2.9.0',
+  packageLock: '2.9.0',
+  packageLockRoot: '2.9.0',
+  cargoWorkspace: '2.9.0',
+  cargoLockMark: '2.9.0',
+  tauriConfig: '2.9.0'
 }
 
 // START_BLOCK_RELEASE_VERSION_TESTS
 describe('M-046 release version preflight', () => {
   it('accepts one exact metadata version and matching release tag', () => {
     expect(
-      validateVersionEvidence(consistentEvidence, 'v2.8.2')
+      validateVersionEvidence(consistentEvidence, 'v2.9.0')
     ).toEqual({
-      version: '2.8.2',
-      tag: 'v2.8.2',
+      version: '2.9.0',
+      tag: 'v2.9.0',
       sourceCount: 6
     })
   })
@@ -98,7 +98,7 @@ describe('M-046 release version preflight', () => {
     expect(() =>
       validateVersionEvidence(
         { ...consistentEvidence, packageLockRoot: '2.0.6-alpha' },
-        'v2.8.2'
+        'v2.9.0'
       )
     ).toThrowError(
       expect.objectContaining({
@@ -125,7 +125,7 @@ describe('M-046 release version preflight', () => {
   it('CLI emits the stable success marker for the target tag', () => {
     const result = spawnSync(
       process.execPath,
-      ['tools/release-preflight.mjs', '--tag', 'v2.8.2'],
+      ['tools/release-preflight.mjs', '--tag', 'v2.9.0'],
       { cwd: workspaceRoot, encoding: 'utf8' }
     )
 

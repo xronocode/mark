@@ -38,22 +38,49 @@ Download `Mark_<version>_x64-setup.exe` from [the latest release](https://github
 
 The App Store build and the Homebrew/download build are the same editor with a few differences. See [Two editions, same editor](#two-editions-same-editor).
 
+## What's new in 2.9.0
+
+- **Export to Word.** File › Export to Word writes real `.docx` files — Word
+  heading styles, tables, hyperlinks, footnotes and native equations —
+  generated entirely inside the app.
+- **Page width, per document.** A quick-settings button in the title bar sets
+  page width, view and table modes; the writing column is an honest 768 px of
+  text, and table modes do what they say.
+- **Modes in the title bar.** Diff, Split and Source are one click away as
+  title-bar chips, and View › Standard View is the one-click reset.
+- **Updates can be undone.** Every update keeps a snapshot of the previous
+  version and your settings; Help › Roll Back to Mark… returns to it in one
+  step, and a broken update still restores from the terminal before the app
+  boots.
+- **Pick up where you left off.** Every file remembers its scroll position and
+  caret across tab closes, restarts and renames.
+- **GitHub themes, one notice center.** GitHub and GitHub Dark join the
+  built-in themes; every notice is a severity-styled card in a single stack,
+  with the session's history in the command palette.
+- **Windows repaired.** All menu shortcuts (Ctrl+S, Ctrl+N…) respond again,
+  and saving writes the file — both were silently broken.
+
+Also in 2.9.0: CommonMark-exact emphasis, a lighter diagram engine, smart
+paste of plain-text tables, autosave on by default, and a one-page Export
+settings window — see [CHANGELOG.md](CHANGELOG.md).
+
 ## What's new in 2.8.2
 
-**See everything new, in one changelog.** The "See everything new" link in What's New opens the release's section of the [changelog](https://mark.xronocode.com/changelog) on the Mark website, which now lists every release again.
+**See everything new, in one changelog.** The "See everything new" link in
+What's New opens the release's section of the
+[changelog](https://mark.xronocode.com/changelog) on the Mark website, which
+now lists every release again.
 
 ## What's new in 2.8.1
 
-- **Fixed PDF export on macOS** — exporting to PDF no longer crashes the app (a day-one bug in the print call) and writes your document to disk; a new automated audit now checks every macOS print call against the live system APIs.
+- **Fixed PDF export on macOS** — exporting to PDF no longer crashes the app
+  (a day-one bug in the print call) and writes your document to disk; a new
+  automated audit now checks every macOS print call against the live system
+  APIs.
 
-## What's new in 2.8.0
-
-- **Several folders, one window.** ⇧⌘O adds a folder beside the ones already open; **File › Replace Workspace…** swaps them, asking about unsaved tabs first. Tabs with the same name carry their folder as a dimmed suffix.
-- **Cloud folders as roots.** iCloud Drive and OneDrive folders open in the sidebar by their real names; a once-per-folder note explains that online-only files appear after download, and drive-sized folders stream in without freezing the window.
-- **Search you can trust.** Folder search marks each hit with its folder, keeps every result while you type, and counts read correctly in all ten languages.
-- **⌘Q asks before quitting.** Unsaved edits get Save & Quit or Don't Save — nothing disappears silently anymore.
-
-The 2.7.0 highlights — honest sessions, self-contained HTML export, the native Windows title bar — are in [CHANGELOG.md](CHANGELOG.md).
+Earlier releases — several folders in one window, cloud folders as roots,
+honest sessions, self-contained HTML export, the native Windows title bar —
+are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Why Mark
 
