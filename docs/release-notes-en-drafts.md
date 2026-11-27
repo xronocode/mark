@@ -6,6 +6,142 @@ cosign and updater block below it stays unchanged. After publication, prepend
 the section to the live release as described in the
 [release procedure](release-process.md#5-release-notes).
 
+## v2.9.0
+
+```markdown
+## What's new
+
+**Export to Word**
+- File › Export to Word — also in the tab context menu and the export command
+  — writes real .docx files: native Word heading styles, tables with
+  per-column alignment, hyperlinks, task checkboxes, real footnotes and native
+  equations. Figures export at 2x quality, and page geometry follows your
+  print options.
+
+**Updates can be undone**
+- Every update installed through Mark's built-in updater snapshots the
+  previous version and its settings first. Help › Roll Back to Mark… restores
+  both in one step, and the version you left is not offered again until a
+  newer release ships.
+- If an update ever breaks startup, the same restore runs from the terminal
+  before the app boots (`mark --rollback`, `--yes` for scripts). A failed
+  snapshot cancels the update; the snapshot takes over only after the new
+  version actually starts.
+
+**Page width, per document**
+- A quick-settings panel in the title bar sets page width, view and table
+  options; View-menu presets and palette commands carry the same choices.
+- Table modes say what they do: Auto sizes to content, Fit page fits the text
+  column and says when it does not fit, Full width takes the whole window. The
+  default writing column is an honest 768 px of text.
+
+**Files remember where you stopped**
+- Every file reopens at its last reading spot — scroll position plus caret —
+  across tab close and reopen, app relaunch and rename.
+
+**Title-bar mode chips**
+- Diff, Split and Source sit as chips in the title bar; the two-group menu
+  switches views and writing modes, and View › Standard View is the one-click
+  full reset.
+
+**GitHub themes and one notice center**
+- GitHub and GitHub Dark join as the 17th built-in theme pair, with matching
+  code highlighting.
+- Every notice renders as a severity-styled card in one corner stack: at most
+  three visible with a counter for the rest, errors stay until dismissed,
+  Esc closes the topmost card, and a palette command replays the session's
+  notices.
+
+**Windows, repaired**
+- All 22 menu keyboard shortcuts respond again (Ctrl+S, Ctrl+N, the view-mode
+  chords); macOS is unchanged.
+- Saving works: the security check used to reject every Windows path; it now
+  compares paths the way Windows writes them, and saves land on disk.
+
+**Also in this release**
+- Emphasis follows CommonMark pairing, exactly as GitHub renders it, in the
+  editor and in exports.
+- Diagrams ride a newer Pele engine: sub, sup, code and kbd in labels, honest
+  wrapping for long CJK labels, and always-valid XML for export paths.
+- Pasting a plain-text table from a terminal converts it into a Markdown pipe
+  table.
+- Autosave is on by default: every change reaches disk without Cmd+S.
+- Files move between sidebar folders by drag-and-drop or cut and paste, and a
+  multi-folder search delivers every folder's results before it reports
+  complete.
+- The Export settings window is one scrollable page that opens with the
+  options you used last time, and the document popover under the file name
+  gains a quick-export row (PDF, Word, HTML).
+- Cut and copy recover from a stale selection without an app restart;
+  Cmd/Ctrl+B applies bold, and the toggle-sidebar shortcut moves to
+  Shift+Cmd/B.
+- Search failures say so instead of showing "No results found".
+- Extension sessions are fenced: permissions scoped to what you approved,
+  proof required to re-pair a live secret, size and rate budgets on streams,
+  and edits bound to the document version they were prepared against.
+- Security hardening: executable and ambiguous document links are refused,
+  Quick Look shows raw HTML as text and blocks remote content, ruby-annotation
+  previews pass the HTML sanitizer, and a symlink swap between validation and
+  saving is denied.
+
+## Under the hood
+
+- Developer tools are off in every release build and opt-in only; while on,
+  the app icon carries a visible marker.
+- The Electron-era byte-compacted locale copies are gone — one full table per
+  language, and a reintroduced copy fails CI.
+- Technical-debt fixes collect on their own train and depart into main as one
+  reviewed merge.
+- Every macOS CI lane runs on the macos-15 runner image.
+- The release build is split from signing: an unsigned build with digest
+  receipts feeds a gated sign job, and prereleases publish only from a fully
+  green commit.
+- A prerelease channel for external-tester builds publishes signed GitHub
+  prereleases that never advance the stable update feed.
+- The update funnel counts checks and downloads without identifiers and
+  without in-app telemetry; the counters are readable through one keyed
+  request.
+- Publication always waits on explicit owner approval; silence never publishes
+  a release.
+- The commit gate reviews every chunk with one local-first model pass, and its
+  two reviewers run under independent lane locks.
+- The Quick Look preview engine's vendored markdown-it and Highlight.js moved
+  to their patched releases.
+- Routine dependency maintenance across the range, including vue-router 5,
+  TypeScript 7, jsdom 31, rand 0.10, vite 8 and the Tauri 2.12 cargo+npm
+  lockstep, plus two precise lock updates (rustls-webpki, h2).
+- Large documents: measurement infrastructure and behavioral oracles run in
+  CI, and an experimental progressive mount — the visible part first, the rest
+  in the background — is available behind a Settings switch, off by default.
+- Dev runs use a separate profile namespace, so development tooling cannot
+  touch production state.
+- The security-scanning archive is checksum-verified before extraction.
+
+## Evidence
+
+<!-- Rule 3 forms; fill from the run on the seal commit before sending. -->
+
+- tests: <<FACT: npm test totals — n passed, n failed>>
+- e2e: <<FACT: n/n passed (chromium and webkit-titlebar)>>
+- build: <<FACT: green (<command>)>>
+- safety gate: gitleaks clean, deterministic checks pass
+- grace lint: <<FACT: 0 findings in scope>>
+
+## Release status
+
+Rides the 2.9.x-next release train (71 user-facing and 43 operational items
+admitted). The train is Collecting; the release is not scheduled yet, and this
+draft is pending owner review. Publication is separately authorized.
+
+## References
+
+- Change bundle ids: the CHANGELOG 2.9.0 entry's References section lists all
+  71 user-facing ids per category; the 43 operational ids live in the train's
+  machine-readable manifest.
+- Acceptance registry: per-item owner acceptance records are kept with the
+  train ledger.
+```
+
 ## v2.8.2
 
 ```markdown

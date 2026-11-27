@@ -1073,7 +1073,7 @@
   },
   "whatsNew": {
     "title": "新內容",
-    "also": "另外：macOS 的每個列印呼叫現在都會對照真實系統 API 校驗",
+    "also": "另有：預設開啟自動儲存、GitHub 主題、統一通知中心、文件記住閱讀位置、Windows 修復。",
     "seeEverything": "查看全部新功能",
     "eyebrow": "Mark {version}",
     "v2_4_0": {
@@ -1214,6 +1214,24 @@
       "changelog": {
         "title": "所有版本集中在一處",
         "text": "「查看全部新功能」現在會開啟 Mark 網站更新日誌中的這個版本。"
+      }
+    },
+    "v2_9_0": {
+      "word": {
+        "title": "匯出為 Word",
+        "text": "匯出生成真正的 .docx：Word 樣式、表格、註腳與公式。"
+      },
+      "pages": {
+        "title": "逐文件設定頁寬",
+        "text": "標題列的 Aa 按鈕開啟頁面面板；表格模式不再說謊。"
+      },
+      "modes": {
+        "title": "標題列模式",
+        "text": "Diff、分割與原始碼一鍵即達，就在標題列上。"
+      },
+      "rollback": {
+        "title": "一步回退",
+        "text": "透過 Mark 內建更新器安裝的每次更新都先留快照；說明選單的 Roll Back 一鍵還原。"
       }
     }
   },

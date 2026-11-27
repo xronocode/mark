@@ -1074,7 +1074,7 @@
   },
   "whatsNew": {
     "title": "Was ist neu",
-    "also": "Außerdem: jeder macOS-Druckaufruf wird jetzt gegen die echte System-API geprüft",
+    "also": "Außerdem: Autospeichern, GitHub-Themes, Benachrichtigungszentrum, Dateien merken die Position, Windows-Korrekturen.",
     "seeEverything": "Alle Neuigkeiten ansehen",
     "eyebrow": "Mark {version}",
     "v2_4_0": {
@@ -1215,6 +1215,24 @@
       "changelog": {
         "title": "Alle Versionen im Changelog",
         "text": "„Alle Neuigkeiten ansehen“ öffnet diese Version im Changelog auf der Mark-Website."
+      }
+    },
+    "v2_9_0": {
+      "word": {
+        "title": "Export nach Word",
+        "text": "Der Export schreibt ein echtes .docx mit Word-Stilen, Tabellen, Fußnoten und Formeln."
+      },
+      "pages": {
+        "title": "Seitenbreite pro Dokument",
+        "text": "Die Taste Aa in der Titelleiste öffnet das Panel; Tabellenmodi sagen die Wahrheit."
+      },
+      "modes": {
+        "title": "Modi in der Titelleiste",
+        "text": "Diff, Split und Quelle sind ein Klick entfernt — direkt in der Titelleiste."
+      },
+      "rollback": {
+        "title": "Rückgang in einem Schritt",
+        "text": "Updates über Marks integrierten Updater halten einen Snapshot; Roll Back stellt ihn her."
       }
     }
   },

@@ -1085,7 +1085,7 @@
   },
   "whatsNew": {
     "title": "What's new",
-    "also": "Also: every macOS print call is now checked against the live system API",
+    "also": "Also: autosave on by default, GitHub themes, one notice center, files that remember your place, Windows fixes.",
     "seeEverything": "See everything new",
     "eyebrow": "Mark {version}",
     "v2_4_0": {
@@ -1226,6 +1226,24 @@
       "changelog": {
         "title": "Every release in one changelog",
         "text": "See everything new now opens this version in the changelog on the Mark website."
+      }
+    },
+    "v2_9_0": {
+      "word": {
+        "title": "Export to Word",
+        "text": "Export writes a real .docx with Word styles, tables, footnotes and equations."
+      },
+      "pages": {
+        "title": "Page width, per document",
+        "text": "A new Aa button in the title bar opens the page panel; table modes tell the truth."
+      },
+      "modes": {
+        "title": "Modes in the title bar",
+        "text": "Diff, split and source are one click away as title-bar chips."
+      },
+      "rollback": {
+        "title": "One-step rollback",
+        "text": "Updates from the built-in updater keep a snapshot; Roll Back in Help restores it."
       }
     }
   },

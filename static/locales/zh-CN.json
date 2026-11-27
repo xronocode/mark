@@ -1073,7 +1073,7 @@
   },
   "whatsNew": {
     "title": "新变化",
-    "also": "另外：macOS 的每个打印调用现在都会对照真实系统 API 校验",
+    "also": "另有：默认开启自动保存、GitHub 主题、统一通知中心、文件记住阅读位置、Windows 修复。",
     "seeEverything": "查看全部新功能",
     "eyebrow": "Mark {version}",
     "v2_4_0": {
@@ -1214,6 +1214,24 @@
       "changelog": {
         "title": "所有版本集中在一处",
         "text": "“查看全部新功能”现在会打开 Mark 网站更新日志中的这一版本。"
+      }
+    },
+    "v2_9_0": {
+      "word": {
+        "title": "导出为 Word",
+        "text": "导出生成真正的 .docx：Word 样式、表格、脚注与公式。"
+      },
+      "pages": {
+        "title": "逐文档设置页宽",
+        "text": "标题栏的 Aa 按钮打开页面面板；表格模式不再说谎。"
+      },
+      "modes": {
+        "title": "标题栏模式",
+        "text": "Diff、分屏与源码一键即达，就在标题栏上。"
+      },
+      "rollback": {
+        "title": "一步回退",
+        "text": "通过 Mark 内置更新器安装的每次更新都先留快照；帮助菜单的 Roll Back 一键恢复。"
       }
     }
   },
