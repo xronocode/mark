@@ -706,6 +706,22 @@ const git = (workspaceRoot, ...args) => {
   }
 }
 
+// Like git(), but returns stdout verbatim: NUL-delimited diff reads must not
+// lose a leading or trailing space in the first or last decoded path.
+const gitRaw = (workspaceRoot, ...args) => {
+  try {
+    return execFileSync('git', args, {
+      cwd: workspaceRoot,
+      encoding: 'utf8'
+    })
+  } catch (error) {
+    fail(
+      'MT_RELEASE_GIT_IDENTITY_INVALID',
+      `command=${args[0]};status=${error.status ?? 'unknown'}`
+    )
+  }
+}
+
 // `git merge-base --is-ancestor` answers "not an ancestor" with exit status 1
 // and no output; the shared git() helper treats every non-zero status as a
 // failed identity query, so this probe reads the status itself and keeps
@@ -854,7 +870,7 @@ export const validateStrictRepositoryState = (
     // output quotes special-character names, so read the NUL-delimited,
     // rename-split diff: the git() helper already decodes the verbatim
     // UTF-8 paths before they are sorted and classified.
-    const delta = git(
+    const delta = gitRaw(
       root,
       'diff',
       '--no-renames',

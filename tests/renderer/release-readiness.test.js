@@ -176,6 +176,11 @@ const strictRepository = ({
   const root = mkdtempSync(resolve(tmpdir(), 'mark-readiness-'))
   const git = (...args) =>
     execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim()
+  // Verbatim stdout for the NUL-delimited rewrite-delta read, mirroring the
+  // production gitRaw read: a leading or trailing space in the first or last
+  // path must survive.
+  const gitRaw = (...args) =>
+    execFileSync('git', args, { cwd: root, encoding: 'utf8' })
   const write = (path, value) => {
     mkdirSync(dirname(resolve(root, path)), { recursive: true })
     writeFileSync(resolve(root, path), value)
@@ -199,14 +204,16 @@ const strictRepository = ({
   // Opt-in default-off history-rewrite bootstrap: after the annotated tag a
   // rewritten main no longer carries the tagged tree, mirroring the real
   // v2.8.2-to-main situation. The negative modes let a product prefix path,
-  // a product file, a quoted special-character path, vite.config.js or a
-  // rename into product territory ride the recorded delta itself.
+  // a product file, a quoted special-character path, vite.config.js, a rename
+  // into product territory or a leading-space bookkeeping path ride the
+  // recorded delta itself.
   const rewrittenPaths = ({
     rename: [],
     'product-prefix': ['site/index.html', 'src/product.js'],
     'product-file': ['package.json', 'site/index.html'],
     'product-quoted': ['src/сборка.js'],
-    'product-vite-config': ['vite.config.js']
+    'product-vite-config': ['vite.config.js'],
+    'leading-space': [' release-note.md', 'site/index.html']
   })[historyRewrite] ?? (historyRewrite
     ? ['.github/workflows/site.yml', 'site/index.html', 'tests/release-boundary.md']
     : null)
@@ -228,7 +235,7 @@ const strictRepository = ({
     bootstrap = git('rev-parse', 'HEAD')
     // Mirror the production read: NUL-delimited, no rename pairing, decoded
     // then sorted, so the recorded delta matches what the gate classifies.
-    rewriteDeltaPaths = git(
+    rewriteDeltaPaths = gitRaw(
       'diff',
       '--no-renames',
       '--name-only',
@@ -832,6 +839,14 @@ describe('strict release identity', () => {
       code: 'MT_RELEASE_PREVIOUS_BOUNDARY_INVALID',
       message: expect.stringContaining('rewrite=product-drift;path=vite.config.js')
     }))
+  }, 30000)
+
+  it('accepts a rewritten boundary whose first delta path carries a leading space', () => {
+    const state = strictRepository({ historyRewrite: 'leading-space' })
+    expect(state.rewriteDeltaPaths[0]).toBe(' release-note.md')
+    expect(() =>
+      validateStrictRepositoryState(state.root, state.manifest, strictOptions(state))
+    ).not.toThrow()
   }, 30000)
 
   it.each([
