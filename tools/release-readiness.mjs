@@ -62,6 +62,7 @@
 // END_MODULE_MAP
 //
 // START_CHANGE_SUMMARY
+//   - 2026-11-27 C-RELEASE-REWRITE-BOUNDARY: the rewrite delta is read with `diff --no-renames --name-only -z`, decoded, sorted and then classified, so a rename cannot hide either of its two sides and a quoted special-character path cannot dodge the prefix check; vite.config.js joins PRODUCT_FILES.
 //   - 2026-11-23 C-RELEASE-REWRITE-BOUNDARY: the strict previous-release boundary gains previousRelease.historyRewrite — when the bootstrap commit differs from the tagged release commit and its tree differs, { date, deltaPaths } must equal the tag-to-bootstrap diff exactly and stay outside PRODUCT_PREFIXES/PRODUCT_FILES; equal-commit and same-tree boundaries stay byte-identical and reject any historyRewrite field, and the ancestry failure answers bootstrap=not-ancestor directly.
 //   - 2026-11-09 C-STABILIZE-TRAIN-ADMISSION: early admission requires explicit testing protocol when owner acceptance is pending; Ready/Released and every strict entry point retain complete owner acceptance and reject negative verdicts.
 //   - 2026-10-30 v2.2.0: lane trains — every td-N document is validated on each run (lane lifecycle Collecting/Frozen/Merged/Aborted, accounting from lane.baseSha through lane.headSha, always-complete ledger covering operational items too); a Merged lane must be carried by its product train as one item holding the merge commit and every lane commit.
@@ -131,6 +132,7 @@ const PRODUCT_PREFIXES = ['src/', 'src-tauri/', 'static/', 'mark-quicklook/']
 const PRODUCT_FILES = [
   'package.json',
   'package-lock.json',
+  'vite.config.js',
   'Cargo.toml',
   'Cargo.lock',
   'rust-toolchain.toml'
@@ -704,6 +706,22 @@ const git = (workspaceRoot, ...args) => {
   }
 }
 
+// Like git(), but returns stdout verbatim: NUL-delimited diff reads must not
+// lose a leading or trailing space in the first or last decoded path.
+const gitRaw = (workspaceRoot, ...args) => {
+  try {
+    return execFileSync('git', args, {
+      cwd: workspaceRoot,
+      encoding: 'utf8'
+    })
+  } catch (error) {
+    fail(
+      'MT_RELEASE_GIT_IDENTITY_INVALID',
+      `command=${args[0]};status=${error.status ?? 'unknown'}`
+    )
+  }
+}
+
 // `git merge-base --is-ancestor` answers "not an ancestor" with exit status 1
 // and no output; the shared git() helper treats every non-zero status as a
 // failed identity query, so this probe reads the status itself and keeps
@@ -848,13 +866,19 @@ export const validateStrictRepositoryState = (
     ) {
       fail('MT_RELEASE_PREVIOUS_BOUNDARY_INVALID', 'historyRewrite=deltaPaths')
     }
-    const delta = git(
+    // Rename detection collapses a rename to a single path and default
+    // output quotes special-character names, so read the NUL-delimited,
+    // rename-split diff: the git() helper already decodes the verbatim
+    // UTF-8 paths before they are sorted and classified.
+    const delta = gitRaw(
       root,
       'diff',
+      '--no-renames',
       '--name-only',
+      '-z',
       manifest.previousRelease.commit,
       manifest.previousRelease.bootstrapSha
-    ).split('\n').filter(Boolean)
+    ).split('\0').filter(Boolean).sort()
     if (
       delta.length !== deltaPaths.length ||
       delta.some((pathname, index) => pathname !== deltaPaths[index])
