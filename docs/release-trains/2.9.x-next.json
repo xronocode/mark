@@ -3055,6 +3055,37 @@
           "status": "pending",
           "detail": "Owner verdicts pending in the train acceptance protocol on the release-candidate build."
         }
+      },
+      {
+        "id": "C-HONEST-FAILURE-NOTICES",
+        "summary": "Failure-honesty fixes visible to users: the settings install row invalidates a consumed offer, failed pins/undos and persist refusals surface honest notices, Retry-After parses integers and IMF dates with an over-ceiling final verdict, and six verified dead code paths are removed.",
+        "state": "queued",
+        "commits": [
+          "21abfa3a2e65bde1be4755a370c2a3ae652ff7e5"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/366",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "statusCheckRollup of PR #366 head 6988f3f9f0bee1354d75a27fcb61ad6230a59e35 (merge commit 21abfa3a): 22 success, 0 failed, 0 cancelled, 1 skipped (release/project-mirror) — recorded 2026-11-27",
+              "date": "2026-11-27",
+              "build": "6988f3f9f0bee1354d75a27fcb61ad6230a59e35",
+              "evidence": "https://github.com/xronocode/mark/pull/366"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
       }
     ],
     "operational": [
@@ -4533,6 +4564,13 @@
               "date": "2026-10-26",
               "build": "1d58bc385b12e20a953a1077cc1849b8f306c2ba",
               "evidence": "https://github.com/xronocode/mark/pull/76"
+            },
+            {
+              "command": "hosted CI on PR #77 at the verified PR head (statusCheckRollup, 20 checks)",
+              "result": "19 success, 0 failed, 0 cancelled, 1 skipped — success: test, test, Analyze (actions), release/governance, build (macos-arm64), renderer unit (ubuntu-latest), Analyze (javascript-typescript), renderer unit (macos-14), Analyze (python), renderer unit (windows-latest), Analyze (rust), Analyze (swift), release/readiness, backend unit (ubuntu-latest), backend unit (macos-14), backend unit (windows-latest), renderer e2e playwright (macos-14), status check, CodeQL; skipped: release/project-mirror",
+              "date": "2026-10-26",
+              "build": "7e47fb9ec5306fe3859d518e508e5e383e39c1b9",
+              "evidence": "https://github.com/xronocode/mark/pull/77/checks"
             }
           ],
           "manual": [],
@@ -4592,6 +4630,37 @@
               "date": "2026-11-22",
               "build": "2722bd851531290860624e14ddc18973bcd901f0",
               "evidence": "https://github.com/xronocode/mark/compare/16a4a47ed723740e330e44cf448bcbada766882c...bb68fd6ca3185b83f82cf12eac3cc189e8ab182e"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-NPM-ROOT-PATCH-BUMP",
+        "summary": "Dependabot npm-root-patch group bump: 10 patch updates to the root npm dependencies land as one lockfile merge (root package-lock.json); routine dependency maintenance classified like the other dependency-bump entries.",
+        "state": "queued",
+        "commits": [
+          "da6bdf0da858741625c12c90a3c071a2a393c875"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/338",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "statusCheckRollup of PR #338 head 5ffcf4a38dafc1eac839bb0c22e958982fd59056 (merge commit da6bdf0d): 22 success, 0 failed, 0 cancelled, 1 skipped (release/project-mirror) — recorded 2026-11-27",
+              "date": "2026-11-27",
+              "build": "5ffcf4a38dafc1eac839bb0c22e958982fd59056",
+              "evidence": "https://github.com/xronocode/mark/pull/338"
             }
           ],
           "manual": [],
