@@ -2319,6 +2319,742 @@
           "status": "pending",
           "detail": "Owner verdicts pending on the first prerelease build (external tester session)."
         }
+      },
+      {
+        "id": "FIX-022",
+        "summary": "Ruby-annotation preview HTML is routed through the same DOMPurify pass as the HTML-block preview before it reaches the innerHTML sink — inline HTML inside a ruby block can no longer execute event handlers when HTML rendering is enabled or a crafted ruby token reaches the renderer.",
+        "state": "queued",
+        "commits": [
+          "11e5f2dac64424a0c94c8df899e4252edd7c1e8b"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/283",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "18 success, 1 failed, 2 cancelled — failed: status check; cancelled: renderer unit (macos-15), backend unit (macos-15)",
+              "date": "2026-11-19",
+              "build": "11e5f2dac64424a0c94c8df899e4252edd7c1e8b",
+              "evidence": "https://github.com/xronocode/mark/pull/283"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending",
+          "detail": "Owner verdicts pending in the train acceptance protocol on the release-candidate build."
+        }
+      },
+      {
+        "id": "FIX-023",
+        "summary": "Bookmark persistence failures no longer leave the library degraded: only the invoking main window can atomically consume pending bookmark-persistence warnings, and pending opens plus compatibility folder grants keep their usable access after a typed persistence failure.",
+        "state": "queued",
+        "commits": [
+          "e440df40cf1d4c21bb60ed350ddbe0f554c914c5"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/284",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "21 success, 0 failed, 0 cancelled",
+              "date": "2026-11-19",
+              "build": "e440df40cf1d4c21bb60ed350ddbe0f554c914c5",
+              "evidence": "https://github.com/xronocode/mark/pull/284"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending",
+          "detail": "Owner verdicts pending in the train acceptance protocol on the release-candidate build."
+        }
+      },
+      {
+        "id": "C-TABLE-LAYOUT-COMPLETION",
+        "summary": "One internal table-layout completion stage owns the terminal sequence — walls, cue-from-real-geometry, repaint bookkeeping, cause-gated persist — replacing six handler-local persist sites, so the final ordering of a table resize can no longer drift between handlers.",
+        "state": "queued",
+        "commits": [
+          "06a1b176dd129963171d940ee70e7c65f44e4622"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/286",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "19 success, 1 failed, 1 cancelled — failed: status check; cancelled: QuickLook native boundary (macos-15)",
+              "date": "2026-11-19",
+              "build": "06a1b176dd129963171d940ee70e7c65f44e4622",
+              "evidence": "https://github.com/xronocode/mark/pull/286"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending",
+          "detail": "Owner verdicts pending in the train acceptance protocol on the release-candidate build."
+        }
+      },
+      {
+        "id": "C-TABLE-DIALOG-CREATION-VERIFICATION",
+        "summary": "The table-creation dialog focuses its rows input through the dialog's own open-auto-focus chain on open (no timers), and the two previously skipped component regressions now run as real-mount checks with ten mutation probes; defaults, limits, reset, cancel and confirmation are unchanged.",
+        "state": "queued",
+        "commits": [
+          "e64fadabdf98b052a84329a28f3f631943fa0b68"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/287",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "21 success, 0 failed, 0 cancelled",
+              "date": "2026-11-20",
+              "build": "e64fadabdf98b052a84329a28f3f631943fa0b68",
+              "evidence": "https://github.com/xronocode/mark/pull/287"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending",
+          "detail": "Owner verdicts pending in the train acceptance protocol on the release-candidate build."
+        }
+      },
+      {
+        "id": "C-QUICKLOOK-SYNTAX-THEME",
+        "summary": "QuickLook code previews follow the system light/dark appearance: append-only prefers-color-scheme: light overrides give the syntax tokens an unrounded WCAG contrast of at least 4.5:1 across all 13 token groups on the light code background, while the dark appearance and the security boundary stay byte-unchanged.",
+        "state": "queued",
+        "commits": [
+          "85909cf22889cc85a2a8827bc9c0e9774b9fbebe"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/288",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "21 success, 0 failed, 0 cancelled",
+              "date": "2026-11-20",
+              "build": "85909cf22889cc85a2a8827bc9c0e9774b9fbebe",
+              "evidence": "https://github.com/xronocode/mark/pull/288"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending",
+          "detail": "Owner verdicts pending in the train acceptance protocol on the release-candidate build."
+        }
+      },
+      {
+        "id": "C-SEARCH-SESSION-COMPLETION",
+        "summary": "A multi-root search now delivers every matching root's results before one final complete event: one session coordinator owns completion with a strictly increasing session-wide sequence, so searches no longer end early or drop later roots' results.",
+        "state": "queued",
+        "commits": [
+          "8c723be70306a942866cc99ae0ecc9631a442202"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/289",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "21 success, 0 failed, 0 cancelled",
+              "date": "2026-11-20",
+              "build": "8c723be70306a942866cc99ae0ecc9631a442202",
+              "evidence": "https://github.com/xronocode/mark/pull/289"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending",
+          "detail": "Owner verdicts pending in the train acceptance protocol on the release-candidate build."
+        }
+      },
+      {
+        "id": "C-PELE-HTML-POSTPROCESS",
+        "summary": "HTML export now post-processes pele diagrams exactly like the accepted live rendering — pie donut holes and kanban surface remapping reach every export branch — so exported diagrams match what the editor shows.",
+        "state": "queued",
+        "commits": [
+          "499522fd4a37cd33212157433476bef1305325f2"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/290",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "21 success, 0 failed, 0 cancelled",
+              "date": "2026-11-20",
+              "build": "499522fd4a37cd33212157433476bef1305325f2",
+              "evidence": "https://github.com/xronocode/mark/pull/290"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending",
+          "detail": "Owner verdicts pending in the train acceptance protocol on the release-candidate build."
+        }
+      },
+      {
+        "id": "C-EXTERNAL-RELOAD-OPERATION",
+        "summary": "External file changes follow one reload owner: a single admission policy (clean-automatic skips equal text; confirmed replaces even on equal), one read per attempt with no retries, and permission-aware replacement — the two store entry points become thin adapters with identical behavior.",
+        "state": "queued",
+        "commits": [
+          "35c922373514ea677fda2f537220b36865a1e785"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/292",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "21 success, 0 failed, 0 cancelled",
+              "date": "2026-11-20",
+              "build": "35c922373514ea677fda2f537220b36865a1e785",
+              "evidence": "https://github.com/xronocode/mark/pull/292"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending",
+          "detail": "Owner verdicts pending in the train acceptance protocol on the release-candidate build."
+        }
+      },
+      {
+        "id": "C-SEC-STREAM-SCOPE",
+        "summary": "The extension data routes are capability-scoped: reading context requires context.read, applying edits requires text.edit and text insert requires text.insert, so a stream-only paired extension can no longer reach the context or edit routes.",
+        "state": "queued",
+        "commits": [
+          "76dce9422effa62f3401e19987abf4cacf2781ba"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/293",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "21 success, 0 failed, 0 cancelled",
+              "date": "2026-11-20",
+              "build": "76dce9422effa62f3401e19987abf4cacf2781ba",
+              "evidence": "https://github.com/xronocode/mark/pull/293"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending",
+          "detail": "Owner verdicts pending in the train acceptance protocol on the release-candidate build."
+        }
+      },
+      {
+        "id": "C-SEC-PAIR-REBIND",
+        "summary": "Re-pairing an extension id that already holds a live secret is now a gated operation: the request must prove the prior secret or go through an explicit trust reset, and a refused rebind keeps the previous token working on every route.",
+        "state": "queued",
+        "commits": [
+          "fdb8b6ec78b3b8bc0a2ef345315ac03276eb93e3"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/294",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "19 success, 1 failed, 1 cancelled — failed: status check; cancelled: backend unit (macos-15)",
+              "date": "2026-11-20",
+              "build": "fdb8b6ec78b3b8bc0a2ef345315ac03276eb93e3",
+              "evidence": "https://github.com/xronocode/mark/pull/294"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending",
+          "detail": "Owner verdicts pending in the train acceptance protocol on the release-candidate build."
+        }
+      },
+      {
+        "id": "C-SEC-EDIT-TARGETING",
+        "summary": "Extension edits are bound to the document instance they were prepared against: context reads return the tab identity and generation, apply must echo them, and stale or never-issued bindings are refused before any edit event is emitted.",
+        "state": "queued",
+        "commits": [
+          "2791edf704b11b82d1b29ba1b28e2ea64cddb579"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/295",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "21 success, 0 failed, 0 cancelled",
+              "date": "2026-11-20",
+              "build": "2791edf704b11b82d1b29ba1b28e2ea64cddb579",
+              "evidence": "https://github.com/xronocode/mark/pull/295"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending",
+          "detail": "Owner verdicts pending in the train acceptance protocol on the release-candidate build."
+        }
+      },
+      {
+        "id": "C-SEC-SAVE-HANDLE",
+        "summary": "The save path re-fences the file immediately before the only opening syscall: a symlink swap landing in the window after validation is denied instead of writing outside the sandbox, while already-allowed inward symlinks keep working.",
+        "state": "queued",
+        "commits": [
+          "ff7bb7975e8850807544caa6c5d74354181abbfb"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/296",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "21 success, 0 failed, 0 cancelled",
+              "date": "2026-11-21",
+              "build": "ff7bb7975e8850807544caa6c5d74354181abbfb",
+              "evidence": "https://github.com/xronocode/mark/pull/296"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending",
+          "detail": "Owner verdicts pending in the train acceptance protocol on the release-candidate build."
+        }
+      },
+      {
+        "id": "C-SEC-EXT-GRANT-BOUND",
+        "summary": "An enabled extension's rights are bounded by the capability set approved in the pairing dialog and stored beside the credential — not by whatever its live manifest claims; enabling a manifest that grew beyond the stored grant is refused into explicit re-approval, and legacy credentials without a grant fail closed.",
+        "state": "queued",
+        "commits": [
+          "55739a55cfbe3b5f55b9105b8741e9adc44a8354"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/298",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "16 success, 2 failed, 3 cancelled — failed: status check, renderer unit (ubuntu-latest); cancelled: renderer unit (macos-15), renderer e2e playwright (macos-15), backend unit (macos-15)",
+              "date": "2026-11-21",
+              "build": "55739a55cfbe3b5f55b9105b8741e9adc44a8354",
+              "evidence": "https://github.com/xronocode/mark/pull/298"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending",
+          "detail": "Owner verdicts pending in the train acceptance protocol on the release-candidate build."
+        }
+      },
+      {
+        "id": "C-WIN-ROLLBACK-PANIC",
+        "summary": "The Windows Help-menu rollback no longer panics: the verified-restore core runs inside spawn_blocking instead of block_on within Tauri's async command task, every rollback fetch carries deadlines (10 s connect / 300 s total, 660 s menu bound), and installer accounting reconciles pending-rollback state at boot.",
+        "state": "queued",
+        "commits": [
+          "33315ea73454b97d7ff12630cecf4185194bc4b2"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/300",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "21 success, 0 failed, 0 cancelled",
+              "date": "2026-11-21",
+              "build": "33315ea73454b97d7ff12630cecf4185194bc4b2",
+              "evidence": "https://github.com/xronocode/mark/pull/300"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending",
+          "detail": "Owner verdicts pending in the train acceptance protocol on the release-candidate build."
+        }
+      },
+      {
+        "id": "C-STREAM-BUDGET",
+        "summary": "Each extension streaming session carries an explicit budget — 64 MiB cumulative payload by default, charged on the accepted initial document and each applied patch — with per-section and update-rate bounds and an explicit refusal voice when a push would exceed the cap.",
+        "state": "queued",
+        "commits": [
+          "e45f79364aa5200b466cc0508b73c170bbd925c8"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/302",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "21 success, 0 failed, 0 cancelled",
+              "date": "2026-11-21",
+              "build": "e45f79364aa5200b466cc0508b73c170bbd925c8",
+              "evidence": "https://github.com/xronocode/mark/pull/302"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending",
+          "detail": "Owner verdicts pending in the train acceptance protocol on the release-candidate build."
+        }
+      },
+      {
+        "id": "C-SEARCH-ERROR-VISIBILITY",
+        "summary": "Search failures stop masquerading as 'No results found': engine errors end the session with exactly one localized failure state (already-streamed hits marked partial), rg's exit status is reaped and checked, and codes 0/1 remain normal completion.",
+        "state": "queued",
+        "commits": [
+          "e0219a8fabeb650bdaed819e291bde2b97dd10c0"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/303",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "19 success, 1 failed, 1 cancelled — failed: status check; cancelled: renderer e2e playwright (macos-15)",
+              "date": "2026-11-22",
+              "build": "e0219a8fabeb650bdaed819e291bde2b97dd10c0",
+              "evidence": "https://github.com/xronocode/mark/pull/303"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending",
+          "detail": "Owner verdicts pending in the train acceptance protocol on the release-candidate build."
+        }
+      },
+      {
+        "id": "C-SESSION-WRITE-ATOMICITY",
+        "summary": "The session profile is written as one backend transaction under a single mutex acquisition and store save, so a crash can no longer leave a torn mixed-generation profile, and closing a window no longer kills an in-flight save — the close warning is honest about pending writes.",
+        "state": "queued",
+        "commits": [
+          "0a0b6589577e58343c5fc10877fb42c2939ef9fd"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/304",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "21 success, 0 failed, 0 cancelled",
+              "date": "2026-11-22",
+              "build": "0a0b6589577e58343c5fc10877fb42c2939ef9fd",
+              "evidence": "https://github.com/xronocode/mark/pull/304"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending",
+          "detail": "Owner verdicts pending in the train acceptance protocol on the release-candidate build."
+        }
+      },
+      {
+        "id": "C-EXPORT-BOUNDARIES",
+        "summary": "Export boundaries stop leaking document data silently: out-of-scope images are embedded only after an explicit consent card naming the resolved files, declined links are skipped and counted so the embedded/total notice stays honest, and diagram sources that cannot render ship as readable fenced placeholders.",
+        "state": "queued",
+        "commits": [
+          "c74951fedb08410bba6e7c979457cffeecf5b381"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/308",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "21 success, 0 failed, 0 cancelled",
+              "date": "2026-11-21",
+              "build": "c74951fedb08410bba6e7c979457cffeecf5b381",
+              "evidence": "https://github.com/xronocode/mark/pull/308"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending",
+          "detail": "Owner verdicts pending in the train acceptance protocol on the release-candidate build."
+        }
+      },
+      {
+        "id": "C-COMPACT-WINDOWS-FIT",
+        "summary": "At the app's compact window sizes the quick-settings panel now fits (viewport-bound with one scroll region, the 62vh double-cap gone), five more controls show the visible keyboard-focus outline, the modal sheets trap focus, and the titlebar 'Aa' button is spacebar-operable.",
+        "state": "queued",
+        "commits": [
+          "c3ccd5e3ee77cc1f6961f2846315a24690012310"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/312",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "21 success, 0 failed, 0 cancelled",
+              "date": "2026-11-21",
+              "build": "c3ccd5e3ee77cc1f6961f2846315a24690012310",
+              "evidence": "https://github.com/xronocode/mark/pull/312"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending",
+          "detail": "Owner verdicts pending in the train acceptance protocol on the release-candidate build."
+        }
+      },
+      {
+        "id": "C-PREFS-TRUTH",
+        "summary": "Preferences hydrate through the documented schema with a one-shot repair of invalid values (loud BLOCK markers naming key, offending value and reason), the Settings form and the autosave timer see the same corrected values, and CSS/theme application is honest — a theme switch no longer clobbers the applied width and clearing custom CSS really clears it.",
+        "state": "queued",
+        "commits": [
+          "87d1a36134b7b6e336c48f9c5d5f1a3d3d90e809"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/313",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "21 success, 0 failed, 0 cancelled",
+              "date": "2026-11-22",
+              "build": "87d1a36134b7b6e336c48f9c5d5f1a3d3d90e809",
+              "evidence": "https://github.com/xronocode/mark/pull/313"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending",
+          "detail": "Owner verdicts pending in the train acceptance protocol on the release-candidate build."
+        }
+      },
+      {
+        "id": "C-EXPORT-SINGLE-PAGE",
+        "summary": "The Export settings window is now a single scrollable page instead of six tabs — page setup, styling, content options and running heads — with one-click margin presets, plain header/footer strips and a Reset button, and it opens with the options you actually used last time instead of silently resetting to defaults.",
+        "state": "queued",
+        "commits": [
+          "72f7f410f88d88b90039f1f11e4da42e5cd583c2"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/188",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "16 success, 1 failed, 0 cancelled — failed: Analyze (javascript-typescript)",
+              "date": "2026-11-08",
+              "build": "72f7f410f88d88b90039f1f11e4da42e5cd583c2",
+              "evidence": "https://github.com/xronocode/mark/pull/188"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending",
+          "detail": "Owner verdicts pending in the train acceptance protocol on the release-candidate build."
+        }
+      },
+      {
+        "id": "C-DOC-POPOVER-EXPORT-HUB",
+        "summary": "The document popover under the file name in the title bar gets an Apple-HIG proportions pass and a quick-export row — PDF, Word and HTML one row under the statistics, wired to the same commands as File > Export.",
+        "state": "queued",
+        "commits": [
+          "72f7f410f88d88b90039f1f11e4da42e5cd583c2"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/188",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "16 success, 1 failed, 0 cancelled — failed: Analyze (javascript-typescript)",
+              "date": "2026-11-08",
+              "build": "72f7f410f88d88b90039f1f11e4da42e5cd583c2",
+              "evidence": "https://github.com/xronocode/mark/pull/188"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending",
+          "detail": "Owner verdicts pending in the train acceptance protocol on the release-candidate build."
+        }
+      },
+      {
+        "id": "C-TABLE-BAR-MENU-OVERLAP",
+        "summary": "The small menus that open from the table row/column drag pills now render every label on exactly one line in all ten locales — the hard-coded 150px width that wrapped Russian, German, French, Spanish and Portuguese labels onto a second line painted over the next menu item is gone; English and CJK menus look exactly as before.",
+        "state": "queued",
+        "commits": [
+          "4dcde343158be19e30dffe2e03e6d214278d331e"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/191",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "9 success, 3 failed, 0 cancelled, 4 skipped — failed: change classification (2), status check",
+              "date": "2026-11-09",
+              "build": "4dcde343158be19e30dffe2e03e6d214278d331e",
+              "evidence": "https://github.com/xronocode/mark/pull/191"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending",
+          "detail": "Owner verdicts pending in the train acceptance protocol on the release-candidate build."
+        }
       }
     ],
     "operational": [
@@ -3308,6 +4044,567 @@
         "acceptance": {
           "status": "pending",
           "detail": "Owner verdicts pending on the first prerelease build (external tester session)."
+        }
+      },
+      {
+        "id": "C-TABLE-PROFILE-SCHEMA",
+        "summary": "One pure, zero-import table-layout schema owner now backs both persisted-entry consumers (Muya's sanitize and the renderer's migration) instead of two independent decoders; Muya stays self-contained and the intentional boundary differences stay pinned.",
+        "state": "queued",
+        "commits": [
+          "deb690cbf890b5a013e438f83c5860dc4d7092cb"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/285",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "19 success, 2 failed, 0 cancelled — failed: status check, backend unit (ubuntu-latest)",
+              "date": "2026-11-19",
+              "build": "deb690cbf890b5a013e438f83c5860dc4d7092cb",
+              "evidence": "https://github.com/xronocode/mark/pull/285"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-CLIPBOARD-CAPTURE-SINGLE-SOURCE",
+        "summary": "The clipboard-capture browser artifact is generated deterministically from the single authored capture-core.js via vite transformWithEsbuild, with a --check freshness gate that fails closed on drift — no more hand-maintained second copy.",
+        "state": "queued",
+        "commits": [
+          "be2f52f880bc453891ec623169d12b0162b4bd3d"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/291",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "19 success, 2 failed, 0 cancelled — failed: status check, renderer unit (windows-latest)",
+              "date": "2026-11-20",
+              "build": "be2f52f880bc453891ec623169d12b0162b4bd3d",
+              "evidence": "https://github.com/xronocode/mark/pull/291"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-SEC-GITLEAKS-CHECKSUM",
+        "summary": "The docs-security job downloads the pinned Gitleaks archive to a file, verifies a strict SHA-256 check against the committed digest and only then extracts and executes — the curl-to-tar pipe is gone and a mismatch fails the job before extraction.",
+        "state": "queued",
+        "commits": [
+          "229b3a69be8e16ca1717d8f2fea580ba4be69b75"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/297",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "20 success, 1 failed, 0 cancelled — failed: Analyze (swift)",
+              "date": "2026-11-21",
+              "build": "229b3a69be8e16ca1717d8f2fea580ba4be69b75",
+              "evidence": "https://github.com/xronocode/mark/pull/297"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-RELEASE-BETA-CHECKS-GATE",
+        "summary": "The prerelease lane no longer publishes from a red commit: authorize-tag collects the seal's check runs with the stable lane's exact shape and a new gate requires every pinned prerelease required check to exist exactly once at that SHA with conclusion success — failed, cancelled or missing fails the lane before signing or packaging.",
+        "state": "queued",
+        "commits": [
+          "9caf575b1761a52fff3ad66505d2bd8ece240ef3"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/299",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "17 success, 1 failed, 3 cancelled — failed: status check; cancelled: renderer unit (macos-15), renderer e2e playwright (macos-15), backend unit (macos-15)",
+              "date": "2026-11-21",
+              "build": "9caf575b1761a52fff3ad66505d2bd8ece240ef3",
+              "evidence": "https://github.com/xronocode/mark/pull/299"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-NET-STACK-BUMP",
+        "summary": "Two precise Cargo.lock updates — rustls-webpki 0.103.16 (TLS verification on Linux) and h2 0.4.16 (HTTP/2 for the updater and rollback fetch paths); no manifest change, the lock diff is exactly the two version rows.",
+        "state": "queued",
+        "commits": [
+          "98bab7cc8f2795796e041ee41fd708fea6796d0e"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/306",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "21 success, 0 failed, 0 cancelled",
+              "date": "2026-11-21",
+              "build": "98bab7cc8f2795796e041ee41fd708fea6796d0e",
+              "evidence": "https://github.com/xronocode/mark/pull/306"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-QUICKLOOK-MDIT-BUMP",
+        "summary": "QuickLook preview engine update: the two vendored libraries move to their patched releases as byte-exact upstream copies — markdown-it 14.2.0 → 14.3.3 (linkify, smartquotes and multi-line definition fixes) and Highlight.js 11.9.0 → 11.12.0; version pins in the QuickLook runner tests stop a future re-vendor from drifting silently.",
+        "state": "queued",
+        "commits": [
+          "94a35d66dd018c22ea415954a81096094c580ebb"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/307",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "21 success, 0 failed, 0 cancelled",
+              "date": "2026-11-21",
+              "build": "94a35d66dd018c22ea415954a81096094c580ebb",
+              "evidence": "https://github.com/xronocode/mark/pull/307"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-DOCS-SYNC",
+        "summary": "Docs-sync wave: NOTICES carry file-icons' true MIT license via a pinned generator override, and docs, notices and governance records align with shipped reality — every item re-verified against the current tree, three dropped with evidence in the spec.",
+        "state": "queued",
+        "commits": [
+          "116a2f0faa380f23bb93ee0f9e62e959e518a343"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/309",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "21 success, 0 failed, 0 cancelled",
+              "date": "2026-11-21",
+              "build": "116a2f0faa380f23bb93ee0f9e62e959e518a343",
+              "evidence": "https://github.com/xronocode/mark/pull/309"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-DEV-ENV-ISOLATION",
+        "summary": "Dev runs default to a separate com.xronocode.mark.dev profile namespace bound at boot, and the dev-smoke build/launch cycle verifies an owned PID before any kill — dev and QA tooling can no longer mutate or kill production state.",
+        "state": "queued",
+        "commits": [
+          "8f4d8f261c3c322eb824d49e44dfcdb852f37ab0"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/310",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "21 success, 0 failed, 0 cancelled",
+              "date": "2026-11-22",
+              "build": "8f4d8f261c3c322eb824d49e44dfcdb852f37ab0",
+              "evidence": "https://github.com/xronocode/mark/pull/310"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-CI-TOOLS-TIMEOUT",
+        "summary": "The tools spawn-fixture suites (run-rust-tests, qa-launch-gate, qa-artifact-smoke) declare a 30 s per-test budget, removing honest-run timeout flakes on loaded shared Windows runners; no assertion or fixture changes.",
+        "state": "queued",
+        "commits": [
+          "af2e99ddf8eac658be0a4420dc23eabc1464b26c"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/311",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "21 success, 0 failed, 0 cancelled",
+              "date": "2026-11-21",
+              "build": "af2e99ddf8eac658be0a4420dc23eabc1464b26c",
+              "evidence": "https://github.com/xronocode/mark/pull/311"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-RELEASE-SIGNING-SPLIT",
+        "summary": "The privileged release build job is split into an unsigned build and a digest-gated sign job: signing keys and Apple signing data no longer share a step that runs npm install scripts and Vite plugins; the build job stages unsigned bundles with SHA-256 receipts and every signature-dependent step moves to the gated sign job.",
+        "state": "queued",
+        "commits": [
+          "3f61c2b73a0d0ee8aea83bd3fa5a1b09bab182c9"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/315",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "14 success, 1 failed, 6 cancelled — failed: status check; cancelled: renderer unit (windows-latest, ubuntu-latest, macos-15), renderer e2e playwright (macos-15), backend unit (macos-15), QuickLook native boundary (macos-15)",
+              "date": "2026-11-22",
+              "build": "3f61c2b73a0d0ee8aea83bd3fa5a1b09bab182c9",
+              "evidence": "https://github.com/xronocode/mark/pull/315"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-UPDATER-STATS",
+        "summary": "The update funnel becomes measurable with no identifiers and no in-app telemetry: the updater's check endpoint asks our redirect-only counter first (day, OS, from-version, then an immediate 302 to the release feed), served as a Workers custom domain with post-archive live evidence recorded.",
+        "state": "queued",
+        "commits": [
+          "01d45767a25802a390092c07f9c63a771ff8ab7f",
+          "f3d88851261d6ddad27c968a2c3048342066ab63"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/165",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "17 success, 0 failed, 0 cancelled",
+              "date": "2026-11-02",
+              "build": "01d45767a25802a390092c07f9c63a771ff8ab7f",
+              "evidence": "https://github.com/xronocode/mark/pull/165"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-LARGE-DOC-WAVE-A",
+        "summary": "Experimental progressive mount for large documents: the visible part of the file appears first and the rest loads in the background without freezing typing or scrolling — one Experimental switch in Settings, off by default and session-latched, with the five owner decisions FINAL in the LargeDocumentContract.",
+        "state": "queued",
+        "commits": [
+          "e8eed5b88719f49e9d7ffdf62332bd338f9b6df4",
+          "d150eed729864895027134afa38349f999f8cb20"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/170",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "17 success, 0 failed, 0 cancelled",
+              "date": "2026-11-02",
+              "build": "e8eed5b88719f49e9d7ffdf62332bd338f9b6df4",
+              "evidence": "https://github.com/xronocode/mark/pull/170"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-LARGE-DOC-STAGE-0",
+        "summary": "Large-document Stage 0 — measurement infrastructure and behavioral oracles only: no product behavior change (muya, editor.vue and store/editor.js byte-identical to the branch point, machine-verified), giving the wave work a trustworthy Mark-specific baseline.",
+        "state": "queued",
+        "commits": [
+          "89541d8e1bbbca19d410efaf5a531bc61c7e44fe",
+          "e7c32b8512db9ca6b73fa3681a4b629d82448a66",
+          "3da9729deff7400c1f5b3fd6ec46de60df8f3432"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/126",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "17 success, 0 failed, 0 cancelled",
+              "date": "2026-10-30",
+              "build": "89541d8e1bbbca19d410efaf5a531bc61c7e44fe",
+              "evidence": "https://github.com/xronocode/mark/pull/126"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-STATS-READOUT",
+        "summary": "The update-funnel counters become readable through one keyed request: GET /stats answers the day x checks/clicks tables and the from-version breakdown as JSON behind an X-Read-Key header — reading the numbers no longer needs a Cloudflare account token.",
+        "state": "queued",
+        "commits": [
+          "3f7d45aad16f3615253e84001b271b663540e2a4"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/182",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "17 success, 0 failed, 0 cancelled",
+              "date": "2026-11-03",
+              "build": "3f7d45aad16f3615253e84001b271b663540e2a4",
+              "evidence": "https://github.com/xronocode/mark/pull/182"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-STATS-DASH-PUSH",
+        "summary": "The stats gateway forwards every update check and package download to the owner's own analytics dashboard in addition to the raw Analytics Engine store — no third party involved, no new user-facing behavior; the push stays off until a dashboard-issued ingest key is set as the worker secret.",
+        "state": "queued",
+        "commits": [
+          "8c9a6c2e1f765d72a96791518eeba30adb6c5f1b"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/184",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "17 success, 0 failed, 0 cancelled",
+              "date": "2026-11-04",
+              "build": "8c9a6c2e1f765d72a96791518eeba30adb6c5f1b",
+              "evidence": "https://github.com/xronocode/mark/pull/184"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "C-RELEASE-MANUAL-PUBLISH",
+        "summary": "Rule 1 of the owner's five-rule train protocol: the train always waits and publication never follows from silence — the veto-window job is repealed and the release lane restores synchronous owner approval, with the approved spec recorded and the bundle archived as applied.",
+        "state": "queued",
+        "commits": [
+          "1d58bc385b12e20a953a1077cc1849b8f306c2ba",
+          "90882853afed0308d3b7ed8751cb30c9f505f6aa",
+          "eca85dcd06418b311f0d7e5006aa7ae3eea51103"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/77",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "0 success, 0 failed, 0 cancelled — no check runs recorded at the merge commit (queried 2026-11-22)",
+              "date": "2026-10-26",
+              "build": "1d58bc385b12e20a953a1077cc1849b8f306c2ba",
+              "evidence": "https://github.com/xronocode/mark/pull/76"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "DEPS-MAINTENANCE-2.9",
+        "summary": "Routine dependency maintenance across the 2.9.x-next range: the 29 first-parent merges titled 'chore: bump' or 'chore(deps)' between 16a4a47e and bb68fd6c — dependabot patch/minor groups, single-package bumps and the breaking majors merged after their runs (vue-router 5, TypeScript 7, jsdom 31, rand 0.10, the tauri 2.12 cargo+npm lockstep, vite 8 among them); the three dependency merges that carry their own item identity (DEPS-PELE-1-10, C-NET-STACK-BUMP, C-QUICKLOOK-MDIT-BUMP) are recorded separately.",
+        "state": "queued",
+        "commits": [
+          "2722bd851531290860624e14ddc18973bcd901f0",
+          "239e5dabbb110a3b85918d546f5cfb8cd22c32f8",
+          "7706ddf5eafe164bdbc4765042231d2a73e4ca2d",
+          "71d07f228d6b0d862090dc14a4eaa9a17efa8da2",
+          "6ba2f26a26b1900c42fa65fe12fc0e69f8e8a3a2",
+          "dceb337c46567364c0b210b726835506d54353e7",
+          "ef5faf33299298e6e3ed0ebe125b393a2a51e60c",
+          "fc2f5c65811614679885a4f542c6e5d9207fbc54",
+          "780a66557f0305b6802bb961e3ddfe3d1d0d35c4",
+          "59463950cdc59f9a1e70203efe90b0077a97674d",
+          "f82620cf7324605ed3fafc62b085efc1617e8446",
+          "388b666915ba675d9f5728b1f3f5f0392697f937",
+          "8934a2116c18ec4d791d09003b4e778c98dd4a0b",
+          "8f442fbd1901803f5fddfb78895bc498455e390b",
+          "17782937c8832f77691ff104582746a2c09de3ea",
+          "78925332edc27637c6722ae7dad0d62f24d74275",
+          "c36a187286bb1c3c81e4efbc546daee028d2c12b",
+          "eee7b742ab41efda64cf8aeedb2e201ad9c4cffc",
+          "296dc5f0f965a906b61ea655b2b570c847f3f276",
+          "5e018f997db33cfea2e5c5f64a6389248c78db19",
+          "2dd5ae4f61274941a2f20eba417cc7a8b48f5b25",
+          "197a9d0e22c78a4bb5462c844c99eb81693e3ee1",
+          "48820f90cc8686b24d1128e009438547e898e425",
+          "073ae3df749730a72a7c33682d674f578c63347f",
+          "be525d259866571de3ae7df12b96a9e81b8d80f3",
+          "a4e9d99293b980f0616acd5e5f43e389dd5a1096",
+          "b3938b0f2fa9b15505abbcafffd245859b2c9b36",
+          "c4631cc5364370d61fdea20474421fbe75b4564e",
+          "bb68fd6ca3185b83f82cf12eac3cc189e8ab182e"
+        ],
+        "pullRequest": null,
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI at the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "Per-merge hosted CI plus a check-run audit of all 29 merge commits (2026-11-22): 14 commits fully green; 15 commits carry at least one non-success check-run each — macOS-runner cancellations (renderer/backend unit, renderer e2e playwright, QuickLook, Swift CodeQL, Dependabot lane) whose aggregate status check then fails, Swift CodeQL failures (#121, #130), Dependabot check failures (#142, #150, #208) and change-classification failures (#195). No fully-green claim is made for those 15 commits; per-commit conclusions were recorded during the admission audit.",
+              "date": "2026-11-22",
+              "build": "2722bd851531290860624e14ddc18973bcd901f0",
+              "evidence": "https://github.com/xronocode/mark/compare/16a4a47ed723740e330e44cf448bcbada766882c...bb68fd6ca3185b83f82cf12eac3cc189e8ab182e"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
         }
       }
     ],

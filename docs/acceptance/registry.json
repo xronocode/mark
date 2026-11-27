@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "protocol": "docs/acceptance/README.md",
   "scope": "Delivery items of the 2.6.x-next train onward. Pre-2.6.0 acceptance history is frozen prose in the Released 2.5.x-next record.",
-  "lastSynced": "2026-11-11",
+  "lastSynced": "2026-11-22",
   "artifacts": [
     {
       "id": "mark-test-fix009-7057d645",
@@ -1244,6 +1244,420 @@
           "date": "2026-11-17",
           "actor": "maintainer",
           "detail": "Implemented on PR #278 (squash ce92b473): full renderer suite 429-430 files / 0 failures, hosted CI green after macOS eviction reruns; PR merged by the owner 2026-11-17. Owner acceptance pending on the first prerelease build."
+        }
+      ]
+    },
+    {
+      "id": "FIX-022",
+      "summary": "Inline HTML inside a ruby annotation block reaches the preview's innerHTML sink unsanitized; the exposure was closed by default only while HTML rendering was disabled.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-19",
+          "actor": "owner",
+          "detail": "Security read-through of the muya renderers (2026-11-18), filed as issue #282 under the repository owner account xronocode (the PR closes it): htmlRuby fed token.raw straight into htmlToVNode, whose implementation is wrapper.innerHTML = html — an <img onerror=...> inside <ruby>... would execute handlers. Not exploitable in the default configuration (disableHtml: true suppresses non-image inline-HTML tokenization); the hole reopens when HTML rendering is enabled or a crafted ruby token reaches the renderer (paste-driven)."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-19",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #283 (merge 11e5f2da): htmlToVNode(sanitize(token.raw, PREVIEW_DOMPURIFY_CONFIG, disableHtml)) keeps ruby/rt/rp while stripping handlers; new pin html-ruby-sanitize 2/2 (onerror payload dropped, ruby markup kept); grace current lint 0 errors."
+        }
+      ]
+    },
+    {
+      "id": "FIX-023",
+      "summary": "When saving permission changes fails, bookmarks can be lost and the re-grant guidance misrouted; a failed persistence must preserve the previously stored permission set.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-19",
+          "actor": "maintainer",
+          "detail": "The PR body records no reporting source (supersedes #272, recomposed from the same three bookmark commits onto current main); the reporting origin is not fixed in the PR record."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-19",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #284 (merge e440df40): content-free main-window warning callback with invoking-window-only atomic consumption; bookmark-persistence-warning 35 passed with bootstrap-ipc; cargo check clean; composed delta byte-equivalent to the original 32-file composition."
+        }
+      ]
+    },
+    {
+      "id": "C-TABLE-LAYOUT-COMPLETION",
+      "summary": "Six table-resize handlers each carried their own final persist sequence, so the terminal ordering could drift between handlers.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-19",
+          "actor": "maintainer",
+          "detail": "Paused-program decision registry item (delegated technical), per the PR's reference to the change bundle; the PR body names no external reporter."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-19",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #286 (merge 06a1b176): completeTableOperation(cause, target) owns the terminal ordering; read-only funnels never write; completion matrix + persistence + column-resize 151/151; four table browser specs 86/86 in chromium and webkit-tables."
+        }
+      ]
+    },
+    {
+      "id": "C-TABLE-DIALOG-CREATION-VERIFICATION",
+      "summary": "The table-creation dialog's rows input was not reliably focused on open, and two of its component regressions were skipped.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-20",
+          "actor": "maintainer",
+          "detail": "Paused-program decision registry item (delegated technical), per the PR's reference to the change bundle; the PR body names no external reporter."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-20",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #287 (merge e64fadab): open-auto-focus chain with trapDefault guard; component suites 303/303 including the restored cases and mutation controls; table-dialog browser spec 6/6 on a fresh build in chromium and webkit-tables."
+        }
+      ]
+    },
+    {
+      "id": "C-QUICKLOOK-SYNTAX-THEME",
+      "summary": "QuickLook code-preview syntax tokens kept the dark palette under the system light appearance.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-20",
+          "actor": "maintainer",
+          "detail": "Paused-program decision registry item (delegated technical), per the PR's reference to the change bundle; the PR body names no external reporter."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-20",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #288 (merge 85909cf2): light overrides in the packaged github-dark.css (13 groups / 41 selectors, unrounded contrast table vs the approved spec); check-quicklook 26/26 with 0 network requests; quicklook-runner + release-github-controls 80/80; unsigned MarkPreview xcodebuild BUILD SUCCEEDED."
+        }
+      ]
+    },
+    {
+      "id": "C-SEARCH-SESSION-COMPLETION",
+      "summary": "In a multi-root search each root emitted its own terminal and reset the session sequence (live trace: match,complete,match,complete,complete), so the renderer's settle-on-first-terminal consumer could drop later roots' results.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-20",
+          "actor": "maintainer",
+          "detail": "Recorded origin: the open item of audit cluster COMPLEX:F-005 (per the PR's reference); the PR body names no external reporter."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-20",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #289 (merge 8c723be7): SearchSessionCoordinator in the m013b backend owns both adapters; cargo search suite 41/41 (single terminal, seq monotonic across roots, cancellation, error stops remaining roots); renderer session-trace trio 59/59; wire envelope byte-unchanged."
+        }
+      ]
+    },
+    {
+      "id": "C-PELE-HTML-POSTPROCESS",
+      "summary": "HTML export inserted raw pele SVGs: pie donut holes and kanban surface remapping only ever reached the live rendering.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-20",
+          "actor": "maintainer",
+          "detail": "Paused-program decision registry item (delegated technical), per the PR's reference to the change bundle; the PR body names no external reporter."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-20",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #290 (merge 499522fd): renderPele runs the exported postProcessPeleSvg before insertion; appearance + pele-theme + pipeline + current-model suites 54/54; diagram-appearance browser 14/14 in chromium and webkit on a fresh build."
+        }
+      ]
+    },
+    {
+      "id": "C-EXTERNAL-RELOAD-OPERATION",
+      "summary": "External-reload admission and revalidation logic was duplicated across the APPLY_FILE_CHANGE and loadChange entry points.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-20",
+          "actor": "maintainer",
+          "detail": "Paused-program decision registry item (delegated technical, last queue position), per the PR's reference to the change bundle; the PR body names no external reporter."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-20",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #292 (merge 35c92237): zero-import util/externalReload.js owns the lifecycle (-101 adapter lines); external-reload trio 109/109 including races and identity binding; live-reload-scroll browser 2/2."
+        }
+      ]
+    },
+    {
+      "id": "C-SEC-STREAM-SCOPE",
+      "summary": "The incoming extension data routes authenticated with capability None, so a stream.document-only paired extension could read context and edit text.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-20",
+          "actor": "maintainer",
+          "detail": "Fixes the blocking finding F-001 of the 2026-11-20 smart-review security section (per the PR's references); the PR body names no external reporter."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-20",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #293 (merge 76dce942): every incoming route checks the exact required capability against the paired manifest; cargo m045_ext 73/73 (capability matrix, flipped over-grant pin); renderer regression suites 91 green."
+        }
+      ]
+    },
+    {
+      "id": "C-SEC-PAIR-REBIND",
+      "summary": "Re-pairing an extension id that already holds a live secret replaced the token without proof of the prior secret.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-20",
+          "actor": "maintainer",
+          "detail": "Second finding of the 2026-11-20 security review (token replacement via re-pairing, per the PR's references); the PR body names no external reporter."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-20",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #294 (merge fdb8b6ec): constant-time prior-secret proof or verified trust reset; cargo m045_ext 78/78 (five-test rebind family incl. refusal and old-token fencing); cargo check clean."
+        }
+      ]
+    },
+    {
+      "id": "C-SEC-EDIT-TARGETING",
+      "summary": "Extension context reads and edits were not bound to the document instance they were prepared against — edits could land in a different document.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-20",
+          "actor": "maintainer",
+          "detail": "Third finding of the security review (edits landing in a different document, per the PR's references); the PR body names no external reporter."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-20",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #295 (merge 2791edf7): document binding with 400/409 refusals before any mt::text::op emit; cargo m045_ext 77/77 (binding matrix incl. stale-instance refusal with zero events); renderer trio 270/270."
+        }
+      ]
+    },
+    {
+      "id": "C-SEC-SAVE-HANDLE",
+      "summary": "A symlink swap landing between save-path validation and open could redirect the write outside the sandbox (TOCTOU).",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-21",
+          "actor": "maintainer",
+          "detail": "Save-path TOCTOU finding of the 2026-11-20 security review (per the PR's references); the PR body names no external reporter."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-21",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #296 (merge ff7bb797): second full check_path re-fence after create_dir_all with BLOCK_REVALIDATION_CHANGED logging; m013b::fs 40/40 (three new race shapes on a deterministic seam), m010_security 34/34, m001_save_close 24/24, m005_prefs 19/19."
+        }
+      ]
+    },
+    {
+      "id": "C-SEC-EXT-GRANT-BOUND",
+      "summary": "An enabled extension's live rights followed its current manifest rather than the capability set the owner approved at pairing.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-21",
+          "actor": "maintainer",
+          "detail": "Security re-audit 2026-11-21 findings F-001+F-002+F-003, one m045_ext bundle (per the PR body); the PR body names no external reporter."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-21",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #298 (merge 55739a55): stored grant authorizes every route including /stream/* at open and on state changes; cargo m045_ext 83 passed / 0 failed; extensionGallery vitest 57/57; cargo check clean."
+        }
+      ]
+    },
+    {
+      "id": "C-WIN-ROLLBACK-PANIC",
+      "summary": "The Windows menu rollback panicked inside Tauri's async command task before the first network response, because the transport built a fresh current-thread runtime and called Runtime::block_on in that context.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-21",
+          "actor": "maintainer",
+          "detail": "Audit integration-reliability finding F-001 (high) plus the same module's F-006/F-007 tails (per the PR body); the PR body names no external reporter."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-21",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #300 (merge 33315ea7): restore core via spawn_blocking with typed Err paths into the localized rollback.restoreFailed notices; cargo m068_rollback 91 passed / 0 failed (71 existing + 20 new); vitest autoUpdates + rollbackConfirm + updater 67/67; no Windows host needed for the gates (structure pinned through injected seams)."
+        }
+      ]
+    },
+    {
+      "id": "C-STREAM-BUDGET",
+      "summary": "A paired, legitimately approved extension could push unbounded volume, section count and update rate through /stream/*.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-21",
+          "actor": "maintainer",
+          "detail": "Security re-audit finding F-004 (per the PR body); the PR body names no external reporter."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-21",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #302 (merge e45f7936): per-session StreamBudget with refusal before anything is applied; cargo m045_ext 90/90 in both default and app-store builds; gitleaks staged scan clean."
+        }
+      ]
+    },
+    {
+      "id": "C-SEARCH-ERROR-VISIBILITY",
+      "summary": "A search failure was indistinguishable from 'no matches': the transport discarded stderr, ignored the exit status and always returned Ok.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-22",
+          "actor": "maintainer",
+          "detail": "Audit cluster integration F-012/F-014, config-hygiene F-003/F-004 and dead-code F-001 (per the PR body); the PR body names no external reporter."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-22",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #303 (merge e0219a8f): bounded stderr capture, checked exit status, distinct localized failure state; cargo search 47/47 (incl. a 30 s-hang flake root-caused to a forked grandchild holding the stdout pipe); vitest searcher/overlay/locale sets 119/119 + sideBar set 70/70."
+        }
+      ]
+    },
+    {
+      "id": "C-SESSION-WRITE-ATOMICITY",
+      "summary": "The four lastSession keys were written as four sequential preference transactions — a crash mid-sequence left a torn mixed-generation profile that broke recovery — and closing a window could kill an in-flight save.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-22",
+          "actor": "maintainer",
+          "detail": "Audit cluster code-hygiene / tests-53 / server-comms / cognitive F-003 (per the PR body); the PR body names no external reporter."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-22",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #304 (merge 0a0b6589): one command applies all session keys atomically; cargo prefs 27/27; vitest session-restore/coldstart/document-operations/runtime-prefs 77/77 + rebound editor-fn/position-memory 62/62; playwright session-restore + multi-root + characterization 22/22."
+        }
+      ]
+    },
+    {
+      "id": "C-EXPORT-BOUNDARIES",
+      "summary": "Export embedded any absolute local image path with no scope check, and document data crossed export boundaries silently (security re-audit F-005/F-006/F-008).",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-21",
+          "actor": "maintainer",
+          "detail": "Security re-audit 2026-11-21 findings F-005/F-006/F-008 — three silent export-boundary leaks (per the PR body); the PR body names no external reporter."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-21",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #308 (merge c74951fe): M-065 pass classifies each resolved image path in/out of scope with consent before any read; vitest export trio 58/58 + diff suite 51/51; cargo m031 9/9, m013b::fs 34/34, m010_security 34/34."
+        }
+      ]
+    },
+    {
+      "id": "C-COMPACT-WINDOWS-FIT",
+      "summary": "At compact window sizes (the editor's 600x400 minimum through the Settings window's fixed 640x620) the quick-settings panel overflowed, several controls lacked the visible keyboard-focus outline and the modal sheets did not trap focus.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-21",
+          "actor": "maintainer",
+          "detail": "Frontend-design audit wave item 35 (F-002/F-003/F-005/F-006/F-007/F-010, per the PR body); the PR body names no external reporter."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-21",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #312 (merge c3ccd5e3): vitest 100/100 across five files (incl. new sheet suite); e2e compact-windows-fit + page-width-panel + settings-shell 30 passed + 1 pre-existing skip in chromium; real Tab walks in both themes."
+        }
+      ]
+    },
+    {
+      "id": "C-PREFS-TRUTH",
+      "summary": "Preferences hydrated outside the documented schema — invalid values entered the store unrepaired, the Settings form and autosave timer could see different values, and CSS/theme application drifted from the stored truth (config-hygiene audit wave item 42).",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-22",
+          "actor": "maintainer",
+          "detail": "Config-hygiene audit wave item 42 (F-001/F-002/F-005/F-006/F-007/F-008+F-009/F-010) plus frontend F-004/F-011 (per the PR body); the PR body names no external reporter."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-22",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #313 (merge 87d1a361): schema-validated hydration with one-shot in-memory repair; vitest 114/114 across nine files (three new suites); page-width e2e 8 passed + 2 disclosed skips; dev-smoke usage/check exits honest; release-preflight green."
+        }
+      ]
+    },
+    {
+      "id": "C-EXPORT-SINGLE-PAGE",
+      "summary": "The export settings dialog spread roughly twelve controls over six tabs — three tabs carried zero to two controls and the Info tab a single sentence — and always opened with hardcoded defaults even though the app remembers last-used appearance options.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-08",
+          "actor": "maintainer",
+          "detail": "The PR body names no reporter; the archived change bundle records the origin as the owner design review of 2026-11-07 (six-tab dialog with hardcoded defaults). Actor recorded as maintainer because the PR text itself does not say the owner reported it."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-08",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #188 (merge 72f7f410): single-page anatomy rewrite with file-local module contract, remembered appearance via getRememberedExportAppearance, all ten locales updated with key parity green; bus export payload byte-compatible with the previous dialog."
+        }
+      ]
+    },
+    {
+      "id": "C-DOC-POPOVER-EXPORT-HUB",
+      "summary": "The document popover mixed a stats card with file actions at oversized proportions and offered no export entry.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-08",
+          "actor": "maintainer",
+          "detail": "The PR body names no reporter; the archived change bundle records the origin as the owner review of 2026-11-07 (popover felt large and unusable, no export entry). Actor recorded as maintainer because the PR text itself does not say the owner reported it."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-08",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #188 (merge 72f7f410): menu-scale proportions pass plus the quick-export row wired to the existing export commands; one new locale key (titleBar.popover.exportWord) across the ten locales."
+        }
+      ]
+    },
+    {
+      "id": "C-TABLE-BAR-MENU-OVERLAP",
+      "summary": "Owner-reported bug (ru locale, 2026-11-09): the table drag-pill menus had a hard-coded width, so longer translations wrapped onto a second line drawn on top of the next menu item, making the text an unreadable jumble.",
+      "events": [
+        {
+          "state": "reported",
+          "date": "2026-11-09",
+          "actor": "owner",
+          "detail": "Owner-reported bug (per the PR body: 'Owner-reported bug (ru locale menu overlap), 2026-11-09'): the menus wrapped longer translations onto a second line painted over the neighbouring item."
+        },
+        {
+          "state": "repaired",
+          "date": "2026-11-09",
+          "actor": "maintainer",
+          "detail": "Implemented on PR #191 (merge 4dcde343): CSS-only fix (width: max-content + nowrap) with float-layer re-measure; e2e table-bar-menu 8/8 across chromium and webkit-tables pinning one line per item and width >= 150 everywhere (> 150 in ru, exactly 150 in en); red-first proof on the pre-fix ru geometry."
         }
       ]
     }
