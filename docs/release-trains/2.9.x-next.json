@@ -3128,7 +3128,7 @@
       },
       {
         "id": "C-SEARCH-ENGINE-PARITY",
-        "summary": "Project search parity — one flag source, explicit case mode, gitignore only inside git, UTF-8-safe truncation.",
+        "summary": "Project search parity — one flag source, explicit case mode, gitignore honored even outside git repositories, UTF-8-safe truncation.",
         "state": "queued",
         "commits": [
           "db3e26c75c7988d8f337af95e55a68e334902a41"
