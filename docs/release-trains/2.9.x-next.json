@@ -108,7 +108,7 @@
         "summary": "Export to Word: File menu, tab context menu and the export command write real .docx files renderer-side (docx/html over the shared styled-HTML pipeline) — native Word heading styles, tables with per-column alignment, hyperlinks, task checkboxes, real footnotes and native OMML equations from KaTeX MathML; figures rasterize to 2x PNG, page geometry follows the remembered print options, writing rides the existing binary facade with no new backend commands; the docx library loads lazily in its own 1.4 KB chunk (300 KB budget guard), ten locales carry the new strings.",
         "state": "queued",
         "commits": [
-          "15ceef40b85a71a3aaea73b5429ff1666e9b1bac"
+          "1dc2def2348c2d4b6e59daae288878318a96e6f1"
         ],
         "acceptance": {
           "owner": "xronocode",
@@ -127,7 +127,7 @@
         "summary": "Titlebar mode chips and the two-group switch menu: active-mode chips sit in the titlebar right cluster (flag truth diffMode > splitView > sourceCode, compact writing chips, tooltips, aria-labels, narrow-window note) and the menu switches views and writing modes; Standard is the full reset (view plus both writing modes, per the owner amendment that removed the separate Reset row); six mode-* glyphs join the frozen chrome set on the 16 px / 1.4 stroke grid; fifteen locale families ship in all ten languages with regenerated min twins; the e2e shim gains __TAURI_EVENT_PLUGIN_INTERNALS__ so tab teardown is testable; M-062/V-M-062 route the module and M-011/M-057 carry their deltas.",
         "state": "queued",
         "commits": [
-          "d14335e451515b5064e42fd233dded2b8a3e7cd5"
+          "1d8e67fb7531759c283dbdc65e7edf713622bfc7"
         ],
         "acceptance": {
           "owner": "xronocode",
@@ -186,7 +186,7 @@
         "summary": "The GitHub theme family joins as the 17th built-in pair: github (Primer light — white ground, #1F2328 ink, #0969DA accent, green primary buttons, README-style h1/h2 bottom rules) and github-dark (Primer dark — #0D1117 ground, #F0F6FC ink, #4493F8 accent) with Prism code-highlight companions, registered across the theme list, the native View › Theme menu, the command palette, Settings › Appearance and all ten locales; the site diagram gallery theme table carries both (34 themes, 17 dark / 17 light).",
         "state": "queued",
         "commits": [
-          "a685701a4241b564f5601e937a607568d0e21e3e"
+          "41e2c8d9aa135e7be88bec01cac636f5e8433e6e"
         ],
         "acceptance": {
           "owner": "xronocode",
@@ -205,7 +205,7 @@
         "summary": "One notification system: every transient message renders as a single severity-styled card (colored status chip, four severities, all theme tokens) in one bottom-right stack — max three visible with a localized overflow counter, sticky errors, hover-paused auto-dismiss, Esc closes the topmost; selecting text in any notification copies it (quiet double-pulse confirmation); a palette command recovers everything shown during the session with full texts and per-entry copy; the update banner and the per-file message strip join the same family; the legacy toast implementation and dead pandoc-missing code are removed.",
         "state": "queued",
         "commits": [
-          "660e5ff96c0c8abd2f92c2a1f3a8c9646de5f29d"
+          "d343fde52c819f81272d7cfba4ace33ae4928c51"
         ],
         "acceptance": {
           "owner": "xronocode",
@@ -225,7 +225,7 @@
         "summary": "Reading position memory: every file remembers its last reading spot — scrollTop plus a mode-neutral line/ch caret — across tab close/reopen, file reopen, app relaunch and rename; the caret moved only by arrow keys survives tab switching (the arrow-key gap of the f-cursor report), positions persist through a numbers-only 200-entry prefs store with rename moves and stale-entry clamping, and the flush writes coalesce so navigation never touches the save-outcome guard; two latent muya defects surfaced by the change are fixed alongside (idempotent plugin registration, registry-driven teardown with per-plugin isolation).",
         "state": "queued",
         "commits": [
-          "ac60bc02ee71c0331d2258454ec263784495da42"
+          "ef8186d00ab1ba59e616dca0b59e785a4435a48a"
         ],
         "acceptance": {
           "owner": "xronocode",
@@ -245,7 +245,7 @@
         "summary": "CommonMark emphasis delimiter pairing: a self-contained module scans * / _ runs (escapes and code spans masked), classifies flanking and runs the delimiter-stack algorithm, and gates both the WYSIWYG tokenizer and the marked export/copy lexer. The reported paragraph now renders **One-shot** bold with the typo asterisks literal in editor and export exactly as GitHub does; the theft class no longer swallows later clean pairs; ***bold italic*** nests as em[strong]; ordinary paragraphs keep the zero-activation fast path and byte-identical tokenization.",
         "state": "queued",
         "commits": [
-          "a64f718a0f61becf5f2e5dc590f90e4e901c83b6"
+          "821de61518d380d211e17400d2a3262177890b60"
         ],
         "acceptance": {
           "owner": "xronocode",
@@ -354,7 +354,7 @@
         "state": "queued",
         "summary": "Rollback and update-funnel safety fixes from the 2026-11-02 review of the train: every restore path verifies before mutating (the in-app dialog on both platforms and the terminal command alike), the macOS bundle swap is reversible (move-aside with automatic return, Trash only after a confirmed replacement, crash-recoverable under a deterministic name), boot promotion is atomic via move-aside, the instance lock is held for the process lifetime, a completed restore whose relaunch failed reports restored_norelaunch (exit 6) instead of success, and the stats gateway speaks the documented Analytics Engine wire format (indexes, index1, json.data).",
         "commits": [
-          "0c1ecbe15be326534281e3f25a03149abe94ddb3"
+          "a35c39cbf8b3789b419b5a841fb6423da6b87d4e"
         ],
         "acceptance": {
           "owner": "xronocode",
@@ -1571,6 +1571,8 @@
         "summary": "Keep HTML exports synchronized with the current document model.",
         "state": "queued",
         "commits": [
+          "57bac25458745399e272aba19a5ec1c97c36d74c",
+          "619f7ddc9502d4f8984d76f7eae73104627c8c9b",
           "7680bdf0050c2a5cd23fd79816a8bb26b707c9e4"
         ],
         "pullRequest": {
@@ -1633,7 +1635,9 @@
         "summary": "Move export options into Settings and open Save directly for PDF, HTML and Word.",
         "state": "queued",
         "commits": [
-          "0a72917c50904034eda06c64ee870e1ea8e7623c"
+          "0a72917c50904034eda06c64ee870e1ea8e7623c",
+          "57bac25458745399e272aba19a5ec1c97c36d74c",
+          "619f7ddc9502d4f8984d76f7eae73104627c8c9b"
         ],
         "pullRequest": {
           "number": 233,
@@ -1757,7 +1761,8 @@
         "summary": "Keep both comparison panes synchronized with theme changes and readable in dark appearance.",
         "state": "queued",
         "commits": [
-          "619f7ddc9502d4f8984d76f7eae73104627c8c9b"
+          "619f7ddc9502d4f8984d76f7eae73104627c8c9b",
+          "a4830eab8da2231112ab200229933add945e4e70"
         ],
         "pullRequest": {
           "number": 244,
@@ -1819,6 +1824,7 @@
         "summary": "Keep extension cards and the live-session indicator readable in the selected theme.",
         "state": "queued",
         "commits": [
+          "a504783a98b9aa8ff5b1b388689ba2f1af114b3c",
           "f9b709ec14d2b53f58d414a58cb38d09743040de"
         ],
         "pullRequest": {
@@ -1881,6 +1887,7 @@
         "summary": "Use the shared window accent for active project-search options.",
         "state": "queued",
         "commits": [
+          "a4830eab8da2231112ab200229933add945e4e70",
           "b76efc57a07200b8f2849f7b73d259324a3ace84"
         ],
         "pullRequest": {
@@ -2045,7 +2052,8 @@
         "summary": "Use the shared interface font for notices and the What's New sheet while preserving document typography.",
         "state": "queued",
         "commits": [
-          "48e7fe17db434d2162b4423fd6d19ed66d6427c0"
+          "48e7fe17db434d2162b4423fd6d19ed66d6427c0",
+          "a504783a98b9aa8ff5b1b388689ba2f1af114b3c"
         ],
         "pullRequest": {
           "number": 249,
@@ -3589,7 +3597,7 @@
         "summary": "Prerelease channel for external-tester builds: hyphenated owner tags (vX.Y.Z-beta.N/canary.N, base = train computedVersion) publish signed GitHub prereleases that never advance releases/latest or the cask; release/promote gains the prereleaseSuffix dispatch; the stable path is unchanged.",
         "state": "queued",
         "commits": [
-          "ce92b473a1098229bb8163ab97b0d7659d8d0a9a"
+          "ce92b473a109778afb39cda5b0081172951a257a"
         ],
         "pullRequest": "https://github.com/xronocode/mark/pull/278",
         "testingProtocol": {
@@ -3628,7 +3636,7 @@
         "summary": "Runtime source-path repair: the graph's M-010 and M-016 sources and tests name the modules that implement them again (src-tauri/src/m010_security.rs, src-tauri/src/m016_updater.rs) and the retired test/specs/security/xss.spec.js anchor is gone; the Path and KnowledgeGraphPath entries were already correct, and the frozen GRACE 3 provenance blocks keep the historical filenames by design.",
         "state": "queued",
         "commits": [
-          "495a58b98a6f2b0b1118d02396d2379184e5d0be"
+          "8865b5401fc9d6e7cb2a64319f82c8039681a81b"
         ],
         "acceptance": {
           "owner": "xronocode",
@@ -3714,16 +3722,14 @@
         "summary": "The first technical-debt lane train: developer tools off in release builds with a DEV chevron while on (M-069), the graph-index XML comment repair, the rollback relaunch clippy silencing, and the lane's own bookkeeping, departed into main as one merge commit after a fully green suite and the full commit gate.",
         "commits": [
           "0d142333b2d929f8fbdad0098b4935fac9614c41",
-          "9f5073437854b211d5bfc21f4350d024619e9771",
-          "8c4bff768344f8385c911d8c6c98d8ca4b47b330",
-          "b9d8e5f6b69c1714125d904d72c7c6fe7ddb5386",
-          "f5f18ab9c7ee6d0cdb37ee5db2224e8dfef9a5e4",
-          "d688f2fc2f349d3ef1d8660dd33353a04f8062a1",
           "8461c4e58a36152c1b70639cd7a37bd85d0c23c1",
-          "dc9fc5f1c3dab3f53bcc6ec77fedc40d3fdae0b6",
+          "8c4bff768344f8385c911d8c6c98d8ca4b47b330",
+          "9f5073437854b211d5bfc21f4350d024619e9771",
+          "b9d8e5f6b69c1714125d904d72c7c6fe7ddb5386",
           "ce6eebcc90a44a68869900053de353ce1735e3ca",
-          "849cffa9cb93a71cc387d64d87303830a00a7eef",
-          "8ea9d16e23434a6b248f06694a357ec64cd0b999"
+          "d688f2fc2f349d3ef1d8660dd33353a04f8062a1",
+          "dc9fc5f1c3dab3f53bcc6ec77fedc40d3fdae0b6",
+          "f5f18ab9c7ee6d0cdb37ee5db2224e8dfef9a5e4"
         ]
       },
       {
@@ -4769,8 +4775,8 @@
         "summary": "Experimental progressive mount for large documents: the visible part of the file appears first and the rest loads in the background without freezing typing or scrolling — one Experimental switch in Settings, off by default and session-latched, with the five owner decisions FINAL in the LargeDocumentContract.",
         "state": "queued",
         "commits": [
-          "e8eed5b88719f49e9d7ffdf62332bd338f9b6df4",
-          "d150eed729864895027134afa38349f999f8cb20"
+          "d150eed729864895027134afa38349f999f8cb20",
+          "e8eed5b88719f49e9d7ffdf62332bd338f9b6df4"
         ],
         "pullRequest": "https://github.com/xronocode/mark/pull/170",
         "testingProtocol": {
@@ -4801,9 +4807,9 @@
         "summary": "Large-document Stage 0 — measurement infrastructure and behavioral oracles only: no product behavior change (muya, editor.vue and store/editor.js byte-identical to the branch point, machine-verified), giving the wave work a trustworthy Mark-specific baseline.",
         "state": "queued",
         "commits": [
+          "3da9729deff7400c1f5b3fd6ec46de60df8f3432",
           "89541d8e1bbbca19d410efaf5a531bc61c7e44fe",
-          "e7c32b8512db9ca6b73fa3681a4b629d82448a66",
-          "3da9729deff7400c1f5b3fd6ec46de60df8f3432"
+          "e7c32b8512db9ca6b73fa3681a4b629d82448a66"
         ],
         "pullRequest": "https://github.com/xronocode/mark/pull/126",
         "testingProtocol": {
@@ -4937,33 +4943,6 @@
         "state": "queued",
         "commits": [
           "2722bd851531290860624e14ddc18973bcd901f0",
-          "239e5dabbb110a3b85918d546f5cfb8cd22c32f8",
-          "7706ddf5eafe164bdbc4765042231d2a73e4ca2d",
-          "71d07f228d6b0d862090dc14a4eaa9a17efa8da2",
-          "6ba2f26a26b1900c42fa65fe12fc0e69f8e8a3a2",
-          "dceb337c46567364c0b210b726835506d54353e7",
-          "ef5faf33299298e6e3ed0ebe125b393a2a51e60c",
-          "fc2f5c65811614679885a4f542c6e5d9207fbc54",
-          "780a66557f0305b6802bb961e3ddfe3d1d0d35c4",
-          "59463950cdc59f9a1e70203efe90b0077a97674d",
-          "f82620cf7324605ed3fafc62b085efc1617e8446",
-          "388b666915ba675d9f5728b1f3f5f0392697f937",
-          "8934a2116c18ec4d791d09003b4e778c98dd4a0b",
-          "8f442fbd1901803f5fddfb78895bc498455e390b",
-          "17782937c8832f77691ff104582746a2c09de3ea",
-          "78925332edc27637c6722ae7dad0d62f24d74275",
-          "c36a187286bb1c3c81e4efbc546daee028d2c12b",
-          "eee7b742ab41efda64cf8aeedb2e201ad9c4cffc",
-          "296dc5f0f965a906b61ea655b2b570c847f3f276",
-          "5e018f997db33cfea2e5c5f64a6389248c78db19",
-          "2dd5ae4f61274941a2f20eba417cc7a8b48f5b25",
-          "197a9d0e22c78a4bb5462c844c99eb81693e3ee1",
-          "48820f90cc8686b24d1128e009438547e898e425",
-          "073ae3df749730a72a7c33682d674f578c63347f",
-          "be525d259866571de3ae7df12b96a9e81b8d80f3",
-          "a4e9d99293b980f0616acd5e5f43e389dd5a1096",
-          "b3938b0f2fa9b15505abbcafffd245859b2c9b36",
-          "c4631cc5364370d61fdea20474421fbe75b4564e",
           "bb68fd6ca3185b83f82cf12eac3cc189e8ab182e"
         ],
         "pullRequest": null,
@@ -5089,17 +5068,6 @@
         "state": "queued",
         "commits": [
           "1713225ea858ce339f5653838bfb0051dc198a7b",
-          "638c0a7cccd1425a1dfcf93a2eef065815392fbb",
-          "1aa95602c844ebf5d131cfdeed5d407399eb3a1b",
-          "878c0a24d13d9b67bf83a44e84c8d53243bb6bea",
-          "67979502b33458468de929ef11c70a5711f371eb",
-          "68d932dc9ea81addcc54e24d09107c179dc038e8",
-          "1a720d53ec822892e82eda4c1a6a3b97dd9b56cf",
-          "f1fb6f507cacb3cd3f966e3ca68bde4770358d89",
-          "d93d9fef129be5b460e01baff79364b4f27a42d3",
-          "aa0b4e84a7a8375a0842d2d59fa125b12e1488ae",
-          "7a050dcc3911cdd04589cb84eb9ac466ed78d200",
-          "d81929341ef7d1ec3294cebb7e9256f111876b23",
           "e1a3c4fafee3860e7943eb99ead638f4186a7835"
         ],
         "pullRequest": null,
@@ -5121,6 +5089,188 @@
               "reason": "Deferred to the train acceptance protocol (rule 5)."
             }
           ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
+        "id": "TRAIN-BOOKKEEPING",
+        "summary": "Train-span commits recorded without separate item attribution — conveyor bookkeeping and maintenance merges; every commit verified by hosted CI on main.",
+        "state": "queued",
+        "commits": [
+          "04500d8f20a8418edd65e5add270a5e758363b44",
+          "0580781d895113f6c125f84a270014b65d73f3f7",
+          "073ae3df749730a72a7c33682d674f578c63347f",
+          "083f29c84d74bb48fece073693bb379feb0dddad",
+          "09226066f80904f38a89085d1f35ce9e95289532",
+          "09ccbd25b2531c30f314dafdf1f89e81d2b15696",
+          "0a20c353bad76d9d0518c2f38be51009667f06f5",
+          "0d142333b2d929f8fbdad0098b4935fac9614c41",
+          "10bfdc94a5712d9237a5841cb6285de2d586bd78",
+          "1687d4c81bb7af2d51b3e712376cc19a7d8fcced",
+          "16a4a47ed723740e330e44cf448bcbada766882c",
+          "17782937c8832f77691ff104582746a2c09de3ea",
+          "197a9d0e22c78a4bb5462c844c99eb81693e3ee1",
+          "1a720d53ec822892e82eda4c1a6a3b97dd9b56cf",
+          "1aa95602c844ebf5d131cfdeed5d407399eb3a1b",
+          "1dbe9bb996325f518129be3782654ff82991bb08",
+          "1ee587e7d2da387ae458199e476672509764ec52",
+          "1ff5ede6c5aa92fdf32d513a50014adb0b6d75de",
+          "2275550d94b991516ecf10f070c1648a9f5fc42b",
+          "22ff048fa0acec846376ee773b594ce025c26c0d",
+          "239e5dabbb110a3b85918d546f5cfb8cd22c32f8",
+          "24b715c2e13c83fb1ec58728640007cca1b44d9a",
+          "271a36955f39412273e7650a05d377558c818421",
+          "27bf95bbb6eec265c9ac88cf668cbffbc91c75a1",
+          "2853081717bce330ee9a764302b44d4be06ecd10",
+          "296dc5f0f965a906b61ea655b2b570c847f3f276",
+          "29ed23f2331fac9fb8f64a8fe6a701a7a7326486",
+          "2a67b1be3b4924e90a323ab9130395f07ea0fcda",
+          "2bae33643a23f9a098f41ad3be249a4303e0f5ca",
+          "2bb5db9eb8d72fa8217a6ee70f6fc27165f851fd",
+          "2dd5ae4f61274941a2f20eba417cc7a8b48f5b25",
+          "2e1b4b3d63ceb9318e0ead79090d8f0275f92f8e",
+          "2e8cb90e282f936bb83a3eaf526ba88987e8863d",
+          "306aff344cb2b257a187564518ce6397aa519dfc",
+          "31bee13ae6a058691f55e0c8a2a88b467b7e14eb",
+          "388b666915ba675d9f5728b1f3f5f0392697f937",
+          "3e62bc7105fbee88e48d44c5d6377ca1d9af7720",
+          "3f1e41c6017998e5c2ad5e8a39b2b68c894bdbda",
+          "43399cc4b04df97aa2c0c9ea459c6df3199cf7ed",
+          "486275c7f99c95965891528a29c30f2a44825e32",
+          "48820f90cc8686b24d1128e009438547e898e425",
+          "4b68982347e2b1838787740317208221e44ac5b9",
+          "4b748458100d9715f7f0465a969f5a3349295ecc",
+          "4c645fb22d9b7afbe19450ee17cd79865c138b97",
+          "4d81335d7e5941ecc91ae7e1e82f2c6d90e9a8a6",
+          "4f77092cec547e5eb2a3acc4845cc824f585d51a",
+          "4fa3cffa813445e1e6974a5ac8283f54abf89e5c",
+          "50c94c99d9a62481bafefdced6c81bd6f660b5ad",
+          "5599b1e9f83419af123c1dc71981c8037c5a6e51",
+          "5625ad080b474c251002f626f967d1d862e658a6",
+          "59463950cdc59f9a1e70203efe90b0077a97674d",
+          "5b78a14a4df6103956061dd16d1d88afe4a9013b",
+          "5c462733892447eeec0d89326a8a575daece8035",
+          "5d73e158a5e2357e266ca1fd5e87d954eecf529a",
+          "5e018f997db33cfea2e5c5f64a6389248c78db19",
+          "6033acf0fb3d73e162c4b7aaf23abe00954db161",
+          "638c0a7cccd1425a1dfcf93a2eef065815392fbb",
+          "641d0e8a7565b2edd978c4db29e71548967fbb0c",
+          "649aa607dcae6770171cabaaba6703a927c1f1e7",
+          "650eb15aa42f433726503461828e35ad012e3645",
+          "65b36ffc1280aa942c7980bfa11b8200eec36267",
+          "67979502b33458468de929ef11c70a5711f371eb",
+          "689df8aa95030b5488a92913b2485ca0d3a9f320",
+          "68d932dc9ea81addcc54e24d09107c179dc038e8",
+          "6989ef9e1c0b11e3d6ac07db252b59a2679c5076",
+          "6ba2f26a26b1900c42fa65fe12fc0e69f8e8a3a2",
+          "71d07f228d6b0d862090dc14a4eaa9a17efa8da2",
+          "738660967e6678aa52c30d7cceae2f17403bee6e",
+          "7706ddf5eafe164bdbc4765042231d2a73e4ca2d",
+          "780a66557f0305b6802bb961e3ddfe3d1d0d35c4",
+          "781fd825ccb57661b0d41cdc7af249bc9757cf2f",
+          "78925332edc27637c6722ae7dad0d62f24d74275",
+          "79145f398f7b7c4172d762f5e5987a74bca4dce8",
+          "7a050dcc3911cdd04589cb84eb9ac466ed78d200",
+          "7a384edcf87bb91096dfa3b33bd12cecf4fe2699",
+          "8380798ce4035248dd874aaaf360f15d03ec58ea",
+          "8461c4e58a36152c1b70639cd7a37bd85d0c23c1",
+          "84680fb8936f62c199a16059936c6e72ee01c82e",
+          "849cffa9cb93a71cc387d64d87303830a00a7eef",
+          "84bf6e4837810fa3b5da90080ff7daba6c0be81d",
+          "878c0a24d13d9b67bf83a44e84c8d53243bb6bea",
+          "88454ac9411673cb0ec45b58704d8ad792330d6a",
+          "8934a2116c18ec4d791d09003b4e778c98dd4a0b",
+          "8a4a6e6878dd5a1ee46deaf228b5c4cede1d9c7e",
+          "8abe418d683c453985d88bd3d100c252665aaffd",
+          "8b5d0243a5d49b62b8628c031fa7af8a2aacd23b",
+          "8c4bff768344f8385c911d8c6c98d8ca4b47b330",
+          "8c962bee1d9306bb9ce1670d626f53611abc3b97",
+          "8d1d2d532e3ea10082033b6e73052ed7494d3977",
+          "8ea9d16e23434a6b248f06694a357ec64cd0b999",
+          "8f442fbd1901803f5fddfb78895bc498455e390b",
+          "969349a639f15dd013bc4c86e2469ad9d44ab573",
+          "9778028b774c71922affa73ad32e487572ecf74a",
+          "97fec630a5785a5ee5ca8a435082c874dbbb9b62",
+          "9872d6c8ab6f8d6da5a238bde9e0473116529c6f",
+          "9b054d4db207d4c4e78aca8cd80b8dec3516b687",
+          "9f5073437854b211d5bfc21f4350d024619e9771",
+          "9f63f464e4e6478877509fe048b61a207f1c47bc",
+          "a0c0fb5179ceabc40fed055f911650a8e106113b",
+          "a1f0d4bcbf2bd96577718bbb3e1f5ad385e9d66e",
+          "a4e9d99293b980f0616acd5e5f43e389dd5a1096",
+          "aa0b4e84a7a8375a0842d2d59fa125b12e1488ae",
+          "ab46cdfa32e8ffafe6a3f539dd52aabab7681e2a",
+          "aee9bfc4478f7b05f9fdbaf002d5a46c452c4f53",
+          "b0cb62d8a1633523638f1bcb94162d97b5732519",
+          "b0f6911f02b7437682b074e9a992f2e945a8d04d",
+          "b1ee1d93c73c6cff05c909d6e9d7332af03c8acd",
+          "b37f483f3ee074b8ec2553007c42024aa85e4cc6",
+          "b3938b0f2fa9b15505abbcafffd245859b2c9b36",
+          "b702a7fecbe36adf5cc784fe629cd1cfe3847d99",
+          "b9d8e5f6b69c1714125d904d72c7c6fe7ddb5386",
+          "ba57e38a8df39ce71e3b9429abe7832c322f15b0",
+          "ba78dac18d172e902e8eab48ef3aae1412dbe4ab",
+          "bba9b71e69067cfc38b767fed226e22fc7b2343a",
+          "bc27a3fab60797a21fd47a1b1e4c2cf58d84f7f6",
+          "bd5f854b113d43b2e2f1d912244bb32a10212919",
+          "bdaf8e756665677d36e7988b7121a8d7131bc735",
+          "be525d259866571de3ae7df12b96a9e81b8d80f3",
+          "bec319f39112e7ff73f169c035633d3df740fd6d",
+          "c36a187286bb1c3c81e4efbc546daee028d2c12b",
+          "c3b62f33638c8ee82ef8f9dcc0482a42f46f7dc7",
+          "c4631cc5364370d61fdea20474421fbe75b4564e",
+          "c86afea6275ba52348345d5af8f67fd8cf4645fc",
+          "c8def4cbf808b914f85b6bb719c1da64731c7884",
+          "ca18e55fe51f4b8ed71c4f6e4c553ba3672d3fde",
+          "ce6eebcc90a44a68869900053de353ce1735e3ca",
+          "d136e1ded73a9347530efd4c2c7458e99b563af8",
+          "d14be7c5e37a80b8a4ac7d9d271928d9de5b4749",
+          "d5aaa4550117b5389249b97173ebd60990181aeb",
+          "d688f2fc2f349d3ef1d8660dd33353a04f8062a1",
+          "d81929341ef7d1ec3294cebb7e9256f111876b23",
+          "d93d9fef129be5b460e01baff79364b4f27a42d3",
+          "dc9fc5f1c3dab3f53bcc6ec77fedc40d3fdae0b6",
+          "dceb337c46567364c0b210b726835506d54353e7",
+          "dd4a4c9a74c9554fcf85b0995bfd87bbfb32d8da",
+          "dd6bb599ee9e23565a16cf10b2a2ab75a5672466",
+          "e05d170bcec9daefbeea1ffd7bce360f259a0710",
+          "e19d9922a4f0b86114464b02b35008f8d09ef0fc",
+          "e2b627fa5f278ea462428de1e344d8f9f4ac8bf7",
+          "e3ae30a569b7eb87e16112fc2a225385cb3b230f",
+          "e4ef4cb878011d14194ef585f25c783b45b3958b",
+          "e620a8aa288824f58dff14514d8d2219abf80842",
+          "e78f1d97bc3a7012750a9e7ae0abf3c4790bd66a",
+          "ead9addf194fbe0cf016a595002386314474b6c5",
+          "ee24601bc010ecd8a19f29c8af5b685bfdbce330",
+          "eee7b742ab41efda64cf8aeedb2e201ad9c4cffc",
+          "ef13c8ef3775e5810d2227bb31c55adcb72bbe83",
+          "ef5faf33299298e6e3ed0ebe125b393a2a51e60c",
+          "f1fb6f507cacb3cd3f966e3ca68bde4770358d89",
+          "f33527f3bee50f0bc138bba7a3519b3dd1bf7d32",
+          "f5f18ab9c7ee6d0cdb37ee5db2224e8dfef9a5e4",
+          "f82620cf7324605ed3fafc62b085efc1617e8446",
+          "f8e598fb532eac9867a2539aa21b5a4151193416",
+          "f960447976a7004649e6aa5415232b0a17a210af",
+          "fc0d1fb4ce067e614662e1090d32aabcb428a1b0",
+          "fc2f5c65811614679885a4f542c6e5d9207fbc54",
+          "fcb0a02029cb77ef740fff6693bbd3c3b042c821",
+          "fe3afe1cdb8aa6850cd3ea0fe3ea69c8221fcb5b"
+        ],
+        "pullRequest": null,
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI on main at each bookkeeping merge",
+              "result": "green per merge (commit status checks)",
+              "date": "2026-11-28",
+              "build": "-",
+              "evidence": "commit status checks"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": []
         },
         "acceptance": {
           "status": "pending"
@@ -5147,10 +5297,24 @@
         ]
       },
       {
+        "sha": "04500d8f20a8418edd65e5add270a5e758363b44",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "04b180cb48d7070089672ccb293a9f72eda256df",
         "classification": "operational",
         "itemIds": [
           "FIX-EMOJI-TIMESTAMPS"
+        ]
+      },
+      {
+        "sha": "0580781d895113f6c125f84a270014b65d73f3f7",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5164,7 +5328,28 @@
         "sha": "073ae3df749730a72a7c33682d674f578c63347f",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "083f29c84d74bb48fece073693bb379feb0dddad",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "09226066f80904f38a89085d1f35ce9e95289532",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "09ccbd25b2531c30f314dafdf1f89e81d2b15696",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5175,6 +5360,13 @@
         ]
       },
       {
+        "sha": "0a20c353bad76d9d0518c2f38be51009667f06f5",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "0a72917c50904034eda06c64ee870e1ea8e7623c",
         "classification": "operational",
         "itemIds": [
@@ -5182,17 +5374,18 @@
         ]
       },
       {
-        "sha": "0c1ecbe15be326534281e3f25a03149abe94ddb3",
-        "classification": "operational",
-        "itemIds": [
-          "C-UPDATER-REVIEW-FIXES"
-        ]
-      },
-      {
         "sha": "0d142333b2d929f8fbdad0098b4935fac9614c41",
         "classification": "operational",
         "itemIds": [
-          "td-1"
+          "td-1",
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "10bfdc94a5712d9237a5841cb6285de2d586bd78",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5217,10 +5410,17 @@
         ]
       },
       {
-        "sha": "15ceef40b85a71a3aaea73b5429ff1666e9b1bac",
-        "classification": "user-facing",
+        "sha": "1687d4c81bb7af2d51b3e712376cc19a7d8fcced",
+        "classification": "operational",
         "itemIds": [
-          "C-NATIVE-DOCX-RTF-EXPORT"
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "16a4a47ed723740e330e44cf448bcbada766882c",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5234,28 +5434,28 @@
         "sha": "17782937c8832f77691ff104582746a2c09de3ea",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
         "sha": "197a9d0e22c78a4bb5462c844c99eb81693e3ee1",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
         "sha": "1a720d53ec822892e82eda4c1a6a3b97dd9b56cf",
         "classification": "operational",
         "itemIds": [
-          "C-POST-BETA-OPS-WAVE"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
         "sha": "1aa95602c844ebf5d131cfdeed5d407399eb3a1b",
         "classification": "operational",
         "itemIds": [
-          "C-POST-BETA-OPS-WAVE"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5266,10 +5466,45 @@
         ]
       },
       {
+        "sha": "1d8e67fb7531759c283dbdc65e7edf713622bfc7",
+        "classification": "user-facing",
+        "itemIds": [
+          "C-TITLEBAR-MODE-CHIPS"
+        ]
+      },
+      {
+        "sha": "1dbe9bb996325f518129be3782654ff82991bb08",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "1dc2def2348c2d4b6e59daae288878318a96e6f1",
+        "classification": "user-facing",
+        "itemIds": [
+          "C-NATIVE-DOCX-RTF-EXPORT"
+        ]
+      },
+      {
+        "sha": "1ee587e7d2da387ae458199e476672509764ec52",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "1f4ce7e5eaca3db5abdbf541ddd07f15cbf76410",
         "classification": "operational",
         "itemIds": [
           "C-SAFETY-LOCAL-FIRST-REVIEW"
+        ]
+      },
+      {
+        "sha": "1ff5ede6c5aa92fdf32d513a50014adb0b6d75de",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5287,6 +5522,13 @@
         ]
       },
       {
+        "sha": "2275550d94b991516ecf10f070c1648a9f5fc42b",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "229b3a69be8e16ca1717d8f2fea580ba4be69b75",
         "classification": "operational",
         "itemIds": [
@@ -5294,10 +5536,17 @@
         ]
       },
       {
+        "sha": "22ff048fa0acec846376ee773b594ce025c26c0d",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "239e5dabbb110a3b85918d546f5cfb8cd22c32f8",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5315,6 +5564,20 @@
         ]
       },
       {
+        "sha": "24b715c2e13c83fb1ec58728640007cca1b44d9a",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "271a36955f39412273e7650a05d377558c818421",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "2722bd851531290860624e14ddc18973bcd901f0",
         "classification": "operational",
         "itemIds": [
@@ -5329,17 +5592,73 @@
         ]
       },
       {
+        "sha": "27bf95bbb6eec265c9ac88cf668cbffbc91c75a1",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "2853081717bce330ee9a764302b44d4be06ecd10",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "296dc5f0f965a906b61ea655b2b570c847f3f276",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "29ed23f2331fac9fb8f64a8fe6a701a7a7326486",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "2a67b1be3b4924e90a323ab9130395f07ea0fcda",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "2bae33643a23f9a098f41ad3be249a4303e0f5ca",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "2bb5db9eb8d72fa8217a6ee70f6fc27165f851fd",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
         "sha": "2dd5ae4f61274941a2f20eba417cc7a8b48f5b25",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "2e1b4b3d63ceb9318e0ead79090d8f0275f92f8e",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "2e8cb90e282f936bb83a3eaf526ba88987e8863d",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5347,6 +5666,20 @@
         "classification": "operational",
         "itemIds": [
           "C-STABILIZE-TRAIN-MIRROR"
+        ]
+      },
+      {
+        "sha": "306aff344cb2b257a187564518ce6397aa519dfc",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "31bee13ae6a058691f55e0c8a2a88b467b7e14eb",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5367,7 +5700,7 @@
         "sha": "388b666915ba675d9f5728b1f3f5f0392697f937",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5392,6 +5725,20 @@
         ]
       },
       {
+        "sha": "3e62bc7105fbee88e48d44c5d6377ca1d9af7720",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "3f1e41c6017998e5c2ad5e8a39b2b68c894bdbda",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "3f61c2b73a0d0ee8aea83bd3fa5a1b09bab182c9",
         "classification": "operational",
         "itemIds": [
@@ -5406,10 +5753,31 @@
         ]
       },
       {
+        "sha": "41e2c8d9aa135e7be88bec01cac636f5e8433e6e",
+        "classification": "operational",
+        "itemIds": [
+          "C-GITHUB-THEME"
+        ]
+      },
+      {
+        "sha": "43399cc4b04df97aa2c0c9ea459c6df3199cf7ed",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "486275c7f99c95965891528a29c30f2a44825e32",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "48820f90cc8686b24d1128e009438547e898e425",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5420,17 +5788,38 @@
         ]
       },
       {
-        "sha": "495a58b98a6f2b0b1118d02396d2379184e5d0be",
-        "classification": "operational",
-        "itemIds": [
-          "C-GRAPH-RUNTIME-PATHS"
-        ]
-      },
-      {
         "sha": "499522fd4a37cd33212157433476bef1305325f2",
         "classification": "operational",
         "itemIds": [
           "C-PELE-HTML-POSTPROCESS"
+        ]
+      },
+      {
+        "sha": "4b68982347e2b1838787740317208221e44ac5b9",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "4b748458100d9715f7f0465a969f5a3349295ecc",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "4c645fb22d9b7afbe19450ee17cd79865c138b97",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "4d81335d7e5941ecc91ae7e1e82f2c6d90e9a8a6",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5455,6 +5844,27 @@
         ]
       },
       {
+        "sha": "4f77092cec547e5eb2a3acc4845cc824f585d51a",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "4fa3cffa813445e1e6974a5ac8283f54abf89e5c",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "50c94c99d9a62481bafefdced6c81bd6f660b5ad",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "55739a55cfbe3b5f55b9105b8741e9adc44a8354",
         "classification": "operational",
         "itemIds": [
@@ -5462,10 +5872,32 @@
         ]
       },
       {
+        "sha": "5599b1e9f83419af123c1dc71981c8037c5a6e51",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "5625ad080b474c251002f626f967d1d862e658a6",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "57bac25458745399e272aba19a5ec1c97c36d74c",
+        "classification": "operational",
+        "itemIds": [
+          "C-MUYA-CURRENT-MODEL-EXPORT",
+          "C-EXPORT-SETTINGS-SECTION-RECOVERY"
+        ]
+      },
+      {
         "sha": "59463950cdc59f9a1e70203efe90b0077a97674d",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5483,10 +5915,31 @@
         ]
       },
       {
+        "sha": "5b78a14a4df6103956061dd16d1d88afe4a9013b",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "5c462733892447eeec0d89326a8a575daece8035",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "5d73e158a5e2357e266ca1fd5e87d954eecf529a",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "5e018f997db33cfea2e5c5f64a6389248c78db19",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5497,9 +5950,18 @@
         ]
       },
       {
+        "sha": "6033acf0fb3d73e162c4b7aaf23abe00954db161",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "619f7ddc9502d4f8984d76f7eae73104627c8c9b",
         "classification": "operational",
         "itemIds": [
+          "C-MUYA-CURRENT-MODEL-EXPORT",
+          "C-EXPORT-SETTINGS-SECTION-RECOVERY",
           "FIX-DIFF-THEME-SYNC"
         ]
       },
@@ -5507,7 +5969,7 @@
         "sha": "638c0a7cccd1425a1dfcf93a2eef065815392fbb",
         "classification": "operational",
         "itemIds": [
-          "C-POST-BETA-OPS-WAVE"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5518,10 +5980,31 @@
         ]
       },
       {
+        "sha": "641d0e8a7565b2edd978c4db29e71548967fbb0c",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "643d5dd58c2ed39a3288eb946f7aa6f36c9c5e17",
         "classification": "operational",
         "itemIds": [
           "DEPS-PELE-1-10"
+        ]
+      },
+      {
+        "sha": "649aa607dcae6770171cabaaba6703a927c1f1e7",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "650eb15aa42f433726503461828e35ad012e3645",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5532,31 +6015,45 @@
         ]
       },
       {
-        "sha": "660e5ff96c0c8abd2f92c2a1f3a8c9646de5f29d",
+        "sha": "65b36ffc1280aa942c7980bfa11b8200eec36267",
         "classification": "operational",
         "itemIds": [
-          "C-NOTIFICATION-SYSTEM"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
         "sha": "67979502b33458468de929ef11c70a5711f371eb",
         "classification": "operational",
         "itemIds": [
-          "C-POST-BETA-OPS-WAVE"
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "689df8aa95030b5488a92913b2485ca0d3a9f320",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
         "sha": "68d932dc9ea81addcc54e24d09107c179dc038e8",
         "classification": "operational",
         "itemIds": [
-          "C-POST-BETA-OPS-WAVE"
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "6989ef9e1c0b11e3d6ac07db252b59a2679c5076",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
         "sha": "6ba2f26a26b1900c42fa65fe12fc0e69f8e8a3a2",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5577,7 +6074,7 @@
         "sha": "71d07f228d6b0d862090dc14a4eaa9a17efa8da2",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5586,6 +6083,13 @@
         "itemIds": [
           "C-EXPORT-SINGLE-PAGE",
           "C-DOC-POPOVER-EXPORT-HUB"
+        ]
+      },
+      {
+        "sha": "738660967e6678aa52c30d7cceae2f17403bee6e",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5620,28 +6124,49 @@
         "sha": "7706ddf5eafe164bdbc4765042231d2a73e4ca2d",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
         "sha": "780a66557f0305b6802bb961e3ddfe3d1d0d35c4",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "781fd825ccb57661b0d41cdc7af249bc9757cf2f",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
         "sha": "78925332edc27637c6722ae7dad0d62f24d74275",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "79145f398f7b7c4172d762f5e5987a74bca4dce8",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
         "sha": "7a050dcc3911cdd04589cb84eb9ac466ed78d200",
         "classification": "operational",
         "itemIds": [
-          "C-POST-BETA-OPS-WAVE"
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "7a384edcf87bb91096dfa3b33bd12cecf4fe2699",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5659,6 +6184,13 @@
         ]
       },
       {
+        "sha": "821de61518d380d211e17400d2a3262177890b60",
+        "classification": "operational",
+        "itemIds": [
+          "C-COMMONMARK-EMPHASIS"
+        ]
+      },
+      {
         "sha": "82bb92aac2d6bf6d66a6a85d1782ec2764811fd9",
         "classification": "user-facing",
         "itemIds": [
@@ -5666,17 +6198,39 @@
         ]
       },
       {
+        "sha": "8380798ce4035248dd874aaaf360f15d03ec58ea",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "8461c4e58a36152c1b70639cd7a37bd85d0c23c1",
         "classification": "operational",
         "itemIds": [
-          "td-1"
+          "td-1",
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "84680fb8936f62c199a16059936c6e72ee01c82e",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
         "sha": "849cffa9cb93a71cc387d64d87303830a00a7eef",
         "classification": "operational",
         "itemIds": [
-          "td-1"
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "84bf6e4837810fa3b5da90080ff7daba6c0be81d",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5697,7 +6251,7 @@
         "sha": "878c0a24d13d9b67bf83a44e84c8d53243bb6bea",
         "classification": "operational",
         "itemIds": [
-          "C-POST-BETA-OPS-WAVE"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5708,10 +6262,24 @@
         ]
       },
       {
+        "sha": "88454ac9411673cb0ec45b58704d8ad792330d6a",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "8865b5401fc9d6e7cb2a64319f82c8039681a81b",
+        "classification": "operational",
+        "itemIds": [
+          "C-GRAPH-RUNTIME-PATHS"
+        ]
+      },
+      {
         "sha": "8934a2116c18ec4d791d09003b4e778c98dd4a0b",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5722,10 +6290,32 @@
         ]
       },
       {
+        "sha": "8a4a6e6878dd5a1ee46deaf228b5c4cede1d9c7e",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "8abe418d683c453985d88bd3d100c252665aaffd",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "8b5d0243a5d49b62b8628c031fa7af8a2aacd23b",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "8c4bff768344f8385c911d8c6c98d8ca4b47b330",
         "classification": "operational",
         "itemIds": [
-          "td-1"
+          "td-1",
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5736,10 +6326,24 @@
         ]
       },
       {
+        "sha": "8c962bee1d9306bb9ce1670d626f53611abc3b97",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "8c9a6c2e1f765d72a96791518eeba30adb6c5f1b",
         "classification": "operational",
         "itemIds": [
           "C-STATS-DASH-PUSH"
+        ]
+      },
+      {
+        "sha": "8d1d2d532e3ea10082033b6e73052ed7494d3977",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5753,14 +6357,14 @@
         "sha": "8ea9d16e23434a6b248f06694a357ec64cd0b999",
         "classification": "operational",
         "itemIds": [
-          "td-1"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
         "sha": "8f442fbd1901803f5fddfb78895bc498455e390b",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5792,10 +6396,38 @@
         ]
       },
       {
+        "sha": "969349a639f15dd013bc4c86e2469ad9d44ab573",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "96be1b358bce94c3f161676d4fd78c62680ec59c",
         "classification": "operational",
         "itemIds": [
           "C-CI-CD-AUDIT-FIXES"
+        ]
+      },
+      {
+        "sha": "9778028b774c71922affa73ad32e487572ecf74a",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "97fec630a5785a5ee5ca8a435082c874dbbb9b62",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "9872d6c8ab6f8d6da5a238bde9e0473116529c6f",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5820,6 +6452,13 @@
         ]
       },
       {
+        "sha": "9b054d4db207d4c4e78aca8cd80b8dec3516b687",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "9b386c43c057d221886c0844fee844677833f07d",
         "classification": "operational",
         "itemIds": [
@@ -5837,35 +6476,66 @@
         "sha": "9f5073437854b211d5bfc21f4350d024619e9771",
         "classification": "operational",
         "itemIds": [
-          "td-1"
+          "td-1",
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "9f63f464e4e6478877509fe048b61a207f1c47bc",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "a0c0fb5179ceabc40fed055f911650a8e106113b",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "a1f0d4bcbf2bd96577718bbb3e1f5ad385e9d66e",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "a35c39cbf8b3789b419b5a841fb6423da6b87d4e",
+        "classification": "operational",
+        "itemIds": [
+          "C-UPDATER-REVIEW-FIXES"
+        ]
+      },
+      {
+        "sha": "a4830eab8da2231112ab200229933add945e4e70",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-DIFF-THEME-SYNC",
+          "FIX-PROJECT-SEARCH-ACCENT"
         ]
       },
       {
         "sha": "a4e9d99293b980f0616acd5e5f43e389dd5a1096",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "a64f718a0f61becf5f2e5dc590f90e4e901c83b6",
+        "sha": "a504783a98b9aa8ff5b1b388689ba2f1af114b3c",
         "classification": "operational",
         "itemIds": [
-          "C-COMMONMARK-EMPHASIS"
-        ]
-      },
-      {
-        "sha": "a685701a4241b564f5601e937a607568d0e21e3e",
-        "classification": "operational",
-        "itemIds": [
-          "C-GITHUB-THEME"
+          "FIX-EXTENSION-THEME-TOKENS",
+          "FIX-SHELL-CHROME-FONT"
         ]
       },
       {
         "sha": "aa0b4e84a7a8375a0842d2d59fa125b12e1488ae",
         "classification": "operational",
         "itemIds": [
-          "C-POST-BETA-OPS-WAVE"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5876,10 +6546,17 @@
         ]
       },
       {
-        "sha": "ac60bc02ee71c0331d2258454ec263784495da42",
+        "sha": "ab46cdfa32e8ffafe6a3f539dd52aabab7681e2a",
         "classification": "operational",
         "itemIds": [
-          "C-FILE-POSITION-MEMORY"
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "aee9bfc4478f7b05f9fdbaf002d5a46c452c4f53",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5890,10 +6567,38 @@
         ]
       },
       {
+        "sha": "b0cb62d8a1633523638f1bcb94162d97b5732519",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "b0f6911f02b7437682b074e9a992f2e945a8d04d",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "b1ee1d93c73c6cff05c909d6e9d7332af03c8acd",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "b37f483f3ee074b8ec2553007c42024aa85e4cc6",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "b3938b0f2fa9b15505abbcafffd245859b2c9b36",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5901,6 +6606,13 @@
         "classification": "operational",
         "itemIds": [
           "FIX-CONTRIBUTOR-COMMANDS"
+        ]
+      },
+      {
+        "sha": "b702a7fecbe36adf5cc784fe629cd1cfe3847d99",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5941,7 +6653,22 @@
         "sha": "b9d8e5f6b69c1714125d904d72c7c6fe7ddb5386",
         "classification": "operational",
         "itemIds": [
-          "td-1"
+          "td-1",
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "ba57e38a8df39ce71e3b9429abe7832c322f15b0",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "ba78dac18d172e902e8eab48ef3aae1412dbe4ab",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5952,10 +6679,38 @@
         ]
       },
       {
+        "sha": "bba9b71e69067cfc38b767fed226e22fc7b2343a",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "bc27a3fab60797a21fd47a1b1e4c2cf58d84f7f6",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "bc8ad8aef3e731660c11f320dc54c14c703f8536",
         "classification": "operational",
         "itemIds": [
           "C-WINDOWS-MENU-ACCELERATORS"
+        ]
+      },
+      {
+        "sha": "bd5f854b113d43b2e2f1d912244bb32a10212919",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "bdaf8e756665677d36e7988b7121a8d7131bc735",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5969,7 +6724,14 @@
         "sha": "be525d259866571de3ae7df12b96a9e81b8d80f3",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "bec319f39112e7ff73f169c035633d3df740fd6d",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -5990,7 +6752,14 @@
         "sha": "c36a187286bb1c3c81e4efbc546daee028d2c12b",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "c3b62f33638c8ee82ef8f9dcc0482a42f46f7dc7",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -6004,7 +6773,7 @@
         "sha": "c4631cc5364370d61fdea20474421fbe75b4564e",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -6019,6 +6788,27 @@
         "classification": "operational",
         "itemIds": [
           "C-EXPORT-BOUNDARIES"
+        ]
+      },
+      {
+        "sha": "c86afea6275ba52348345d5af8f67fd8cf4645fc",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "c8def4cbf808b914f85b6bb719c1da64731c7884",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "ca18e55fe51f4b8ed71c4f6e4c553ba3672d3fde",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -6039,7 +6829,8 @@
         "sha": "ce6eebcc90a44a68869900053de353ce1735e3ca",
         "classification": "operational",
         "itemIds": [
-          "td-1"
+          "td-1",
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -6050,13 +6841,7 @@
           "C-PASTE-ASCII-TABLES",
           "C-SIDEBAR-MOVE-FILE",
           "FIX-IMAGE-TOOLBAR-RESIDUE",
-          "C-AUTOSAVE-DEFAULT-ON"
-        ]
-      },
-      {
-        "sha": "ce92b473a1098229bb8163ab97b0d7659d8d0a9a",
-        "classification": "operational",
-        "itemIds": [
+          "C-AUTOSAVE-DEFAULT-ON",
           "C-RELEASE-CANARY-PRERELEASE"
         ]
       },
@@ -6075,10 +6860,17 @@
         ]
       },
       {
-        "sha": "d14335e451515b5064e42fd233dded2b8a3e7cd5",
-        "classification": "user-facing",
+        "sha": "d136e1ded73a9347530efd4c2c7458e99b563af8",
+        "classification": "operational",
         "itemIds": [
-          "C-TITLEBAR-MODE-CHIPS"
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "d14be7c5e37a80b8a4ac7d9d271928d9de5b4749",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -6096,17 +6888,32 @@
         ]
       },
       {
+        "sha": "d343fde52c819f81272d7cfba4ace33ae4928c51",
+        "classification": "operational",
+        "itemIds": [
+          "C-NOTIFICATION-SYSTEM"
+        ]
+      },
+      {
+        "sha": "d5aaa4550117b5389249b97173ebd60990181aeb",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "d688f2fc2f349d3ef1d8660dd33353a04f8062a1",
         "classification": "operational",
         "itemIds": [
-          "td-1"
+          "td-1",
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
         "sha": "d81929341ef7d1ec3294cebb7e9256f111876b23",
         "classification": "operational",
         "itemIds": [
-          "C-POST-BETA-OPS-WAVE"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -6120,7 +6927,7 @@
         "sha": "d93d9fef129be5b460e01baff79364b4f27a42d3",
         "classification": "operational",
         "itemIds": [
-          "C-POST-BETA-OPS-WAVE"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -6141,14 +6948,29 @@
         "sha": "dc9fc5f1c3dab3f53bcc6ec77fedc40d3fdae0b6",
         "classification": "operational",
         "itemIds": [
-          "td-1"
+          "td-1",
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
         "sha": "dceb337c46567364c0b210b726835506d54353e7",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "dd4a4c9a74c9554fcf85b0995bfd87bbfb32d8da",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "dd6bb599ee9e23565a16cf10b2a2ab75a5672466",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -6166,10 +6988,38 @@
         ]
       },
       {
+        "sha": "e05d170bcec9daefbeea1ffd7bce360f259a0710",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "e19d9922a4f0b86114464b02b35008f8d09ef0fc",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "e1a3c4fafee3860e7943eb99ead638f4186a7835",
         "classification": "operational",
         "itemIds": [
           "C-POST-BETA-OPS-WAVE"
+        ]
+      },
+      {
+        "sha": "e2b627fa5f278ea462428de1e344d8f9f4ac8bf7",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "e3ae30a569b7eb87e16112fc2a225385cb3b230f",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -6187,10 +7037,24 @@
         ]
       },
       {
+        "sha": "e4ef4cb878011d14194ef585f25c783b45b3958b",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "e51290568f59187a790566a399ca3031fbf3734a",
         "classification": "operational",
         "itemIds": [
           "C-EXT-ACK-HONESTY"
+        ]
+      },
+      {
+        "sha": "e620a8aa288824f58dff14514d8d2219abf80842",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -6205,6 +7069,13 @@
         "classification": "operational",
         "itemIds": [
           "C-SETTINGS-WINDOW-RESTORE"
+        ]
+      },
+      {
+        "sha": "e78f1d97bc3a7012750a9e7ae0abf3c4790bd66a",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -6229,6 +7100,13 @@
         ]
       },
       {
+        "sha": "ead9addf194fbe0cf016a595002386314474b6c5",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "eca85dcd06418b311f0d7e5006aa7ae3eea51103",
         "classification": "operational",
         "itemIds": [
@@ -6236,10 +7114,24 @@
         ]
       },
       {
+        "sha": "ee24601bc010ecd8a19f29c8af5b685bfdbce330",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "eee7b742ab41efda64cf8aeedb2e201ad9c4cffc",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "ef13c8ef3775e5810d2227bb31c55adcb72bbe83",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -6253,7 +7145,14 @@
         "sha": "ef5faf33299298e6e3ed0ebe125b393a2a51e60c",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "ef8186d00ab1ba59e616dca0b59e785a4435a48a",
+        "classification": "operational",
+        "itemIds": [
+          "C-FILE-POSITION-MEMORY"
         ]
       },
       {
@@ -6270,7 +7169,14 @@
         "sha": "f1fb6f507cacb3cd3f966e3ca68bde4770358d89",
         "classification": "operational",
         "itemIds": [
-          "C-POST-BETA-OPS-WAVE"
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "f33527f3bee50f0bc138bba7a3519b3dd1bf7d32",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -6284,7 +7190,8 @@
         "sha": "f5f18ab9c7ee6d0cdb37ee5db2224e8dfef9a5e4",
         "classification": "operational",
         "itemIds": [
-          "td-1"
+          "td-1",
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -6305,7 +7212,21 @@
         "sha": "f82620cf7324605ed3fafc62b085efc1617e8446",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "f8e598fb532eac9867a2539aa21b5a4151193416",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "f960447976a7004649e6aa5415232b0a17a210af",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -6316,10 +7237,24 @@
         ]
       },
       {
+        "sha": "fc0d1fb4ce067e614662e1090d32aabcb428a1b0",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
         "sha": "fc2f5c65811614679885a4f542c6e5d9207fbc54",
         "classification": "operational",
         "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "fcb0a02029cb77ef740fff6693bbd3c3b042c821",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
@@ -6327,6 +7262,13 @@
         "classification": "operational",
         "itemIds": [
           "C-SEC-PAIR-REBIND"
+        ]
+      },
+      {
+        "sha": "fe3afe1cdb8aa6850cd3ea0fe3ea69c8221fcb5b",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
