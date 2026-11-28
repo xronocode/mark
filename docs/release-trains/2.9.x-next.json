@@ -182,6 +182,37 @@
     ],
     "operational": [
       {
+        "id": "C-QUICKOPEN-FILES-MODE",
+        "summary": "Quick Open's files mode exists — paths without bodies, and the files mode is reachable alongside the content search.",
+        "state": "queued",
+        "commits": [
+          "d5aaa4550117b5389249b97173ebd60990181aeb"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/333",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "hosted CI on the merge commit (required checks: renderer and backend unit on three OS, e2e, QuickLook, CodeQL, release gates)",
+              "result": "statusCheckRollup of PR #333 head (merge commit d5aaa455): green per merge; recorded 2026-11-27",
+              "date": "2026-11-27",
+              "build": "-",
+              "evidence": "https://github.com/xronocode/mark/pull/333"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on the release-candidate build",
+              "reason": "Deferred to the train acceptance protocol (rule 5)."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending"
+        }
+      },
+      {
         "id": "C-GITHUB-THEME",
         "summary": "The GitHub theme family joins as the 17th built-in pair: github (Primer light — white ground, #1F2328 ink, #0969DA accent, green primary buttons, README-style h1/h2 bottom rules) and github-dark (Primer dark — #0D1117 ground, #F0F6FC ink, #4493F8 accent) with Prism code-highlight companions, registered across the theme list, the native View › Theme menu, the command palette, Settings › Appearance and all ten locales; the site diagram gallery theme table carries both (34 themes, 17 dark / 17 light).",
         "state": "queued",
@@ -5227,7 +5258,6 @@
           "ce6eebcc90a44a68869900053de353ce1735e3ca",
           "d136e1ded73a9347530efd4c2c7458e99b563af8",
           "d14be7c5e37a80b8a4ac7d9d271928d9de5b4749",
-          "d5aaa4550117b5389249b97173ebd60990181aeb",
           "d688f2fc2f349d3ef1d8660dd33353a04f8062a1",
           "d81929341ef7d1ec3294cebb7e9256f111876b23",
           "d93d9fef129be5b460e01baff79364b4f27a42d3",
@@ -5283,284 +5313,10 @@
     "fromExclusive": "9d1938d0164f9e70e6530300943fb58117903c49",
     "entries": [
       {
-        "sha": "01d45767a25802a390092c07f9c63a771ff8ab7f",
-        "classification": "operational",
-        "itemIds": [
-          "C-UPDATER-STATS"
-        ]
-      },
-      {
-        "sha": "01d789c2622e410da2d7d92eabccec0a2aaf8486",
-        "classification": "operational",
-        "itemIds": [
-          "FIX-TYPED-HEADING-REGRESSION"
-        ]
-      },
-      {
-        "sha": "04500d8f20a8418edd65e5add270a5e758363b44",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "04b180cb48d7070089672ccb293a9f72eda256df",
-        "classification": "operational",
-        "itemIds": [
-          "FIX-EMOJI-TIMESTAMPS"
-        ]
-      },
-      {
-        "sha": "0580781d895113f6c125f84a270014b65d73f3f7",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "06a1b176dd129963171d940ee70e7c65f44e4622",
-        "classification": "operational",
-        "itemIds": [
-          "C-TABLE-LAYOUT-COMPLETION"
-        ]
-      },
-      {
-        "sha": "073ae3df749730a72a7c33682d674f578c63347f",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "083f29c84d74bb48fece073693bb379feb0dddad",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "09226066f80904f38a89085d1f35ce9e95289532",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "09ccbd25b2531c30f314dafdf1f89e81d2b15696",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "0a0b6589577e58343c5fc10877fb42c2939ef9fd",
-        "classification": "operational",
-        "itemIds": [
-          "C-SESSION-WRITE-ATOMICITY"
-        ]
-      },
-      {
-        "sha": "0a20c353bad76d9d0518c2f38be51009667f06f5",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "0a72917c50904034eda06c64ee870e1ea8e7623c",
-        "classification": "operational",
-        "itemIds": [
-          "C-EXPORT-SETTINGS-SECTION-RECOVERY"
-        ]
-      },
-      {
-        "sha": "0d142333b2d929f8fbdad0098b4935fac9614c41",
-        "classification": "operational",
-        "itemIds": [
-          "td-1",
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "10bfdc94a5712d9237a5841cb6285de2d586bd78",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "116a2f0faa380f23bb93ee0f9e62e959e518a343",
-        "classification": "operational",
-        "itemIds": [
-          "C-DOCS-SYNC"
-        ]
-      },
-      {
-        "sha": "11e5f2dac64424a0c94c8df899e4252edd7c1e8b",
-        "classification": "operational",
-        "itemIds": [
-          "FIX-022"
-        ]
-      },
-      {
-        "sha": "158653b623cb3c030b1e842e957cc96dc94a2cc4",
-        "classification": "operational",
-        "itemIds": [
-          "FIX-CLIPBOARD-WALK-OBSERVATION"
-        ]
-      },
-      {
-        "sha": "1687d4c81bb7af2d51b3e712376cc19a7d8fcced",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
         "sha": "16a4a47ed723740e330e44cf448bcbada766882c",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "1713225ea858ce339f5653838bfb0051dc198a7b",
-        "classification": "operational",
-        "itemIds": [
-          "C-POST-BETA-OPS-WAVE"
-        ]
-      },
-      {
-        "sha": "17782937c8832f77691ff104582746a2c09de3ea",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "197a9d0e22c78a4bb5462c844c99eb81693e3ee1",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "1a720d53ec822892e82eda4c1a6a3b97dd9b56cf",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "1aa95602c844ebf5d131cfdeed5d407399eb3a1b",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "1d58bc385b12e20a953a1077cc1849b8f306c2ba",
-        "classification": "operational",
-        "itemIds": [
-          "C-RELEASE-MANUAL-PUBLISH"
-        ]
-      },
-      {
-        "sha": "1d8e67fb7531759c283dbdc65e7edf713622bfc7",
-        "classification": "user-facing",
-        "itemIds": [
-          "C-TITLEBAR-MODE-CHIPS"
-        ]
-      },
-      {
-        "sha": "1dbe9bb996325f518129be3782654ff82991bb08",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "1dc2def2348c2d4b6e59daae288878318a96e6f1",
-        "classification": "user-facing",
-        "itemIds": [
-          "C-NATIVE-DOCX-RTF-EXPORT"
-        ]
-      },
-      {
-        "sha": "1ee587e7d2da387ae458199e476672509764ec52",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "1f4ce7e5eaca3db5abdbf541ddd07f15cbf76410",
-        "classification": "operational",
-        "itemIds": [
-          "C-SAFETY-LOCAL-FIRST-REVIEW"
-        ]
-      },
-      {
-        "sha": "1ff5ede6c5aa92fdf32d513a50014adb0b6d75de",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "21abfa3a2e65bde1be4755a370c2a3ae652ff7e5",
-        "classification": "operational",
-        "itemIds": [
-          "C-HONEST-FAILURE-NOTICES"
-        ]
-      },
-      {
-        "sha": "21f8627e99a11081b32af34aa23cf26cd0cc517e",
-        "classification": "operational",
-        "itemIds": [
-          "C-SURFACE-OWNERSHIP"
-        ]
-      },
-      {
-        "sha": "2275550d94b991516ecf10f070c1648a9f5fc42b",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "229b3a69be8e16ca1717d8f2fea580ba4be69b75",
-        "classification": "operational",
-        "itemIds": [
-          "C-SEC-GITLEAKS-CHECKSUM"
-        ]
-      },
-      {
-        "sha": "22ff048fa0acec846376ee773b594ce025c26c0d",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "239e5dabbb110a3b85918d546f5cfb8cd22c32f8",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "23cc2f4f9ed7625e770f02bd6c513959e8a8329d",
-        "classification": "operational",
-        "itemIds": [
-          "C-EXT-DELIVERY-HONESTY"
-        ]
-      },
-      {
-        "sha": "2474281761404fb08bc80bf3f01c3dda4d314061",
-        "classification": "operational",
-        "itemIds": [
-          "C-LOCALE-MIN-TWIN-REMOVAL"
         ]
       },
       {
@@ -5571,185 +5327,10 @@
         ]
       },
       {
-        "sha": "271a36955f39412273e7650a05d377558c818421",
+        "sha": "2275550d94b991516ecf10f070c1648a9f5fc42b",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "2722bd851531290860624e14ddc18973bcd901f0",
-        "classification": "operational",
-        "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
-        ]
-      },
-      {
-        "sha": "2791edf704b11b82d1b29ba1b28e2ea64cddb579",
-        "classification": "operational",
-        "itemIds": [
-          "C-SEC-EDIT-TARGETING"
-        ]
-      },
-      {
-        "sha": "27bf95bbb6eec265c9ac88cf668cbffbc91c75a1",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "2853081717bce330ee9a764302b44d4be06ecd10",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "296dc5f0f965a906b61ea655b2b570c847f3f276",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "29ed23f2331fac9fb8f64a8fe6a701a7a7326486",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "2a67b1be3b4924e90a323ab9130395f07ea0fcda",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "2bae33643a23f9a098f41ad3be249a4303e0f5ca",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "2bb5db9eb8d72fa8217a6ee70f6fc27165f851fd",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "2dd5ae4f61274941a2f20eba417cc7a8b48f5b25",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "2e1b4b3d63ceb9318e0ead79090d8f0275f92f8e",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "2e8cb90e282f936bb83a3eaf526ba88987e8863d",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "2f99489017b6c66dc6e8a251286296d7a58a218e",
-        "classification": "operational",
-        "itemIds": [
-          "C-STABILIZE-TRAIN-MIRROR"
-        ]
-      },
-      {
-        "sha": "306aff344cb2b257a187564518ce6397aa519dfc",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "31bee13ae6a058691f55e0c8a2a88b467b7e14eb",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "33315ea73454b97d7ff12630cecf4185194bc4b2",
-        "classification": "operational",
-        "itemIds": [
-          "C-WIN-ROLLBACK-PANIC"
-        ]
-      },
-      {
-        "sha": "35c922373514ea677fda2f537220b36865a1e785",
-        "classification": "operational",
-        "itemIds": [
-          "C-EXTERNAL-RELOAD-OPERATION"
-        ]
-      },
-      {
-        "sha": "388b666915ba675d9f5728b1f3f5f0392697f937",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "39a9c284dc3aaa9c4824a00cf1ae198ecdfdbb7b",
-        "classification": "operational",
-        "itemIds": [
-          "C-MD-LINK-TABS"
-        ]
-      },
-      {
-        "sha": "3d72dafa4957502348c2b27db01fb3897b1c7038",
-        "classification": "operational",
-        "itemIds": [
-          "C-PRINT-LIFECYCLE-TESTS"
-        ]
-      },
-      {
-        "sha": "3da9729deff7400c1f5b3fd6ec46de60df8f3432",
-        "classification": "operational",
-        "itemIds": [
-          "C-LARGE-DOC-STAGE-0"
-        ]
-      },
-      {
-        "sha": "3e62bc7105fbee88e48d44c5d6377ca1d9af7720",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "3f1e41c6017998e5c2ad5e8a39b2b68c894bdbda",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "3f61c2b73a0d0ee8aea83bd3fa5a1b09bab182c9",
-        "classification": "operational",
-        "itemIds": [
-          "C-RELEASE-SIGNING-SPLIT"
-        ]
-      },
-      {
-        "sha": "3f7d45aad16f3615253e84001b271b663540e2a4",
-        "classification": "operational",
-        "itemIds": [
-          "C-STATS-READOUT"
         ]
       },
       {
@@ -5760,56 +5341,14 @@
         ]
       },
       {
-        "sha": "43399cc4b04df97aa2c0c9ea459c6df3199cf7ed",
+        "sha": "969349a639f15dd013bc4c86e2469ad9d44ab573",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "486275c7f99c95965891528a29c30f2a44825e32",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "48820f90cc8686b24d1128e009438547e898e425",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "48e7fe17db434d2162b4423fd6d19ed66d6427c0",
-        "classification": "operational",
-        "itemIds": [
-          "FIX-SHELL-CHROME-FONT"
-        ]
-      },
-      {
-        "sha": "499522fd4a37cd33212157433476bef1305325f2",
-        "classification": "operational",
-        "itemIds": [
-          "C-PELE-HTML-POSTPROCESS"
-        ]
-      },
-      {
-        "sha": "4b68982347e2b1838787740317208221e44ac5b9",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "4b748458100d9715f7f0465a969f5a3349295ecc",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "4c645fb22d9b7afbe19450ee17cd79865c138b97",
+        "sha": "bdaf8e756665677d36e7988b7121a8d7131bc735",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
@@ -5823,164 +5362,77 @@
         ]
       },
       {
-        "sha": "4dcde343158be19e30dffe2e03e6d214278d331e",
+        "sha": "ef8186d00ab1ba59e616dca0b59e785a4435a48a",
         "classification": "operational",
         "itemIds": [
-          "C-TABLE-BAR-MENU-OVERLAP"
+          "C-FILE-POSITION-MEMORY"
         ]
       },
       {
-        "sha": "4e6aa2c5eafee7d0164105d7737d5f86fb5e80af",
+        "sha": "d343fde52c819f81272d7cfba4ace33ae4928c51",
         "classification": "operational",
         "itemIds": [
-          "FIX-020"
+          "C-NOTIFICATION-SYSTEM"
         ]
       },
       {
-        "sha": "4eae0dfc670ca713f9b1bfe6a3fbc36d7b2249d4",
-        "classification": "operational",
-        "itemIds": [
-          "C-LATE-REFUSAL-HONESTY"
-        ]
-      },
-      {
-        "sha": "4f77092cec547e5eb2a3acc4845cc824f585d51a",
+        "sha": "306aff344cb2b257a187564518ce6397aa519dfc",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "4fa3cffa813445e1e6974a5ac8283f54abf89e5c",
+        "sha": "2853081717bce330ee9a764302b44d4be06ecd10",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "50c94c99d9a62481bafefdced6c81bd6f660b5ad",
+        "sha": "04500d8f20a8418edd65e5add270a5e758363b44",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "55739a55cfbe3b5f55b9105b8741e9adc44a8354",
+        "sha": "1d58bc385b12e20a953a1077cc1849b8f306c2ba",
         "classification": "operational",
         "itemIds": [
-          "C-SEC-EXT-GRANT-BOUND"
+          "C-RELEASE-MANUAL-PUBLISH"
         ]
       },
       {
-        "sha": "5599b1e9f83419af123c1dc71981c8037c5a6e51",
+        "sha": "90882853afed0308d3b7ed8751cb30c9f505f6aa",
+        "classification": "operational",
+        "itemIds": [
+          "C-RELEASE-MANUAL-PUBLISH"
+        ]
+      },
+      {
+        "sha": "1dc2def2348c2d4b6e59daae288878318a96e6f1",
+        "classification": "user-facing",
+        "itemIds": [
+          "C-NATIVE-DOCX-RTF-EXPORT"
+        ]
+      },
+      {
+        "sha": "083f29c84d74bb48fece073693bb379feb0dddad",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "5625ad080b474c251002f626f967d1d862e658a6",
+        "sha": "8d1d2d532e3ea10082033b6e73052ed7494d3977",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "57bac25458745399e272aba19a5ec1c97c36d74c",
-        "classification": "operational",
-        "itemIds": [
-          "C-MUYA-CURRENT-MODEL-EXPORT",
-          "C-EXPORT-SETTINGS-SECTION-RECOVERY"
-        ]
-      },
-      {
-        "sha": "59463950cdc59f9a1e70203efe90b0077a97674d",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "599151bc7cb188ee32b263b9d57ab82d44bdeabb",
-        "classification": "operational",
-        "itemIds": [
-          "C-EXPORT-BOUNDARIES-DOCX"
-        ]
-      },
-      {
-        "sha": "599ff9d2083327f920c7cd46f254c5b87beb482c",
-        "classification": "operational",
-        "itemIds": [
-          "FIX-CURRENT-VERIFICATION-CONTEXT"
-        ]
-      },
-      {
-        "sha": "5b78a14a4df6103956061dd16d1d88afe4a9013b",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "5c462733892447eeec0d89326a8a575daece8035",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "5d73e158a5e2357e266ca1fd5e87d954eecf529a",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "5e018f997db33cfea2e5c5f64a6389248c78db19",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "5fece09f75375489f58d7616392993dc30df9674",
-        "classification": "operational",
-        "itemIds": [
-          "C-STABILIZE-29"
         ]
       },
       {
         "sha": "6033acf0fb3d73e162c4b7aaf23abe00954db161",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "619f7ddc9502d4f8984d76f7eae73104627c8c9b",
-        "classification": "operational",
-        "itemIds": [
-          "C-MUYA-CURRENT-MODEL-EXPORT",
-          "C-EXPORT-SETTINGS-SECTION-RECOVERY",
-          "FIX-DIFF-THEME-SYNC"
-        ]
-      },
-      {
-        "sha": "638c0a7cccd1425a1dfcf93a2eef065815392fbb",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "63fcd587a263cdd93ae57198653e231e01d8de06",
-        "classification": "operational",
-        "itemIds": [
-          "FIX-STREAM-OWNERSHIP-EVIDENCE"
-        ]
-      },
-      {
-        "sha": "641d0e8a7565b2edd978c4db29e71548967fbb0c",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
@@ -5994,10 +5446,38 @@
         ]
       },
       {
+        "sha": "4e6aa2c5eafee7d0164105d7737d5f86fb5e80af",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-020"
+        ]
+      },
+      {
         "sha": "649aa607dcae6770171cabaaba6703a927c1f1e7",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "2e8cb90e282f936bb83a3eaf526ba88987e8863d",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "f960447976a7004649e6aa5415232b0a17a210af",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "821de61518d380d211e17400d2a3262177890b60",
+        "classification": "operational",
+        "itemIds": [
+          "C-COMMONMARK-EMPHASIS"
         ]
       },
       {
@@ -6008,42 +5488,154 @@
         ]
       },
       {
-        "sha": "65619fadd88843426e4c2c8f656a49762e4663fe",
-        "classification": "operational",
-        "itemIds": [
-          "C-MUYA-MODEL-SURGERY"
-        ]
-      },
-      {
-        "sha": "65b36ffc1280aa942c7980bfa11b8200eec36267",
+        "sha": "09ccbd25b2531c30f314dafdf1f89e81d2b15696",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "67979502b33458468de929ef11c70a5711f371eb",
+        "sha": "b1ee1d93c73c6cff05c909d6e9d7332af03c8acd",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "689df8aa95030b5488a92913b2485ca0d3a9f320",
+        "sha": "8865b5401fc9d6e7cb2a64319f82c8039681a81b",
+        "classification": "operational",
+        "itemIds": [
+          "C-GRAPH-RUNTIME-PATHS"
+        ]
+      },
+      {
+        "sha": "1d8e67fb7531759c283dbdc65e7edf713622bfc7",
+        "classification": "user-facing",
+        "itemIds": [
+          "C-TITLEBAR-MODE-CHIPS"
+        ]
+      },
+      {
+        "sha": "e3ae30a569b7eb87e16112fc2a225385cb3b230f",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "68d932dc9ea81addcc54e24d09107c179dc038e8",
+        "sha": "5b78a14a4df6103956061dd16d1d88afe4a9013b",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "6989ef9e1c0b11e3d6ac07db252b59a2679c5076",
+        "sha": "2bb5db9eb8d72fa8217a6ee70f6fc27165f851fd",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "d136e1ded73a9347530efd4c2c7458e99b563af8",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "eca85dcd06418b311f0d7e5006aa7ae3eea51103",
+        "classification": "operational",
+        "itemIds": [
+          "C-RELEASE-MANUAL-PUBLISH"
+        ]
+      },
+      {
+        "sha": "8abe418d683c453985d88bd3d100c252665aaffd",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "7a384edcf87bb91096dfa3b33bd12cecf4fe2699",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "ff9ff6e112c7cf48ac018c25be5e58dc1842befd",
+        "classification": "operational",
+        "itemIds": [
+          "C-SAFETY-REVIEW-LANES"
+        ]
+      },
+      {
+        "sha": "ba78dac18d172e902e8eab48ef3aae1412dbe4ab",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "2722bd851531290860624e14ddc18973bcd901f0",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "239e5dabbb110a3b85918d546f5cfb8cd22c32f8",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "7706ddf5eafe164bdbc4765042231d2a73e4ca2d",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "e05d170bcec9daefbeea1ffd7bce360f259a0710",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "8dc938f356ffc0d53f684afc3ba3bd21ab874ad6",
+        "classification": "user-facing",
+        "itemIds": [
+          "C-UPDATER-ROLLBACK"
+        ]
+      },
+      {
+        "sha": "8a4a6e6878dd5a1ee46deaf228b5c4cede1d9c7e",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "2474281761404fb08bc80bf3f01c3dda4d314061",
+        "classification": "operational",
+        "itemIds": [
+          "C-LOCALE-MIN-TWIN-REMOVAL"
+        ]
+      },
+      {
+        "sha": "71d07f228d6b0d862090dc14a4eaa9a17efa8da2",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "f8e598fb532eac9867a2539aa21b5a4151193416",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
@@ -6057,21 +5649,443 @@
         ]
       },
       {
-        "sha": "6e0d98475d52f023507c456a5a1416c115204d23",
+        "sha": "dceb337c46567364c0b210b726835506d54353e7",
         "classification": "operational",
         "itemIds": [
-          "C-RELEASE-ACTION-REFERENCES"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "6e8e2a1d0d19aa44144225090859caa005f005e3",
+        "sha": "ef5faf33299298e6e3ed0ebe125b393a2a51e60c",
         "classification": "operational",
         "itemIds": [
-          "FIX-IMAGE-ACTION-CATALOG"
+          "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "71d07f228d6b0d862090dc14a4eaa9a17efa8da2",
+        "sha": "fc2f5c65811614679885a4f542c6e5d9207fbc54",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "43399cc4b04df97aa2c0c9ea459c6df3199cf7ed",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "89541d8e1bbbca19d410efaf5a531bc61c7e44fe",
+        "classification": "operational",
+        "itemIds": [
+          "C-LARGE-DOC-STAGE-0"
+        ]
+      },
+      {
+        "sha": "e7c32b8512db9ca6b73fa3681a4b629d82448a66",
+        "classification": "operational",
+        "itemIds": [
+          "C-LARGE-DOC-STAGE-0"
+        ]
+      },
+      {
+        "sha": "75219f629d45617e6959f442f6668815f2b9ae02",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-021"
+        ]
+      },
+      {
+        "sha": "2bae33643a23f9a098f41ad3be249a4303e0f5ca",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "9f5073437854b211d5bfc21f4350d024619e9771",
+        "classification": "operational",
+        "itemIds": [
+          "td-1",
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "d2abf46c4a65bbb1aa1fd3d0058f0515da4ea451",
+        "classification": "operational",
+        "itemIds": [
+          "MACOS-15-RUNNERS"
+        ]
+      },
+      {
+        "sha": "cca6d784970c331da51004251289ef655505aa6f",
+        "classification": "operational",
+        "itemIds": [
+          "M-046-LANE-TRAINS"
+        ]
+      },
+      {
+        "sha": "8c4bff768344f8385c911d8c6c98d8ca4b47b330",
+        "classification": "operational",
+        "itemIds": [
+          "td-1",
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "b9d8e5f6b69c1714125d904d72c7c6fe7ddb5386",
+        "classification": "operational",
+        "itemIds": [
+          "td-1",
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "f5f18ab9c7ee6d0cdb37ee5db2224e8dfef9a5e4",
+        "classification": "operational",
+        "itemIds": [
+          "td-1",
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "d688f2fc2f349d3ef1d8660dd33353a04f8062a1",
+        "classification": "operational",
+        "itemIds": [
+          "td-1",
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "8461c4e58a36152c1b70639cd7a37bd85d0c23c1",
+        "classification": "operational",
+        "itemIds": [
+          "td-1",
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "dc9fc5f1c3dab3f53bcc6ec77fedc40d3fdae0b6",
+        "classification": "operational",
+        "itemIds": [
+          "td-1",
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "ce6eebcc90a44a68869900053de353ce1735e3ca",
+        "classification": "operational",
+        "itemIds": [
+          "td-1",
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "dd6bb599ee9e23565a16cf10b2a2ab75a5672466",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "780a66557f0305b6802bb961e3ddfe3d1d0d35c4",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "849cffa9cb93a71cc387d64d87303830a00a7eef",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "59463950cdc59f9a1e70203efe90b0077a97674d",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "79145f398f7b7c4172d762f5e5987a74bca4dce8",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "8ea9d16e23434a6b248f06694a357ec64cd0b999",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "3da9729deff7400c1f5b3fd6ec46de60df8f3432",
+        "classification": "operational",
+        "itemIds": [
+          "C-LARGE-DOC-STAGE-0"
+        ]
+      },
+      {
+        "sha": "1f4ce7e5eaca3db5abdbf541ddd07f15cbf76410",
+        "classification": "operational",
+        "itemIds": [
+          "C-SAFETY-LOCAL-FIRST-REVIEW"
+        ]
+      },
+      {
+        "sha": "641d0e8a7565b2edd978c4db29e71548967fbb0c",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "0d142333b2d929f8fbdad0098b4935fac9614c41",
+        "classification": "operational",
+        "itemIds": [
+          "td-1",
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "65b36ffc1280aa942c7980bfa11b8200eec36267",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "f82620cf7324605ed3fafc62b085efc1617e8446",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "22ff048fa0acec846376ee773b594ce025c26c0d",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "388b666915ba675d9f5728b1f3f5f0392697f937",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "bc8ad8aef3e731660c11f320dc54c14c703f8536",
+        "classification": "operational",
+        "itemIds": [
+          "C-WINDOWS-MENU-ACCELERATORS"
+        ]
+      },
+      {
+        "sha": "e2b627fa5f278ea462428de1e344d8f9f4ac8bf7",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "4f77092cec547e5eb2a3acc4845cc824f585d51a",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "2e1b4b3d63ceb9318e0ead79090d8f0275f92f8e",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "f7ffccd8e64d9967f547c95ce6fe4b209adb5938",
+        "classification": "operational",
+        "itemIds": [
+          "C-WINDOWS-SAVE-PIPELINE"
+        ]
+      },
+      {
+        "sha": "8380798ce4035248dd874aaaf360f15d03ec58ea",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "82bb92aac2d6bf6d66a6a85d1782ec2764811fd9",
+        "classification": "user-facing",
+        "itemIds": [
+          "C-PAGE-WIDTH-TABLES-768"
+        ]
+      },
+      {
+        "sha": "ee24601bc010ecd8a19f29c8af5b685bfdbce330",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "ca18e55fe51f4b8ed71c4f6e4c553ba3672d3fde",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "01d45767a25802a390092c07f9c63a771ff8ab7f",
+        "classification": "operational",
+        "itemIds": [
+          "C-UPDATER-STATS"
+        ]
+      },
+      {
+        "sha": "ba57e38a8df39ce71e3b9429abe7832c322f15b0",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "f3d88851261d6ddad27c968a2c3048342066ab63",
+        "classification": "operational",
+        "itemIds": [
+          "C-UPDATER-STATS"
+        ]
+      },
+      {
+        "sha": "e8eed5b88719f49e9d7ffdf62332bd338f9b6df4",
+        "classification": "operational",
+        "itemIds": [
+          "C-LARGE-DOC-WAVE-A"
+        ]
+      },
+      {
+        "sha": "d150eed729864895027134afa38349f999f8cb20",
+        "classification": "operational",
+        "itemIds": [
+          "C-LARGE-DOC-WAVE-A"
+        ]
+      },
+      {
+        "sha": "8934a2116c18ec4d791d09003b4e778c98dd4a0b",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "8f442fbd1901803f5fddfb78895bc498455e390b",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "17782937c8832f77691ff104582746a2c09de3ea",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "b0f6911f02b7437682b074e9a992f2e945a8d04d",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "84bf6e4837810fa3b5da90080ff7daba6c0be81d",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "a35c39cbf8b3789b419b5a841fb6423da6b87d4e",
+        "classification": "operational",
+        "itemIds": [
+          "C-UPDATER-REVIEW-FIXES"
+        ]
+      },
+      {
+        "sha": "c8def4cbf808b914f85b6bb719c1da64731c7884",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "aee9bfc4478f7b05f9fdbaf002d5a46c452c4f53",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "78925332edc27637c6722ae7dad0d62f24d74275",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "c36a187286bb1c3c81e4efbc546daee028d2c12b",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "eee7b742ab41efda64cf8aeedb2e201ad9c4cffc",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "3f7d45aad16f3615253e84001b271b663540e2a4",
+        "classification": "operational",
+        "itemIds": [
+          "C-STATS-READOUT"
+        ]
+      },
+      {
+        "sha": "8c9a6c2e1f765d72a96791518eeba30adb6c5f1b",
+        "classification": "operational",
+        "itemIds": [
+          "C-STATS-DASH-PUSH"
+        ]
+      },
+      {
+        "sha": "9653b76a5218f306571d343b405fac562af5cc3f",
+        "classification": "operational",
+        "itemIds": [
+          "C-PAGE-WIDTH-TABLES"
+        ]
+      },
+      {
+        "sha": "0a20c353bad76d9d0518c2f38be51009667f06f5",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "8c962bee1d9306bb9ce1670d626f53611abc3b97",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
@@ -6086,338 +6100,28 @@
         ]
       },
       {
-        "sha": "738660967e6678aa52c30d7cceae2f17403bee6e",
+        "sha": "9b054d4db207d4c4e78aca8cd80b8dec3516b687",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "7450719668cf79454032ebc8d6cd8ead831d29cc",
+        "sha": "b9b59d4271c51c9c72c2dcd2dfac9eb5fe3e8d40",
         "classification": "operational",
         "itemIds": [
-          "C-QA-LOCAL-TAURI-TOOL"
+          "C-RENDER-REVIEW-FIXES"
         ]
       },
       {
-        "sha": "75219f629d45617e6959f442f6668815f2b9ae02",
-        "classification": "operational",
-        "itemIds": [
-          "FIX-021"
-        ]
-      },
-      {
-        "sha": "7680bdf0050c2a5cd23fd79816a8bb26b707c9e4",
-        "classification": "operational",
-        "itemIds": [
-          "C-MUYA-CURRENT-MODEL-EXPORT"
-        ]
-      },
-      {
-        "sha": "76dce9422effa62f3401e19987abf4cacf2781ba",
-        "classification": "operational",
-        "itemIds": [
-          "C-SEC-STREAM-SCOPE"
-        ]
-      },
-      {
-        "sha": "7706ddf5eafe164bdbc4765042231d2a73e4ca2d",
+        "sha": "4b748458100d9715f7f0465a969f5a3349295ecc",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "780a66557f0305b6802bb961e3ddfe3d1d0d35c4",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "781fd825ccb57661b0d41cdc7af249bc9757cf2f",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "78925332edc27637c6722ae7dad0d62f24d74275",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "79145f398f7b7c4172d762f5e5987a74bca4dce8",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "7a050dcc3911cdd04589cb84eb9ac466ed78d200",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "7a384edcf87bb91096dfa3b33bd12cecf4fe2699",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "7b971fa9d3e60191a6cdad4acf36478930f04f3e",
-        "classification": "operational",
-        "itemIds": [
-          "FIX-SHARED-ACTIVE-TAB-MARKER"
-        ]
-      },
-      {
-        "sha": "7f4f672e6c69f3f42ecb0c582e57e7a5d6ac795e",
-        "classification": "operational",
-        "itemIds": [
-          "FIX-KEYBINDING-CLEANUP-REGRESSION"
-        ]
-      },
-      {
-        "sha": "821de61518d380d211e17400d2a3262177890b60",
-        "classification": "operational",
-        "itemIds": [
-          "C-COMMONMARK-EMPHASIS"
-        ]
-      },
-      {
-        "sha": "82bb92aac2d6bf6d66a6a85d1782ec2764811fd9",
-        "classification": "user-facing",
-        "itemIds": [
-          "C-PAGE-WIDTH-TABLES-768"
-        ]
-      },
-      {
-        "sha": "8380798ce4035248dd874aaaf360f15d03ec58ea",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "8461c4e58a36152c1b70639cd7a37bd85d0c23c1",
-        "classification": "operational",
-        "itemIds": [
-          "td-1",
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "84680fb8936f62c199a16059936c6e72ee01c82e",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "849cffa9cb93a71cc387d64d87303830a00a7eef",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "84bf6e4837810fa3b5da90080ff7daba6c0be81d",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "85909cf22889cc85a2a8827bc9c0e9774b9fbebe",
-        "classification": "operational",
-        "itemIds": [
-          "C-QUICKLOOK-SYNTAX-THEME"
-        ]
-      },
-      {
-        "sha": "8723f859e9f3c385ad628ccff68556488e2a7f15",
-        "classification": "operational",
-        "itemIds": [
-          "FIX-ARCHIVED-CONTRACT-LINKS"
-        ]
-      },
-      {
-        "sha": "878c0a24d13d9b67bf83a44e84c8d53243bb6bea",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "87d1a36134b7b6e336c48f9c5d5f1a3d3d90e809",
-        "classification": "operational",
-        "itemIds": [
-          "C-PREFS-TRUTH"
-        ]
-      },
-      {
-        "sha": "88454ac9411673cb0ec45b58704d8ad792330d6a",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "8865b5401fc9d6e7cb2a64319f82c8039681a81b",
-        "classification": "operational",
-        "itemIds": [
-          "C-GRAPH-RUNTIME-PATHS"
-        ]
-      },
-      {
-        "sha": "8934a2116c18ec4d791d09003b4e778c98dd4a0b",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "89541d8e1bbbca19d410efaf5a531bc61c7e44fe",
-        "classification": "operational",
-        "itemIds": [
-          "C-LARGE-DOC-STAGE-0"
-        ]
-      },
-      {
-        "sha": "8a4a6e6878dd5a1ee46deaf228b5c4cede1d9c7e",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "8abe418d683c453985d88bd3d100c252665aaffd",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "8b5d0243a5d49b62b8628c031fa7af8a2aacd23b",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "8c4bff768344f8385c911d8c6c98d8ca4b47b330",
-        "classification": "operational",
-        "itemIds": [
-          "td-1",
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "8c723be70306a942866cc99ae0ecc9631a442202",
-        "classification": "operational",
-        "itemIds": [
-          "C-SEARCH-SESSION-COMPLETION"
-        ]
-      },
-      {
-        "sha": "8c962bee1d9306bb9ce1670d626f53611abc3b97",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "8c9a6c2e1f765d72a96791518eeba30adb6c5f1b",
-        "classification": "operational",
-        "itemIds": [
-          "C-STATS-DASH-PUSH"
-        ]
-      },
-      {
-        "sha": "8d1d2d532e3ea10082033b6e73052ed7494d3977",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "8dc938f356ffc0d53f684afc3ba3bd21ab874ad6",
-        "classification": "user-facing",
-        "itemIds": [
-          "C-UPDATER-ROLLBACK"
-        ]
-      },
-      {
-        "sha": "8ea9d16e23434a6b248f06694a357ec64cd0b999",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "8f442fbd1901803f5fddfb78895bc498455e390b",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "8f4d8f261c3c322eb824d49e44dfcdb852f37ab0",
-        "classification": "operational",
-        "itemIds": [
-          "C-DEV-ENV-ISOLATION"
-        ]
-      },
-      {
-        "sha": "90882853afed0308d3b7ed8751cb30c9f505f6aa",
-        "classification": "operational",
-        "itemIds": [
-          "C-RELEASE-MANUAL-PUBLISH"
-        ]
-      },
-      {
-        "sha": "94a35d66dd018c22ea415954a81096094c580ebb",
-        "classification": "operational",
-        "itemIds": [
-          "C-QUICKLOOK-MDIT-BUMP"
-        ]
-      },
-      {
-        "sha": "9653b76a5218f306571d343b405fac562af5cc3f",
-        "classification": "operational",
-        "itemIds": [
-          "C-PAGE-WIDTH-TABLES"
-        ]
-      },
-      {
-        "sha": "969349a639f15dd013bc4c86e2469ad9d44ab573",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "96be1b358bce94c3f161676d4fd78c62680ec59c",
-        "classification": "operational",
-        "itemIds": [
-          "C-CI-CD-AUDIT-FIXES"
-        ]
-      },
-      {
-        "sha": "9778028b774c71922affa73ad32e487572ecf74a",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "97fec630a5785a5ee5ca8a435082c874dbbb9b62",
+        "sha": "29ed23f2331fac9fb8f64a8fe6a701a7a7326486",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
@@ -6431,203 +6135,111 @@
         ]
       },
       {
-        "sha": "98bab7cc8f2795796e041ee41fd708fea6796d0e",
+        "sha": "4dcde343158be19e30dffe2e03e6d214278d331e",
         "classification": "operational",
         "itemIds": [
-          "C-NET-STACK-BUMP"
+          "C-TABLE-BAR-MENU-OVERLAP"
         ]
       },
       {
-        "sha": "9912f7fbba95dfb4244fe53f930c690a19a5c0bc",
-        "classification": "operational",
-        "itemIds": [
-          "FIX-NATIVE-PDF-DESTINATION"
-        ]
-      },
-      {
-        "sha": "9a2da361dc9e86ee104dec5b6a9aa72bf2d61990",
-        "classification": "operational",
-        "itemIds": [
-          "C-SETTINGS-KEYBOARD-FOCUS"
-        ]
-      },
-      {
-        "sha": "9b054d4db207d4c4e78aca8cd80b8dec3516b687",
+        "sha": "296dc5f0f965a906b61ea655b2b570c847f3f276",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "9b386c43c057d221886c0844fee844677833f07d",
+        "sha": "96be1b358bce94c3f161676d4fd78c62680ec59c",
         "classification": "operational",
         "itemIds": [
-          "C-EDITOR-A11Y-CSS"
+          "C-CI-CD-AUDIT-FIXES"
         ]
       },
       {
-        "sha": "9caf575b1761a52fff3ad66505d2bd8ece240ef3",
+        "sha": "5fece09f75375489f58d7616392993dc30df9674",
         "classification": "operational",
         "itemIds": [
-          "C-RELEASE-BETA-CHECKS-GATE"
+          "C-STABILIZE-29"
         ]
       },
       {
-        "sha": "9f5073437854b211d5bfc21f4350d024619e9771",
+        "sha": "2f99489017b6c66dc6e8a251286296d7a58a218e",
         "classification": "operational",
         "itemIds": [
-          "td-1",
-          "TRAIN-BOOKKEEPING"
+          "C-STABILIZE-TRAIN-MIRROR"
         ]
       },
       {
-        "sha": "9f63f464e4e6478877509fe048b61a207f1c47bc",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "a0c0fb5179ceabc40fed055f911650a8e106113b",
+        "sha": "781fd825ccb57661b0d41cdc7af249bc9757cf2f",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "a1f0d4bcbf2bd96577718bbb3e1f5ad385e9d66e",
+        "sha": "efa9e60955dab59d27d1223d15b8c7f2200014d6",
+        "classification": "operational",
+        "itemIds": [
+          "C-TABLE-SEQUENTIAL-RESIZE",
+          "C-TABLE-FITTED-RESET",
+          "C-VIEWER-WINDOW-DRAG",
+          "C-HOSTED-VALIDATION-RECOVERY"
+        ]
+      },
+      {
+        "sha": "9778028b774c71922affa73ad32e487572ecf74a",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "a35c39cbf8b3789b419b5a841fb6423da6b87d4e",
-        "classification": "operational",
-        "itemIds": [
-          "C-UPDATER-REVIEW-FIXES"
-        ]
-      },
-      {
-        "sha": "a4830eab8da2231112ab200229933add945e4e70",
-        "classification": "operational",
-        "itemIds": [
-          "FIX-DIFF-THEME-SYNC",
-          "FIX-PROJECT-SEARCH-ACCENT"
-        ]
-      },
-      {
-        "sha": "a4e9d99293b980f0616acd5e5f43e389dd5a1096",
+        "sha": "2a67b1be3b4924e90a323ab9130395f07ea0fcda",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "a504783a98b9aa8ff5b1b388689ba2f1af114b3c",
+        "sha": "e896dd214d2077ff771fa9fd6a333b16a9d69861",
         "classification": "operational",
         "itemIds": [
-          "FIX-EXTENSION-THEME-TOKENS",
-          "FIX-SHELL-CHROME-FONT"
+          "C-SAVE-CLOSE-DATA-SAFETY"
         ]
       },
       {
-        "sha": "aa0b4e84a7a8375a0842d2d59fa125b12e1488ae",
+        "sha": "39a9c284dc3aaa9c4824a00cf1ae198ecdfdbb7b",
+        "classification": "operational",
+        "itemIds": [
+          "C-MD-LINK-TABS"
+        ]
+      },
+      {
+        "sha": "04b180cb48d7070089672ccb293a9f72eda256df",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-EMOJI-TIMESTAMPS"
+        ]
+      },
+      {
+        "sha": "c3b62f33638c8ee82ef8f9dcc0482a42f46f7dc7",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "ab1f0c00c02365d1c13aa1098300dd678d2b145b",
+        "sha": "f666d4c65025409266cac284c65a8a21373adb3e",
         "classification": "operational",
         "itemIds": [
-          "C-QUICKLOOK-CONTENT-BOUNDARY"
+          "C-METADATA-SAVE-SAFETY"
         ]
       },
       {
-        "sha": "ab46cdfa32e8ffafe6a3f539dd52aabab7681e2a",
+        "sha": "d14be7c5e37a80b8a4ac7d9d271928d9de5b4749",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "aee9bfc4478f7b05f9fdbaf002d5a46c452c4f53",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "af2e99ddf8eac658be0a4420dc23eabc1464b26c",
-        "classification": "operational",
-        "itemIds": [
-          "C-CI-TOOLS-TIMEOUT"
-        ]
-      },
-      {
-        "sha": "b0cb62d8a1633523638f1bcb94162d97b5732519",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "b0f6911f02b7437682b074e9a992f2e945a8d04d",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "b1ee1d93c73c6cff05c909d6e9d7332af03c8acd",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "b37f483f3ee074b8ec2553007c42024aa85e4cc6",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "b3938b0f2fa9b15505abbcafffd245859b2c9b36",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "b6fa8d89daa11e6ac19b4fbbf57292dd6df4394b",
-        "classification": "operational",
-        "itemIds": [
-          "FIX-CONTRIBUTOR-COMMANDS"
-        ]
-      },
-      {
-        "sha": "b702a7fecbe36adf5cc784fe629cd1cfe3847d99",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "b76efc57a07200b8f2849f7b73d259324a3ace84",
-        "classification": "operational",
-        "itemIds": [
-          "FIX-PROJECT-SEARCH-ACCENT"
-        ]
-      },
-      {
-        "sha": "b77669f59fde849e4de08a5d4552126515618dfc",
-        "classification": "operational",
-        "itemIds": [
-          "C-SOURCE-HISTORY-OWNERSHIP",
-          "C-SPLIT-SAVE-AUTHORITY"
         ]
       },
       {
@@ -6643,42 +6255,6 @@
         ]
       },
       {
-        "sha": "b9b59d4271c51c9c72c2dcd2dfac9eb5fe3e8d40",
-        "classification": "operational",
-        "itemIds": [
-          "C-RENDER-REVIEW-FIXES"
-        ]
-      },
-      {
-        "sha": "b9d8e5f6b69c1714125d904d72c7c6fe7ddb5386",
-        "classification": "operational",
-        "itemIds": [
-          "td-1",
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "ba57e38a8df39ce71e3b9429abe7832c322f15b0",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "ba78dac18d172e902e8eab48ef3aae1412dbe4ab",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "bb68fd6ca3185b83f82cf12eac3cc189e8ab182e",
-        "classification": "operational",
-        "itemIds": [
-          "DEPS-MAINTENANCE-2.9"
-        ]
-      },
-      {
         "sha": "bba9b71e69067cfc38b767fed226e22fc7b2343a",
         "classification": "operational",
         "itemIds": [
@@ -6686,91 +6262,36 @@
         ]
       },
       {
-        "sha": "bc27a3fab60797a21fd47a1b1e4c2cf58d84f7f6",
+        "sha": "4fa3cffa813445e1e6974a5ac8283f54abf89e5c",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "bc8ad8aef3e731660c11f320dc54c14c703f8536",
+        "sha": "b77669f59fde849e4de08a5d4552126515618dfc",
         "classification": "operational",
         "itemIds": [
-          "C-WINDOWS-MENU-ACCELERATORS"
+          "C-SOURCE-HISTORY-OWNERSHIP",
+          "C-SPLIT-SAVE-AUTHORITY"
         ]
       },
       {
-        "sha": "bd5f854b113d43b2e2f1d912244bb32a10212919",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "bdaf8e756665677d36e7988b7121a8d7131bc735",
+        "sha": "271a36955f39412273e7650a05d377558c818421",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "be2f52f880bc453891ec623169d12b0162b4bd3d",
+        "sha": "ab1f0c00c02365d1c13aa1098300dd678d2b145b",
         "classification": "operational",
         "itemIds": [
-          "C-CLIPBOARD-CAPTURE-SINGLE-SOURCE"
+          "C-QUICKLOOK-CONTENT-BOUNDARY"
         ]
       },
       {
-        "sha": "be525d259866571de3ae7df12b96a9e81b8d80f3",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "bec319f39112e7ff73f169c035633d3df740fd6d",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "bf3601753824f88fadd89c6c6c94496424128d5f",
-        "classification": "operational",
-        "itemIds": [
-          "FIX-LARGE-DOCUMENT-EMPTY-GUARD"
-        ]
-      },
-      {
-        "sha": "bf6137d69560fc3ea2f10cdd92ca4d4095eedcfd",
-        "classification": "operational",
-        "itemIds": [
-          "FIX-TABLE-RESIZE-CANVAS"
-        ]
-      },
-      {
-        "sha": "c36a187286bb1c3c81e4efbc546daee028d2c12b",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "c3b62f33638c8ee82ef8f9dcc0482a42f46f7dc7",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "c3ccd5e3ee77cc1f6961f2846315a24690012310",
-        "classification": "operational",
-        "itemIds": [
-          "C-COMPACT-WINDOWS-FIT"
-        ]
-      },
-      {
-        "sha": "c4631cc5364370d61fdea20474421fbe75b4564e",
+        "sha": "8b5d0243a5d49b62b8628c031fa7af8a2aacd23b",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
@@ -6784,52 +6305,294 @@
         ]
       },
       {
-        "sha": "c74951fedb08410bba6e7c979457cffeecf5b381",
+        "sha": "bf6137d69560fc3ea2f10cdd92ca4d4095eedcfd",
         "classification": "operational",
         "itemIds": [
-          "C-EXPORT-BOUNDARIES"
+          "FIX-TABLE-RESIZE-CANVAS"
         ]
       },
       {
-        "sha": "c86afea6275ba52348345d5af8f67fd8cf4645fc",
+        "sha": "6e0d98475d52f023507c456a5a1416c115204d23",
+        "classification": "operational",
+        "itemIds": [
+          "C-RELEASE-ACTION-REFERENCES"
+        ]
+      },
+      {
+        "sha": "84680fb8936f62c199a16059936c6e72ee01c82e",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "c8def4cbf808b914f85b6bb719c1da64731c7884",
+        "sha": "b6fa8d89daa11e6ac19b4fbbf57292dd6df4394b",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-CONTRIBUTOR-COMMANDS"
+        ]
+      },
+      {
+        "sha": "cfa71fa75fdb9f246f7223254423fd5df776f079",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-GRACE-CLI-BOOTSTRAP"
+        ]
+      },
+      {
+        "sha": "9912f7fbba95dfb4244fe53f930c690a19a5c0bc",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-NATIVE-PDF-DESTINATION"
+        ]
+      },
+      {
+        "sha": "7680bdf0050c2a5cd23fd79816a8bb26b707c9e4",
+        "classification": "operational",
+        "itemIds": [
+          "C-MUYA-CURRENT-MODEL-EXPORT"
+        ]
+      },
+      {
+        "sha": "0a72917c50904034eda06c64ee870e1ea8e7623c",
+        "classification": "operational",
+        "itemIds": [
+          "C-EXPORT-SETTINGS-SECTION-RECOVERY"
+        ]
+      },
+      {
+        "sha": "fe3afe1cdb8aa6850cd3ea0fe3ea69c8221fcb5b",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "ca18e55fe51f4b8ed71c4f6e4c553ba3672d3fde",
+        "sha": "63fcd587a263cdd93ae57198653e231e01d8de06",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-STREAM-OWNERSHIP-EVIDENCE"
+        ]
+      },
+      {
+        "sha": "bf3601753824f88fadd89c6c6c94496424128d5f",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-LARGE-DOCUMENT-EMPTY-GUARD"
+        ]
+      },
+      {
+        "sha": "f33527f3bee50f0bc138bba7a3519b3dd1bf7d32",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "cb7350f4721b1dc7cd8fd5d6feca323d8f463e96",
+        "sha": "619f7ddc9502d4f8984d76f7eae73104627c8c9b",
         "classification": "operational",
         "itemIds": [
-          "C-MOVE-AND-SNAPSHOT-CONSISTENCY"
+          "C-MUYA-CURRENT-MODEL-EXPORT",
+          "C-EXPORT-SETTINGS-SECTION-RECOVERY",
+          "FIX-DIFF-THEME-SYNC"
         ]
       },
       {
-        "sha": "cca6d784970c331da51004251289ef655505aa6f",
+        "sha": "f9b709ec14d2b53f58d414a58cb38d09743040de",
         "classification": "operational",
         "itemIds": [
-          "M-046-LANE-TRAINS"
+          "FIX-EXTENSION-THEME-TOKENS"
         ]
       },
       {
-        "sha": "ce6eebcc90a44a68869900053de353ce1735e3ca",
+        "sha": "57bac25458745399e272aba19a5ec1c97c36d74c",
         "classification": "operational",
         "itemIds": [
-          "td-1",
+          "C-MUYA-CURRENT-MODEL-EXPORT",
+          "C-EXPORT-SETTINGS-SECTION-RECOVERY"
+        ]
+      },
+      {
+        "sha": "b76efc57a07200b8f2849f7b73d259324a3ace84",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-PROJECT-SEARCH-ACCENT"
+        ]
+      },
+      {
+        "sha": "a4830eab8da2231112ab200229933add945e4e70",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-DIFF-THEME-SYNC",
+          "FIX-PROJECT-SEARCH-ACCENT"
+        ]
+      },
+      {
+        "sha": "7b971fa9d3e60191a6cdad4acf36478930f04f3e",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-SHARED-ACTIVE-TAB-MARKER"
+        ]
+      },
+      {
+        "sha": "dd4a4c9a74c9554fcf85b0995bfd87bbfb32d8da",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "8723f859e9f3c385ad628ccff68556488e2a7f15",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-ARCHIVED-CONTRACT-LINKS"
+        ]
+      },
+      {
+        "sha": "5625ad080b474c251002f626f967d1d862e658a6",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "599ff9d2083327f920c7cd46f254c5b87beb482c",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-CURRENT-VERIFICATION-CONTEXT"
+        ]
+      },
+      {
+        "sha": "01d789c2622e410da2d7d92eabccec0a2aaf8486",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-TYPED-HEADING-REGRESSION"
+        ]
+      },
+      {
+        "sha": "ef13c8ef3775e5810d2227bb31c55adcb72bbe83",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "158653b623cb3c030b1e842e957cc96dc94a2cc4",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-CLIPBOARD-WALK-OBSERVATION"
+        ]
+      },
+      {
+        "sha": "b0cb62d8a1633523638f1bcb94162d97b5732519",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "ef2e4359873688baa777edff275fd4012c177a08",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-CARGO-REPOSITORY-METADATA"
+        ]
+      },
+      {
+        "sha": "6989ef9e1c0b11e3d6ac07db252b59a2679c5076",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "6e8e2a1d0d19aa44144225090859caa005f005e3",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-IMAGE-ACTION-CATALOG"
+        ]
+      },
+      {
+        "sha": "4c645fb22d9b7afbe19450ee17cd79865c138b97",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "48e7fe17db434d2162b4423fd6d19ed66d6427c0",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-SHELL-CHROME-FONT"
+        ]
+      },
+      {
+        "sha": "7f4f672e6c69f3f42ecb0c582e57e7a5d6ac795e",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-KEYBINDING-CLEANUP-REGRESSION"
+        ]
+      },
+      {
+        "sha": "738660967e6678aa52c30d7cceae2f17403bee6e",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "d8857f2516fd59f171d1d50412199c620e017eb0",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-ARCHIVED-CONTRACT-LINKS"
+        ]
+      },
+      {
+        "sha": "4b68982347e2b1838787740317208221e44ac5b9",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "7450719668cf79454032ebc8d6cd8ead831d29cc",
+        "classification": "operational",
+        "itemIds": [
+          "C-QA-LOCAL-TAURI-TOOL"
+        ]
+      },
+      {
+        "sha": "9a2da361dc9e86ee104dec5b6a9aa72bf2d61990",
+        "classification": "operational",
+        "itemIds": [
+          "C-SETTINGS-KEYBOARD-FOCUS"
+        ]
+      },
+      {
+        "sha": "a504783a98b9aa8ff5b1b388689ba2f1af114b3c",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-EXTENSION-THEME-TOKENS",
+          "FIX-SHELL-CHROME-FONT"
+        ]
+      },
+      {
+        "sha": "e68c06b69017f6b752934b1791ac513c735a5e6b",
+        "classification": "operational",
+        "itemIds": [
+          "C-SETTINGS-WINDOW-RESTORE"
+        ]
+      },
+      {
+        "sha": "27bf95bbb6eec265c9ac88cf668cbffbc91c75a1",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "5599b1e9f83419af123c1dc71981c8037c5a6e51",
+        "classification": "operational",
+        "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
@@ -6846,405 +6609,21 @@
         ]
       },
       {
-        "sha": "cecc7cc55be7b4fd1e2ad7d2e13326495aef6a44",
-        "classification": "operational",
-        "itemIds": [
-          "C-EXT-DELIVERY-HONESTY"
-        ]
-      },
-      {
-        "sha": "cfa71fa75fdb9f246f7223254423fd5df776f079",
-        "classification": "operational",
-        "itemIds": [
-          "FIX-GRACE-CLI-BOOTSTRAP"
-        ]
-      },
-      {
-        "sha": "d136e1ded73a9347530efd4c2c7458e99b563af8",
+        "sha": "5e018f997db33cfea2e5c5f64a6389248c78db19",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "d14be7c5e37a80b8a4ac7d9d271928d9de5b4749",
+        "sha": "bc27a3fab60797a21fd47a1b1e4c2cf58d84f7f6",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
         ]
       },
       {
-        "sha": "d150eed729864895027134afa38349f999f8cb20",
-        "classification": "operational",
-        "itemIds": [
-          "C-LARGE-DOC-WAVE-A"
-        ]
-      },
-      {
-        "sha": "d2abf46c4a65bbb1aa1fd3d0058f0515da4ea451",
-        "classification": "operational",
-        "itemIds": [
-          "MACOS-15-RUNNERS"
-        ]
-      },
-      {
-        "sha": "d343fde52c819f81272d7cfba4ace33ae4928c51",
-        "classification": "operational",
-        "itemIds": [
-          "C-NOTIFICATION-SYSTEM"
-        ]
-      },
-      {
-        "sha": "d5aaa4550117b5389249b97173ebd60990181aeb",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "d688f2fc2f349d3ef1d8660dd33353a04f8062a1",
-        "classification": "operational",
-        "itemIds": [
-          "td-1",
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "d81929341ef7d1ec3294cebb7e9256f111876b23",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "d8857f2516fd59f171d1d50412199c620e017eb0",
-        "classification": "operational",
-        "itemIds": [
-          "FIX-ARCHIVED-CONTRACT-LINKS"
-        ]
-      },
-      {
-        "sha": "d93d9fef129be5b460e01baff79364b4f27a42d3",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "da6bdf0da858741625c12c90a3c071a2a393c875",
-        "classification": "operational",
-        "itemIds": [
-          "C-NPM-ROOT-PATCH-BUMP"
-        ]
-      },
-      {
-        "sha": "db3e26c75c7988d8f337af95e55a68e334902a41",
-        "classification": "operational",
-        "itemIds": [
-          "C-SEARCH-ENGINE-PARITY"
-        ]
-      },
-      {
-        "sha": "dc9fc5f1c3dab3f53bcc6ec77fedc40d3fdae0b6",
-        "classification": "operational",
-        "itemIds": [
-          "td-1",
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "dceb337c46567364c0b210b726835506d54353e7",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "dd4a4c9a74c9554fcf85b0995bfd87bbfb32d8da",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "dd6bb599ee9e23565a16cf10b2a2ab75a5672466",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "deb690cbf890b5a013e438f83c5860dc4d7092cb",
-        "classification": "operational",
-        "itemIds": [
-          "C-TABLE-PROFILE-SCHEMA"
-        ]
-      },
-      {
-        "sha": "e0219a8fabeb650bdaed819e291bde2b97dd10c0",
-        "classification": "operational",
-        "itemIds": [
-          "C-SEARCH-ERROR-VISIBILITY"
-        ]
-      },
-      {
-        "sha": "e05d170bcec9daefbeea1ffd7bce360f259a0710",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "e19d9922a4f0b86114464b02b35008f8d09ef0fc",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "e1a3c4fafee3860e7943eb99ead638f4186a7835",
-        "classification": "operational",
-        "itemIds": [
-          "C-POST-BETA-OPS-WAVE"
-        ]
-      },
-      {
-        "sha": "e2b627fa5f278ea462428de1e344d8f9f4ac8bf7",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "e3ae30a569b7eb87e16112fc2a225385cb3b230f",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "e440df40cf1d4c21bb60ed350ddbe0f554c914c5",
-        "classification": "operational",
-        "itemIds": [
-          "FIX-023"
-        ]
-      },
-      {
-        "sha": "e45f79364aa5200b466cc0508b73c170bbd925c8",
-        "classification": "operational",
-        "itemIds": [
-          "C-STREAM-BUDGET"
-        ]
-      },
-      {
-        "sha": "e4ef4cb878011d14194ef585f25c783b45b3958b",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "e51290568f59187a790566a399ca3031fbf3734a",
-        "classification": "operational",
-        "itemIds": [
-          "C-EXT-ACK-HONESTY"
-        ]
-      },
-      {
-        "sha": "e620a8aa288824f58dff14514d8d2219abf80842",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "e64fadabdf98b052a84329a28f3f631943fa0b68",
-        "classification": "operational",
-        "itemIds": [
-          "C-TABLE-DIALOG-CREATION-VERIFICATION"
-        ]
-      },
-      {
-        "sha": "e68c06b69017f6b752934b1791ac513c735a5e6b",
-        "classification": "operational",
-        "itemIds": [
-          "C-SETTINGS-WINDOW-RESTORE"
-        ]
-      },
-      {
-        "sha": "e78f1d97bc3a7012750a9e7ae0abf3c4790bd66a",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "e7c32b8512db9ca6b73fa3681a4b629d82448a66",
-        "classification": "operational",
-        "itemIds": [
-          "C-LARGE-DOC-STAGE-0"
-        ]
-      },
-      {
-        "sha": "e896dd214d2077ff771fa9fd6a333b16a9d69861",
-        "classification": "operational",
-        "itemIds": [
-          "C-SAVE-CLOSE-DATA-SAFETY"
-        ]
-      },
-      {
-        "sha": "e8eed5b88719f49e9d7ffdf62332bd338f9b6df4",
-        "classification": "operational",
-        "itemIds": [
-          "C-LARGE-DOC-WAVE-A"
-        ]
-      },
-      {
-        "sha": "ead9addf194fbe0cf016a595002386314474b6c5",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "eca85dcd06418b311f0d7e5006aa7ae3eea51103",
-        "classification": "operational",
-        "itemIds": [
-          "C-RELEASE-MANUAL-PUBLISH"
-        ]
-      },
-      {
-        "sha": "ee24601bc010ecd8a19f29c8af5b685bfdbce330",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "eee7b742ab41efda64cf8aeedb2e201ad9c4cffc",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "ef13c8ef3775e5810d2227bb31c55adcb72bbe83",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "ef2e4359873688baa777edff275fd4012c177a08",
-        "classification": "operational",
-        "itemIds": [
-          "FIX-CARGO-REPOSITORY-METADATA"
-        ]
-      },
-      {
-        "sha": "ef5faf33299298e6e3ed0ebe125b393a2a51e60c",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "ef8186d00ab1ba59e616dca0b59e785a4435a48a",
-        "classification": "operational",
-        "itemIds": [
-          "C-FILE-POSITION-MEMORY"
-        ]
-      },
-      {
-        "sha": "efa9e60955dab59d27d1223d15b8c7f2200014d6",
-        "classification": "operational",
-        "itemIds": [
-          "C-TABLE-SEQUENTIAL-RESIZE",
-          "C-TABLE-FITTED-RESET",
-          "C-VIEWER-WINDOW-DRAG",
-          "C-HOSTED-VALIDATION-RECOVERY"
-        ]
-      },
-      {
-        "sha": "f1fb6f507cacb3cd3f966e3ca68bde4770358d89",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "f33527f3bee50f0bc138bba7a3519b3dd1bf7d32",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "f3d88851261d6ddad27c968a2c3048342066ab63",
-        "classification": "operational",
-        "itemIds": [
-          "C-UPDATER-STATS"
-        ]
-      },
-      {
-        "sha": "f5f18ab9c7ee6d0cdb37ee5db2224e8dfef9a5e4",
-        "classification": "operational",
-        "itemIds": [
-          "td-1",
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "f666d4c65025409266cac284c65a8a21373adb3e",
-        "classification": "operational",
-        "itemIds": [
-          "C-METADATA-SAVE-SAFETY"
-        ]
-      },
-      {
-        "sha": "f7ffccd8e64d9967f547c95ce6fe4b209adb5938",
-        "classification": "operational",
-        "itemIds": [
-          "C-WINDOWS-SAVE-PIPELINE"
-        ]
-      },
-      {
-        "sha": "f82620cf7324605ed3fafc62b085efc1617e8446",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "f8e598fb532eac9867a2539aa21b5a4151193416",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "f960447976a7004649e6aa5415232b0a17a210af",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "f9b709ec14d2b53f58d414a58cb38d09743040de",
-        "classification": "operational",
-        "itemIds": [
-          "FIX-EXTENSION-THEME-TOKENS"
-        ]
-      },
-      {
-        "sha": "fc0d1fb4ce067e614662e1090d32aabcb428a1b0",
-        "classification": "operational",
-        "itemIds": [
-          "TRAIN-BOOKKEEPING"
-        ]
-      },
-      {
-        "sha": "fc2f5c65811614679885a4f542c6e5d9207fbc54",
+        "sha": "2dd5ae4f61274941a2f20eba417cc7a8b48f5b25",
         "classification": "operational",
         "itemIds": [
           "TRAIN-BOOKKEEPING"
@@ -7258,6 +6637,146 @@
         ]
       },
       {
+        "sha": "197a9d0e22c78a4bb5462c844c99eb81693e3ee1",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "5d73e158a5e2357e266ca1fd5e87d954eecf529a",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "48820f90cc8686b24d1128e009438547e898e425",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "073ae3df749730a72a7c33682d674f578c63347f",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "be525d259866571de3ae7df12b96a9e81b8d80f3",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "a4e9d99293b980f0616acd5e5f43e389dd5a1096",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "b3938b0f2fa9b15505abbcafffd245859b2c9b36",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "c4631cc5364370d61fdea20474421fbe75b4564e",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "11e5f2dac64424a0c94c8df899e4252edd7c1e8b",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-022"
+        ]
+      },
+      {
+        "sha": "0580781d895113f6c125f84a270014b65d73f3f7",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "e440df40cf1d4c21bb60ed350ddbe0f554c914c5",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-023"
+        ]
+      },
+      {
+        "sha": "deb690cbf890b5a013e438f83c5860dc4d7092cb",
+        "classification": "operational",
+        "itemIds": [
+          "C-TABLE-PROFILE-SCHEMA"
+        ]
+      },
+      {
+        "sha": "06a1b176dd129963171d940ee70e7c65f44e4622",
+        "classification": "operational",
+        "itemIds": [
+          "C-TABLE-LAYOUT-COMPLETION"
+        ]
+      },
+      {
+        "sha": "e64fadabdf98b052a84329a28f3f631943fa0b68",
+        "classification": "operational",
+        "itemIds": [
+          "C-TABLE-DIALOG-CREATION-VERIFICATION"
+        ]
+      },
+      {
+        "sha": "85909cf22889cc85a2a8827bc9c0e9774b9fbebe",
+        "classification": "operational",
+        "itemIds": [
+          "C-QUICKLOOK-SYNTAX-THEME"
+        ]
+      },
+      {
+        "sha": "8c723be70306a942866cc99ae0ecc9631a442202",
+        "classification": "operational",
+        "itemIds": [
+          "C-SEARCH-SESSION-COMPLETION"
+        ]
+      },
+      {
+        "sha": "499522fd4a37cd33212157433476bef1305325f2",
+        "classification": "operational",
+        "itemIds": [
+          "C-PELE-HTML-POSTPROCESS"
+        ]
+      },
+      {
+        "sha": "be2f52f880bc453891ec623169d12b0162b4bd3d",
+        "classification": "operational",
+        "itemIds": [
+          "C-CLIPBOARD-CAPTURE-SINGLE-SOURCE"
+        ]
+      },
+      {
+        "sha": "35c922373514ea677fda2f537220b36865a1e785",
+        "classification": "operational",
+        "itemIds": [
+          "C-EXTERNAL-RELOAD-OPERATION"
+        ]
+      },
+      {
+        "sha": "76dce9422effa62f3401e19987abf4cacf2781ba",
+        "classification": "operational",
+        "itemIds": [
+          "C-SEC-STREAM-SCOPE"
+        ]
+      },
+      {
         "sha": "fdb8b6ec78b3b8bc0a2ef345315ac03276eb93e3",
         "classification": "operational",
         "itemIds": [
@@ -7265,10 +6784,10 @@
         ]
       },
       {
-        "sha": "fe3afe1cdb8aa6850cd3ea0fe3ea69c8221fcb5b",
+        "sha": "2791edf704b11b82d1b29ba1b28e2ea64cddb579",
         "classification": "operational",
         "itemIds": [
-          "TRAIN-BOOKKEEPING"
+          "C-SEC-EDIT-TARGETING"
         ]
       },
       {
@@ -7279,10 +6798,521 @@
         ]
       },
       {
-        "sha": "ff9ff6e112c7cf48ac018c25be5e58dc1842befd",
+        "sha": "229b3a69be8e16ca1717d8f2fea580ba4be69b75",
         "classification": "operational",
         "itemIds": [
-          "C-SAFETY-REVIEW-LANES"
+          "C-SEC-GITLEAKS-CHECKSUM"
+        ]
+      },
+      {
+        "sha": "55739a55cfbe3b5f55b9105b8741e9adc44a8354",
+        "classification": "operational",
+        "itemIds": [
+          "C-SEC-EXT-GRANT-BOUND"
+        ]
+      },
+      {
+        "sha": "1ee587e7d2da387ae458199e476672509764ec52",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "33315ea73454b97d7ff12630cecf4185194bc4b2",
+        "classification": "operational",
+        "itemIds": [
+          "C-WIN-ROLLBACK-PANIC"
+        ]
+      },
+      {
+        "sha": "9caf575b1761a52fff3ad66505d2bd8ece240ef3",
+        "classification": "operational",
+        "itemIds": [
+          "C-RELEASE-BETA-CHECKS-GATE"
+        ]
+      },
+      {
+        "sha": "a1f0d4bcbf2bd96577718bbb3e1f5ad385e9d66e",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "98bab7cc8f2795796e041ee41fd708fea6796d0e",
+        "classification": "operational",
+        "itemIds": [
+          "C-NET-STACK-BUMP"
+        ]
+      },
+      {
+        "sha": "e45f79364aa5200b466cc0508b73c170bbd925c8",
+        "classification": "operational",
+        "itemIds": [
+          "C-STREAM-BUDGET"
+        ]
+      },
+      {
+        "sha": "c74951fedb08410bba6e7c979457cffeecf5b381",
+        "classification": "operational",
+        "itemIds": [
+          "C-EXPORT-BOUNDARIES"
+        ]
+      },
+      {
+        "sha": "af2e99ddf8eac658be0a4420dc23eabc1464b26c",
+        "classification": "operational",
+        "itemIds": [
+          "C-CI-TOOLS-TIMEOUT"
+        ]
+      },
+      {
+        "sha": "c3ccd5e3ee77cc1f6961f2846315a24690012310",
+        "classification": "operational",
+        "itemIds": [
+          "C-COMPACT-WINDOWS-FIT"
+        ]
+      },
+      {
+        "sha": "116a2f0faa380f23bb93ee0f9e62e959e518a343",
+        "classification": "operational",
+        "itemIds": [
+          "C-DOCS-SYNC"
+        ]
+      },
+      {
+        "sha": "87d1a36134b7b6e336c48f9c5d5f1a3d3d90e809",
+        "classification": "operational",
+        "itemIds": [
+          "C-PREFS-TRUTH"
+        ]
+      },
+      {
+        "sha": "0a0b6589577e58343c5fc10877fb42c2939ef9fd",
+        "classification": "operational",
+        "itemIds": [
+          "C-SESSION-WRITE-ATOMICITY"
+        ]
+      },
+      {
+        "sha": "94a35d66dd018c22ea415954a81096094c580ebb",
+        "classification": "operational",
+        "itemIds": [
+          "C-QUICKLOOK-MDIT-BUMP"
+        ]
+      },
+      {
+        "sha": "8f4d8f261c3c322eb824d49e44dfcdb852f37ab0",
+        "classification": "operational",
+        "itemIds": [
+          "C-DEV-ENV-ISOLATION"
+        ]
+      },
+      {
+        "sha": "e0219a8fabeb650bdaed819e291bde2b97dd10c0",
+        "classification": "operational",
+        "itemIds": [
+          "C-SEARCH-ERROR-VISIBILITY"
+        ]
+      },
+      {
+        "sha": "bec319f39112e7ff73f169c035633d3df740fd6d",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "3f61c2b73a0d0ee8aea83bd3fa5a1b09bab182c9",
+        "classification": "operational",
+        "itemIds": [
+          "C-RELEASE-SIGNING-SPLIT"
+        ]
+      },
+      {
+        "sha": "3f1e41c6017998e5c2ad5e8a39b2b68c894bdbda",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "97fec630a5785a5ee5ca8a435082c874dbbb9b62",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "bb68fd6ca3185b83f82cf12eac3cc189e8ab182e",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "88454ac9411673cb0ec45b58704d8ad792330d6a",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "689df8aa95030b5488a92913b2485ca0d3a9f320",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "fc0d1fb4ce067e614662e1090d32aabcb428a1b0",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "1ff5ede6c5aa92fdf32d513a50014adb0b6d75de",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "3e62bc7105fbee88e48d44c5d6377ca1d9af7720",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "486275c7f99c95965891528a29c30f2a44825e32",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "ead9addf194fbe0cf016a595002386314474b6c5",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "e4ef4cb878011d14194ef585f25c783b45b3958b",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "b702a7fecbe36adf5cc784fe629cd1cfe3847d99",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "1dbe9bb996325f518129be3782654ff82991bb08",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "10bfdc94a5712d9237a5841cb6285de2d586bd78",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "e78f1d97bc3a7012750a9e7ae0abf3c4790bd66a",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "50c94c99d9a62481bafefdced6c81bd6f660b5ad",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "d5aaa4550117b5389249b97173ebd60990181aeb",
+        "classification": "operational",
+        "itemIds": [
+          "C-QUICKOPEN-FILES-MODE"
+        ]
+      },
+      {
+        "sha": "e620a8aa288824f58dff14514d8d2219abf80842",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "e19d9922a4f0b86114464b02b35008f8d09ef0fc",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "09226066f80904f38a89085d1f35ce9e95289532",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "ab46cdfa32e8ffafe6a3f539dd52aabab7681e2a",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "23cc2f4f9ed7625e770f02bd6c513959e8a8329d",
+        "classification": "operational",
+        "itemIds": [
+          "C-EXT-DELIVERY-HONESTY"
+        ]
+      },
+      {
+        "sha": "db3e26c75c7988d8f337af95e55a68e334902a41",
+        "classification": "operational",
+        "itemIds": [
+          "C-SEARCH-ENGINE-PARITY"
+        ]
+      },
+      {
+        "sha": "67979502b33458468de929ef11c70a5711f371eb",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "cecc7cc55be7b4fd1e2ad7d2e13326495aef6a44",
+        "classification": "operational",
+        "itemIds": [
+          "C-EXT-DELIVERY-HONESTY"
+        ]
+      },
+      {
+        "sha": "68d932dc9ea81addcc54e24d09107c179dc038e8",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "638c0a7cccd1425a1dfcf93a2eef065815392fbb",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "1aa95602c844ebf5d131cfdeed5d407399eb3a1b",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "f1fb6f507cacb3cd3f966e3ca68bde4770358d89",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "878c0a24d13d9b67bf83a44e84c8d53243bb6bea",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "1713225ea858ce339f5653838bfb0051dc198a7b",
+        "classification": "operational",
+        "itemIds": [
+          "C-POST-BETA-OPS-WAVE"
+        ]
+      },
+      {
+        "sha": "9b386c43c057d221886c0844fee844677833f07d",
+        "classification": "operational",
+        "itemIds": [
+          "C-EDITOR-A11Y-CSS"
+        ]
+      },
+      {
+        "sha": "599151bc7cb188ee32b263b9d57ab82d44bdeabb",
+        "classification": "operational",
+        "itemIds": [
+          "C-EXPORT-BOUNDARIES-DOCX"
+        ]
+      },
+      {
+        "sha": "3d72dafa4957502348c2b27db01fb3897b1c7038",
+        "classification": "operational",
+        "itemIds": [
+          "C-PRINT-LIFECYCLE-TESTS"
+        ]
+      },
+      {
+        "sha": "d93d9fef129be5b460e01baff79364b4f27a42d3",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "21f8627e99a11081b32af34aa23cf26cd0cc517e",
+        "classification": "operational",
+        "itemIds": [
+          "C-SURFACE-OWNERSHIP"
+        ]
+      },
+      {
+        "sha": "65619fadd88843426e4c2c8f656a49762e4663fe",
+        "classification": "operational",
+        "itemIds": [
+          "C-MUYA-MODEL-SURGERY"
+        ]
+      },
+      {
+        "sha": "aa0b4e84a7a8375a0842d2d59fa125b12e1488ae",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "da6bdf0da858741625c12c90a3c071a2a393c875",
+        "classification": "operational",
+        "itemIds": [
+          "C-NPM-ROOT-PATCH-BUMP"
+        ]
+      },
+      {
+        "sha": "1a720d53ec822892e82eda4c1a6a3b97dd9b56cf",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "7a050dcc3911cdd04589cb84eb9ac466ed78d200",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "e51290568f59187a790566a399ca3031fbf3734a",
+        "classification": "operational",
+        "itemIds": [
+          "C-EXT-ACK-HONESTY"
+        ]
+      },
+      {
+        "sha": "4eae0dfc670ca713f9b1bfe6a3fbc36d7b2249d4",
+        "classification": "operational",
+        "itemIds": [
+          "C-LATE-REFUSAL-HONESTY"
+        ]
+      },
+      {
+        "sha": "d81929341ef7d1ec3294cebb7e9256f111876b23",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "cb7350f4721b1dc7cd8fd5d6feca323d8f463e96",
+        "classification": "operational",
+        "itemIds": [
+          "C-MOVE-AND-SNAPSHOT-CONSISTENCY"
+        ]
+      },
+      {
+        "sha": "e1a3c4fafee3860e7943eb99ead638f4186a7835",
+        "classification": "operational",
+        "itemIds": [
+          "C-POST-BETA-OPS-WAVE"
+        ]
+      },
+      {
+        "sha": "21abfa3a2e65bde1be4755a370c2a3ae652ff7e5",
+        "classification": "operational",
+        "itemIds": [
+          "C-HONEST-FAILURE-NOTICES"
+        ]
+      },
+      {
+        "sha": "1687d4c81bb7af2d51b3e712376cc19a7d8fcced",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "b37f483f3ee074b8ec2553007c42024aa85e4cc6",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "5c462733892447eeec0d89326a8a575daece8035",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "31bee13ae6a058691f55e0c8a2a88b467b7e14eb",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "bd5f854b113d43b2e2f1d912244bb32a10212919",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "a0c0fb5179ceabc40fed055f911650a8e106113b",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "9f63f464e4e6478877509fe048b61a207f1c47bc",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
+        ]
+      },
+      {
+        "sha": "c86afea6275ba52348345d5af8f67fd8cf4645fc",
+        "classification": "operational",
+        "itemIds": [
+          "TRAIN-BOOKKEEPING"
         ]
       }
     ],
