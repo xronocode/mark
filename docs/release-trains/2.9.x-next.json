@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "trainId": "2.9.x-next",
-  "state": "Frozen",
+  "state": "Ready",
   "previousRelease": {
     "tag": "v2.8.2",
     "commit": "3b6d49e4e4a15452aced6cb25793446edf8d1c7e",
@@ -6447,6 +6447,12 @@
       "date": "2026-11-28",
       "actor": "agent (owner-delegated conveyor)",
       "evidence": "Froze 2.9.x-next at product payload 31bee13a (PR #369); the bookkeeping span above the payload is metadata-only (ledger admission a0c0fb51 #372, governance archive 9f63f464 #373, changelog delta c86afea6 #374) and heads into the seal. Hosted gates on the main tip: CI, release/governance, release/promote readiness and CodeQL push run green; renderer-unit rerun on c86afea6 follows the fix009 provenance branch restore. Acceptance smoke executed 2026-11-27 by the orchestrator session on owner delegation: live visuals + local e2e 568 passed / 7 skipped / 0 failed + unit suites (vitest 95/95, cargo search 62/62, cargo m045_ext 143/143); verdicts recorded in the smoke RUN record. Commit accounting normalized for two mixed-class wave squashes (b90f1f0d, ce92b473): the shas are attributed to their user-facing items; provenance for the operational co-items remains in the transitions history. Seal on the recorded all-OK verdict."
+    },
+    {
+      "state": "Ready",
+      "date": "2026-11-28",
+      "actor": "agent (owner-delegated conveyor)",
+      "evidence": "Sealed on the acceptance smoke verdict (2026-11-27, owner-delegated verification): live visuals + local e2e 568 passed / 7 skipped / 0 failed + unit suites green; README screenshot manifest recorded payload c86afea6 with captureState fresh-reviewed. v2.9.0 awaits owner authorization (release-authorize) and the synchronous publication approval."
     }
   ]
 }

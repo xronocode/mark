@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "releaseVersion": "2.9.0",
-  "payloadSha": null,
+  "payloadSha": "c86afea6275ba52348345d5af8f67fd8cf4645fc",
   "captureCommand": "README_SHOTS=1 npx playwright test tests/e2e/readme-shots.spec.ts --project=chromium",
   "captureState": "fresh-reviewed",
   "review": {
@@ -14,7 +14,8 @@
       "07-home: the welcome screen shows the Mark headline, the Open File, Add Folder and New actions, three recent files and one recent folder.",
       "Method: each recaptured image keeps the 2880x1800 size and differs from the 2.8.2 set in 2.6 to 3.4 percent of pixels; the decisive regions were read from enlarged crops with a vision model.",
       "cover.png, cover-dark.png, 04-copy.png and 06-split.png are byte-identical to the reviewed 2.8.2 set: composed brand illustrations from C-42 with no capture spec, still showing the earlier window chrome without the quick-settings button and the mode chips."
-    ]
+    ],
+    "recapture": "2026-11-28: README_SHOTS capture re-run at the frozen payload c86afea6 — 4 of 5 images byte-identical; 07-home differs only in the relative time labels of the fixture recents (\"3 min ago\" vs \"today 12:45\"); the reviewed bytes stand."
   },
   "freezeRequirement": "Satisfied from the final payload before the Ready seal.",
   "images": [
