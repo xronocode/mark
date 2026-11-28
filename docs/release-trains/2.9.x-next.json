@@ -1,19 +1,186 @@
 {
   "schemaVersion": "1.0.0",
   "trainId": "2.9.x-next",
-  "state": "Preparing",
+  "state": "Frozen",
   "previousRelease": {
     "tag": "v2.8.2",
     "commit": "3b6d49e4e4a15452aced6cb25793446edf8d1c7e",
-    "bootstrapSha": "3b6d49e4e4a15452aced6cb25793446edf8d1c7e",
-    "tree": "fcc46b7ba481d886d3e3d497af634337246c12f7"
+    "bootstrapSha": "9d1938d0164f9e70e6530300943fb58117903c49",
+    "tree": "fcc46b7ba481d886d3e3d497af634337246c12f7",
+    "historyRewrite": {
+      "date": "2026-10-25",
+      "deltaPaths": [
+        ".github/workflows/site.yml",
+        "docs/assets/readme/2.8.2.manifest.json",
+        "docs/release-trains/2.8.2-next.json",
+        "docs/release-trains/2.8.2-next.md",
+        "site/.vitepress/config.mts",
+        "site/.vitepress/landing.mjs",
+        "site/.vitepress/theme/custom.css",
+        "site/.vitepress/theme/index.ts",
+        "site/changelog.md",
+        "site/gallery/examples.mjs",
+        "site/gallery/prototype/build.reference.mjs",
+        "site/gallery/prototype/theme-vars.runtime-snapshot-2026-10-18.json",
+        "site/gallery/theme-vars.json",
+        "site/guide/ai-agents.md",
+        "site/guide/cli.md",
+        "site/guide/diff-view.md",
+        "site/guide/editions.md",
+        "site/guide/editor.md",
+        "site/guide/export.md",
+        "site/guide/faq.md",
+        "site/guide/index.md",
+        "site/guide/installation.md",
+        "site/guide/project-sidebar.md",
+        "site/guide/quickstart.md",
+        "site/guide/search.md",
+        "site/guide/shortcuts.md",
+        "site/guide/themes.md",
+        "site/index.md",
+        "site/landing/index.html",
+        "site/og/card.html",
+        "site/package-lock.json",
+        "site/package.json",
+        "site/privacy.md",
+        "site/public/apple-touch-icon.png",
+        "site/public/consent.js",
+        "site/public/favicon.ico",
+        "site/public/favicon.svg",
+        "site/public/fonts/brand/BricolageGrotesque-800.woff2",
+        "site/public/fonts/brand/IBMPlexMono-500.woff2",
+        "site/public/fonts/brand/IBMPlexSans-400.woff2",
+        "site/public/fonts/brand/IBMPlexSans-500.woff2",
+        "site/public/fonts/brand/IBMPlexSans-600.woff2",
+        "site/public/logo-96px.png",
+        "site/public/mark-icon.svg",
+        "site/public/og-card.png",
+        "site/public/shots/01-agents-1440.webp",
+        "site/public/shots/01-agents-400.webp",
+        "site/public/shots/01-agents-800.jpg",
+        "site/public/shots/01-agents-800.webp",
+        "site/public/shots/01-agents.jpg",
+        "site/public/shots/05-viewer-1440.webp",
+        "site/public/shots/05-viewer-400.webp",
+        "site/public/shots/05-viewer-800.jpg",
+        "site/public/shots/05-viewer-800.webp",
+        "site/public/shots/05-viewer.jpg",
+        "site/public/shots/08-dark-1440.webp",
+        "site/public/shots/08-dark-400.webp",
+        "site/public/shots/08-dark-800.jpg",
+        "site/public/shots/08-dark-800.webp",
+        "site/public/shots/08-dark.jpg",
+        "site/public/track.js",
+        "site/reference/architecture.md",
+        "site/reference/index.md",
+        "site/reference/rust-api.md",
+        "site/scripts/build-gallery.mjs",
+        "site/scripts/check-dist.mjs",
+        "site/scripts/csp.mjs",
+        "site/scripts/gallery-theme-vars.mjs",
+        "site/scripts/landing-fill.mjs",
+        "site/scripts/og-card.mjs",
+        "site/scripts/release.mjs",
+        "site/scripts/seo-files.mjs",
+        "site/scripts/shots.mjs",
+        "site/shared/brand.css",
+        "site/shared/theme-init.js",
+        "site/shared/theme-init.mjs",
+        "tests/site/brand.test.mjs",
+        "tests/site/gallery-theme-vars.test.mjs",
+        "tests/site/gallery.test.mjs",
+        "tests/site/head.test.mjs",
+        "tests/site/landing-content.test.mjs",
+        "tests/site/landing-fill.test.mjs",
+        "tests/site/release.test.mjs",
+        "tests/site/track-p3.test.mjs"
+      ]
+    }
   },
   "computedVersion": "2.9.0",
-  "payloadSha": null,
+  "payloadSha": "c86afea6275ba52348345d5af8f67fd8cf4645fc",
   "sealSha": null,
   "releaseAuthorization": null,
   "items": {
     "userFacing": [
+      {
+        "id": "C-NATIVE-DOCX-RTF-EXPORT",
+        "summary": "Export to Word: File menu, tab context menu and the export command write real .docx files renderer-side (docx/html over the shared styled-HTML pipeline) — native Word heading styles, tables with per-column alignment, hyperlinks, task checkboxes, real footnotes and native OMML equations from KaTeX MathML; figures rasterize to 2x PNG, page geometry follows the remembered print options, writing rides the existing binary facade with no new backend commands; the docx library loads lazily in its own 1.4 KB chunk (300 KB budget guard), ten locales carry the new strings.",
+        "state": "queued",
+        "commits": [
+          "15ceef40b85a71a3aaea73b5429ff1666e9b1bac"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-26",
+          "testedArtifact": "None — owner merged PR #52 on instruction after a three-rebase refresh (green 17-check CI twice); manual field verification of the produced .docx in Microsoft Word / Pages is deferred to the train acceptance protocol (train rule 5).",
+          "scenarios": [
+            "AUTOMATED (merge candidate CI, green): renderer unit x3 OS incl. 117 PR-specific OOXML assertions (Heading styles, table alignment, hyperlinks, one checked checkbox, OMML m:oMath with m:f, RU footnote text, zero front-matter, CJK intact, mm-derived sectPr geometry, hostile-text round-trip); backend unit x3 OS; e2e 370+ incl. export-office 5/5 (menu flow mounts no settings dialog, invokes exactly [plugin:dialog|save, mt_fs_write_binary] with PK-magic bytes; cancel writes nothing; tab-menu path activates a background tab first) and open-file-timing green after an A/B local proof that the earlier budget miss was CI-runner noise, not a branch regression.",
+            "AUTOMATED (guards): check-export-chunk — entry chunk carries no docx code, the lazy docx+docx/html surface is 1.4 KB + 106 KB gzip against a 300 KB budget; NOTICES-node regenerated and diff-clean; grace lint 0.",
+            "MANUAL BEFORE ADMISSION: none beyond code review of the diff.",
+            "INTENTIONALLY UNVERIFIED: opening the produced .docx in Microsoft Word / Pages on a real build (deferred to the train acceptance protocol per rule 5); display math $$ blocks render as literal text — a known muya export-grammar input gap recorded in the bundle backlog, inline math converts."
+          ]
+        }
+      },
+      {
+        "id": "C-TITLEBAR-MODE-CHIPS",
+        "summary": "Titlebar mode chips and the two-group switch menu: active-mode chips sit in the titlebar right cluster (flag truth diffMode > splitView > sourceCode, compact writing chips, tooltips, aria-labels, narrow-window note) and the menu switches views and writing modes; Standard is the full reset (view plus both writing modes, per the owner amendment that removed the separate Reset row); six mode-* glyphs join the frozen chrome set on the 16 px / 1.4 stroke grid; fifteen locale families ship in all ten languages with regenerated min twins; the e2e shim gains __TAURI_EVENT_PLUGIN_INTERNALS__ so tab teardown is testable; M-062/V-M-062 route the module and M-011/M-057 carry their deltas.",
+        "state": "queued",
+        "commits": [
+          "d14335e451515b5064e42fd233dded2b8a3e7cd5"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-27",
+          "testedArtifact": "None — the owner accepted after the 2026-10-27 visual pass and the Standard-full-reset amendment; the merge commit d14335e4 passed the 17-check PR #113 CI run. Evidence is archived with the bundle (acceptance.md).",
+          "scenarios": [
+            "machine gate (grace lint --assertions target --run-commands): 2/2 commands green — 128 unit/i18n tests (including the six mode-* descriptors, 16-grid bounds and fifteen locale families x ten locales with byte-identical min twins) and the full chromium + webkit-titlebar e2e run (408 passed, 7 pre-existing conditional skips, 0 failed) against built dist sha256 443eea8b8a20b9b93ddd204a079d772147b0a4cd25db5707d5ff886a0577b206",
+            "full suite on the change tree: 5150 tests, 5143 passed, 2 failed, both outside this change (release-train bookkeeping); the known full-suite mount timeouts stay out of scope",
+            "shim control experiment: removing __TAURI_EVENT_PLUGIN_INTERNALS__ makes the teardown row fail with exactly two unregisterListener pageerrors; with the repair it passes",
+            "owner amendment: Standard returns the view to Standard and turns both writing modes off; the Reset row and its resetAll/hintReset keys are removed"
+          ]
+        }
+      },
+      {
+        "id": "C-UPDATER-ROLLBACK",
+        "summary": "One-step updater rollback: every update snapshots the previous version and its settings first, Help › Roll Back to Mark… restores the snapshot together with the settings it had before the update, and the version being left is skipped until a newer release ships; if an update breaks startup the same restore runs from the terminal before the UI boots (mark --rollback, --yes for scripts). A failed snapshot cancels the update with a clear notice, the fresh snapshot promotes only after the new version actually boots (staging-to-live at next-boot reconcile), the Windows restore verifies the previous installer's minisignature from that release's feed against the pinned public key (two network requests; macOS restore fully offline), a concurrent mark --rollback delegates to the running app's confirmation, and the App Store edition exposes no rollback surface; M-068/V-M-068 route the new mt-rollback module.",
+        "state": "queued",
+        "commits": [
+          "8dc938f356ffc0d53f684afc3ba3bd21ab874ad6"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-10-29",
+          "testedArtifact": "None — PR #120 squash-merged as 8dc938f3 after a fully green run (cargo 459/459, npm test 4932/0, macOS packaging smoke); acceptance record in the archived bundle. The two-platform manual restore protocol (macOS menu + terminal crash path, Windows polygon installer) is owed as owner-executed evidence in V-M-068; hands-on rollback on a dispatch build is deferred to the train acceptance protocol (rule 5).",
+          "scenarios": [
+            "AUTOMATED (merge candidate, green): cargo test full bin suite 459 passed / 0 failed — 19 dedicated rollback tests (snapshot validity, digests, tampered-signature-never-executes, two-fetch counter, delegation nonce, CLI line format); npm test 4932/0 (prepare-order pins, fail-closed cancel, cancel-is-a-no-op, ten-locale coverage, menu-command consistency); coverage gate over thresholds; grace lint --assertions final --run-commands 0 errors.",
+            "AUTOMATED (guards): strict snapshot-manifest validation — corrupted, tampered or self-referential manifests behave exactly like 'no snapshot', nothing is half-applied, digests re-verified before any swap; the Update button installs nothing unless the snapshot was taken; mark-site build + check-dist 22/22 pages / 740 links.",
+            "MANUAL BEFORE ADMISSION: none beyond the archived four-corner review record (spec and plan, two consecutive clean passes each).",
+            "INTENTIONALLY UNVERIFIED: a real two-version restore on both platforms — pending owner-executed evidence in V-M-068; hands-on rollback on a dispatch build deferred to the train acceptance protocol (rule 5)."
+          ]
+        }
+      },
+      {
+        "id": "C-PAGE-WIDTH-TABLES-768",
+        "summary": "The default writing column becomes an honest 768 px of text: the shared :root default and all 34 shipped themes carry --editorAreaWidth: calc(100px + 768px) — the padding-inclusive form the preference writer has always used — replacing the raw 750px value that rendered only 650 px of content; the out-of-the-box column and a manually set 768px are pixel-identical.",
+        "state": "queued",
+        "commits": [
+          "82bb92aac2d6bf6d66a6a85d1782ec2764811fd9"
+        ],
+        "acceptance": {
+          "owner": "xronocode",
+          "date": "2026-11-02",
+          "testedArtifact": "None beyond the owner's direction — a default value flip with a pinned equivalence (guard test editor-width-default.test.js); hands-on check deferred to the train acceptance protocol.",
+          "scenarios": [
+            "guard: the calc form present in all 35 shipped width sources, zero raw 750px defaults, exactly 34 theme files",
+            "renderer suite green on real node_modules (4965/4965); PR CI green on three OS lanes including the full e2e run",
+            "column geometry: the editor box is 868px (calc(100px+768px)), centred in the canvas (leftGap==rightGap)",
+            "follow-up recorded: boot-time application of a persisted editorLineWidth looks broken store-to-column (pre-existing, not caused here)"
+          ]
+        }
+      }
+    ],
+    "operational": [
       {
         "id": "C-GITHUB-THEME",
         "summary": "The GitHub theme family joins as the 17th built-in pair: github (Primer light — white ground, #1F2328 ink, #0969DA accent, green primary buttons, README-style h1/h2 bottom rules) and github-dark (Primer dark — #0D1117 ground, #F0F6FC ink, #4493F8 accent) with Prism code-highlight companions, registered across the theme list, the native View › Theme menu, the command palette, Settings › Appearance and all ten locales; the site diagram gallery theme table carries both (34 themes, 17 dark / 17 light).",
@@ -54,25 +221,6 @@
         }
       },
       {
-        "id": "C-NATIVE-DOCX-RTF-EXPORT",
-        "summary": "Export to Word: File menu, tab context menu and the export command write real .docx files renderer-side (docx/html over the shared styled-HTML pipeline) — native Word heading styles, tables with per-column alignment, hyperlinks, task checkboxes, real footnotes and native OMML equations from KaTeX MathML; figures rasterize to 2x PNG, page geometry follows the remembered print options, writing rides the existing binary facade with no new backend commands; the docx library loads lazily in its own 1.4 KB chunk (300 KB budget guard), ten locales carry the new strings.",
-        "state": "queued",
-        "commits": [
-          "15ceef40b85a71a3aaea73b5429ff1666e9b1bac"
-        ],
-        "acceptance": {
-          "owner": "xronocode",
-          "date": "2026-10-26",
-          "testedArtifact": "None — owner merged PR #52 on instruction after a three-rebase refresh (green 17-check CI twice); manual field verification of the produced .docx in Microsoft Word / Pages is deferred to the train acceptance protocol (train rule 5).",
-          "scenarios": [
-            "AUTOMATED (merge candidate CI, green): renderer unit x3 OS incl. 117 PR-specific OOXML assertions (Heading styles, table alignment, hyperlinks, one checked checkbox, OMML m:oMath with m:f, RU footnote text, zero front-matter, CJK intact, mm-derived sectPr geometry, hostile-text round-trip); backend unit x3 OS; e2e 370+ incl. export-office 5/5 (menu flow mounts no settings dialog, invokes exactly [plugin:dialog|save, mt_fs_write_binary] with PK-magic bytes; cancel writes nothing; tab-menu path activates a background tab first) and open-file-timing green after an A/B local proof that the earlier budget miss was CI-runner noise, not a branch regression.",
-            "AUTOMATED (guards): check-export-chunk — entry chunk carries no docx code, the lazy docx+docx/html surface is 1.4 KB + 106 KB gzip against a 300 KB budget; NOTICES-node regenerated and diff-clean; grace lint 0.",
-            "MANUAL BEFORE ADMISSION: none beyond code review of the diff.",
-            "INTENTIONALLY UNVERIFIED: opening the produced .docx in Microsoft Word / Pages on a real build (deferred to the train acceptance protocol per rule 5); display math $$ blocks render as literal text — a known muya export-grammar input gap recorded in the bundle backlog, inline math converts."
-          ]
-        }
-      },
-      {
         "id": "C-FILE-POSITION-MEMORY",
         "summary": "Reading position memory: every file remembers its last reading spot — scrollTop plus a mode-neutral line/ch caret — across tab close/reopen, file reopen, app relaunch and rename; the caret moved only by arrow keys survives tab switching (the arrow-key gap of the f-cursor report), positions persist through a numbers-only 200-entry prefs store with rename moves and stale-entry clamping, and the flush writes coalesce so navigation never touches the save-outcome guard; two latent muya defects surfaced by the change are fixed alongside (idempotent plugin registration, registry-driven teardown with per-plugin isolation).",
         "state": "queued",
@@ -93,25 +241,6 @@
         }
       },
       {
-        "id": "C-TITLEBAR-MODE-CHIPS",
-        "summary": "Titlebar mode chips and the two-group switch menu: active-mode chips sit in the titlebar right cluster (flag truth diffMode > splitView > sourceCode, compact writing chips, tooltips, aria-labels, narrow-window note) and the menu switches views and writing modes; Standard is the full reset (view plus both writing modes, per the owner amendment that removed the separate Reset row); six mode-* glyphs join the frozen chrome set on the 16 px / 1.4 stroke grid; fifteen locale families ship in all ten languages with regenerated min twins; the e2e shim gains __TAURI_EVENT_PLUGIN_INTERNALS__ so tab teardown is testable; M-062/V-M-062 route the module and M-011/M-057 carry their deltas.",
-        "state": "queued",
-        "commits": [
-          "d14335e451515b5064e42fd233dded2b8a3e7cd5"
-        ],
-        "acceptance": {
-          "owner": "xronocode",
-          "date": "2026-10-27",
-          "testedArtifact": "None — the owner accepted after the 2026-10-27 visual pass and the Standard-full-reset amendment; the merge commit d14335e4 passed the 17-check PR #113 CI run. Evidence is archived with the bundle (acceptance.md).",
-          "scenarios": [
-            "machine gate (grace lint --assertions target --run-commands): 2/2 commands green — 128 unit/i18n tests (including the six mode-* descriptors, 16-grid bounds and fifteen locale families x ten locales with byte-identical min twins) and the full chromium + webkit-titlebar e2e run (408 passed, 7 pre-existing conditional skips, 0 failed) against built dist sha256 443eea8b8a20b9b93ddd204a079d772147b0a4cd25db5707d5ff886a0577b206",
-            "full suite on the change tree: 5150 tests, 5143 passed, 2 failed, both outside this change (release-train bookkeeping); the known full-suite mount timeouts stay out of scope",
-            "shim control experiment: removing __TAURI_EVENT_PLUGIN_INTERNALS__ makes the teardown row fail with exactly two unregisterListener pageerrors; with the repair it passes",
-            "owner amendment: Standard returns the view to Standard and turns both writing modes off; the Reset row and its resetAll/hintReset keys are removed"
-          ]
-        }
-      },
-      {
         "id": "C-COMMONMARK-EMPHASIS",
         "summary": "CommonMark emphasis delimiter pairing: a self-contained module scans * / _ runs (escapes and code spans masked), classifies flanking and runs the delimiter-stack algorithm, and gates both the WYSIWYG tokenizer and the marked export/copy lexer. The reported paragraph now renders **One-shot** bold with the typo asterisks literal in editor and export exactly as GitHub does; the theft class no longer swallows later clean pairs; ***bold italic*** nests as em[strong]; ordinary paragraphs keep the zero-activation fast path and byte-identical tokenization.",
         "state": "queued",
@@ -126,25 +255,6 @@
             "new suite tests/renderer/muya/emphasis-pairing.test.js 9/9: the owner-report paragraph is byte-identical to GitHub's /markdown output for the report case; theft class, *** nesting, masking, fast-path activation counters, generator round-trip and viewer-vs-marked parity are pinned",
             "muya suite 650/650 (five files that timed out under parallel machine load pass serially, 79/79); inline goldens recaptured through the documented UPDATE flow with the diff limited to the three new STRESS entries; C-30 lexer goldens byte-unchanged",
             "grace lint --path . --assertions current reports 0 errors; renderer and export paths agree for every suite input"
-          ]
-        }
-      },
-      {
-        "id": "C-UPDATER-ROLLBACK",
-        "summary": "One-step updater rollback: every update snapshots the previous version and its settings first, Help › Roll Back to Mark… restores the snapshot together with the settings it had before the update, and the version being left is skipped until a newer release ships; if an update breaks startup the same restore runs from the terminal before the UI boots (mark --rollback, --yes for scripts). A failed snapshot cancels the update with a clear notice, the fresh snapshot promotes only after the new version actually boots (staging-to-live at next-boot reconcile), the Windows restore verifies the previous installer's minisignature from that release's feed against the pinned public key (two network requests; macOS restore fully offline), a concurrent mark --rollback delegates to the running app's confirmation, and the App Store edition exposes no rollback surface; M-068/V-M-068 route the new mt-rollback module.",
-        "state": "queued",
-        "commits": [
-          "8dc938f356ffc0d53f684afc3ba3bd21ab874ad6"
-        ],
-        "acceptance": {
-          "owner": "xronocode",
-          "date": "2026-10-29",
-          "testedArtifact": "None — PR #120 squash-merged as 8dc938f3 after a fully green run (cargo 459/459, npm test 4932/0, macOS packaging smoke); acceptance record in the archived bundle. The two-platform manual restore protocol (macOS menu + terminal crash path, Windows polygon installer) is owed as owner-executed evidence in V-M-068; hands-on rollback on a dispatch build is deferred to the train acceptance protocol (rule 5).",
-          "scenarios": [
-            "AUTOMATED (merge candidate, green): cargo test full bin suite 459 passed / 0 failed — 19 dedicated rollback tests (snapshot validity, digests, tampered-signature-never-executes, two-fetch counter, delegation nonce, CLI line format); npm test 4932/0 (prepare-order pins, fail-closed cancel, cancel-is-a-no-op, ten-locale coverage, menu-command consistency); coverage gate over thresholds; grace lint --assertions final --run-commands 0 errors.",
-            "AUTOMATED (guards): strict snapshot-manifest validation — corrupted, tampered or self-referential manifests behave exactly like 'no snapshot', nothing is half-applied, digests re-verified before any swap; the Update button installs nothing unless the snapshot was taken; mark-site build + check-dist 22/22 pages / 740 links.",
-            "MANUAL BEFORE ADMISSION: none beyond the archived four-corner review record (spec and plan, two consecutive clean passes each).",
-            "INTENTIONALLY UNVERIFIED: a real two-version restore on both platforms — pending owner-executed evidence in V-M-068; hands-on rollback on a dispatch build deferred to the train acceptance protocol (rule 5)."
           ]
         }
       },
@@ -236,25 +346,6 @@
             "AUTOMATED (merge candidate, green): cargo test m010_security 29/29 with the new Windows fixture matrix; cargo test m001_save_close 16/16; grace final --run-commands 2/2; full PR #162 check run green (governance with release:user-facing after the label-race reopen).",
             "LIVE: scratch doc opened via the mt_open_file channel, dirtied through the editor; real Ctrl+S (cua hotkey foreground) — isSaved true, no notification, file mtime 01:02:13 -> 01:06:14, size 15 -> 44 bytes, probe text round-trips from disk.",
             "INTENTIONALLY UNVERIFIED: nothing — the fix is platform-guard logic pinned by cross-host fixture tests; the owner workspace stayed read-only throughout."
-          ]
-        }
-      },
-      {
-        "id": "C-PAGE-WIDTH-TABLES-768",
-        "summary": "The default writing column becomes an honest 768 px of text: the shared :root default and all 34 shipped themes carry --editorAreaWidth: calc(100px + 768px) — the padding-inclusive form the preference writer has always used — replacing the raw 750px value that rendered only 650 px of content; the out-of-the-box column and a manually set 768px are pixel-identical.",
-        "state": "queued",
-        "commits": [
-          "82bb92aac2d6bf6d66a6a85d1782ec2764811fd9"
-        ],
-        "acceptance": {
-          "owner": "xronocode",
-          "date": "2026-11-02",
-          "testedArtifact": "None beyond the owner's direction — a default value flip with a pinned equivalence (guard test editor-width-default.test.js); hands-on check deferred to the train acceptance protocol.",
-          "scenarios": [
-            "guard: the calc form present in all 35 shipped width sources, zero raw 750px defaults, exactly 34 theme files",
-            "renderer suite green on real node_modules (4965/4965); PR CI green on three OS lanes including the full e2e run",
-            "column geometry: the editor box is 868px (calc(100px+768px)), centred in the canvas (leftGap==rightGap)",
-            "follow-up recorded: boot-time application of a persisted editorLineWidth looks broken store-to-column (pre-existing, not caused here)"
           ]
         }
       },
@@ -3342,9 +3433,196 @@
         "acceptance": {
           "status": "pending"
         }
-      }
-    ],
-    "operational": [
+      },
+      {
+        "id": "C-SEC-GATEWAY-TOOLS",
+        "summary": "Use prepared locked deployment tooling and restrict deployment credentials to the deployment process.",
+        "state": "queued",
+        "commits": [
+          "b90f1f0dde9694f3b34d6695937184ccefbc3691"
+        ],
+        "pullRequest": {
+          "number": 220,
+          "headSha": "323981e0b0002cee11f08220aa9d2fd54fdcf96f",
+          "mergeSha": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/220/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "GitHub Actions post-merge test matrix, CI, release governance and CodeQL",
+              "result": "All four runs succeeded on the merged source. Test matrix includes Rust and renderer tests on Linux/macOS/Windows, coverage, Chromium and WebKit. PR head and squash have identical trees.",
+              "date": "2026-11-11",
+              "build": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43004710146; https://github.com/xronocode/mark/actions/runs/43004710160; https://github.com/xronocode/mark/actions/runs/43004710225; https://github.com/xronocode/mark/actions/runs/43004709438"
+            },
+            {
+              "command": "PR #220 source validation: Rust tests, renderer coverage, stream browser tests, renderer/application builds and IPC types",
+              "result": "599 Rust passed, 1 ignored; 5728 renderer/tool tests passed, 2 skips, 3 todo; 14/14 stream cases passed in Chromium/WebKit. Coverage: statements 92.04%, branches 85.23%, functions 88.42%, lines 93.57%; unchanged floors. macOS packaging/launch smoke passed. Six final GRACE command gates passed; current integrity 0 errors, 4 existing warnings.",
+              "date": "2026-11-11",
+              "build": "323981e0b0002cee11f08220aa9d2fd54fdcf96f",
+              "evidence": "https://github.com/xronocode/mark/pull/220/checks"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Native executable-link refusal, extension disable with credential-store failure, two-extension isolation and rich/source/split stream-tab/save/undo scenarios",
+              "reason": "Native product acceptance has not yet been performed on an identified artifact. Automated fake-opening/transport fixtures and packaging smoke do not establish native or owner acceptance."
+            },
+            {
+              "section": "manual",
+              "scenario": "Windows native link activation",
+              "reason": "Windows native host not exercised. Hosted Windows backend tests passed; inert executable fixtures launch no real executable."
+            },
+            {
+              "section": "manual",
+              "scenario": "Production deployment and consolidated dispatch-build owner acceptance",
+              "reason": "No production deployment or train dispatch authorized. The collecting label is provisional; no version, tag or release decision is made."
+            }
+          ]
+        }
+      },
+      {
+        "id": "C-SEC-GATEWAY-LOCK-SCAN",
+        "summary": "Scan the dedicated deployment lockfile as part of dependency verification.",
+        "state": "queued",
+        "commits": [
+          "b90f1f0dde9694f3b34d6695937184ccefbc3691"
+        ],
+        "pullRequest": {
+          "number": 220,
+          "headSha": "323981e0b0002cee11f08220aa9d2fd54fdcf96f",
+          "mergeSha": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/220/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "GitHub Actions post-merge test matrix, CI, release governance and CodeQL",
+              "result": "All four runs succeeded on the merged source. Test matrix includes Rust and renderer tests on Linux/macOS/Windows, coverage, Chromium and WebKit. PR head and squash have identical trees.",
+              "date": "2026-11-11",
+              "build": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43004710146; https://github.com/xronocode/mark/actions/runs/43004710160; https://github.com/xronocode/mark/actions/runs/43004710225; https://github.com/xronocode/mark/actions/runs/43004709438"
+            },
+            {
+              "command": "PR #220 source validation: Rust tests, renderer coverage, stream browser tests, renderer/application builds and IPC types",
+              "result": "599 Rust passed, 1 ignored; 5728 renderer/tool tests passed, 2 skips, 3 todo; 14/14 stream cases passed in Chromium/WebKit. Coverage: statements 92.04%, branches 85.23%, functions 88.42%, lines 93.57%; unchanged floors. macOS packaging/launch smoke passed. Six final GRACE command gates passed; current integrity 0 errors, 4 existing warnings.",
+              "date": "2026-11-11",
+              "build": "323981e0b0002cee11f08220aa9d2fd54fdcf96f",
+              "evidence": "https://github.com/xronocode/mark/pull/220/checks"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Native executable-link refusal, extension disable with credential-store failure, two-extension isolation and rich/source/split stream-tab/save/undo scenarios",
+              "reason": "Native product acceptance has not yet been performed on an identified artifact. Automated fake-opening/transport fixtures and packaging smoke do not establish native or owner acceptance."
+            },
+            {
+              "section": "manual",
+              "scenario": "Windows native link activation",
+              "reason": "Windows native host not exercised. Hosted Windows backend tests passed; inert executable fixtures launch no real executable."
+            },
+            {
+              "section": "manual",
+              "scenario": "Production deployment and consolidated dispatch-build owner acceptance",
+              "reason": "No production deployment or train dispatch authorized. The collecting label is provisional; no version, tag or release decision is made."
+            }
+          ]
+        }
+      },
+      {
+        "id": "C-SEC-COVERAGE-IMPORTS",
+        "summary": "Isolate unused application-shell child imports in shallow coverage fixtures without relaxing thresholds.",
+        "state": "queued",
+        "commits": [
+          "b90f1f0dde9694f3b34d6695937184ccefbc3691"
+        ],
+        "pullRequest": {
+          "number": 220,
+          "headSha": "323981e0b0002cee11f08220aa9d2fd54fdcf96f",
+          "mergeSha": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
+          "checksEvidence": "https://github.com/xronocode/mark/pull/220/checks"
+        },
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "GitHub Actions post-merge test matrix, CI, release governance and CodeQL",
+              "result": "All four runs succeeded on the merged source. Test matrix includes Rust and renderer tests on Linux/macOS/Windows, coverage, Chromium and WebKit. PR head and squash have identical trees.",
+              "date": "2026-11-11",
+              "build": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
+              "evidence": "https://github.com/xronocode/mark/actions/runs/43004710146; https://github.com/xronocode/mark/actions/runs/43004710160; https://github.com/xronocode/mark/actions/runs/43004710225; https://github.com/xronocode/mark/actions/runs/43004709438"
+            },
+            {
+              "command": "PR #220 source validation: Rust tests, renderer coverage, stream browser tests, renderer/application builds and IPC types",
+              "result": "599 Rust passed, 1 ignored; 5728 renderer/tool tests passed, 2 skips, 3 todo; 14/14 stream cases passed in Chromium/WebKit. Coverage: statements 92.04%, branches 85.23%, functions 88.42%, lines 93.57%; unchanged floors. macOS packaging/launch smoke passed. Six final GRACE command gates passed; current integrity 0 errors, 4 existing warnings.",
+              "date": "2026-11-11",
+              "build": "323981e0b0002cee11f08220aa9d2fd54fdcf96f",
+              "evidence": "https://github.com/xronocode/mark/pull/220/checks"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Native executable-link refusal, extension disable with credential-store failure, two-extension isolation and rich/source/split stream-tab/save/undo scenarios",
+              "reason": "Native product acceptance has not yet been performed on an identified artifact. Automated fake-opening/transport fixtures and packaging smoke do not establish native or owner acceptance."
+            },
+            {
+              "section": "manual",
+              "scenario": "Windows native link activation",
+              "reason": "Windows native host not exercised. Hosted Windows backend tests passed; inert executable fixtures launch no real executable."
+            },
+            {
+              "section": "manual",
+              "scenario": "Production deployment and consolidated dispatch-build owner acceptance",
+              "reason": "No production deployment or train dispatch authorized. The collecting label is provisional; no version, tag or release decision is made."
+            }
+          ]
+        }
+      },
+      {
+        "id": "C-RELEASE-CANARY-PRERELEASE",
+        "summary": "Prerelease channel for external-tester builds: hyphenated owner tags (vX.Y.Z-beta.N/canary.N, base = train computedVersion) publish signed GitHub prereleases that never advance releases/latest or the cask; release/promote gains the prereleaseSuffix dispatch; the stable path is unchanged.",
+        "state": "queued",
+        "commits": [
+          "ce92b473a1098229bb8163ab97b0d7659d8d0a9a"
+        ],
+        "pullRequest": "https://github.com/xronocode/mark/pull/278",
+        "testingProtocol": {
+          "automatic": [
+            {
+              "command": "npx vitest run (full renderer suite)",
+              "result": "429-430 files / 6036-6047 tests passed, 0 failed (2 skips, 3 todo pre-existing) on the final branch heads; hosted CI on PR #278 green after macOS-pool eviction reruns. Local full-suite totals (430 files / 6047 tests / 0 failures) were observed on the final branch head 2b09efe2 immediately before 6a537899.",
+              "date": "2026-11-17",
+              "build": "6a53789911e22e80da6aaaebebb78b71a822437b",
+              "evidence": "https://github.com/xronocode/mark/pull/278"
+            },
+            {
+              "command": "cargo test --bin mark menu",
+              "result": "32 passed / 0 failed.",
+              "date": "2026-11-17",
+              "build": "a3a7fb6d",
+              "evidence": "local"
+            }
+          ],
+          "manual": [],
+          "intentionallyUnverified": [
+            {
+              "section": "manual",
+              "scenario": "Hands-on check on a dispatch build",
+              "reason": "Deferred to the train acceptance protocol (rule 5); the external tester session on the first prerelease build is the first consumer."
+            }
+          ]
+        },
+        "acceptance": {
+          "status": "pending",
+          "detail": "Owner verdicts pending on the first prerelease build (external tester session)."
+        }
+      },
       {
         "id": "C-GRAPH-RUNTIME-PATHS",
         "summary": "Runtime source-path repair: the graph's M-010 and M-016 sources and tests name the modules that implement them again (src-tauri/src/m010_security.rs, src-tauri/src/m016_updater.rs) and the retired test/specs/security/xss.spec.js anchor is gone; the Path and KnowledgeGraphPath entries were already correct, and the frozen GRACE 3 provenance blocks keep the historical filenames by design.",
@@ -3520,156 +3798,6 @@
               "section": "manual",
               "scenario": "Live external Project application",
               "reason": "Intentionally not run as part of the bounded fix. Pure, memory and injected-fetch fixtures verify projection/clearing/idempotence; Project availability is non-required, and no external mutation or owner verdict was authorized."
-            }
-          ]
-        }
-      },
-      {
-        "id": "C-SEC-GATEWAY-TOOLS",
-        "summary": "Use prepared locked deployment tooling and restrict deployment credentials to the deployment process.",
-        "state": "queued",
-        "commits": [
-          "b90f1f0dde9694f3b34d6695937184ccefbc3691"
-        ],
-        "pullRequest": {
-          "number": 220,
-          "headSha": "323981e0b0002cee11f08220aa9d2fd54fdcf96f",
-          "mergeSha": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
-          "checksEvidence": "https://github.com/xronocode/mark/pull/220/checks"
-        },
-        "testingProtocol": {
-          "automatic": [
-            {
-              "command": "GitHub Actions post-merge test matrix, CI, release governance and CodeQL",
-              "result": "All four runs succeeded on the merged source. Test matrix includes Rust and renderer tests on Linux/macOS/Windows, coverage, Chromium and WebKit. PR head and squash have identical trees.",
-              "date": "2026-11-11",
-              "build": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
-              "evidence": "https://github.com/xronocode/mark/actions/runs/43004710146; https://github.com/xronocode/mark/actions/runs/43004710160; https://github.com/xronocode/mark/actions/runs/43004710225; https://github.com/xronocode/mark/actions/runs/43004709438"
-            },
-            {
-              "command": "PR #220 source validation: Rust tests, renderer coverage, stream browser tests, renderer/application builds and IPC types",
-              "result": "599 Rust passed, 1 ignored; 5728 renderer/tool tests passed, 2 skips, 3 todo; 14/14 stream cases passed in Chromium/WebKit. Coverage: statements 92.04%, branches 85.23%, functions 88.42%, lines 93.57%; unchanged floors. macOS packaging/launch smoke passed. Six final GRACE command gates passed; current integrity 0 errors, 4 existing warnings.",
-              "date": "2026-11-11",
-              "build": "323981e0b0002cee11f08220aa9d2fd54fdcf96f",
-              "evidence": "https://github.com/xronocode/mark/pull/220/checks"
-            }
-          ],
-          "manual": [],
-          "intentionallyUnverified": [
-            {
-              "section": "manual",
-              "scenario": "Native executable-link refusal, extension disable with credential-store failure, two-extension isolation and rich/source/split stream-tab/save/undo scenarios",
-              "reason": "Native product acceptance has not yet been performed on an identified artifact. Automated fake-opening/transport fixtures and packaging smoke do not establish native or owner acceptance."
-            },
-            {
-              "section": "manual",
-              "scenario": "Windows native link activation",
-              "reason": "Windows native host not exercised. Hosted Windows backend tests passed; inert executable fixtures launch no real executable."
-            },
-            {
-              "section": "manual",
-              "scenario": "Production deployment and consolidated dispatch-build owner acceptance",
-              "reason": "No production deployment or train dispatch authorized. The collecting label is provisional; no version, tag or release decision is made."
-            }
-          ]
-        }
-      },
-      {
-        "id": "C-SEC-GATEWAY-LOCK-SCAN",
-        "summary": "Scan the dedicated deployment lockfile as part of dependency verification.",
-        "state": "queued",
-        "commits": [
-          "b90f1f0dde9694f3b34d6695937184ccefbc3691"
-        ],
-        "pullRequest": {
-          "number": 220,
-          "headSha": "323981e0b0002cee11f08220aa9d2fd54fdcf96f",
-          "mergeSha": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
-          "checksEvidence": "https://github.com/xronocode/mark/pull/220/checks"
-        },
-        "testingProtocol": {
-          "automatic": [
-            {
-              "command": "GitHub Actions post-merge test matrix, CI, release governance and CodeQL",
-              "result": "All four runs succeeded on the merged source. Test matrix includes Rust and renderer tests on Linux/macOS/Windows, coverage, Chromium and WebKit. PR head and squash have identical trees.",
-              "date": "2026-11-11",
-              "build": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
-              "evidence": "https://github.com/xronocode/mark/actions/runs/43004710146; https://github.com/xronocode/mark/actions/runs/43004710160; https://github.com/xronocode/mark/actions/runs/43004710225; https://github.com/xronocode/mark/actions/runs/43004709438"
-            },
-            {
-              "command": "PR #220 source validation: Rust tests, renderer coverage, stream browser tests, renderer/application builds and IPC types",
-              "result": "599 Rust passed, 1 ignored; 5728 renderer/tool tests passed, 2 skips, 3 todo; 14/14 stream cases passed in Chromium/WebKit. Coverage: statements 92.04%, branches 85.23%, functions 88.42%, lines 93.57%; unchanged floors. macOS packaging/launch smoke passed. Six final GRACE command gates passed; current integrity 0 errors, 4 existing warnings.",
-              "date": "2026-11-11",
-              "build": "323981e0b0002cee11f08220aa9d2fd54fdcf96f",
-              "evidence": "https://github.com/xronocode/mark/pull/220/checks"
-            }
-          ],
-          "manual": [],
-          "intentionallyUnverified": [
-            {
-              "section": "manual",
-              "scenario": "Native executable-link refusal, extension disable with credential-store failure, two-extension isolation and rich/source/split stream-tab/save/undo scenarios",
-              "reason": "Native product acceptance has not yet been performed on an identified artifact. Automated fake-opening/transport fixtures and packaging smoke do not establish native or owner acceptance."
-            },
-            {
-              "section": "manual",
-              "scenario": "Windows native link activation",
-              "reason": "Windows native host not exercised. Hosted Windows backend tests passed; inert executable fixtures launch no real executable."
-            },
-            {
-              "section": "manual",
-              "scenario": "Production deployment and consolidated dispatch-build owner acceptance",
-              "reason": "No production deployment or train dispatch authorized. The collecting label is provisional; no version, tag or release decision is made."
-            }
-          ]
-        }
-      },
-      {
-        "id": "C-SEC-COVERAGE-IMPORTS",
-        "summary": "Isolate unused application-shell child imports in shallow coverage fixtures without relaxing thresholds.",
-        "state": "queued",
-        "commits": [
-          "b90f1f0dde9694f3b34d6695937184ccefbc3691"
-        ],
-        "pullRequest": {
-          "number": 220,
-          "headSha": "323981e0b0002cee11f08220aa9d2fd54fdcf96f",
-          "mergeSha": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
-          "checksEvidence": "https://github.com/xronocode/mark/pull/220/checks"
-        },
-        "testingProtocol": {
-          "automatic": [
-            {
-              "command": "GitHub Actions post-merge test matrix, CI, release governance and CodeQL",
-              "result": "All four runs succeeded on the merged source. Test matrix includes Rust and renderer tests on Linux/macOS/Windows, coverage, Chromium and WebKit. PR head and squash have identical trees.",
-              "date": "2026-11-11",
-              "build": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
-              "evidence": "https://github.com/xronocode/mark/actions/runs/43004710146; https://github.com/xronocode/mark/actions/runs/43004710160; https://github.com/xronocode/mark/actions/runs/43004710225; https://github.com/xronocode/mark/actions/runs/43004709438"
-            },
-            {
-              "command": "PR #220 source validation: Rust tests, renderer coverage, stream browser tests, renderer/application builds and IPC types",
-              "result": "599 Rust passed, 1 ignored; 5728 renderer/tool tests passed, 2 skips, 3 todo; 14/14 stream cases passed in Chromium/WebKit. Coverage: statements 92.04%, branches 85.23%, functions 88.42%, lines 93.57%; unchanged floors. macOS packaging/launch smoke passed. Six final GRACE command gates passed; current integrity 0 errors, 4 existing warnings.",
-              "date": "2026-11-11",
-              "build": "323981e0b0002cee11f08220aa9d2fd54fdcf96f",
-              "evidence": "https://github.com/xronocode/mark/pull/220/checks"
-            }
-          ],
-          "manual": [],
-          "intentionallyUnverified": [
-            {
-              "section": "manual",
-              "scenario": "Native executable-link refusal, extension disable with credential-store failure, two-extension isolation and rich/source/split stream-tab/save/undo scenarios",
-              "reason": "Native product acceptance has not yet been performed on an identified artifact. Automated fake-opening/transport fixtures and packaging smoke do not establish native or owner acceptance."
-            },
-            {
-              "section": "manual",
-              "scenario": "Windows native link activation",
-              "reason": "Windows native host not exercised. Hosted Windows backend tests passed; inert executable fixtures launch no real executable."
-            },
-            {
-              "section": "manual",
-              "scenario": "Production deployment and consolidated dispatch-build owner acceptance",
-              "reason": "No production deployment or train dispatch authorized. The collecting label is provisional; no version, tag or release decision is made."
             }
           ]
         }
@@ -4292,45 +4420,6 @@
         },
         "acceptance": {
           "status": "pending"
-        }
-      },
-      {
-        "id": "C-RELEASE-CANARY-PRERELEASE",
-        "summary": "Prerelease channel for external-tester builds: hyphenated owner tags (vX.Y.Z-beta.N/canary.N, base = train computedVersion) publish signed GitHub prereleases that never advance releases/latest or the cask; release/promote gains the prereleaseSuffix dispatch; the stable path is unchanged.",
-        "state": "queued",
-        "commits": [
-          "ce92b473a109778afb39cda5b0081172951a257a"
-        ],
-        "pullRequest": "https://github.com/xronocode/mark/pull/278",
-        "testingProtocol": {
-          "automatic": [
-            {
-              "command": "npx vitest run (full renderer suite)",
-              "result": "429-430 files / 6036-6047 tests passed, 0 failed (2 skips, 3 todo pre-existing) on the final branch heads; hosted CI on PR #278 green after macOS-pool eviction reruns. Local full-suite totals (430 files / 6047 tests / 0 failures) were observed on the final branch head 2b09efe2 immediately before 6a537899.",
-              "date": "2026-11-17",
-              "build": "6a53789911e22e80da6aaaebebb78b71a822437b",
-              "evidence": "https://github.com/xronocode/mark/pull/278"
-            },
-            {
-              "command": "cargo test --bin mark menu",
-              "result": "32 passed / 0 failed.",
-              "date": "2026-11-17",
-              "build": "a3a7fb6d",
-              "evidence": "local"
-            }
-          ],
-          "manual": [],
-          "intentionallyUnverified": [
-            {
-              "section": "manual",
-              "scenario": "Hands-on check on a dispatch build",
-              "reason": "Deferred to the train acceptance protocol (rule 5); the external tester session on the first prerelease build is the first consumer."
-            }
-          ]
-        },
-        "acceptance": {
-          "status": "pending",
-          "detail": "Owner verdicts pending on the first prerelease build (external tester session)."
         }
       },
       {
@@ -5041,9 +5130,1221 @@
     "notPresent": []
   },
   "commitAccounting": {
-    "fromExclusive": "3b6d49e4e4a15452aced6cb25793446edf8d1c7e",
-    "entries": [],
-    "throughInclusive": null
+    "fromExclusive": "9d1938d0164f9e70e6530300943fb58117903c49",
+    "entries": [
+      {
+        "sha": "01d45767a25802a390092c07f9c63a771ff8ab7f",
+        "classification": "operational",
+        "itemIds": [
+          "C-UPDATER-STATS"
+        ]
+      },
+      {
+        "sha": "01d789c2622e410da2d7d92eabccec0a2aaf8486",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-TYPED-HEADING-REGRESSION"
+        ]
+      },
+      {
+        "sha": "04b180cb48d7070089672ccb293a9f72eda256df",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-EMOJI-TIMESTAMPS"
+        ]
+      },
+      {
+        "sha": "06a1b176dd129963171d940ee70e7c65f44e4622",
+        "classification": "operational",
+        "itemIds": [
+          "C-TABLE-LAYOUT-COMPLETION"
+        ]
+      },
+      {
+        "sha": "073ae3df749730a72a7c33682d674f578c63347f",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "0a0b6589577e58343c5fc10877fb42c2939ef9fd",
+        "classification": "operational",
+        "itemIds": [
+          "C-SESSION-WRITE-ATOMICITY"
+        ]
+      },
+      {
+        "sha": "0a72917c50904034eda06c64ee870e1ea8e7623c",
+        "classification": "operational",
+        "itemIds": [
+          "C-EXPORT-SETTINGS-SECTION-RECOVERY"
+        ]
+      },
+      {
+        "sha": "0c1ecbe15be326534281e3f25a03149abe94ddb3",
+        "classification": "operational",
+        "itemIds": [
+          "C-UPDATER-REVIEW-FIXES"
+        ]
+      },
+      {
+        "sha": "0d142333b2d929f8fbdad0098b4935fac9614c41",
+        "classification": "operational",
+        "itemIds": [
+          "td-1"
+        ]
+      },
+      {
+        "sha": "116a2f0faa380f23bb93ee0f9e62e959e518a343",
+        "classification": "operational",
+        "itemIds": [
+          "C-DOCS-SYNC"
+        ]
+      },
+      {
+        "sha": "11e5f2dac64424a0c94c8df899e4252edd7c1e8b",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-022"
+        ]
+      },
+      {
+        "sha": "158653b623cb3c030b1e842e957cc96dc94a2cc4",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-CLIPBOARD-WALK-OBSERVATION"
+        ]
+      },
+      {
+        "sha": "15ceef40b85a71a3aaea73b5429ff1666e9b1bac",
+        "classification": "user-facing",
+        "itemIds": [
+          "C-NATIVE-DOCX-RTF-EXPORT"
+        ]
+      },
+      {
+        "sha": "1713225ea858ce339f5653838bfb0051dc198a7b",
+        "classification": "operational",
+        "itemIds": [
+          "C-POST-BETA-OPS-WAVE"
+        ]
+      },
+      {
+        "sha": "17782937c8832f77691ff104582746a2c09de3ea",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "197a9d0e22c78a4bb5462c844c99eb81693e3ee1",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "1a720d53ec822892e82eda4c1a6a3b97dd9b56cf",
+        "classification": "operational",
+        "itemIds": [
+          "C-POST-BETA-OPS-WAVE"
+        ]
+      },
+      {
+        "sha": "1aa95602c844ebf5d131cfdeed5d407399eb3a1b",
+        "classification": "operational",
+        "itemIds": [
+          "C-POST-BETA-OPS-WAVE"
+        ]
+      },
+      {
+        "sha": "1d58bc385b12e20a953a1077cc1849b8f306c2ba",
+        "classification": "operational",
+        "itemIds": [
+          "C-RELEASE-MANUAL-PUBLISH"
+        ]
+      },
+      {
+        "sha": "1f4ce7e5eaca3db5abdbf541ddd07f15cbf76410",
+        "classification": "operational",
+        "itemIds": [
+          "C-SAFETY-LOCAL-FIRST-REVIEW"
+        ]
+      },
+      {
+        "sha": "21abfa3a2e65bde1be4755a370c2a3ae652ff7e5",
+        "classification": "operational",
+        "itemIds": [
+          "C-HONEST-FAILURE-NOTICES"
+        ]
+      },
+      {
+        "sha": "21f8627e99a11081b32af34aa23cf26cd0cc517e",
+        "classification": "operational",
+        "itemIds": [
+          "C-SURFACE-OWNERSHIP"
+        ]
+      },
+      {
+        "sha": "229b3a69be8e16ca1717d8f2fea580ba4be69b75",
+        "classification": "operational",
+        "itemIds": [
+          "C-SEC-GITLEAKS-CHECKSUM"
+        ]
+      },
+      {
+        "sha": "239e5dabbb110a3b85918d546f5cfb8cd22c32f8",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "23cc2f4f9ed7625e770f02bd6c513959e8a8329d",
+        "classification": "operational",
+        "itemIds": [
+          "C-EXT-DELIVERY-HONESTY"
+        ]
+      },
+      {
+        "sha": "2474281761404fb08bc80bf3f01c3dda4d314061",
+        "classification": "operational",
+        "itemIds": [
+          "C-LOCALE-MIN-TWIN-REMOVAL"
+        ]
+      },
+      {
+        "sha": "2722bd851531290860624e14ddc18973bcd901f0",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "2791edf704b11b82d1b29ba1b28e2ea64cddb579",
+        "classification": "operational",
+        "itemIds": [
+          "C-SEC-EDIT-TARGETING"
+        ]
+      },
+      {
+        "sha": "296dc5f0f965a906b61ea655b2b570c847f3f276",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "2dd5ae4f61274941a2f20eba417cc7a8b48f5b25",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "2f99489017b6c66dc6e8a251286296d7a58a218e",
+        "classification": "operational",
+        "itemIds": [
+          "C-STABILIZE-TRAIN-MIRROR"
+        ]
+      },
+      {
+        "sha": "33315ea73454b97d7ff12630cecf4185194bc4b2",
+        "classification": "operational",
+        "itemIds": [
+          "C-WIN-ROLLBACK-PANIC"
+        ]
+      },
+      {
+        "sha": "35c922373514ea677fda2f537220b36865a1e785",
+        "classification": "operational",
+        "itemIds": [
+          "C-EXTERNAL-RELOAD-OPERATION"
+        ]
+      },
+      {
+        "sha": "388b666915ba675d9f5728b1f3f5f0392697f937",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "39a9c284dc3aaa9c4824a00cf1ae198ecdfdbb7b",
+        "classification": "operational",
+        "itemIds": [
+          "C-MD-LINK-TABS"
+        ]
+      },
+      {
+        "sha": "3d72dafa4957502348c2b27db01fb3897b1c7038",
+        "classification": "operational",
+        "itemIds": [
+          "C-PRINT-LIFECYCLE-TESTS"
+        ]
+      },
+      {
+        "sha": "3da9729deff7400c1f5b3fd6ec46de60df8f3432",
+        "classification": "operational",
+        "itemIds": [
+          "C-LARGE-DOC-STAGE-0"
+        ]
+      },
+      {
+        "sha": "3f61c2b73a0d0ee8aea83bd3fa5a1b09bab182c9",
+        "classification": "operational",
+        "itemIds": [
+          "C-RELEASE-SIGNING-SPLIT"
+        ]
+      },
+      {
+        "sha": "3f7d45aad16f3615253e84001b271b663540e2a4",
+        "classification": "operational",
+        "itemIds": [
+          "C-STATS-READOUT"
+        ]
+      },
+      {
+        "sha": "48820f90cc8686b24d1128e009438547e898e425",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "48e7fe17db434d2162b4423fd6d19ed66d6427c0",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-SHELL-CHROME-FONT"
+        ]
+      },
+      {
+        "sha": "495a58b98a6f2b0b1118d02396d2379184e5d0be",
+        "classification": "operational",
+        "itemIds": [
+          "C-GRAPH-RUNTIME-PATHS"
+        ]
+      },
+      {
+        "sha": "499522fd4a37cd33212157433476bef1305325f2",
+        "classification": "operational",
+        "itemIds": [
+          "C-PELE-HTML-POSTPROCESS"
+        ]
+      },
+      {
+        "sha": "4dcde343158be19e30dffe2e03e6d214278d331e",
+        "classification": "operational",
+        "itemIds": [
+          "C-TABLE-BAR-MENU-OVERLAP"
+        ]
+      },
+      {
+        "sha": "4e6aa2c5eafee7d0164105d7737d5f86fb5e80af",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-020"
+        ]
+      },
+      {
+        "sha": "4eae0dfc670ca713f9b1bfe6a3fbc36d7b2249d4",
+        "classification": "operational",
+        "itemIds": [
+          "C-LATE-REFUSAL-HONESTY"
+        ]
+      },
+      {
+        "sha": "55739a55cfbe3b5f55b9105b8741e9adc44a8354",
+        "classification": "operational",
+        "itemIds": [
+          "C-SEC-EXT-GRANT-BOUND"
+        ]
+      },
+      {
+        "sha": "59463950cdc59f9a1e70203efe90b0077a97674d",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "599151bc7cb188ee32b263b9d57ab82d44bdeabb",
+        "classification": "operational",
+        "itemIds": [
+          "C-EXPORT-BOUNDARIES-DOCX"
+        ]
+      },
+      {
+        "sha": "599ff9d2083327f920c7cd46f254c5b87beb482c",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-CURRENT-VERIFICATION-CONTEXT"
+        ]
+      },
+      {
+        "sha": "5e018f997db33cfea2e5c5f64a6389248c78db19",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "5fece09f75375489f58d7616392993dc30df9674",
+        "classification": "operational",
+        "itemIds": [
+          "C-STABILIZE-29"
+        ]
+      },
+      {
+        "sha": "619f7ddc9502d4f8984d76f7eae73104627c8c9b",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-DIFF-THEME-SYNC"
+        ]
+      },
+      {
+        "sha": "638c0a7cccd1425a1dfcf93a2eef065815392fbb",
+        "classification": "operational",
+        "itemIds": [
+          "C-POST-BETA-OPS-WAVE"
+        ]
+      },
+      {
+        "sha": "63fcd587a263cdd93ae57198653e231e01d8de06",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-STREAM-OWNERSHIP-EVIDENCE"
+        ]
+      },
+      {
+        "sha": "643d5dd58c2ed39a3288eb946f7aa6f36c9c5e17",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-PELE-1-10"
+        ]
+      },
+      {
+        "sha": "65619fadd88843426e4c2c8f656a49762e4663fe",
+        "classification": "operational",
+        "itemIds": [
+          "C-MUYA-MODEL-SURGERY"
+        ]
+      },
+      {
+        "sha": "660e5ff96c0c8abd2f92c2a1f3a8c9646de5f29d",
+        "classification": "operational",
+        "itemIds": [
+          "C-NOTIFICATION-SYSTEM"
+        ]
+      },
+      {
+        "sha": "67979502b33458468de929ef11c70a5711f371eb",
+        "classification": "operational",
+        "itemIds": [
+          "C-POST-BETA-OPS-WAVE"
+        ]
+      },
+      {
+        "sha": "68d932dc9ea81addcc54e24d09107c179dc038e8",
+        "classification": "operational",
+        "itemIds": [
+          "C-POST-BETA-OPS-WAVE"
+        ]
+      },
+      {
+        "sha": "6ba2f26a26b1900c42fa65fe12fc0e69f8e8a3a2",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "6e0d98475d52f023507c456a5a1416c115204d23",
+        "classification": "operational",
+        "itemIds": [
+          "C-RELEASE-ACTION-REFERENCES"
+        ]
+      },
+      {
+        "sha": "6e8e2a1d0d19aa44144225090859caa005f005e3",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-IMAGE-ACTION-CATALOG"
+        ]
+      },
+      {
+        "sha": "71d07f228d6b0d862090dc14a4eaa9a17efa8da2",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "72f7f410f88d88b90039f1f11e4da42e5cd583c2",
+        "classification": "operational",
+        "itemIds": [
+          "C-EXPORT-SINGLE-PAGE",
+          "C-DOC-POPOVER-EXPORT-HUB"
+        ]
+      },
+      {
+        "sha": "7450719668cf79454032ebc8d6cd8ead831d29cc",
+        "classification": "operational",
+        "itemIds": [
+          "C-QA-LOCAL-TAURI-TOOL"
+        ]
+      },
+      {
+        "sha": "75219f629d45617e6959f442f6668815f2b9ae02",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-021"
+        ]
+      },
+      {
+        "sha": "7680bdf0050c2a5cd23fd79816a8bb26b707c9e4",
+        "classification": "operational",
+        "itemIds": [
+          "C-MUYA-CURRENT-MODEL-EXPORT"
+        ]
+      },
+      {
+        "sha": "76dce9422effa62f3401e19987abf4cacf2781ba",
+        "classification": "operational",
+        "itemIds": [
+          "C-SEC-STREAM-SCOPE"
+        ]
+      },
+      {
+        "sha": "7706ddf5eafe164bdbc4765042231d2a73e4ca2d",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "780a66557f0305b6802bb961e3ddfe3d1d0d35c4",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "78925332edc27637c6722ae7dad0d62f24d74275",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "7a050dcc3911cdd04589cb84eb9ac466ed78d200",
+        "classification": "operational",
+        "itemIds": [
+          "C-POST-BETA-OPS-WAVE"
+        ]
+      },
+      {
+        "sha": "7b971fa9d3e60191a6cdad4acf36478930f04f3e",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-SHARED-ACTIVE-TAB-MARKER"
+        ]
+      },
+      {
+        "sha": "7f4f672e6c69f3f42ecb0c582e57e7a5d6ac795e",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-KEYBINDING-CLEANUP-REGRESSION"
+        ]
+      },
+      {
+        "sha": "82bb92aac2d6bf6d66a6a85d1782ec2764811fd9",
+        "classification": "user-facing",
+        "itemIds": [
+          "C-PAGE-WIDTH-TABLES-768"
+        ]
+      },
+      {
+        "sha": "8461c4e58a36152c1b70639cd7a37bd85d0c23c1",
+        "classification": "operational",
+        "itemIds": [
+          "td-1"
+        ]
+      },
+      {
+        "sha": "849cffa9cb93a71cc387d64d87303830a00a7eef",
+        "classification": "operational",
+        "itemIds": [
+          "td-1"
+        ]
+      },
+      {
+        "sha": "85909cf22889cc85a2a8827bc9c0e9774b9fbebe",
+        "classification": "operational",
+        "itemIds": [
+          "C-QUICKLOOK-SYNTAX-THEME"
+        ]
+      },
+      {
+        "sha": "8723f859e9f3c385ad628ccff68556488e2a7f15",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-ARCHIVED-CONTRACT-LINKS"
+        ]
+      },
+      {
+        "sha": "878c0a24d13d9b67bf83a44e84c8d53243bb6bea",
+        "classification": "operational",
+        "itemIds": [
+          "C-POST-BETA-OPS-WAVE"
+        ]
+      },
+      {
+        "sha": "87d1a36134b7b6e336c48f9c5d5f1a3d3d90e809",
+        "classification": "operational",
+        "itemIds": [
+          "C-PREFS-TRUTH"
+        ]
+      },
+      {
+        "sha": "8934a2116c18ec4d791d09003b4e778c98dd4a0b",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "89541d8e1bbbca19d410efaf5a531bc61c7e44fe",
+        "classification": "operational",
+        "itemIds": [
+          "C-LARGE-DOC-STAGE-0"
+        ]
+      },
+      {
+        "sha": "8c4bff768344f8385c911d8c6c98d8ca4b47b330",
+        "classification": "operational",
+        "itemIds": [
+          "td-1"
+        ]
+      },
+      {
+        "sha": "8c723be70306a942866cc99ae0ecc9631a442202",
+        "classification": "operational",
+        "itemIds": [
+          "C-SEARCH-SESSION-COMPLETION"
+        ]
+      },
+      {
+        "sha": "8c9a6c2e1f765d72a96791518eeba30adb6c5f1b",
+        "classification": "operational",
+        "itemIds": [
+          "C-STATS-DASH-PUSH"
+        ]
+      },
+      {
+        "sha": "8dc938f356ffc0d53f684afc3ba3bd21ab874ad6",
+        "classification": "user-facing",
+        "itemIds": [
+          "C-UPDATER-ROLLBACK"
+        ]
+      },
+      {
+        "sha": "8ea9d16e23434a6b248f06694a357ec64cd0b999",
+        "classification": "operational",
+        "itemIds": [
+          "td-1"
+        ]
+      },
+      {
+        "sha": "8f442fbd1901803f5fddfb78895bc498455e390b",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "8f4d8f261c3c322eb824d49e44dfcdb852f37ab0",
+        "classification": "operational",
+        "itemIds": [
+          "C-DEV-ENV-ISOLATION"
+        ]
+      },
+      {
+        "sha": "90882853afed0308d3b7ed8751cb30c9f505f6aa",
+        "classification": "operational",
+        "itemIds": [
+          "C-RELEASE-MANUAL-PUBLISH"
+        ]
+      },
+      {
+        "sha": "94a35d66dd018c22ea415954a81096094c580ebb",
+        "classification": "operational",
+        "itemIds": [
+          "C-QUICKLOOK-MDIT-BUMP"
+        ]
+      },
+      {
+        "sha": "9653b76a5218f306571d343b405fac562af5cc3f",
+        "classification": "operational",
+        "itemIds": [
+          "C-PAGE-WIDTH-TABLES"
+        ]
+      },
+      {
+        "sha": "96be1b358bce94c3f161676d4fd78c62680ec59c",
+        "classification": "operational",
+        "itemIds": [
+          "C-CI-CD-AUDIT-FIXES"
+        ]
+      },
+      {
+        "sha": "98bab7cc8f2795796e041ee41fd708fea6796d0e",
+        "classification": "operational",
+        "itemIds": [
+          "C-NET-STACK-BUMP"
+        ]
+      },
+      {
+        "sha": "9912f7fbba95dfb4244fe53f930c690a19a5c0bc",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-NATIVE-PDF-DESTINATION"
+        ]
+      },
+      {
+        "sha": "9a2da361dc9e86ee104dec5b6a9aa72bf2d61990",
+        "classification": "operational",
+        "itemIds": [
+          "C-SETTINGS-KEYBOARD-FOCUS"
+        ]
+      },
+      {
+        "sha": "9b386c43c057d221886c0844fee844677833f07d",
+        "classification": "operational",
+        "itemIds": [
+          "C-EDITOR-A11Y-CSS"
+        ]
+      },
+      {
+        "sha": "9caf575b1761a52fff3ad66505d2bd8ece240ef3",
+        "classification": "operational",
+        "itemIds": [
+          "C-RELEASE-BETA-CHECKS-GATE"
+        ]
+      },
+      {
+        "sha": "9f5073437854b211d5bfc21f4350d024619e9771",
+        "classification": "operational",
+        "itemIds": [
+          "td-1"
+        ]
+      },
+      {
+        "sha": "a4e9d99293b980f0616acd5e5f43e389dd5a1096",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "a64f718a0f61becf5f2e5dc590f90e4e901c83b6",
+        "classification": "operational",
+        "itemIds": [
+          "C-COMMONMARK-EMPHASIS"
+        ]
+      },
+      {
+        "sha": "a685701a4241b564f5601e937a607568d0e21e3e",
+        "classification": "operational",
+        "itemIds": [
+          "C-GITHUB-THEME"
+        ]
+      },
+      {
+        "sha": "aa0b4e84a7a8375a0842d2d59fa125b12e1488ae",
+        "classification": "operational",
+        "itemIds": [
+          "C-POST-BETA-OPS-WAVE"
+        ]
+      },
+      {
+        "sha": "ab1f0c00c02365d1c13aa1098300dd678d2b145b",
+        "classification": "operational",
+        "itemIds": [
+          "C-QUICKLOOK-CONTENT-BOUNDARY"
+        ]
+      },
+      {
+        "sha": "ac60bc02ee71c0331d2258454ec263784495da42",
+        "classification": "operational",
+        "itemIds": [
+          "C-FILE-POSITION-MEMORY"
+        ]
+      },
+      {
+        "sha": "af2e99ddf8eac658be0a4420dc23eabc1464b26c",
+        "classification": "operational",
+        "itemIds": [
+          "C-CI-TOOLS-TIMEOUT"
+        ]
+      },
+      {
+        "sha": "b3938b0f2fa9b15505abbcafffd245859b2c9b36",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "b6fa8d89daa11e6ac19b4fbbf57292dd6df4394b",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-CONTRIBUTOR-COMMANDS"
+        ]
+      },
+      {
+        "sha": "b76efc57a07200b8f2849f7b73d259324a3ace84",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-PROJECT-SEARCH-ACCENT"
+        ]
+      },
+      {
+        "sha": "b77669f59fde849e4de08a5d4552126515618dfc",
+        "classification": "operational",
+        "itemIds": [
+          "C-SOURCE-HISTORY-OWNERSHIP",
+          "C-SPLIT-SAVE-AUTHORITY"
+        ]
+      },
+      {
+        "sha": "b90f1f0dde9694f3b34d6695937184ccefbc3691",
+        "classification": "operational",
+        "itemIds": [
+          "C-SEC-LINK-OPEN",
+          "C-SEC-STREAM-AUTH",
+          "C-SEC-STREAM-TABS",
+          "C-SEC-GATEWAY-TOOLS",
+          "C-SEC-GATEWAY-LOCK-SCAN",
+          "C-SEC-COVERAGE-IMPORTS"
+        ]
+      },
+      {
+        "sha": "b9b59d4271c51c9c72c2dcd2dfac9eb5fe3e8d40",
+        "classification": "operational",
+        "itemIds": [
+          "C-RENDER-REVIEW-FIXES"
+        ]
+      },
+      {
+        "sha": "b9d8e5f6b69c1714125d904d72c7c6fe7ddb5386",
+        "classification": "operational",
+        "itemIds": [
+          "td-1"
+        ]
+      },
+      {
+        "sha": "bb68fd6ca3185b83f82cf12eac3cc189e8ab182e",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "bc8ad8aef3e731660c11f320dc54c14c703f8536",
+        "classification": "operational",
+        "itemIds": [
+          "C-WINDOWS-MENU-ACCELERATORS"
+        ]
+      },
+      {
+        "sha": "be2f52f880bc453891ec623169d12b0162b4bd3d",
+        "classification": "operational",
+        "itemIds": [
+          "C-CLIPBOARD-CAPTURE-SINGLE-SOURCE"
+        ]
+      },
+      {
+        "sha": "be525d259866571de3ae7df12b96a9e81b8d80f3",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "bf3601753824f88fadd89c6c6c94496424128d5f",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-LARGE-DOCUMENT-EMPTY-GUARD"
+        ]
+      },
+      {
+        "sha": "bf6137d69560fc3ea2f10cdd92ca4d4095eedcfd",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-TABLE-RESIZE-CANVAS"
+        ]
+      },
+      {
+        "sha": "c36a187286bb1c3c81e4efbc546daee028d2c12b",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "c3ccd5e3ee77cc1f6961f2846315a24690012310",
+        "classification": "operational",
+        "itemIds": [
+          "C-COMPACT-WINDOWS-FIT"
+        ]
+      },
+      {
+        "sha": "c4631cc5364370d61fdea20474421fbe75b4564e",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "c558f9fd0ddd1378b8a2bc3881dafe370d4be9a0",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-QUICKLOOK-WINDOWS-FIXTURE"
+        ]
+      },
+      {
+        "sha": "c74951fedb08410bba6e7c979457cffeecf5b381",
+        "classification": "operational",
+        "itemIds": [
+          "C-EXPORT-BOUNDARIES"
+        ]
+      },
+      {
+        "sha": "cb7350f4721b1dc7cd8fd5d6feca323d8f463e96",
+        "classification": "operational",
+        "itemIds": [
+          "C-MOVE-AND-SNAPSHOT-CONSISTENCY"
+        ]
+      },
+      {
+        "sha": "cca6d784970c331da51004251289ef655505aa6f",
+        "classification": "operational",
+        "itemIds": [
+          "M-046-LANE-TRAINS"
+        ]
+      },
+      {
+        "sha": "ce6eebcc90a44a68869900053de353ce1735e3ca",
+        "classification": "operational",
+        "itemIds": [
+          "td-1"
+        ]
+      },
+      {
+        "sha": "ce92b473a109778afb39cda5b0081172951a257a",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-SIDEBAR-BOLD-CONFLICT",
+          "C-PASTE-ASCII-TABLES",
+          "C-SIDEBAR-MOVE-FILE",
+          "FIX-IMAGE-TOOLBAR-RESIDUE",
+          "C-AUTOSAVE-DEFAULT-ON"
+        ]
+      },
+      {
+        "sha": "ce92b473a1098229bb8163ab97b0d7659d8d0a9a",
+        "classification": "operational",
+        "itemIds": [
+          "C-RELEASE-CANARY-PRERELEASE"
+        ]
+      },
+      {
+        "sha": "cecc7cc55be7b4fd1e2ad7d2e13326495aef6a44",
+        "classification": "operational",
+        "itemIds": [
+          "C-EXT-DELIVERY-HONESTY"
+        ]
+      },
+      {
+        "sha": "cfa71fa75fdb9f246f7223254423fd5df776f079",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-GRACE-CLI-BOOTSTRAP"
+        ]
+      },
+      {
+        "sha": "d14335e451515b5064e42fd233dded2b8a3e7cd5",
+        "classification": "user-facing",
+        "itemIds": [
+          "C-TITLEBAR-MODE-CHIPS"
+        ]
+      },
+      {
+        "sha": "d150eed729864895027134afa38349f999f8cb20",
+        "classification": "operational",
+        "itemIds": [
+          "C-LARGE-DOC-WAVE-A"
+        ]
+      },
+      {
+        "sha": "d2abf46c4a65bbb1aa1fd3d0058f0515da4ea451",
+        "classification": "operational",
+        "itemIds": [
+          "MACOS-15-RUNNERS"
+        ]
+      },
+      {
+        "sha": "d688f2fc2f349d3ef1d8660dd33353a04f8062a1",
+        "classification": "operational",
+        "itemIds": [
+          "td-1"
+        ]
+      },
+      {
+        "sha": "d81929341ef7d1ec3294cebb7e9256f111876b23",
+        "classification": "operational",
+        "itemIds": [
+          "C-POST-BETA-OPS-WAVE"
+        ]
+      },
+      {
+        "sha": "d8857f2516fd59f171d1d50412199c620e017eb0",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-ARCHIVED-CONTRACT-LINKS"
+        ]
+      },
+      {
+        "sha": "d93d9fef129be5b460e01baff79364b4f27a42d3",
+        "classification": "operational",
+        "itemIds": [
+          "C-POST-BETA-OPS-WAVE"
+        ]
+      },
+      {
+        "sha": "da6bdf0da858741625c12c90a3c071a2a393c875",
+        "classification": "operational",
+        "itemIds": [
+          "C-NPM-ROOT-PATCH-BUMP"
+        ]
+      },
+      {
+        "sha": "db3e26c75c7988d8f337af95e55a68e334902a41",
+        "classification": "operational",
+        "itemIds": [
+          "C-SEARCH-ENGINE-PARITY"
+        ]
+      },
+      {
+        "sha": "dc9fc5f1c3dab3f53bcc6ec77fedc40d3fdae0b6",
+        "classification": "operational",
+        "itemIds": [
+          "td-1"
+        ]
+      },
+      {
+        "sha": "dceb337c46567364c0b210b726835506d54353e7",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "deb690cbf890b5a013e438f83c5860dc4d7092cb",
+        "classification": "operational",
+        "itemIds": [
+          "C-TABLE-PROFILE-SCHEMA"
+        ]
+      },
+      {
+        "sha": "e0219a8fabeb650bdaed819e291bde2b97dd10c0",
+        "classification": "operational",
+        "itemIds": [
+          "C-SEARCH-ERROR-VISIBILITY"
+        ]
+      },
+      {
+        "sha": "e1a3c4fafee3860e7943eb99ead638f4186a7835",
+        "classification": "operational",
+        "itemIds": [
+          "C-POST-BETA-OPS-WAVE"
+        ]
+      },
+      {
+        "sha": "e440df40cf1d4c21bb60ed350ddbe0f554c914c5",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-023"
+        ]
+      },
+      {
+        "sha": "e45f79364aa5200b466cc0508b73c170bbd925c8",
+        "classification": "operational",
+        "itemIds": [
+          "C-STREAM-BUDGET"
+        ]
+      },
+      {
+        "sha": "e51290568f59187a790566a399ca3031fbf3734a",
+        "classification": "operational",
+        "itemIds": [
+          "C-EXT-ACK-HONESTY"
+        ]
+      },
+      {
+        "sha": "e64fadabdf98b052a84329a28f3f631943fa0b68",
+        "classification": "operational",
+        "itemIds": [
+          "C-TABLE-DIALOG-CREATION-VERIFICATION"
+        ]
+      },
+      {
+        "sha": "e68c06b69017f6b752934b1791ac513c735a5e6b",
+        "classification": "operational",
+        "itemIds": [
+          "C-SETTINGS-WINDOW-RESTORE"
+        ]
+      },
+      {
+        "sha": "e7c32b8512db9ca6b73fa3681a4b629d82448a66",
+        "classification": "operational",
+        "itemIds": [
+          "C-LARGE-DOC-STAGE-0"
+        ]
+      },
+      {
+        "sha": "e896dd214d2077ff771fa9fd6a333b16a9d69861",
+        "classification": "operational",
+        "itemIds": [
+          "C-SAVE-CLOSE-DATA-SAFETY"
+        ]
+      },
+      {
+        "sha": "e8eed5b88719f49e9d7ffdf62332bd338f9b6df4",
+        "classification": "operational",
+        "itemIds": [
+          "C-LARGE-DOC-WAVE-A"
+        ]
+      },
+      {
+        "sha": "eca85dcd06418b311f0d7e5006aa7ae3eea51103",
+        "classification": "operational",
+        "itemIds": [
+          "C-RELEASE-MANUAL-PUBLISH"
+        ]
+      },
+      {
+        "sha": "eee7b742ab41efda64cf8aeedb2e201ad9c4cffc",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "ef2e4359873688baa777edff275fd4012c177a08",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-CARGO-REPOSITORY-METADATA"
+        ]
+      },
+      {
+        "sha": "ef5faf33299298e6e3ed0ebe125b393a2a51e60c",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "efa9e60955dab59d27d1223d15b8c7f2200014d6",
+        "classification": "operational",
+        "itemIds": [
+          "C-TABLE-SEQUENTIAL-RESIZE",
+          "C-TABLE-FITTED-RESET",
+          "C-VIEWER-WINDOW-DRAG",
+          "C-HOSTED-VALIDATION-RECOVERY"
+        ]
+      },
+      {
+        "sha": "f1fb6f507cacb3cd3f966e3ca68bde4770358d89",
+        "classification": "operational",
+        "itemIds": [
+          "C-POST-BETA-OPS-WAVE"
+        ]
+      },
+      {
+        "sha": "f3d88851261d6ddad27c968a2c3048342066ab63",
+        "classification": "operational",
+        "itemIds": [
+          "C-UPDATER-STATS"
+        ]
+      },
+      {
+        "sha": "f5f18ab9c7ee6d0cdb37ee5db2224e8dfef9a5e4",
+        "classification": "operational",
+        "itemIds": [
+          "td-1"
+        ]
+      },
+      {
+        "sha": "f666d4c65025409266cac284c65a8a21373adb3e",
+        "classification": "operational",
+        "itemIds": [
+          "C-METADATA-SAVE-SAFETY"
+        ]
+      },
+      {
+        "sha": "f7ffccd8e64d9967f547c95ce6fe4b209adb5938",
+        "classification": "operational",
+        "itemIds": [
+          "C-WINDOWS-SAVE-PIPELINE"
+        ]
+      },
+      {
+        "sha": "f82620cf7324605ed3fafc62b085efc1617e8446",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "f9b709ec14d2b53f58d414a58cb38d09743040de",
+        "classification": "operational",
+        "itemIds": [
+          "FIX-EXTENSION-THEME-TOKENS"
+        ]
+      },
+      {
+        "sha": "fc2f5c65811614679885a4f542c6e5d9207fbc54",
+        "classification": "operational",
+        "itemIds": [
+          "DEPS-MAINTENANCE-2.9"
+        ]
+      },
+      {
+        "sha": "fdb8b6ec78b3b8bc0a2ef345315ac03276eb93e3",
+        "classification": "operational",
+        "itemIds": [
+          "C-SEC-PAIR-REBIND"
+        ]
+      },
+      {
+        "sha": "ff7bb7975e8850807544caa6c5d74354181abbfb",
+        "classification": "operational",
+        "itemIds": [
+          "C-SEC-SAVE-HANDLE"
+        ]
+      },
+      {
+        "sha": "ff9ff6e112c7cf48ac018c25be5e58dc1842befd",
+        "classification": "operational",
+        "itemIds": [
+          "C-SAFETY-REVIEW-LANES"
+        ]
+      }
+    ],
+    "throughInclusive": "c86afea6275ba52348345d5af8f67fd8cf4645fc"
   },
   "requiredChecks": [
     {
@@ -5066,7 +6367,7 @@
     }
   ],
   "materials": {
-    "status": "pending",
+    "status": "ready",
     "screenshotManifest": "docs/assets/readme/2.9.0.manifest.json",
     "readme": "README.md",
     "changelog": "CHANGELOG.md",
@@ -5074,77 +6375,10 @@
     "whatsNew": "src/renderer/src/whatsNew/data.js",
     "localeCount": 10,
     "itemIds": [
-      "C-GITHUB-THEME",
-      "C-NOTIFICATION-SYSTEM",
       "C-NATIVE-DOCX-RTF-EXPORT",
-      "C-FILE-POSITION-MEMORY",
       "C-TITLEBAR-MODE-CHIPS",
-      "C-COMMONMARK-EMPHASIS",
       "C-UPDATER-ROLLBACK",
-      "FIX-020",
-      "DEPS-PELE-1-10",
-      "FIX-021",
-      "C-WINDOWS-MENU-ACCELERATORS",
-      "C-WINDOWS-SAVE-PIPELINE",
-      "C-PAGE-WIDTH-TABLES-768",
-      "C-UPDATER-REVIEW-FIXES",
-      "C-PAGE-WIDTH-TABLES",
-      "C-RENDER-REVIEW-FIXES",
-      "C-STABILIZE-29",
-      "C-TABLE-SEQUENTIAL-RESIZE",
-      "C-TABLE-FITTED-RESET",
-      "C-VIEWER-WINDOW-DRAG",
-      "C-HOSTED-VALIDATION-RECOVERY",
-      "C-SAVE-CLOSE-DATA-SAFETY",
-      "C-MD-LINK-TABS",
-      "FIX-EMOJI-TIMESTAMPS",
-      "C-METADATA-SAVE-SAFETY",
-      "C-SEC-LINK-OPEN",
-      "C-SEC-STREAM-AUTH",
-      "C-SEC-STREAM-TABS",
-      "C-SOURCE-HISTORY-OWNERSHIP",
-      "C-SPLIT-SAVE-AUTHORITY",
-      "C-QUICKLOOK-CONTENT-BOUNDARY",
-      "FIX-NATIVE-PDF-DESTINATION",
-      "C-MUYA-CURRENT-MODEL-EXPORT",
-      "C-EXPORT-SETTINGS-SECTION-RECOVERY",
-      "FIX-LARGE-DOCUMENT-EMPTY-GUARD",
-      "FIX-DIFF-THEME-SYNC",
-      "FIX-EXTENSION-THEME-TOKENS",
-      "FIX-PROJECT-SEARCH-ACCENT",
-      "FIX-SHARED-ACTIVE-TAB-MARKER",
-      "FIX-IMAGE-ACTION-CATALOG",
-      "FIX-SHELL-CHROME-FONT",
-      "C-SETTINGS-KEYBOARD-FOCUS",
-      "C-SETTINGS-WINDOW-RESTORE",
-      "FIX-SIDEBAR-BOLD-CONFLICT",
-      "C-PASTE-ASCII-TABLES",
-      "C-SIDEBAR-MOVE-FILE",
-      "FIX-IMAGE-TOOLBAR-RESIDUE",
-      "C-AUTOSAVE-DEFAULT-ON",
-      "FIX-022",
-      "FIX-023",
-      "C-TABLE-LAYOUT-COMPLETION",
-      "C-TABLE-DIALOG-CREATION-VERIFICATION",
-      "C-QUICKLOOK-SYNTAX-THEME",
-      "C-SEARCH-SESSION-COMPLETION",
-      "C-PELE-HTML-POSTPROCESS",
-      "C-EXTERNAL-RELOAD-OPERATION",
-      "C-SEC-STREAM-SCOPE",
-      "C-SEC-PAIR-REBIND",
-      "C-SEC-EDIT-TARGETING",
-      "C-SEC-SAVE-HANDLE",
-      "C-SEC-EXT-GRANT-BOUND",
-      "C-WIN-ROLLBACK-PANIC",
-      "C-STREAM-BUDGET",
-      "C-SEARCH-ERROR-VISIBILITY",
-      "C-SESSION-WRITE-ATOMICITY",
-      "C-EXPORT-BOUNDARIES",
-      "C-COMPACT-WINDOWS-FIT",
-      "C-PREFS-TRUTH",
-      "C-EXPORT-SINGLE-PAGE",
-      "C-DOC-POPOVER-EXPORT-HUB",
-      "C-TABLE-BAR-MENU-OVERLAP"
+      "C-PAGE-WIDTH-TABLES-768"
     ]
   },
   "transitions": [
@@ -5207,6 +6441,12 @@
       "date": "2026-11-22",
       "actor": "release-normalize",
       "evidence": "Preparation set 2.9.0; no tag or publication was created."
+    },
+    {
+      "state": "Frozen",
+      "date": "2026-11-28",
+      "actor": "agent (owner-delegated conveyor)",
+      "evidence": "Froze 2.9.x-next at product payload 31bee13a (PR #369); the bookkeeping span above the payload is metadata-only (ledger admission a0c0fb51 #372, governance archive 9f63f464 #373, changelog delta c86afea6 #374) and heads into the seal. Hosted gates on the main tip: CI, release/governance, release/promote readiness and CodeQL push run green; renderer-unit rerun on c86afea6 follows the fix009 provenance branch restore. Acceptance smoke executed 2026-11-27 by the orchestrator session on owner delegation: live visuals + local e2e 568 passed / 7 skipped / 0 failed + unit suites (vitest 95/95, cargo search 62/62, cargo m045_ext 143/143); verdicts recorded in the smoke RUN record. Commit accounting normalized for two mixed-class wave squashes (b90f1f0d, ce92b473): the shas are attributed to their user-facing items; provenance for the operational co-items remains in the transitions history. Seal on the recorded all-OK verdict."
     }
   ]
 }
